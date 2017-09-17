@@ -1,0 +1,271 @@
+<h2>题目描述</h2>
+<p>动态树模板题两道。</p>
+<p>[lydsy2049]洞穴勘测：维护一棵树，支持如下操作：</p>
+<ol>
+<li><code>Connect u v</code> 连接两点 u, v (保证 u, v 不连通)。</li>
+<li><code>Destroy u v</code> 删除两点 u, v 之间的边(保证 u, v 连通)。</li>
+<li><code>Query u v</code> 询问 u, v 的连通性。</li>
+</ol>
+<p>[luogu3690]【模板】Link Cut Tree：维护一棵树，每个点有一个对应的权值 w<sub>i</sub>，支持如下操作：</p>
+<ol>
+<li>询问 x, y 路径上的点权异或和。</li>
+<li>连接两点 x, y <b>(如果 x, y 连通，则忽略本操作)</b>。</li>
+<li>删除两点 x, y 之间的边<b>(如果 x, y 不连通，则忽略本操作)</b>。</b></li>
+<li> w<sub>x</sub> ← y。</li>
+</ol>
+
+<h2>输入输出格式</h2>
+<p>没什么好说的，见原题。</p>
+<p><a href="http://www.lydsy.com/JudgeOnline/problem.php?id=2049" target="_blank">[lydsy2049]洞穴勘测</a></p>
+<p><a href="https://www.luogu.org/problem/show?pid=3690" target="_blank">[luogu3690]【模板】Link Cut Tree</a></p>
+
+<h2>题解</h2>
+<p>终于学动态树了！</p>
+<p>你知道什么是动态树吗？<img src="http://images2015.cnblogs.com/blog/726127/201602/726127-20160201000613021-1278735885.gif" align="center" height="200" width="240"><s>左图就是一棵动态树。</s></p>
+<p>动态树是维护一棵可以动态加边删边的树，然后在树上搞神马树剖啦，LCA啦，<s>仙人掌嵌套动态网络流维护A*搜索</s>等等。</p>
+<p>哦对了，有人问我第一题能不能用并查集骗，其实第一题去掉 Destroy 操作可以用并查集做，说的也没错，可是并查集貌(di)似(que)是不支持动态加删边的。<s>(不过好像这道题用并查集能拿很高的分)</s></p>
+<p>动态树其实有很多种，最(wo)主(zhi)流(hui)的动态树就是 Link-Cut Tree，简称 LCT。</p>
+<p>LCT 就是将一棵树先进行树链剖分(没有学过树剖的自行左转小学(没错，就是小学)深造)。</p>
+<p>将这棵树剖成几条重重轻轻的链以后，然后用 spaly，哦不，splay 维护每个链的形态。</p>
+<p>(scx: 不应该是线段树么？splay 是平衡树，是维护一棵有序序列的！)</p>
+<p>线段树是可以用，但是 splay 会有更高的效率，splay 是维护这样一个东西：</p>
+<p>假如有一棵重链(显然是单调上升或单调下降的)，因此可以唯一地将这个链上的点<b>从浅至深</b>的遍历</p>
+<p>那么，我们只需使这个 splay 的每一个节点的左子树存储比它浅的节点，右子树存储比它深的节点，那么将它中序遍历一下，就是刚才所说的从浅至深的遍历。</p>
+<p>(scx: 那么我们怎么知道要多少个splay呢？如何保证内存呢？)</p>
+<p>其实不难。我们可以见一个主splay，如果一条重链的最顶端不是根，设这个点 V 的父亲为 U，我们知道，这时点 V 在这个 splay 的最左端，而它<b>所在子树</b>的根节点没有父亲，所以我们将那个根节点的父亲设为 U，但它<b>不作为节点 U 的任何子树</b>，我们将这样的边叫做<b>虚边</b>(<font face="Times New Roman" color="red">void edge</font>)。</p>
+<p>这样，所有的 splay 并成了一棵树，把它叫做<b>辅助树</b>(<font face="Times New Roman" color="red">auxiliary tree</font>)，这棵树所表示的，也就是题目中的原来的树，叫做<b>原树</b>(<font face="Times New Roman" color="red">primary tree</font>)，这样，我们把原树的几乎所有信息转移到了辅助树上。</p>
+<p>(scx: 那如何在这棵辅助树上动态加(删)边呢？)</p>
+<p>我们需要这样几个操作：</p>
+<ol>
+<li><b>Dir操作：</b>像平常的 splay 一样，得到该树的方向(即是父亲的左子树还是右子树，左返回 0，右返回 1)，但是因为虚边的存在，我们还需要判断如果既不是左子树又不是右子树，则说明它是它所属 splay 的根，给出一个新的返回值(我习惯用 -1)。</li>
+<li><b>Rotate操作：</b>这个和普通的 splay 毫无区别(我假装来阅读此文的人已经会熟练运用 splay)。</li>
+<li><b>Pull_down操作：</b>(scx: 我只听说过 push_down，这个 pull_down 又是什么鬼？)<br/>
+pull_down 其实就是把该点所在 splay 的根节点一直 push_down 到该节点，实现非常简单：
+<pre>
+void pull_down(int x){
+    if(~dir(x)) pull_down(x[nd].p);
+    push_down(x);
+}
+</pre></li>
+<li><b>Push_down操作：</b>这个其实是用来下传翻转标记的...和线段树差不多吧...</li>
+<li><b>Reverse操作：</b>让该节点以下的部分左右翻转，由于翻转的节点过多，所以要像线段树一样先交换这个节点的左右儿子，再下传标记(push_down)。</li>
+<li><b>Splay操作：</b>和 splay 的 splay 操作没什么区别，唯一的不同就是一开始需要 pull_down (不让你怎么知道这棵树有没有被别人翻来翻去？)</li>
+<li><b>Access操作(和根联系)：</b>将原树中该点与子节点的重链切断(如果有)，然后将原树中该点到根重新产生一条重链。所以我们只需将原来这个点翻到顶，将 splay 中右儿子(即原树中的儿子)设为上一次操作的点(第一次为 0)。然后令当前的点为它的父亲，重复此操作，操作完毕后，这个点和原树的根节点在同一棵 splay 中。</li>
+<li><b>Make_root操作(让树翻转起来吧)：</b>将一个点设为原树的根。记住，要将一个点在原树中搞什么操作，先把这个点 access 了，即和根有联系了，然后将它 splay 到顶，于是成了该 splay (就是整个辅助树)的根，因为 splay 平衡树维护的是深度，然而 access 后它和子节点不在同一个 splay 上，所以只需要将 splay <b>左右翻转(reverse操作)</b>，然后中序遍历的结果就是原结果的<b>反序</b>，该节点已经是最左边的节点了，其实就已经成为原树的根了。</li>
+<li><b>Link操作(牵手吧)：</b>其实很简单，将其中一个点设为根后，再与另外一个节点连一条虚边(即让根节点的父亲设为第二个点)就可以了，这个 Link 操作是保证原先两点不连通，不然可能会发生错误。</li>
+<li><b>Cut操作(分手吧)：</b>
+其实也不难，先将其中一个点设为根，另外一个点与根联系，在设为辅助树的根。如果两点有直接连边的话，那么当第一个点设为根的时候，第二个点的深度为 1，所以当它成为 splay 的根的时候，由于 access 之后，它与原树的根(第一个点)在同一棵 splay 上，所以它的左子树<b>有且仅有一个节点</b>，即第一个点，把这条边断了即可。</li>
+<li><b>Find_root操作(找找祖先)：</b>(scx: 那么如何知道两点的连通性？)<br/>
+这个和并查集有点像，两点联通当且仅当这个两个点所在<b>原树</b>的根为同一个。所以我们需要写一个算法求出该点所在原树的根。
+操作的话，先将它与根联系再 splay 到根，那么(原树的)根应该是它所属 splay 的深度最小节点(最左边)，所以我们只需寻找这棵 splay 的最小节点，即有左子树就向左寻找，直到没有左子树，就是最小节点。</li>
+</ol>
+<p>这样就能实现一个基本的 splay 了，代码见"代码"部分，如果还有维护神马东西的话，增加一个 Update 函数，更新维护的权值，只需在 rotate、access、cut 时增加一句 update 即可。</p>
+<p>两道题还有一个区别，就是第一题的 link, cut 有连通性保证，第二题没有，所以代码也会有区别(本例中改为了 Trylink, Trycut 函数)。</p>
+<p>毕竟这两道题是动态树模板题，所以其它也没什么好讲的了。</p>
+
+<h2>代码</h2>
+
+<link type="text/css" rel="stylesheet" href="http://uoj.ac/css/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="http://uoj.ac/css/sh_typical.min.css">
+
+<h3>lydsy2049(略压代码)</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> LEFT <span class="sh_number">0</span>
+<span class="sh_preproc">#define</span> RIGHT <span class="sh_number">1</span>
+<span class="sh_preproc">#define</span> <span class="sh_usertype">pa</span><span class="sh_normal"> </span>p<span class="sh_symbol">[</span>nd<span class="sh_symbol">]</span>
+<span class="sh_preproc">#define</span> <span class="sh_usertype">root</span><span class="sh_normal"> </span>nd<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">].</span>c<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">10034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">node</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> v<span class="sh_symbol">,</span> rev<span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> c<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">],</span> p<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>nd<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_comment">// get direction of x, root: -1, left: 0, right: 1</span>
+<span class="sh_keyword">inline</span> <span class="sh_type">int</span> <span class="sh_function">dir</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_symbol">!</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p <span class="sh_symbol">?</span> <span class="sh_symbol">-</span><span class="sh_number">1</span> <span class="sh_symbol">:</span> <span class="sh_symbol">(</span>x <span class="sh_symbol">==</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>pa<span class="sh_symbol">.</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">]</span> <span class="sh_symbol">?</span> <span class="sh_number">0</span> <span class="sh_symbol">:</span> <span class="sh_symbol">(</span>x <span class="sh_symbol">==</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>pa<span class="sh_symbol">.</span>c<span class="sh_symbol">[</span>RIGHT<span class="sh_symbol">]</span> <span class="sh_symbol">?</span> <span class="sh_number">1</span> <span class="sh_symbol">:</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">));</span><span class="sh_cbracket">}</span>
+
+<span class="sh_comment">// reverse the subtree of x</span>
+<span class="sh_type">void</span> <span class="sh_function">reverse</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_function">swap</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">],</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>RIGHT<span class="sh_symbol">]);</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>rev <span class="sh_symbol">^=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_comment">// push_down the tags</span>
+<span class="sh_type">void</span> <span class="sh_function">push_down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">if</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>rev<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_function">reverse</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">]);</span> <span class="sh_function">reverse</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>RIGHT<span class="sh_symbol">]);</span><span class="sh_cbracket">}</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>rev <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_comment">// push_down all the tags over x </span>
+<span class="sh_type">void</span> <span class="sh_function">pull_down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">if</span><span class="sh_symbol">(~</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">))</span> <span class="sh_function">pull_down</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">);</span> <span class="sh_function">push_down</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+
+<span class="sh_comment">// rotate node x</span>
+<span class="sh_type">void</span> <span class="sh_function">rotate</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> y <span class="sh_symbol">=</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">,</span> d <span class="sh_symbol">=</span> <span class="sh_symbol">!</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span>
+    nd<span class="sh_symbol">[</span>y<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[!</span>d<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>d<span class="sh_symbol">]].</span>p <span class="sh_symbol">=</span> y<span class="sh_symbol">;</span> <span class="sh_comment">// change the subtree</span>
+    x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p <span class="sh_symbol">=</span> y<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">;</span> <span class="sh_comment">// change the parent of parent</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(~</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>y<span class="sh_symbol">))</span> y<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>pa<span class="sh_symbol">.</span>c<span class="sh_symbol">[</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>y<span class="sh_symbol">)]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span>
+    nd<span class="sh_symbol">[</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>d<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> y<span class="sh_symbol">].</span>p <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span> <span class="sh_comment">// change itself and parent</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_comment">// splay x to root</span>
+<span class="sh_type">void</span> <span class="sh_function">splay</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">pull_down</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_symbol">~</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_function">rotate</span><span class="sh_symbol">(</span>x<span class="sh_symbol">))</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(~</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">))</span> <span class="sh_function">rotate</span><span class="sh_symbol">(</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">)</span> <span class="sh_symbol">^</span> <span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">)</span> <span class="sh_symbol">?</span> x <span class="sh_symbol">:</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+
+<span class="sh_comment">// turn all the edge from x into root into preferred edge</span>
+<span class="sh_type">void</span> <span class="sh_function">access</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">int</span> y <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> x<span class="sh_symbol">;</span> y <span class="sh_symbol">=</span> x<span class="sh_symbol">,</span> x <span class="sh_symbol">=</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_function">splay</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>RIGHT<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> y<span class="sh_symbol">;</span><span class="sh_cbracket">}}</span>
+
+<span class="sh_comment">// make x to root</span>
+<span class="sh_type">void</span> <span class="sh_function">make_root</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_function">access</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_function">splay</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_function">reverse</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+
+<span class="sh_comment">// link edge {x, y}</span>
+<span class="sh_type">void</span> <span class="sh_function">link</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_function">make_root</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p <span class="sh_symbol">=</span> y<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_comment">// cut edge {x, y}</span>
+<span class="sh_type">void</span> <span class="sh_function">cut</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_function">make_root</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_function">access</span><span class="sh_symbol">(</span>y<span class="sh_symbol">);</span> <span class="sh_function">splay</span><span class="sh_symbol">(</span>y<span class="sh_symbol">);</span> y<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_comment">// find the root of temp tree of x</span>
+<span class="sh_type">int</span> <span class="sh_function">find_root</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_function">access</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_function">splay</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">];</span> x <span class="sh_symbol">=</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">]);</span> <span class="sh_keyword">return</span> x<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> V<span class="sh_symbol">,</span> Q<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> ur<span class="sh_symbol">,</span> vr<span class="sh_symbol">;</span>
+<span class="sh_type">char</span> op<span class="sh_symbol">[</span><span class="sh_number">16</span><span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>V<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>Q<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> Q<span class="sh_symbol">;</span> Q<span class="sh_symbol">--)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s%d%d"</span><span class="sh_symbol">,</span> op<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">);</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>op<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">==</span> <span class="sh_string">'C'</span><span class="sh_symbol">)</span> <span class="sh_function">link</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span>
+        <span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>op<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">==</span> <span class="sh_string">'D'</span><span class="sh_symbol">)</span> <span class="sh_function">cut</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span>
+        <span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>op<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">==</span> <span class="sh_string">'Q'</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            ur <span class="sh_symbol">=</span> <span class="sh_function">find_root</span><span class="sh_symbol">(</span>u<span class="sh_symbol">);</span> vr <span class="sh_symbol">=</span> <span class="sh_function">find_root</span><span class="sh_symbol">(</span>v<span class="sh_symbol">);</span>
+            <span class="sh_function">puts</span><span class="sh_symbol">(</span>ur <span class="sh_symbol">==</span> vr <span class="sh_symbol">?</span> <span class="sh_string">"Yes"</span> <span class="sh_symbol">:</span> <span class="sh_string">"No"</span><span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>luogu3690</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> LEFT <span class="sh_number">0</span>
+<span class="sh_preproc">#define</span> RIGHT <span class="sh_number">1</span>
+<span class="sh_preproc">#define</span> <span class="sh_usertype">pa</span><span class="sh_normal"> </span>p<span class="sh_symbol">[</span>nd<span class="sh_symbol">]</span>
+<span class="sh_preproc">#define</span> <span class="sh_usertype">root</span><span class="sh_normal"> </span>nd<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">].</span>c<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">300034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">node</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> v<span class="sh_symbol">,</span> rev<span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> c<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">],</span> p<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>nd<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> a<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">dir</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">return</span> <span class="sh_symbol">!</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p <span class="sh_symbol">?</span> <span class="sh_symbol">-</span><span class="sh_number">1</span> <span class="sh_symbol">:</span> <span class="sh_symbol">(</span>x <span class="sh_symbol">==</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>pa<span class="sh_symbol">.</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">]</span> <span class="sh_symbol">?</span> <span class="sh_number">0</span> <span class="sh_symbol">:</span> <span class="sh_symbol">(</span>x <span class="sh_symbol">==</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>pa<span class="sh_symbol">.</span>c<span class="sh_symbol">[</span>RIGHT<span class="sh_symbol">]</span> <span class="sh_symbol">?</span> <span class="sh_number">1</span> <span class="sh_symbol">:</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">));</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">reverse</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">swap</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">],</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>RIGHT<span class="sh_symbol">]);</span>
+    x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>rev <span class="sh_symbol">^=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">push_down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>rev<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_function">reverse</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">]);</span> <span class="sh_function">reverse</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>RIGHT<span class="sh_symbol">]);</span><span class="sh_cbracket">}</span>
+    x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>rev <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">pull_down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(~</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">))</span> <span class="sh_function">pull_down</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">);</span>
+    <span class="sh_function">push_down</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">update</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>v <span class="sh_symbol">=</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">][</span>nd<span class="sh_symbol">].</span>v <span class="sh_symbol">^</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>RIGHT<span class="sh_symbol">][</span>nd<span class="sh_symbol">].</span>v <span class="sh_symbol">^</span> a<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">rotate</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> y <span class="sh_symbol">=</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">,</span> d <span class="sh_symbol">=</span> <span class="sh_symbol">!</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span>
+    nd<span class="sh_symbol">[</span>y<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[!</span>d<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>d<span class="sh_symbol">]].</span>p <span class="sh_symbol">=</span> y<span class="sh_symbol">;</span>
+    x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p <span class="sh_symbol">=</span> y<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(~</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>y<span class="sh_symbol">))</span> y<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>pa<span class="sh_symbol">.</span>c<span class="sh_symbol">[</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>y<span class="sh_symbol">)]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span>
+    nd<span class="sh_symbol">[</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>d<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> y<span class="sh_symbol">].</span>p <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span>
+    <span class="sh_function">update</span><span class="sh_symbol">(</span>y<span class="sh_symbol">);</span> <span class="sh_function">update</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">splay</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">pull_down</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_symbol">~</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_function">rotate</span><span class="sh_symbol">(</span>x<span class="sh_symbol">))</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(~</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">))</span>
+            <span class="sh_function">rotate</span><span class="sh_symbol">(</span><span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">)</span> <span class="sh_symbol">^</span> <span class="sh_function">dir</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">)</span> <span class="sh_symbol">?</span> x <span class="sh_symbol">:</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">access</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">int</span> y <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> x<span class="sh_symbol">;</span> y <span class="sh_symbol">=</span> x<span class="sh_symbol">,</span> x <span class="sh_symbol">=</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">splay</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span>
+        x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>RIGHT<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> y<span class="sh_symbol">;</span>
+        <span class="sh_function">update</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">make_root</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">access</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_function">splay</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_function">reverse</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">find_root</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">access</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_function">splay</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">];</span> x <span class="sh_symbol">=</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">]);</span> <span class="sh_keyword">return</span> x<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">trylink</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">make_root</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span><span class="sh_function">find_root</span><span class="sh_symbol">(</span>y<span class="sh_symbol">)</span> <span class="sh_symbol">!=</span> x<span class="sh_symbol">)</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p <span class="sh_symbol">=</span> y<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">split</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">make_root</span><span class="sh_symbol">(</span>x<span class="sh_symbol">);</span> <span class="sh_function">access</span><span class="sh_symbol">(</span>y<span class="sh_symbol">);</span> <span class="sh_function">splay</span><span class="sh_symbol">(</span>y<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">trycut</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">split</span><span class="sh_symbol">(</span>x<span class="sh_symbol">,</span> y<span class="sh_symbol">);</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>y<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> x<span class="sh_symbol">)</span> x<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>p <span class="sh_symbol">=</span> y<span class="sh_symbol">[</span>nd<span class="sh_symbol">].</span>c<span class="sh_symbol">[</span>LEFT<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_function">update</span><span class="sh_symbol">(</span>y<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> V<span class="sh_symbol">,</span> Q<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> ch<span class="sh_symbol">,</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>V<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>Q<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> Q<span class="sh_symbol">;</span> Q<span class="sh_symbol">--)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>ch<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">);</span>
+        <span class="sh_keyword">switch</span><span class="sh_symbol">(</span>ch<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">case</span> <span class="sh_number">0</span><span class="sh_symbol">:</span>
+                <span class="sh_function">split</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span>
+                <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> nd<span class="sh_symbol">[</span>v<span class="sh_symbol">].</span>v<span class="sh_symbol">);</span>
+                <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">case</span> <span class="sh_number">1</span><span class="sh_symbol">:</span>
+                <span class="sh_function">trylink</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span>
+                <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">case</span> <span class="sh_number">2</span><span class="sh_symbol">:</span>
+                <span class="sh_function">trycut</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span>
+                <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">case</span> <span class="sh_number">3</span><span class="sh_symbol">:</span>
+                <span class="sh_function">access</span><span class="sh_symbol">(</span>u<span class="sh_symbol">);</span>
+                <span class="sh_function">splay</span><span class="sh_symbol">(</span>u<span class="sh_symbol">);</span>
+                a<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> v<span class="sh_symbol">;</span>
+                <span class="sh_function">update</span><span class="sh_symbol">(</span>u<span class="sh_symbol">);</span>
+                <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h2>坑</h2>
+<p>毕竟是个 LCT 的裸题，<s>抄着模板</s>写起来还是比较顺畅的。抄好后为了保证熟练，以后定下目标，<s>每天编程前码一遍 LCT。</s></p>
+<p>(scx: 这看起来很累啊，你能做到吗？)</p>
+<p>大概就是码两个月后，如果平均能在 5 min 中内码完且没有错误，那么就可以适当降低频率。</p>
+<p>当时我做 lydsy 的题时，是照着板子抄的，那道洛谷题时，我试着自己码了一遍，7 分钟码完了，还过了样例，然后交上去总是 WA ...</p>
+<p>(scx: 感觉你好几次都是过了样例提交就 WA ...)</p>
+<p>我也觉得奇怪，然后开始调我手码的 LCT (你要知道 LCT 码萎了不是那么好调的)，然后先照着 AC 的那次代码对了 4 遍，可能是我眼力比较差，没查出来，然后开始疯狂调试 ... 调了 2 个多小时，才发现是一个旋转写炸了 ...</p>
+<p>当时把<pre>nd[y[nd].c[!d] = x[nd].c[d]].p = y;</pre>写成了<pre>nd[y[nd].c[!d] = x[nd].c[d]].p = x;</pre></p>
+<p>结果浪费了 2 个小时……(代码技术差要人命啊)</p>

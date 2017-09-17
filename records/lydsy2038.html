@@ -1,0 +1,93 @@
+<h2>题目描述</h2>
+<p>有从 1 到 N 编号的 N 只袜子，每只袜子有一个颜色 C<sub>i</sub>，小Z要从编号 L 到 R 中选一双袜子，你的任务便是告诉小Z，他有多大的概率抽到两只颜色相同的袜子。当然，小Z希望这个概率尽量高，所以他可能会询问多个 (L, R) 以方便自己选择。</p>
+
+<h2>输入格式</h2>
+<p>输入文件第一行包含两个正整数 N 和 M。N 为袜子的数量，M 为小Z所提的询问的数量。</p>
+<p>接下来一行包含 N 个正整数 C<sub>i</sub>，其中 C<sub>i</sub> 表示第 i 只袜子的颜色，相同的颜色用相同的数字表示。</p>
+<p>再接下来 M 行，每行两个正整数 L, R 表示一个询问。</p>
+
+<h2>输出格式</h2> 
+<p>包含 M 行，对于每个询问在一行中输出分数 A/B 表示从该询问的区间 [L, R] 中随机抽出两只袜子颜色相同的概率。若该概率为 0 则输出 0/1，否则输出的 A/B 必须为最简分数。（详见样例）</p>
+
+<h2>题解</h2>
+<p>毕竟是一道莫队裸题<s>(好像就是莫涛当年发明的)</s>。</p>
+<p>读入询问后，首先按照<img src="https://latex.codecogs.com/gif.latex?\sqrt%20n" align="top">分块，记录每种颜色出现的次数(出题人也比较良心，不用离散化了)。</p>
+<p>可以知道答案就等于<img src="https://latex.codecogs.com/gif.latex?\frac{\sum\limits_{i=1}^n\dbinom{\sum\limits_{x=L}^R[c_x=i]}2}{\dbinom{r-l+1}2}" align="center">([]表示表达式成立为1，不成立为0)，记<img src="https://latex.codecogs.com/gif.latex?d_i=\sum\limits_{x=L}^R[c_x=i]" align="center">，即 <code>[L, R]</code> 中颜色为 i 的袜子个数。那么化简一下，答案就等于<img src="https://latex.codecogs.com/gif.latex?\frac{\sum\limits_{i=1}^nd_i(d_i-1)}{(r-l+1)(r-l)}" align="center">。
+显然，分母是可以秒算的，只需要算分子。</p>
+<p>当标尺指针移动的时候，如果区间增大，则将 <code>d<sub>i</sub></code> 增加1，同时将当前答案加上 <code>d<sub>i</sub><sup>2</sup>-(d<sub>i</sub>-1)<sup>2</sup>=2d<sub>i</sub>-1</code> (注意 <code>d<sub>i</sub></code> 先增加)；<br/>
+如果区间减少，则将 <code>d<sub>i</sub></code> 减少1，同时将当前答案减去 <code>(d<sub>i</sub>+1)<sup>2</sup>-d<sub>i</sub><sup>2</sup>=2d<sub>i</sub>+1</code> (注意 <code>d<sub>i</sub></code> 先减少)。</p>
+<p>(scx: 那么你维护的是平方呀！然而上面表达式中却是 <code>d<sub>i</sub>(d<sub>i</sub>-1)</code>！)</p>
+<p>没关系的，因为我们知道，<img src="https://latex.codecogs.com/gif.latex?\sum_{i=1}^nd_i=R-L+1" align="center">。</p>
+<p>所以分子可以通过莫队算出来，再约个分就做完了。</p>
+
+<h2>代码</h2>
+
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> <span class="sh_function">block</span><span class="sh_symbol">(</span>i<span class="sh_symbol">)</span> <span class="sh_symbol">((</span>i <span class="sh_symbol">+</span> b <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">/</span> b<span class="sh_symbol">)</span>
+<span class="sh_preproc">#define</span> gcd __gcd
+<span class="sh_preproc">#define</span> N <span class="sh_number">50034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">req</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> st<span class="sh_symbol">,</span> en<span class="sh_symbol">,</span> id<span class="sh_symbol">,</span> ans<span class="sh_symbol">;</span>
+    <span class="sh_usertype">req</span><span class="sh_normal"> </span><span class="sh_symbol">*</span><span class="sh_function">read</span><span class="sh_symbol">(</span><span class="sh_type">int</span> id0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>st<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>en<span class="sh_symbol">);</span> id <span class="sh_symbol">=</span> id0<span class="sh_symbol">;</span> <span class="sh_keyword">return</span> <span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> q<span class="sh_symbol">,</span> b<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> lp<span class="sh_symbol">,</span> rp<span class="sh_symbol">,</span> cur<span class="sh_symbol">;</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>x<span class="sh_symbol">,</span> y<span class="sh_symbol">,</span> d<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> a<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> cnt<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">char</span> ans<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span><span class="sh_number">20</span><span class="sh_symbol">];</span>
+<span class="sh_usertype">req</span><span class="sh_normal"> </span>r<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">bool</span> <span class="sh_function">cmp</span><span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">req</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_usertype">req</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> bx <span class="sh_symbol">=</span> <span class="sh_function">block</span><span class="sh_symbol">(</span>x<span class="sh_symbol">.</span>st<span class="sh_symbol">),</span> by <span class="sh_symbol">=</span> <span class="sh_function">block</span><span class="sh_symbol">(</span>y<span class="sh_symbol">.</span>st<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> bx <span class="sh_symbol">&lt;</span> by <span class="sh_symbol">||</span> <span class="sh_symbol">(</span>bx <span class="sh_symbol">==</span> by <span class="sh_symbol">&amp;&amp;</span> x<span class="sh_symbol">.</span>en <span class="sh_symbol">&lt;</span> y<span class="sh_symbol">.</span>en<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">add</span><span class="sh_symbol">(</span><span class="sh_type">int</span> pos<span class="sh_symbol">,</span> <span class="sh_type">int</span> val<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    cnt<span class="sh_symbol">[</span>a<span class="sh_symbol">[</span>pos<span class="sh_symbol">]]</span> <span class="sh_symbol">+=</span> val<span class="sh_symbol">;</span>
+    cur <span class="sh_symbol">=</span> cur <span class="sh_symbol">+</span> <span class="sh_symbol">(~</span>val <span class="sh_symbol">?</span> cnt<span class="sh_symbol">[</span>a<span class="sh_symbol">[</span>pos<span class="sh_symbol">]]</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span> <span class="sh_symbol">:</span> <span class="sh_symbol">-</span>cnt<span class="sh_symbol">[</span>a<span class="sh_symbol">[</span>pos<span class="sh_symbol">]]</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>q<span class="sh_symbol">);</span>
+    b <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)(</span><span class="sh_function">sqrt</span><span class="sh_symbol">(</span>n<span class="sh_symbol">)</span> <span class="sh_symbol">+</span> <span class="sh_number">1e-6</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> q<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+        r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">read</span><span class="sh_symbol">(</span>i<span class="sh_symbol">);</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>r<span class="sh_symbol">,</span> r <span class="sh_symbol">+</span> q<span class="sh_symbol">,</span> cmp<span class="sh_symbol">);</span>
+    lp <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    rp <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    cur <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>cnt<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> cnt<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> q<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">while</span><span class="sh_symbol">(</span>rp <span class="sh_symbol">&lt;</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>en<span class="sh_symbol">)</span> <span class="sh_function">add</span><span class="sh_symbol">(++</span>rp<span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+        <span class="sh_keyword">while</span><span class="sh_symbol">(</span>rp <span class="sh_symbol">&gt;</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>en<span class="sh_symbol">)</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>rp<span class="sh_symbol">--,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">);</span>
+        <span class="sh_keyword">while</span><span class="sh_symbol">(</span>lp <span class="sh_symbol">&lt;</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>st<span class="sh_symbol">)</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>lp<span class="sh_symbol">++,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">);</span>
+        <span class="sh_keyword">while</span><span class="sh_symbol">(</span>lp <span class="sh_symbol">&gt;</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>st<span class="sh_symbol">)</span> <span class="sh_function">add</span><span class="sh_symbol">(--</span>lp<span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+        r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>ans <span class="sh_symbol">=</span> cur<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> q<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        y <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)</span>r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>en <span class="sh_symbol">-</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)</span>r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>st <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        x <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)</span>r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>ans <span class="sh_symbol">-</span> y<span class="sh_symbol">;</span>
+        y <span class="sh_symbol">*=</span> <span class="sh_symbol">(</span>y <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+        d <span class="sh_symbol">=</span> <span class="sh_function">gcd</span><span class="sh_symbol">(</span>x<span class="sh_symbol">,</span> y<span class="sh_symbol">);</span>
+        <span class="sh_function">sprintf</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">[</span>r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>id<span class="sh_symbol">],</span> <span class="sh_string">"%lld/%lld"</span><span class="sh_symbol">,</span> x <span class="sh_symbol">/=</span> d<span class="sh_symbol">,</span> y <span class="sh_symbol">/=</span> d<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> q<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+        <span class="sh_function">puts</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h2>坑</h2>
+这道题<s>比较水，因此</s>做起来还是比较流畅的(10min AC)。
+<p><b>坑1：</b>在最后计算分数值的时候，分母为<img src="https://latex.codecogs.com/gif.latex?\binom{r-l+1}2" align="center">，可能爆<code>int</code>，记得用<code>long long</code>存。</p>
