@@ -8,7 +8,7 @@ function displaytime(v){
     var sc = now.getSeconds();
     mn = mn < 10 ? "0" + mn : mn;
     sc = sc < 10 ? "0" + sc : sc;
-    var res = "当前时间：" + yr + "-" + mt + "-" + dy + "  " + hr + ":" + mn + ":" + sc;
+    var res = "当前时间：" + yr + "-" + mt + "-" + dy + " " + hr + ":" + mn + ":" + sc;
     v.innerHTML = res;
 }
 
@@ -37,6 +37,21 @@ function getPage(s){
 	return res;
 }
 
+function getFull(s){
+	switch(s){
+		case "":
+			return "全部";
+		case "Luogu":
+			return "洛谷";
+		case "Local":
+			return "本地测试";
+		case "Unknown":
+			return "这些题的 OJ 太高级了，连 scx 都不知道，快去问一问大佬们吧";
+		default:
+			return s;
+	}
+}
+
 function getShort(s){
 	switch(s){
 		case "Lydsy":
@@ -44,33 +59,69 @@ function getShort(s){
 		case "Luogu":
 			return "lg";
 		case "Vijos":
-			return "vijos"
+			return "vijos";
 		case "HDU":
-			return "hdu"
+			return "hdu";
 		case "POJ":
-			return "poj"
+			return "poj";
+		case "UOJ":
+			return "uoj";
 		case "LibreOJ":
-			return "loj"
+			return "loj";
 		case "SimpleOJ":
-			return "simpleoj"
+			return "simpleoj";
 		case "Codeforces":
-			return "cf"
-		case "UVa":
-			return "uva"
+			return "cf";
+		case "Codechef":
+			return "cc";
+		case "Local":
+			return "";
 		default:
-			return "unknown"
+			return "";
 	}
 }
-	
-function getFull(s){
+
+function testNorm(s){
 	switch(s){
-		case "":
-			return "全部";
-		case "Luogu":
-			return "洛谷";
-		case "Unknown":
-			return "这些题的 OJ 太高级了，连 scx 都不知道，快去问一问大佬们吧";
+		case "lydsy":
+			return "Lydsy";
+		case "lg":
+			return "Luogu";
+		case "vijos":
+			return "Vijos";
+		case "hdu":
+			return "HDU";
+		case "poj":
+			return "POJ";
+		case "uoj":
+			return "UOJ";
+		case "loj":
+			return "LibreOJ";
+		case "simpleoj":
+			return "SimpleOJ";
+		case "cf":
+			return "Codeforces";
+		case "cc":
+			return "Codechef";
 		default:
-			return s;
+			return "";
 	}
+}
+
+function Matching(jF, pF){
+	var brr, i = 0, j = 0, ls = "";
+	if(jF === "") return true;
+	brr = pF.split(";");
+	for(i in brr){
+		j = brr[i].search(/[A-Z0-9]/);
+		if(j < 0) continue;
+		ls = brr[i].substr(0, j);
+		if(jF === "Unknown"){
+			if(j > 0 && testNorm(ls) === "") return true;
+		}else if(jF === "local"){
+			if(j === 0) return true;
+		}else
+			if(getShort(jF) === ls) return true;
+	}
+	return false;
 }
