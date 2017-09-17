@@ -1,0 +1,84 @@
+<h2>题目描述</h2>
+<p>给定一个只包含小写字母的字符串 <i>S</i>，</p>
+<p>请你求出 <i>S</i> 的所有出现次数不为 1 的子串的出现次数乘上该子串长度的最大值。</p>
+
+<h2>输入格式</h2>
+<p>一行一个仅包含小写字母的字符串 <i>S</i> (|<i>S</i>| ≤ 10<sup>6</sup>)。</p>
+
+<h2>输出格式</h2>
+<p>一个整数，为乘积的最大值。</p>
+
+<h2>题解</h2>
+<p>这貌(jiu)似是一道后缀<s>(chuo)</s>自动机的模板题！</p>
+<p>具体构造自动机的过程也不用多啰嗦了，就是在线构造，每次记住 <code>p, np, q, np</code> 4 个节点，<s>背都可以背出</s>(然而证明都是显然滴)，具体过程见主页 "模板" 部分，构造出来后有一个非常有用的 parent 结构，其实就是它的<s>前缀树</s> (反串的后缀树)。</p>
+<p>然后，对于它的 "前缀树" 上某一个节点 <i>p</i>，它对应于互相为后缀关系的，具有相同 right 集合的几个子串的集合 <i>Z</i>(<i>p</i>)，且 val(<i>p</i>) 存储的那个节点对应的子串集合 <i>Z</i>(<i>p</i>) 中<b>最长的子串的长度</b>。</p>
+<p>又对于 <img src="http://latex.codecogs.com/gif.latex?\forall%20s_1,s_2\in%20Z\left(p\right)"> 都有 right(<i>s</i><sub>1</sub>) = right(<i>s</i><sub>2</sub>)，也就是说，<i>s</i><sub>1</sub> 和 <i>s</i><sub>2</sub> 在 <i>S</i> 中具有相同的出现次数，所以肯定取长的那个字符串，才能使长度乘次数尽可能大。</p>
+<p>(scx: 长度已经有了，right 集合的大小怎么得到呢？)</p>
+<p>在构造后缀自动机的过程中，有两种新建节点的方式：一种是 <i>np</i> 节点 (前缀节点)，一种是 <i>nq</i> 节点 (中间节点)。</p>
+<p>可以看出，对每个 <i>np</i> 节点 (前缀节点)，由于它是一个前缀，所以 right(<i>np</i>) = {val(<i>np</i>)} 与在 "前缀树" 上它的所有孩子节点的 right 集合的并。</p>
+<p>对每个 <i>nq</i> 节点 (中间节点)，由于它不是一个前缀，所以 right(<i>nq</i>) = 在 "前缀树" 上它的所有孩子节点的 right 集合的并。</p>
+<p>于是这可以非常嗨皮地用一个<s>树上动态规划或者</s> dfs 完成。</p>
+<p>最后附一个后缀自动机的图片方便理解：(黑边是树边，红边是转移边，集合是 right 集合)</p>
+<p><img src="https://cdn.vijos.org/fs/02b0460814007fc0ae2c7a799892f55e97077f84" width="80%"></p>
+
+<h2>代码</h2>
+
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">2561010</span>
+<span class="sh_preproc">#define</span> <span class="sh_usertype">q</span><span class="sh_normal"> </span>d<span class="sh_symbol">[</span>p<span class="sh_symbol">][</span>x<span class="sh_symbol">]</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> len<span class="sh_symbol">,</span> cnt<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> p<span class="sh_symbol">,</span> np<span class="sh_symbol">;</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>ans<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> pa<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> d<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span><span class="sh_number">26</span><span class="sh_symbol">],</span> val<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> child<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span><span class="sh_number">26</span><span class="sh_symbol">],</span> cc<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">char</span> s<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> <span class="sh_symbol">*</span>_<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">up</span><span class="sh_symbol">(</span><span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>x <span class="sh_symbol">&lt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">extend</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>p <span class="sh_symbol">=</span> np<span class="sh_symbol">,</span> val<span class="sh_symbol">[</span>np <span class="sh_symbol">=</span> <span class="sh_symbol">++</span>cnt<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> val<span class="sh_symbol">[</span>p<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> p <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">!</span>q<span class="sh_symbol">;</span> q <span class="sh_symbol">=</span> np<span class="sh_symbol">,</span> p <span class="sh_symbol">=</span> pa<span class="sh_symbol">[</span>p<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>p<span class="sh_symbol">)</span> pa<span class="sh_symbol">[</span>np<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">else</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>val<span class="sh_symbol">[</span>p<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span> <span class="sh_symbol">==</span> val<span class="sh_symbol">[</span>q<span class="sh_symbol">])</span> pa<span class="sh_symbol">[</span>np<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> q<span class="sh_symbol">;</span>
+        <span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+            <span class="sh_type">int</span> nq <span class="sh_symbol">=</span> <span class="sh_symbol">++</span>cnt<span class="sh_symbol">;</span>
+            val<span class="sh_symbol">[</span>nq<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> val<span class="sh_symbol">[</span>p<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+            <span class="sh_function">memcpy</span><span class="sh_symbol">(</span>d<span class="sh_symbol">[</span>nq<span class="sh_symbol">],</span> d<span class="sh_symbol">[</span>q<span class="sh_symbol">],</span> <span class="sh_number">104</span><span class="sh_symbol">);</span>
+            pa<span class="sh_symbol">[</span>nq<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> pa<span class="sh_symbol">[</span>q<span class="sh_symbol">];</span>
+            pa<span class="sh_symbol">[</span>np<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> pa<span class="sh_symbol">[</span>q<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> nq<span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">int</span> Q <span class="sh_symbol">=</span> q<span class="sh_symbol">;</span> p <span class="sh_symbol">&amp;&amp;</span> q <span class="sh_symbol">==</span> Q<span class="sh_symbol">;</span> q <span class="sh_symbol">=</span> nq<span class="sh_symbol">,</span> p <span class="sh_symbol">=</span> pa<span class="sh_symbol">[</span>p<span class="sh_symbol">]);</span>
+        <span class="sh_cbracket">}</span>
+    f<span class="sh_symbol">[</span>np<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">int</span> i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> cc<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">dfs</span><span class="sh_symbol">(</span>child<span class="sh_symbol">[</span>x<span class="sh_symbol">][</span>i<span class="sh_symbol">]);</span>
+        f<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> f<span class="sh_symbol">[</span>child<span class="sh_symbol">[</span>x<span class="sh_symbol">][</span>i<span class="sh_symbol">]];</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_function">up</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">,</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)</span>f<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> val<span class="sh_symbol">[</span>x<span class="sh_symbol">]);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> s<span class="sh_symbol">);</span>
+    cnt <span class="sh_symbol">=</span> np <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>_ <span class="sh_symbol">=</span> s<span class="sh_symbol">;</span> <span class="sh_symbol">*</span>_<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>_<span class="sh_symbol">)</span> <span class="sh_function">extend</span><span class="sh_symbol">(*</span>_ <span class="sh_symbol">-</span> <span class="sh_string">'a'</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> cnt<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+        child<span class="sh_symbol">[</span>pa<span class="sh_symbol">[</span>i<span class="sh_symbol">]][++</span>cc<span class="sh_symbol">[</span>pa<span class="sh_symbol">[</span>i<span class="sh_symbol">]]]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+    <span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h2>坑</h2>
+<p>第一道后缀自动机的题目，开 long long 不解释。(好像并没有什么关系)</p>
+<p><b>坑1：</b><code>last</code> 可以直接用 <code>np</code> 代替，然后使用 <code>np = ++cnt;</code>，如果使用 <code>last</code> 变量的注意 <code>last</code> 和 <code>cnt</code> 是不一样的。</p>
+<p><b>坑2：</b>由于后缀自动机的状态数较多，所以 Topo 排序<b>不能使用快速排序或</b> <code>sort</code>，可以<b>用基数排序</b>或者记录一下孩子节点用 dfs 完成。</p>

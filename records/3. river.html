@@ -1,0 +1,91 @@
+<h2>题目描述</h2>
+<p>有 <i>n</i> + 1 个平行于 <i>y</i> 轴的河岸排成一排，河岸的宽度忽略不计。每两个河岸之间夹着一条河，共有 <i>n</i> 条河，第 <i>i</i> 条河的宽度为 <i>w<sub>i</sub></i>。</p>
+<p>scx 在第 <i>i</i> 条河中行进<s>(游泳)</s>的速度为 <i>v<sub>i</sub></i>。令 <img src="http://latex.codecogs.com/gif.latex?x=\sum_{i=1}^nw_i">。规定：</p>
+<ol>
+<li>scx 从点 (0, 0) 出发，终点是 (<i>x</i>, <i>y</i>)，其中 <i>y</i> 是一个给定的<b>整数</b>。</li>
+<li>scx 在渡河时，必须从一个整点驶向另一个整点，花费的时间为这两个点的 Euclid 距离除以速度。</li>
+<li>scx 可以在河岸上行走，但也是必须从一个整点走向另一个整点，速度为 <i>v</i><sub>0</sub>。</li>
+</ol>
+<p>求花费时间的最小值。</p>
+
+<h2>输入格式</h2>
+<p>第一行包含三个<b>正整数</b> <i>n</i>, <i>y</i>, <i>v</i><sub>0</sub>。</p>
+<p>第二行包含 <i>n</i> 个<b>正整数</b>，第 <i>i</i> 个表示 <i>w<sub>i</sub></i>。</p>
+<p>第三行包含 <i>n</i> 个<b>正整数</b>，第 <i>i</i> 个表示 <i>v<sub>i</sub></i>。</p>
+
+<h2>输出格式</h2>
+<p>输出一行表示答案，保留 4 位小数。</p>
+
+<h2>题解</h2>
+<p>这题可以用调整法做 <s>(用数学的语言就是磨光变换)</s>。</p>
+<p>考虑所有的路线均平行于坐标轴，可以算出初始时间 <img src="http://latex.codecogs.com/gif.latex?t_0=\sum_{i=1}^n\frac{w_i}{v_i}+\frac%20y{v_0}">。</p>
+<p>考虑在第 <i>i</i> 个河中将行走 1 个单位和游泳变成斜的游泳，可以算出这个时间差 <img src="http://latex.codecogs.com/gif.latex?\Delta%20t_i=\frac{\sqrt{w_i^2+1}-w_i}{v_i}-\frac%201{v_0}">。</p>
+<p>所以可以用贪心的思想，每次选 <img src="http://latex.codecogs.com/gif.latex?\min_{1\leq i\leq n}\Delta t_i"> 进行更新，将它加在 <i>t</i><sub>0</sub> 上，若第 <i>i</i> 条河已经改变了 <i>j</i> 次，则 <img src="http://latex.codecogs.com/gif.latex?\Delta%20t_{i,j}=\frac{\sqrt{w_i^2+(j+1)^2}-\sqrt{w_i^2+j^2}}{v_i}-\frac%201{v_0}">。</p>
+<p>于是这就是一个非常显然的优先队列 (堆) 结构，可以在 <img src="http://latex.codecogs.com/gif.latex?\Theta(\log%20n)"> 的时间求最小值，若最小值为正，说明再怎么加只会越来越大，就 <code>break</code> 掉。</p>
+<p>当然，由于平行于 <i>y</i> 轴最多只走 <i>y</i> 个单位，故最多更新 <i>y</i> 次，故时间复杂度为 <img src="http://latex.codecogs.com/gif.latex?\Theta\left(y\log%20n\right)">。</p>
+
+<h2>代码</h2>
+
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#include</span> <span class="sh_string">&lt;ext/pb_ds/priority_queue.hpp&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">100034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">double</span> ld<span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_usertype">ld</span><span class="sh_normal"> </span>eps <span class="sh_symbol">=</span> <span class="sh_number">4e-16</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">delta</span><span class="sh_cbracket">{</span>
+    <span class="sh_usertype">ld</span><span class="sh_normal"> </span>dt<span class="sh_symbol">;</span> <span class="sh_type">int</span> x<span class="sh_symbol">,</span> y<span class="sh_symbol">;</span>
+    <span class="sh_function">delta</span> <span class="sh_symbol">(</span><span class="sh_usertype">ld</span><span class="sh_normal"> </span>dt0 <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> x0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> y0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span>
+        <span class="sh_function">dt</span><span class="sh_symbol">(</span>dt0<span class="sh_symbol">),</span> <span class="sh_function">x</span><span class="sh_symbol">(</span>x0<span class="sh_symbol">),</span> <span class="sh_function">y</span><span class="sh_symbol">(</span>y0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+    <span class="sh_type">bool</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&lt;</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">delta</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span> <span class="sh_keyword">const</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> dt <span class="sh_symbol">-</span> b<span class="sh_symbol">.</span>dt <span class="sh_symbol">&gt;</span> eps<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> __gnu_pbds<span class="sh_symbol">::</span>priority_queue <span class="sh_symbol">&lt;</span>delta<span class="sh_symbol">&gt;</span> prioque<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> y<span class="sh_symbol">,</span> _<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> w<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ld</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> _v<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> T<span class="sh_symbol">,</span> red<span class="sh_symbol">;</span>
+<span class="sh_usertype">delta</span><span class="sh_normal"> </span>Red<span class="sh_symbol">;</span>
+<span class="sh_usertype">prioque</span><span class="sh_normal"> </span>pq<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>y<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>_<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> w <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+    _v<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1.0</span> <span class="sh_symbol">/</span> <span class="sh_symbol">(</span>ld<span class="sh_symbol">)</span>_<span class="sh_symbol">;</span>
+    T <span class="sh_symbol">=</span> _v<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>ld<span class="sh_symbol">)</span>y<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>_<span class="sh_symbol">);</span>
+        _v<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1.0</span> <span class="sh_symbol">/</span> <span class="sh_symbol">(</span>ld<span class="sh_symbol">)</span>_<span class="sh_symbol">;</span>
+        T <span class="sh_symbol">+=</span> _v<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>ld<span class="sh_symbol">)</span>w<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        red <span class="sh_symbol">=</span> _v<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">/</span> <span class="sh_symbol">(</span><span class="sh_function">hypotl</span><span class="sh_symbol">(</span>w<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> <span class="sh_number">1.0</span><span class="sh_symbol">)</span> <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>ld<span class="sh_symbol">)</span>w<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_symbol">-</span> _v<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">];</span>
+        pq<span class="sh_symbol">.</span><span class="sh_function">push</span><span class="sh_symbol">(</span><span class="sh_function">delta</span><span class="sh_symbol">(</span>red<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">));</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> y<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        Red <span class="sh_symbol">=</span> pq<span class="sh_symbol">.</span><span class="sh_function">top</span><span class="sh_symbol">();</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>Red<span class="sh_symbol">.</span>dt <span class="sh_symbol">&gt;</span> <span class="sh_symbol">-</span>eps<span class="sh_symbol">)</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+        pq<span class="sh_symbol">.</span><span class="sh_function">pop</span><span class="sh_symbol">();</span>
+        T <span class="sh_symbol">+=</span> Red<span class="sh_symbol">.</span>dt<span class="sh_symbol">;</span>
+        Red<span class="sh_symbol">.</span>dt <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>Red<span class="sh_symbol">.</span>y <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span> <span class="sh_symbol">|</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">*</span> _v<span class="sh_symbol">[</span>Red<span class="sh_symbol">.</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">/</span> <span class="sh_symbol">(</span><span class="sh_function">hypotl</span><span class="sh_symbol">(</span>w<span class="sh_symbol">[</span>Red<span class="sh_symbol">.</span>x<span class="sh_symbol">],</span> Red<span class="sh_symbol">.</span>y <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">)</span>
+            <span class="sh_symbol">+</span> <span class="sh_function">hypotl</span><span class="sh_symbol">(</span>w<span class="sh_symbol">[</span>Red<span class="sh_symbol">.</span>x<span class="sh_symbol">],</span> Red<span class="sh_symbol">.</span>y<span class="sh_symbol">))</span> <span class="sh_symbol">-</span> _v<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">];</span>
+        <span class="sh_symbol">++</span>Red<span class="sh_symbol">.</span>y<span class="sh_symbol">;</span>
+        pq<span class="sh_symbol">.</span><span class="sh_function">push</span><span class="sh_symbol">(</span>Red<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%.4Lf</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> T<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h2>坑</h2>
+<p>这道题的毒性还好，不算是特别大吧……</p>
+<p><b>坑1：</b>这题比较卡精度，因为在大数据上，算出来的 Δ<i>t</i><sub><i>i</i>,<i>j</i></sub>，基本都在 10<sup>-8</sup> 到 10<sup>-9</sup> 这个数量级，因此，在 <span style="color: red">"判正"</span> 的过程中，<code>eps</code> 大概要设到 <code>4e-16</code> 这个数量级，所以可以用 long double (好像 <code>eps = 0.0</code> 也可以)</p>
+<p><b>坑2：</b>然后说两个精度优化方案：在计算 Δ<i>t</i><sub><i>i</i>,<i>j</i></sub> 的时候，由于这个一加一减在大数据上非常接近，由于是根号，可以考虑一下 "分子有理化"：</p>
+<p><img src="http://latex.codecogs.com/gif.latex?\frac{\sqrt{w_i^2+(j+1)^2}-\sqrt{w_i^2+j^2}}{v_i}=\frac{2j+1}{v_i(\sqrt{w_i^2+(j+1)^2}+\sqrt{w_i^2+j^2})}"></p>
+<p>其次，由于速度 <i>v<sub>i</sub></i> 是用来除的，因此可以预先存储 <i>v<sub>i</sub></i> 的倒数，<s>毕竟浮点乘法比浮点除法快嘛~</s>。</p>

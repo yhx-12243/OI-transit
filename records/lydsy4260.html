@@ -1,0 +1,88 @@
+<h2>题目描述</h2>
+<p>给定一个 <i>n</i> 元数组 <i>a</i>[]，求下式的最大值：</p>
+<p><img src="http://latex.codecogs.com/gif.latex?s=\left(\bigoplus_{i=l_1}^{r_1}a_i\right)+\left(\bigoplus_{i=l_2}^{r_2}a_i\right)"></p>
+<p>其中 1 ≤ <i>l</i><sub>1</sub> ≤ <i>r</i><sub>1</sub> &lt; <i>l</i><sub>2</sub> ≤ <i>r</i><sub>2</sub> ≤ <i>n</i>。</p>
+
+<h2>输入格式</h2>
+<p>第一行包含一个整数 <i>n</i> (2 ≤ <i>n</i> ≤ 4 × 10<sup>5</sup>)，表示数组中的元素个数。</p>
+<p>第二行包含 <i>n</i> 个整数 <i>a</i><sub>1</sub>, <i>a</i><sub>2</sub>, ..., <i>a<sub>n</sub></i> (0 ≤ <i>a<sub>i</sub></i> ≤ 10<sup>9</sup>)。</p>
+
+<h2>输出格式</h2>
+<p>输出一行一个整数包含 <i>s</i> 的最大可能值。</p>
+
+<h2>题解</h2>
+<p>显然先求前缀和，然后就是求 <img src="http://latex.codecogs.com/gif.latex?s=\left(a_{l_1}\oplus%20a_{r_1}\right)+\left(a_{l_2}\oplus%20a_{r_2}\right)"> 的最大值，其中 0 ≤ <i>l</i><sub>1</sub> &lt; <i>r</i><sub>1</sub> ≤ <i>l</i><sub>2</sub> &lt; <i>r</i><sub>2</sub> ≤ <i>n</i>。</p>
+<p>就像 <a href="https://vijos.org/d/jcsy/p/58b2ec22d3d8a17783ca19f4" target="_blank">【模板】Trie</a> 一样，可以使用字典树搞定某一个异或和。</p>
+<p>两个异或和的和其实类似的。先枚举 <i>r</i><sub>1</sub>，在字典树中一边插入一边寻找 <i>l</i><sub>1</sub> 使得 <img src="http://latex.codecogs.com/gif.latex?a_{l_1}\oplus%20a_{r_1}"> 最大。</p>
+<p>此时，如果知道 <img src="http://latex.codecogs.com/gif.latex?\max_{r_1\leq%20l_2<r_2\leq%20n}\left(a_{l_2}\oplus%20a_{r_2}\right)">，那就做出来了。</p>
+<p>(scx: 那怎么获取这个表达式的最大值呢？)</p>
+<p><s>可以一开始把所有值都插入字典树中并可持久化，然后询问的时候，用两棵线段树相减就得到了那一部分的字典树。</s></p>
+<p>其实，可以在这之前倒着将值插入字典树中，然后用 <code>res[i]</code> 表示 <i>l</i><sub>2</sub> = <i>i</i> 时 <img src="http://latex.codecogs.com/gif.latex?a_{l_2}\oplus%20a_{r_2}"> 的最大值，求个后缀和得到 <i>l</i><sub>2</sub> ≥ <i>i</i> 时 <img src="http://latex.codecogs.com/gif.latex?a_{l_2}\oplus%20a_{r_2}"> 的最大值。</p>
+<p>然后，在枚举 <i>r</i><sub>1</sub> = <i>i</i> 时，直接加上 <code>res[i]</code>，与当前最大值比较即可。</p>
+
+<h2>代码</h2>
+
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">426835</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> t<span class="sh_symbol">,</span> ans<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> a<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_comment">// trie</span>
+<span class="sh_type">int</span> cnt<span class="sh_symbol">,</span> d<span class="sh_symbol">[</span>N <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">5</span><span class="sh_symbol">][</span><span class="sh_number">2</span><span class="sh_symbol">],</span> val<span class="sh_symbol">[</span>N <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">5</span><span class="sh_symbol">];</span>
+<span class="sh_type">int</span> res<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">up</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>x <span class="sh_symbol">&lt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">add</span><span class="sh_symbol">(</span><span class="sh_type">int</span> i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> t <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> b<span class="sh_symbol">,</span> ch<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>b <span class="sh_symbol">=</span> <span class="sh_number">30</span><span class="sh_symbol">;</span> b <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> b<span class="sh_symbol">--)</span><span class="sh_cbracket">{</span>
+        ch <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;&gt;</span> b <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        t <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>d<span class="sh_symbol">[</span>t<span class="sh_symbol">][</span>ch<span class="sh_symbol">]</span> <span class="sh_symbol">?</span> d<span class="sh_symbol">[</span>t<span class="sh_symbol">][</span>ch<span class="sh_symbol">]</span> <span class="sh_symbol">:</span> d<span class="sh_symbol">[</span>t<span class="sh_symbol">][</span>ch<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">++</span>cnt<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    val<span class="sh_symbol">[</span>t<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">query</span><span class="sh_symbol">(</span><span class="sh_type">int</span> i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> t <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> b<span class="sh_symbol">,</span> ch<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>b <span class="sh_symbol">=</span> <span class="sh_number">30</span><span class="sh_symbol">;</span> b <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> b<span class="sh_symbol">--)</span><span class="sh_cbracket">{</span>
+        ch <span class="sh_symbol">=</span> i <span class="sh_symbol">&gt;&gt;</span> b <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>d<span class="sh_symbol">[</span>t<span class="sh_symbol">][</span>ch <span class="sh_symbol">^</span> <span class="sh_number">1</span><span class="sh_symbol">])</span> t <span class="sh_symbol">=</span> d<span class="sh_symbol">[</span>t<span class="sh_symbol">][</span>ch <span class="sh_symbol">^</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+        <span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>d<span class="sh_symbol">[</span>t<span class="sh_symbol">][</span>ch<span class="sh_symbol">])</span> t <span class="sh_symbol">=</span> d<span class="sh_symbol">[</span>t<span class="sh_symbol">][</span>ch<span class="sh_symbol">];</span>
+        <span class="sh_keyword">else</span> <span class="sh_keyword">return</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> a<span class="sh_symbol">[</span>val<span class="sh_symbol">[</span>t<span class="sh_symbol">]];</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>t<span class="sh_symbol">);</span>
+        a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">^</span> t<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> n <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i<span class="sh_symbol">;</span> i<span class="sh_symbol">--)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">add</span><span class="sh_symbol">(</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+        res<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">^</span> <span class="sh_function">query</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+        <span class="sh_function">up</span><span class="sh_symbol">(</span>res<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> res<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]);</span>
+    <span class="sh_cbracket">}</span>
+    cnt <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>d<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> d<span class="sh_symbol">);</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>val<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> val<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">add</span><span class="sh_symbol">(</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+        t <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">^</span> <span class="sh_function">query</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+        <span class="sh_function">up</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">,</span> t <span class="sh_symbol">+</span> res<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h2>坑</h2>
+<p>这题可以说是一道放松的题目，可以拿来练练字典树。</p>
+<p><b>坑1：</b>注意条件和转化后的条件的不等式中<b>能否取等</b>，原先是 1 ≤ <i>l</i><sub>1</sub> ≤ <i>r</i><sub>1</sub> &lt; <i>l</i><sub>2</sub> ≤ <i>r</i><sub>2</sub> ≤ <i>n</i>，转化后为 0 ≤ <i>l</i><sub>1</sub> &lt; <i>r</i><sub>1</sub> ≤ <i>l</i><sub>2</sub> &lt; <i>r</i><sub>2</sub> ≤ <i>n</i>。</p>
+<p><b>坑2：</b>上面代码中 <code>add[]</code> 函数是传编号，而 <code>query[]</code> 函数是传值，所在内外部实现的时候是 <code>a[i] &gt;&gt; b</code> 还是 <code> i &gt;&gt; b</code> 要格外小心。</p>

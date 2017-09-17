@@ -1,0 +1,120 @@
+<h2>题目描述</h2>
+<p>给定两个字符串 <i>S</i> 和 <i>T</i>，<i>S</i> 由 <i>n</i> 个单词的字典中的某些单词拼接而成 (无空格，可能会有重复)，求 <i>S</i> 和 <i>T</i> 的<b style="color: red">最长公共子序列</b>的长度，|<i>T</i>| ≤ 2000。</p>
+
+<h2>输入格式</h2>
+<p>第一行包含一个正整数 <i>n</i> (<i>n</i> ≤ 2000)，表示字典中单词的个数。</p>
+<p>接下来的 <i>n</i> 行，每行一个正整数，描述字典中的单词 <code>s[i]</code> (<img src="http://latex.codecogs.com/gif.latex?\sum_{i=1}^n\left|s\left[i\right]\right|\leq10^6">)。</p>
+<p>之后一行包含一个正整数 <i>m</i> (<i>m</i> ≤ 2000)，表示 <i>S</i> 由字典中 <i>m</i> 个单词首尾拼接而成。</p>
+<p>下一行包含 <i>m</i> 个正整数 <code>id[i]</code>，表示 <code>S = s[id[1]] + s[id[2]] + ... + s[id[m]]</code>。</p>
+<p>最后一行为字符串 <i>T</i>。</p>
+
+<h2>输出格式</h2>
+<p>输出一个整数，表示最长公共子序列的长度。</p>
+
+<h2>题解</h2>
+<p>最长公共子序列其实是一道经典的动态规划题。</p>
+<p>然而可以计算出，|<i>S</i>| 最大可以达到 <img src="http://latex.codecogs.com/gif.latex?m\sum_{i=1}^n\left|s\left[i\right]\right|\leq2000\times10^6=2\times10^9">。</p>
+<p>此时 <img src="http://latex.codecogs.com/gif.latex?\Theta\left(\left|S\right|\left|T\right|\right)"> 的动态规划显然卡飞了，转成最长单调子序列的问题的话，由于最坏情况 <i>S</i> 中字符基本都是相同的，也没有太大的好转，所以，要加快动态规划速度，只能利用原串 <i>S</i> 的特性了。</p>
+<p>(scx: 原字符串有什么比较好的性质呢？)</p>
+<p>可以看到，原字符串 <i>S</i> 有很多重复的部分组成，所以，可以较快的查出下一个相同的字符串在哪里。</p>
+<p>我们看一下经典的动态规划：记 DP 数组 <code>f[i][j]</code> 表示在 <i>T</i> 的前缀 <code>T[0..i]</code> 与 <i>S</i> 的所有长度为 <i>j</i> 的最长公共子序列中，最后一个字符在 <i>S</i> 中的下标的最小值 (如果没有最长公共子序列，则为 -1)。</p>
+<p>辣么第一维显然可以滚动掉，第二维 <code>f[i][j]</code> 可以这么转移：</p>
+<p>假设我们已经知道了 <code>f[i][j]</code>，即 <code>T[0..i]</code> 与 <i>S</i> 的长度为 <i>j</i> 的最长公共子序列中，最后一个字符在 <i>S</i> 中的下标最小为 <code>f[i][j]</code>，记 <code>k = f[i][j]</code>。</p>
+<p>考虑 <code>ch = T[i + 1]</code>。寻找 <i>S</i> 的下标 &gt; <i>k</i> 中第一次出现字符 <code>ch</code> 的下标 <i>p</i>。</p>
+<p>若 <i>p</i> 存在，那么 <code>f[i + 1][j + 1] = max(f[i][j + 1], p)</code>。最终答案就是 <img src="http://latex.codecogs.com/gif.latex?ans=max\left\{j\mid%20f\left[i\right]\left[j\right]\geq0\right\}">。</p>
+<p>这样转移次数至多是 <img src="http://latex.codecogs.com/gif.latex?\Theta\left(\left|T\right|ans\right)\leq\Theta\left(\left|T\right|^2\right)">，是可以接受的。</p>
+<p>但是它慢的主要原因就是过程 <span style="color: red">"寻找 <i>S</i> 的下标 &gt; <i>k</i> 中第一次出现字符 <code>ch</code> 的下标 <i>p</i>"</span>。</p>
+<p>由于 <i>S</i> 的这一个很好的特性，我们可以进行某些<s>奇奇怪怪</s>的初始化使每次转移的时间复杂度为 <img src="http://latex.codecogs.com/gif.latex?\Theta(1)"> 的。</p>
+<p>记 <code>last[i][j][ch]</code> 为字典中第 <i>i</i> 个单词 <code>s[i]</code> 中从第 <i>j</i> 个字符开始第一次出现字符 <code>ch</code> 的下标，<code>go[i][j]</code> 为在 <i>S</i> 中从第 <i>i</i> 个串 (也就是字典中第 <code>id[i]</code> 个单词) 开始第一次出现字符 <code>ch</code> 的串在 <i>S</i> 中的编号，即那个串是字典中第 <code>id[r]</code> 个串，其中 <code>r = go[i][j]</code>，如果再也不出现，则为 -1。</p>
+<p>(scx: 可是 last 数组需要 2000 × 10<sup>6</sup> × 26 的空间，不够用啊！)</p>
+<p>这个问题有这些解决方法：</p>
+<ol>
+<li>由于 <img src="http://latex.codecogs.com/gif.latex?\sum_{i=1}^n\left|s\left[i\right]\right|\leq10^6">，因此实际内存是够的，所以前两维可以<b>虚拟化</b>为一维，即开一个 <code>last[1000034][26]</code> 数组，然后记录每个下标 <i>i</i> 当 <i>j</i> = 0 时，即 <code>last[i][0]</code> 对应到新的 <code>last[r]</code>，然后存储下来 (<code>g[i] = r</code>)。</li>
+<li>也可以搞一个<b>虚拟的三维数组</b>，即第一维指向的是一些<b>设定好的</b>二维数组指针，前两位指向对应的一维数组的指针，第三维访问该一维数组，其实本质和方法 1 区别不大，没看懂的可以去代码区理解一下 (其实我就是用方法 2 的)。</li>
+</ol>
+<p>然后，DP 数组 <code>f[i][j]</code> 记录一个二元组 (数对)，表示上文中那个 <i>k</i> 为 <i>S</i> 中第 <i>id</i> 个串的第 <i>pos</i> 个字符，即 (伪代码) <code>f[i][j] = (d, p)</code>，寻找的过程可以这么完成：</p>
+<p>先看 <code>last[id[d]][p][ch]</code> 是否为非负数，如果是，则说明找到了。</p>
+<p>否则，再看 <code>go[d + 1][ch]</code>，若它非负，再用 <code>last[id[D]][0][ch]</code> (<code>D = go[d + 1][ch]</code>)，找到具体的位置。</p>
+<p>否则，就无法转移。于是这样就实现了转移 <img src="http://latex.codecogs.com/gif.latex?\Theta(1)">。</p>
+
+<h2>代码</h2>
+
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">2034</span>
+<span class="sh_preproc">#define</span> M <span class="sh_number">2034</span>
+<span class="sh_preproc">#define</span> S <span class="sh_number">1024404</span>
+<span class="sh_preproc">#define</span> <span class="sh_function">P</span><span class="sh_symbol">(</span>x<span class="sh_symbol">)</span> <span class="sh_symbol">(</span>pfs<span class="sh_symbol">[</span>x<span class="sh_symbol">.</span>id<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> x<span class="sh_symbol">.</span>pos<span class="sh_symbol">)</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">DP</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> id<span class="sh_symbol">,</span> pos<span class="sh_symbol">;</span>
+    <span class="sh_function">DP</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> id0 <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> pos0 <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">):</span> <span class="sh_function">id</span><span class="sh_symbol">(</span>id0<span class="sh_symbol">),</span> <span class="sh_function">pos</span><span class="sh_symbol">(</span>pos0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> ch<span class="sh_symbol">,</span> Len<span class="sh_symbol">,</span> ans<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> len<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> id<span class="sh_symbol">[</span>M<span class="sh_symbol">],</span> pfs<span class="sh_symbol">[</span>M<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> buf_last<span class="sh_symbol">[</span>S<span class="sh_symbol">][</span><span class="sh_number">26</span><span class="sh_symbol">],</span> <span class="sh_symbol">*</span>puf_last<span class="sh_symbol">[</span>S<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> <span class="sh_symbol">**</span>last<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> go<span class="sh_symbol">[</span>M<span class="sh_symbol">][</span><span class="sh_number">26</span><span class="sh_symbol">],</span> cx<span class="sh_symbol">[</span><span class="sh_number">26</span><span class="sh_symbol">];</span>
+<span class="sh_comment">// last[i] is a 2-dimension pointer (puf_last + x)</span>
+<span class="sh_comment">// last[i][j] is a normal pointer (puf_last[y] &lt;=&gt; buf_last[y])</span>
+<span class="sh_comment">// last[i][j][k] is a integer (buf_last[y][k])</span>
+<span class="sh_usertype">DP</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span>S<span class="sh_symbol">],</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">;</span>
+<span class="sh_type">char</span> s<span class="sh_symbol">[</span>S<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> S<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> puf_last<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> buf_last<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+    last<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> puf_last<span class="sh_symbol">;</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> s<span class="sh_symbol">);</span>
+        len<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">strlen</span><span class="sh_symbol">(</span>s<span class="sh_symbol">);</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>cx<span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">104</span><span class="sh_symbol">);</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>last<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>len<span class="sh_symbol">[</span>i<span class="sh_symbol">]],</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">104</span><span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> len<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j<span class="sh_symbol">--)</span><span class="sh_cbracket">{</span>
+            cx<span class="sh_symbol">[</span>s<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> <span class="sh_string">'a'</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> j<span class="sh_symbol">;</span>
+            <span class="sh_function">memcpy</span><span class="sh_symbol">(</span>last<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">],</span> cx<span class="sh_symbol">,</span> <span class="sh_number">104</span><span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>
+        last<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> last<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>len<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>m<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>pfs<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> id <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+        pfs<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> pfs<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> len<span class="sh_symbol">[--</span>id<span class="sh_symbol">[</span>i<span class="sh_symbol">]];</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>cx<span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">104</span><span class="sh_symbol">);</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>go<span class="sh_symbol">[</span>m<span class="sh_symbol">],</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">104</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> m <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i<span class="sh_symbol">--)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> <span class="sh_number">26</span><span class="sh_symbol">;</span> k<span class="sh_symbol">++)</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(~</span>last<span class="sh_symbol">[</span>id<span class="sh_symbol">[</span>i<span class="sh_symbol">]][</span><span class="sh_number">0</span><span class="sh_symbol">][</span>k<span class="sh_symbol">])</span> cx<span class="sh_symbol">[</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+        <span class="sh_function">memcpy</span><span class="sh_symbol">(</span>go<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> cx<span class="sh_symbol">,</span> <span class="sh_number">104</span><span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> s<span class="sh_symbol">);</span>
+    Len <span class="sh_symbol">=</span> <span class="sh_function">strlen</span><span class="sh_symbol">(</span>s<span class="sh_symbol">);</span>
+    f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">DP</span><span class="sh_symbol">(</span><span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>ans <span class="sh_symbol">=</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> Len<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        ch <span class="sh_symbol">=</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> <span class="sh_string">'a'</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> ans<span class="sh_symbol">;</span> j <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j<span class="sh_symbol">--)</span><span class="sh_cbracket">{</span>
+            u <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(~</span>last<span class="sh_symbol">[</span>u<span class="sh_symbol">.</span>id<span class="sh_symbol">[</span>id<span class="sh_symbol">]][</span>u<span class="sh_symbol">.</span>pos<span class="sh_symbol">][</span>ch<span class="sh_symbol">])</span>
+                v <span class="sh_symbol">=</span> <span class="sh_function">DP</span><span class="sh_symbol">(</span>u<span class="sh_symbol">.</span>id<span class="sh_symbol">,</span> last<span class="sh_symbol">[</span>u<span class="sh_symbol">.</span>id<span class="sh_symbol">[</span>id<span class="sh_symbol">]][</span>u<span class="sh_symbol">.</span>pos<span class="sh_symbol">][</span>ch<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+            <span class="sh_keyword">else</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(~(</span>v<span class="sh_symbol">.</span>id <span class="sh_symbol">=</span> go<span class="sh_symbol">[</span>u<span class="sh_symbol">.</span>id <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>ch<span class="sh_symbol">]))</span> v<span class="sh_symbol">.</span>pos <span class="sh_symbol">=</span> last<span class="sh_symbol">[</span>v<span class="sh_symbol">.</span>id<span class="sh_symbol">[</span>id<span class="sh_symbol">]][</span><span class="sh_number">0</span><span class="sh_symbol">][</span>ch<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(~</span>v<span class="sh_symbol">.</span>id <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>id <span class="sh_symbol">==</span> <span class="sh_symbol">-</span><span class="sh_number">1</span> <span class="sh_symbol">||</span> <span class="sh_function">P</span><span class="sh_symbol">(</span>v<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;</span> <span class="sh_function">P</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">])))</span>
+                f<span class="sh_symbol">[</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> v<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_symbol">~</span>f<span class="sh_symbol">[</span>ans <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>id <span class="sh_symbol">?</span> <span class="sh_symbol">++</span>ans <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h2>坑</h2>
+<p><b>坑1：</b>由于这里<b>虚拟的三维数组</b>涉及大(yi)量(dian)指针操作，所以不要搞着搞着搞到非法内存上去导致 RE 了。</p>
+<p><b>坑2：</b>还有 DP 的时候，这个边界是需要留意的，因为在我的代码中，<code>last[]</code> 和 <code> go[] </code> 数组，存储的是第 <i>j</i> 个字符/第 <i>i</i> 个串开始第一次出现字符 <code>ch</code> 的……，也就是<b>包括第 <i>j</i> 个字符/第 <i>i</i> 个串</b>的闭区间 (当然也可以写成开区间滴)。</p>
+<p>所以 DP 的时候要格外小心，注意要 + 1，即 <code>v.id = go[u.id + 1][ch]</code> 和 <code>v.pos = last[u.id[id]][u.pos][ch] + 1</code>。</p>

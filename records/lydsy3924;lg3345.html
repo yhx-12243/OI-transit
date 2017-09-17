@@ -1,0 +1,160 @@
+<h2>题目描述</h2>
+<p>scx 正在玩一个非常有趣的战略类游戏，本来这个游戏的地图其实还不算太大，她还能管得过来，但是不知道为什么现在的网游厂商把游戏的地图越做越大，以至于幽香一眼根本看不过来，更别说和别人打仗了。</p>
+<p>在打仗之前，scx 现在面临一个非常基本的管理问题需要解决。<b>整个地图是一个树结构，一共有 <i>V</i> 块空地，这些空地被 <i>V</i> - 1 条带权边连接起来，使得每两个点之间有一条唯一的路径将它们连接起来。</b></p>
+<p>在游戏中，scx 可能在空地上增加或者减少一些军队。同时，她可以在一个空地上放置一个补给站。</p>
+<p><b>如果补给站在点 <i>u</i> 上，并且空地 <i>v</i> 上有 <i>d<sub>v</sub></i> 个单位的军队，那么幽香每天就要花费 <i>d<sub>v</sub></i> · dist(<i>u</i>, <i>v</i>) 的金钱来补给这些军队。</b></p>
+<p>由于幽香需要补给所有的军队，因此 scx 总共就要花费 <img src="http://latex.codecogs.com/gif.latex?\sum_{v\in%20V}d_v\cdot\mathrm{dist}\left(u,v\right)"> 的代价。其中 dist(<i>u</i>, <i>v</i>) 表示点 <i>u</i> 与点 <i>v</i> 在树上的距离 (权值和)。</p>
+<p><b>因为游戏的规定，scx 只能选择一个空地作为补给站。</b>在游戏的过程中，她可能会在某些空地上制造一些军队，也可能会减少某些空地上的军队，进行了这样的操作以后，出于经济上的考虑，scx 往往可以移动他的补给站从而省一些钱。</p>
+<p>但是由于这个游戏的地图是在太大了，scx 无法轻易的进行最优的安排，你能帮帮她吗？你可以假定一开始所有空地上都没有军队。</p>
+
+<h2>输入格式</h2>
+<p>第一行包含两个正整数 <i>V</i> 和 <i>Q</i> 分别表示树的点数和操作的个数，其中点从 1 到 <i>V</i> 标号。</p>
+<p>接下来 <i>V</i> - 1 行，每行三个正整数 <i>a</i>, <i>b</i>, <i>c</i>，表示 <i>a</i> 和 <i>b</i> 之间有一条边权为 <i>c</i> 的边。</p>
+<p>接下来 <i>Q</i> 行，每行两个数 <i>u</i>, <i>w</i>，表示 scx 在点 <i>u</i> 上放了 <i>w</i> 个单位军队 (如果 <i>w</i> &lt; 0，就相当于在 <i>u</i> 上减少了 |<i>w</i>| 个单位军队，说白了就是 <i>d<sub>u<sub></i> ← <i>d<sub>u<sub></i> + <i>w</i>)。</p>
+<p>数据保证任何时刻每个点上的军队数量都是非负的。</p>
+
+<h2>输出格式</h2>
+<p>对于 scx 的每个操作，输出操作完成以后，每天的最小花费，也即如果她选择最优的补给点进行补给时的花费。</p>
+
+<h2>题解</h2>
+<p>稍稍撕烤一下我们就能发现，这个 <i>u</i> 就是带权树的重心。</p>
+<p>又重心显然不能每次 dfs，所以考虑<b>动态转移重心</b>。</p>
+<p>也就是说，初始状态下先以 1 号点为重心 (不妨记为 <i>C</i>)，然后点权每改变一次 (+ <i>w</i>)，先考虑如果 <i>C</i> 不变，则 <i>ans</i> ← <i>ans</i> + <i>w</i> · dist(<i>u</i>, <i>C</i>)，然而这<s>显然</s>可能不是最优的，所以进行重心转移 (<code>adj_centroid()</code>)。</p>
+<p>可以看出，重心 <i>C</i> 满足 2size(<i>C</i>) ≥ <i>n</i> 且深度最大，其中 size(<i>v</i>) 代表以 <i>v</i> 为根的子树中的点权和 (军队个数)，<i>n</i> 代表当前整棵树的点权和。</p>
+<p>因此可能为重心的点一定在若干条连向根的链上，且在把原来的 <i>C</i> 换成新的 <i>C</i> 的过程中，<i>ans</i> 是单调递减的，所以在函数中可以将 <i>C</i> 转移为<b>与 <i>C</i> 邻接的所有节点，贪心找到使 Δ<i>ans</i> 最小的点</b> (由于 Δ<i>ans</i> 存在负值，所以也就是负值中使 |Δ<i>ans</i>| 最大的点)，然后将 <i>C</i> 转移。如果所有的 Δ<i>ans</i> 都是正值，那么可以证明 <i>C</i> 就是重心。</p>
+<p>(scx: 那么怎么在较快的时间内算出 Δ<i>ans</i> 呢？)</p>
+<p>设 <i>C</i> 从 <i>u</i> 转移到 <i>v</i>，那么对于边 <i>e</i> = (<i>u</i>, <i>v</i>)，<i>v</i> 一侧的点的花费可以减少 <i>e</i>.<i>w</i> 乘 <i>v</i> 一侧的点数 (即每个单位军队均减少 <i>e</i>.<i>w</i>)，然而 <i>u</i> 一侧的点的花费需要增加 <i>e</i>.<i>w</i> 乘 <i>u</i> 一侧的点数 (即每个单位军队均加上 <i>e</i>.<i>w</i>)。</p>
+<p>因此，在有根树里，如果 <i>v</i> 是 <i>u</i> 的子节点，则 <img src="http://latex.codecogs.com/gif.latex?\Delta%20ans=\left(n-\mathrm{size}(v)\right)\cdot%20e.w-\mathrm{size}(v)\cdot%20e.w=\left(n-2\,\mathrm{size}(v)\right)\cdot%20e.w">；</p>
+<p>如果 <i>v</i> 是 <i>u</i> 的父节点，则 <img src="http://latex.codecogs.com/gif.latex?\Delta%20ans=\mathrm{size}(u)\cdot%20e.w-\left(n-\mathrm{size}(u)\right)\cdot%20e.w=\left(2\,\mathrm{size}(u)-n\right)\cdot%20e.w">。</p>
+<p>于是转化为求 size 的问题，也就是单点修改点权，询问子树点权和的问题。</p>
+<p>这显然可以用树链剖分 + 线段树解决，此处从略。</p>
+<p>所以总的时间复杂度为 <img src="http://latex.codecogs.com/gif.latex?\Theta\left(n\log^2n\right)">。</p>
+
+<h2>代码</h2>
+
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> maxV <span class="sh_number">100034</span>
+<span class="sh_preproc">#define</span> maxE <span class="sh_number">256101</span>
+<span class="sh_preproc">#define</span> next scx
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">edge</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">;</span>
+    <span class="sh_function">edge</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> u0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> v0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> w0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">u</span><span class="sh_symbol">(</span>u0<span class="sh_symbol">),</span> <span class="sh_function">v</span><span class="sh_symbol">(</span>v0<span class="sh_symbol">),</span> <span class="sh_function">w</span><span class="sh_symbol">(</span>w0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> V<span class="sh_symbol">,</span> Q<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">;</span>
+<span class="sh_comment">// adjacent list</span>
+<span class="sh_type">int</span> first<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> next<span class="sh_symbol">[</span>maxE<span class="sh_symbol">];</span>
+<span class="sh_usertype">edge</span><span class="sh_normal"> </span>e<span class="sh_symbol">[</span>maxE<span class="sh_symbol">];</span>
+<span class="sh_comment">// for tree</span>
+<span class="sh_type">int</span> sz<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> dep<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> id<span class="sh_symbol">[</span>maxV<span class="sh_symbol">];</span>
+<span class="sh_comment">// sz: size of subtree, dep: depth, id: chain number</span>
+<span class="sh_type">int</span> p<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> o<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> cnt<span class="sh_symbol">,</span> C<span class="sh_symbol">;</span>
+<span class="sh_comment">// p: parent node, o: dfs order, C: centroid</span>
+<span class="sh_type">int</span> st<span class="sh_symbol">[</span>maxV <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">3</span><span class="sh_symbol">],</span> amcnt<span class="sh_symbol">;</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>ans<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span><span class="sh_type">int</span> u<span class="sh_symbol">,</span> <span class="sh_type">int</span> v<span class="sh_symbol">,</span> <span class="sh_type">int</span> w<span class="sh_symbol">,</span> <span class="sh_type">int</span> i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>e<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">edge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">);</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">add</span><span class="sh_symbol">(</span><span class="sh_type">int</span> id<span class="sh_symbol">,</span> <span class="sh_type">int</span> L<span class="sh_symbol">,</span> <span class="sh_type">int</span> R<span class="sh_symbol">,</span> <span class="sh_type">int</span> h<span class="sh_symbol">,</span> <span class="sh_type">int</span> v<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>L <span class="sh_symbol">==</span> R<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>st<span class="sh_symbol">[</span>id<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> v<span class="sh_symbol">;</span> <span class="sh_keyword">return</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_type">int</span> M <span class="sh_symbol">=</span> L <span class="sh_symbol">+</span> R <span class="sh_symbol">-</span> <span class="sh_number">1</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> lc <span class="sh_symbol">=</span> id <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> rc <span class="sh_symbol">=</span> lc <span class="sh_symbol">|</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    h <span class="sh_symbol">&lt;=</span> M <span class="sh_symbol">?</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>lc<span class="sh_symbol">,</span> L<span class="sh_symbol">,</span> M<span class="sh_symbol">,</span> h<span class="sh_symbol">,</span> v<span class="sh_symbol">)</span> <span class="sh_symbol">:</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>rc<span class="sh_symbol">,</span> M <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> R<span class="sh_symbol">,</span> h<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span>
+    st<span class="sh_symbol">[</span>id<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> st<span class="sh_symbol">[</span>lc<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> st<span class="sh_symbol">[</span>rc<span class="sh_symbol">];</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">range</span><span class="sh_symbol">(</span><span class="sh_type">int</span> id<span class="sh_symbol">,</span> <span class="sh_type">int</span> L<span class="sh_symbol">,</span> <span class="sh_type">int</span> R<span class="sh_symbol">,</span> <span class="sh_type">int</span> ql<span class="sh_symbol">,</span> <span class="sh_type">int</span> qr<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>ql <span class="sh_symbol">&gt;</span> R <span class="sh_symbol">||</span> qr <span class="sh_symbol">&lt;</span> L<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>ql <span class="sh_symbol">&lt;=</span> L <span class="sh_symbol">&amp;&amp;</span> qr <span class="sh_symbol">&gt;=</span> R<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> st<span class="sh_symbol">[</span>id<span class="sh_symbol">];</span>
+    <span class="sh_type">int</span> s <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> M <span class="sh_symbol">=</span> L <span class="sh_symbol">+</span> R <span class="sh_symbol">-</span> <span class="sh_number">1</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> lc <span class="sh_symbol">=</span> id <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> rc <span class="sh_symbol">=</span> lc <span class="sh_symbol">|</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>ql <span class="sh_symbol">&lt;=</span> M<span class="sh_symbol">)</span> s <span class="sh_symbol">+=</span> <span class="sh_function">range</span><span class="sh_symbol">(</span>lc<span class="sh_symbol">,</span> L<span class="sh_symbol">,</span> M<span class="sh_symbol">,</span> ql<span class="sh_symbol">,</span> <span class="sh_function">min</span><span class="sh_symbol">(</span>qr<span class="sh_symbol">,</span> M<span class="sh_symbol">));</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>qr <span class="sh_symbol">&gt;</span> M<span class="sh_symbol">)</span> s <span class="sh_symbol">+=</span> <span class="sh_function">range</span><span class="sh_symbol">(</span>rc<span class="sh_symbol">,</span> M <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> R<span class="sh_symbol">,</span> <span class="sh_function">max</span><span class="sh_symbol">(</span>ql<span class="sh_symbol">,</span> M <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">),</span> qr<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> s<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">dfs_weight</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> y<span class="sh_symbol">;</span>
+    sz<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>y <span class="sh_symbol">=</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">)</span> <span class="sh_symbol">!=</span> p<span class="sh_symbol">[</span>x<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+            dep<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> dep<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>w<span class="sh_symbol">;</span>
+            p<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span>
+            <span class="sh_function">dfs_weight</span><span class="sh_symbol">(</span>y<span class="sh_symbol">);</span>
+            sz<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> sz<span class="sh_symbol">[</span>y<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">dfs_mc</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> r<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> y<span class="sh_symbol">,</span> z <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+    o<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">++</span>cnt<span class="sh_symbol">;</span> id<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> r<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>id<span class="sh_symbol">[</span>y <span class="sh_symbol">=</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">)</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>z <span class="sh_symbol">==</span> <span class="sh_symbol">-</span><span class="sh_number">1</span> <span class="sh_symbol">||</span> sz<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> sz<span class="sh_symbol">[</span>z<span class="sh_symbol">])</span>
+                z <span class="sh_symbol">=</span> y<span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>z <span class="sh_symbol">==</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_keyword">return</span><span class="sh_symbol">;</span>
+    <span class="sh_function">dfs_mc</span><span class="sh_symbol">(</span>z<span class="sh_symbol">,</span> r<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>id<span class="sh_symbol">[</span>y <span class="sh_symbol">=</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">)</span>
+            <span class="sh_function">dfs_mc</span><span class="sh_symbol">(</span>y<span class="sh_symbol">,</span> y<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">LCA</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> id<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">!=</span> id<span class="sh_symbol">[</span>y<span class="sh_symbol">];</span> <span class="sh_symbol">)</span>
+        id<span class="sh_symbol">[</span>x<span class="sh_symbol">][</span>dep<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> id<span class="sh_symbol">[</span>y<span class="sh_symbol">][</span>dep<span class="sh_symbol">]</span> <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> id<span class="sh_symbol">[</span>x<span class="sh_symbol">][</span>p<span class="sh_symbol">]</span> <span class="sh_symbol">:</span> y <span class="sh_symbol">=</span> id<span class="sh_symbol">[</span>y<span class="sh_symbol">][</span>p<span class="sh_symbol">];</span>
+    <span class="sh_keyword">return</span> dep<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;=</span> dep<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">?</span> x <span class="sh_symbol">:</span> y<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">int</span> <span class="sh_function">dist</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">return</span> dep<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> dep<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> <span class="sh_symbol">(</span>dep<span class="sh_symbol">[</span><span class="sh_function">LCA</span><span class="sh_symbol">(</span>x<span class="sh_symbol">,</span> y<span class="sh_symbol">)]</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">adj_centroid</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> y<span class="sh_symbol">,</span> cAdd<span class="sh_symbol">,</span> cSub<span class="sh_symbol">,</span> x <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_usertype">ll</span><span class="sh_normal"> </span>diff<span class="sh_symbol">,</span> Min<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> <span class="sh_symbol">~</span>x<span class="sh_symbol">;</span> <span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        x <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+        Min <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>C<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">((</span>y <span class="sh_symbol">=</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">)</span> <span class="sh_symbol">==</span> p<span class="sh_symbol">[</span>C<span class="sh_symbol">])</span>
+                cSub <span class="sh_symbol">=</span> amcnt <span class="sh_symbol">-</span> <span class="sh_symbol">(</span>cAdd <span class="sh_symbol">=</span> <span class="sh_function">range</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> V<span class="sh_symbol">,</span> o<span class="sh_symbol">[</span>C<span class="sh_symbol">],</span> o<span class="sh_symbol">[</span>C<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> sz<span class="sh_symbol">[</span>C<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">));</span>
+            <span class="sh_keyword">else</span>
+                cAdd <span class="sh_symbol">=</span> amcnt <span class="sh_symbol">-</span> <span class="sh_symbol">(</span>cSub <span class="sh_symbol">=</span> <span class="sh_function">range</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> V<span class="sh_symbol">,</span> o<span class="sh_symbol">[</span>y<span class="sh_symbol">],</span> o<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> sz<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">));</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">((</span>diff <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)(</span>cAdd <span class="sh_symbol">-</span> cSub<span class="sh_symbol">)</span> <span class="sh_symbol">*</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>w<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;</span> Min<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>Min <span class="sh_symbol">=</span> diff<span class="sh_symbol">;</span> x <span class="sh_symbol">=</span> y<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(~</span>x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>C <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span> ans <span class="sh_symbol">+=</span> Min<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>V<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>Q<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> V<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>w<span class="sh_symbol">);</span>
+        <span class="sh_function">addedge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">,</span> <span class="sh_symbol">(</span>i <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+        <span class="sh_function">addedge</span><span class="sh_symbol">(</span>v<span class="sh_symbol">,</span> u<span class="sh_symbol">,</span> w<span class="sh_symbol">,</span> i <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>dep<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> dep<span class="sh_symbol">);</span>
+    dep<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> p<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_function">dfs_weight</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>id<span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> id<span class="sh_symbol">);</span>
+    ans <span class="sh_symbol">=</span> amcnt <span class="sh_symbol">=</span> cnt <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_function">dfs_mc</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>C <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> Q<span class="sh_symbol">;</span> Q<span class="sh_symbol">--)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>w<span class="sh_symbol">);</span>
+        amcnt <span class="sh_symbol">+=</span> w<span class="sh_symbol">;</span>
+        ans <span class="sh_symbol">+=</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)</span>w <span class="sh_symbol">*</span> <span class="sh_function">dist</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> C<span class="sh_symbol">);</span>
+        <span class="sh_function">add</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> V<span class="sh_symbol">,</span> o<span class="sh_symbol">[</span>u<span class="sh_symbol">],</span> w<span class="sh_symbol">);</span>
+        <span class="sh_function">adj_centroid</span><span class="sh_symbol">();</span>
+        <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h2>坑</h2>
+<p><b>坑1：</b>由于是带权边，所以在 <code>dfs()</code> 时要注意 <code>dep[y] = dep[x] + e[i].w;</code> 而不能 <code>dep[y] = dep[x] + 1;</code>，然后我就写了后面一个，导致树上距离函数 <code>dist()</code> 爆炸，<s>然后华丽 WA……</s></p>
+<p>其它也没什么，毕竟这个线段树只是单点修改，区间查询，根本没必要封装，还有线段树空间乘 4 ~ 8 倍不要忘记然而我一开始只开了 1 倍，还不是动态开点 (也就是 × 2, × 2 + 1 型)，就 RE 了。</p>

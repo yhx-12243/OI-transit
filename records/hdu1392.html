@@ -1,0 +1,104 @@
+<h2>题目描述</h2>
+<p>求 <i>n</i> 个点组成的点集的凸包周长。</p>
+
+<h2>输入格式</h2>
+<p><b>输入数据有多组。</b></p>
+<p>每组数据的开头一行包含一个整数 <i>n</i>，表示点集的大小，如果 <i>n</i> = 0，表示输入结束。</p>
+<p>接下来的 <i>n</i> 行，每行两个整数 <i>x<sub>i</sub></i>, <i>y<sub>i</sub></i> 表示 <i>P<sub>i</sub></i> 的坐标为 (<i>x<sub>i</sub></i>, <i>y<sub>i</sub></i>)，<i>n</i> ≤ 100。</p>
+
+<h2>输出格式</h2>
+<p>点集的凸包周长，保留 2 位<b>小数</b>。</p>
+
+<h2>题解</h2>
+<p>很好，这里要涉及一个新的概念——凸包，也叫凸壳<s>(qiào 雾)</s>。首先来看一下凸集。</p>
+<p>若一个点集 <i>Γ</i>，满足对于 <img src="http://latex.codecogs.com/gif.latex?\forall%20A,B\in\mathit\Gamma,\;\overline{AB}\subseteq\mathit\Gamma" align="top">，则称 <i>Γ</i> 为凸集。根据定义立即知道，两个凸集的交还是凸集。</p>
+<p>所以，对于任意一个点集，<b>包含它的所有凸集</b>的交还是凸集，把这个交集称为它的凸包，立即看出，一个点集的凸包是包含它的最小凸集。</p>
+<p>一个点集的凸包边界 <i>Φ</i> 是这样一个集合，设它的凸包为 <i>Γ</i>，则对于 <img src="http://latex.codecogs.com/gif.latex?\forall%20A\in\Phi,r%3E0,S=\left\{P\mid\left|PA\right|%3Cr\right\},S\nsubseteq\mathit\Gamma\wedge%20S\nsubseteq\overline{\mathit\Gamma}">。
+<p>这道题的任务就是求离散点集的凸包边界周长。</p>
+<p>首先，求凸包有一个 <img src="http://latex.codecogs.com/gif.latex?\Theta(2^n\cdot%20n^4)"> 的暴力，显然，<s>到下个宇宙诞生也是跑不完的</s>。</p>
+<p>(scx: 那该怎么玩呢？)</p>
+<p>首先，你的 intuition 告诉你 <s>(英语不好的自行百度)</s>，<i>x</i> 坐标最小的点 (如果相同，再取相同的点中 <i>y</i> 坐标最小的点) 一定属于凸包边界。</p>
+<p>然后过它做平行于 <i>y</i> 轴的直线，绕它旋转，直到碰到下一个点，也就是说，按照极角排序后选择极角最小的点。</p>
+<p>然后重复 <i>n</i> 次后，就得到了凸包，时间复杂度为 <img src="http://latex.codecogs.com/gif.latex?\Theta(n^2\log%20n)">。
+<p>(scx: 可是这还是太慢啊！)</p>
+<p>这是，Graham 大佬就要上场了。这是一个<s>非常易于理解</s>的算法，时间复杂度为 <img src="http://latex.codecogs.com/gif.latex?\Theta(n\log%20n)">。</p>
+<p>显然，还是用 intuition，选上 <i>x</i> 坐标最小的点，<b>压入栈 <i>S</i> 中。</b></p>
+<p>然后做平移变换，设该点为坐标原点 (0, 0)，则所有的点都在 <i>x</i> 轴右侧，然后按照极角排序。</p>
+<p>对于一个点 <i>P<sub>i</sub></i>，如果 <b><i>P<sub>i</sub></i> 和当前栈中倒数第一个点的连边</b>在<b>倒数第一个点与倒数第二个点的连边</b>的<b>顺时针方向</b>，也就是说，以倒数第二个点 <i>P<sub>k</sub></i> 为基准，<i>P<sub>i</sub></i> 在 <i>P<sub>j</sub></i> (倒数第一个点) 的顺时方向，亦即 <img src="http://latex.codecogs.com/gif.latex?\overrightarrow{P_kP_i}\times\overrightarrow{P_kP_j}%3E0"> 则，弹出 <i>P<sub>j</sub></i>。</p>
+<p>上一张图来解释一下吧：</p>
+<p><img src="https://cdn.vijos.org/fs/1b26fce89c888503c6187961033524915777b2d3"></p>
+<p>(scx: 那感觉时间也是 <img src="http://latex.codecogs.com/gif.latex?O(n^2)"> 的呀？)</p>
+<p>怎么可能，每个点只会被加入一次，弹出一次，所以后面的 Graham 操作时间复杂度为 <img src="http://latex.codecogs.com/gif.latex?O(n)"> 的，所以总复杂度就是排序的复杂度，为 <img src="http://latex.codecogs.com/gif.latex?\Theta(n\log%20n)">。
+
+<h2>代码</h2>
+
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">135</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">const</span> <span class="sh_type">double</span> eps <span class="sh_symbol">=</span> <span class="sh_number">1e-6</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">Vec2</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">double</span> x<span class="sh_symbol">,</span> y<span class="sh_symbol">;</span>
+    <span class="sh_function">Vec2</span> <span class="sh_symbol">(</span><span class="sh_type">double</span> x0 <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">,</span> <span class="sh_type">double</span> y0 <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">):</span> <span class="sh_function">x</span><span class="sh_symbol">(</span>x0<span class="sh_symbol">),</span> <span class="sh_function">y</span><span class="sh_symbol">(</span>y0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+    <span class="sh_keyword">inline</span> <span class="sh_usertype">Vec2</span><span class="sh_normal"> </span><span class="sh_keyword">operator</span> <span class="sh_symbol">+</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">Vec2</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_function">Vec2</span><span class="sh_symbol">(</span>x <span class="sh_symbol">+</span> b<span class="sh_symbol">.</span>x<span class="sh_symbol">,</span> y <span class="sh_symbol">+</span> b<span class="sh_symbol">.</span>y<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">inline</span> <span class="sh_usertype">Vec2</span><span class="sh_normal"> </span><span class="sh_keyword">operator</span> <span class="sh_symbol">-</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">Vec2</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_function">Vec2</span><span class="sh_symbol">(</span>x <span class="sh_symbol">-</span> b<span class="sh_symbol">.</span>x<span class="sh_symbol">,</span> y <span class="sh_symbol">-</span> b<span class="sh_symbol">.</span>y<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">inline</span> <span class="sh_type">double</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">Vec2</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">return</span> x <span class="sh_symbol">*</span> b<span class="sh_symbol">.</span>x <span class="sh_symbol">+</span> y <span class="sh_symbol">*</span> b<span class="sh_symbol">.</span>y<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">inline</span> <span class="sh_type">double</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">^</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">Vec2</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">return</span> x <span class="sh_symbol">*</span> b<span class="sh_symbol">.</span>y <span class="sh_symbol">-</span> y <span class="sh_symbol">*</span> b<span class="sh_symbol">.</span>x<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">inline</span> <span class="sh_type">double</span> <span class="sh_function">norm2</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_symbol">*</span><span class="sh_keyword">this</span> <span class="sh_symbol">*</span> <span class="sh_symbol">*</span><span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> st<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> top<span class="sh_symbol">;</span>
+<span class="sh_type">double</span> len<span class="sh_symbol">;</span>
+<span class="sh_usertype">Vec2</span><span class="sh_normal"> </span>p<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> t<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">bool</span> <span class="sh_function">cmp1</span><span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">Vec2</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>a<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_usertype">Vec2</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">return</span> a<span class="sh_symbol">.</span>x <span class="sh_symbol">&lt;</span> b<span class="sh_symbol">.</span>x <span class="sh_symbol">-</span> eps <span class="sh_symbol">||</span> a<span class="sh_symbol">.</span>x <span class="sh_symbol">&lt;</span> b<span class="sh_symbol">.</span>x <span class="sh_symbol">+</span> eps <span class="sh_symbol">&amp;&amp;</span> a<span class="sh_symbol">.</span>y <span class="sh_symbol">&lt;</span> b<span class="sh_symbol">.</span>y <span class="sh_symbol">-</span> eps<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">bool</span> <span class="sh_function">cmp2</span><span class="sh_symbol">(</span><span class="sh_usertype">Vec2</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>a<span class="sh_symbol">,</span> <span class="sh_usertype">Vec2</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">double</span> p <span class="sh_symbol">=</span> a <span class="sh_symbol">^</span> b<span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> p <span class="sh_symbol">&gt;</span> eps <span class="sh_symbol">||</span> p <span class="sh_symbol">&gt;</span> <span class="sh_symbol">-</span>eps <span class="sh_symbol">&amp;&amp;</span> a<span class="sh_symbol">.</span><span class="sh_function">norm2</span><span class="sh_symbol">()</span> <span class="sh_symbol">&lt;</span> b<span class="sh_symbol">.</span><span class="sh_function">norm2</span><span class="sh_symbol">()</span> <span class="sh_symbol">-</span> eps<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">while</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">)</span> <span class="sh_symbol">==</span> <span class="sh_number">1</span> <span class="sh_symbol">&amp;&amp;</span> n<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%lf%lf"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>p<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>x<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>p<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>y<span class="sh_symbol">);</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>n <span class="sh_symbol">==</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> len <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>n <span class="sh_symbol">==</span> <span class="sh_number">2</span><span class="sh_symbol">)</span> len <span class="sh_symbol">=</span> <span class="sh_function">sqrt</span><span class="sh_symbol">((</span>p<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">-</span> p<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]).</span><span class="sh_function">norm2</span><span class="sh_symbol">());</span>
+        <span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+            i <span class="sh_symbol">=</span> <span class="sh_function">min_element</span><span class="sh_symbol">(</span>p<span class="sh_symbol">,</span> p <span class="sh_symbol">+</span> n<span class="sh_symbol">,</span> cmp1<span class="sh_symbol">)</span> <span class="sh_symbol">-</span> p<span class="sh_symbol">;</span>
+            <span class="sh_function">swap</span><span class="sh_symbol">(</span>p<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">],</span> p<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+                p<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> p<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> p<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">];</span>
+            p<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">Vec2</span><span class="sh_symbol">(</span><span class="sh_number">0.0</span><span class="sh_symbol">);</span>
+            <span class="sh_function">sort</span><span class="sh_symbol">(</span>p <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> p <span class="sh_symbol">+</span> n<span class="sh_symbol">,</span> cmp2<span class="sh_symbol">);</span>
+            top <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+            st<span class="sh_symbol">[</span>top<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+            st<span class="sh_symbol">[</span>top<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+            st<span class="sh_symbol">[</span>top<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">3</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> <span class="sh_symbol">(</span>p<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> p<span class="sh_symbol">[</span>st<span class="sh_symbol">[</span>top <span class="sh_symbol">-</span> <span class="sh_number">2</span><span class="sh_symbol">]]</span> <span class="sh_symbol">^</span> p<span class="sh_symbol">[</span>st<span class="sh_symbol">[</span>top <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]]</span> <span class="sh_symbol">-</span> p<span class="sh_symbol">[</span>st<span class="sh_symbol">[</span>top <span class="sh_symbol">-</span> <span class="sh_number">2</span><span class="sh_symbol">]])</span> <span class="sh_symbol">&gt;</span> eps<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>top<span class="sh_symbol">);</span>
+                st<span class="sh_symbol">[</span>top<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>    
+            <span class="sh_cbracket">}</span>
+            st<span class="sh_symbol">[</span>top<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> st<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">];</span>
+            len <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> top<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+                len <span class="sh_symbol">+=</span> <span class="sh_function">sqrt</span><span class="sh_symbol">((</span>p<span class="sh_symbol">[</span>st<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">-</span> p<span class="sh_symbol">[</span>st<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]]).</span><span class="sh_function">norm2</span><span class="sh_symbol">());</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%.2lf</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> len<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h2>坑</h2>
+<p><b>坑1：</b>题面问题，我已经加粗了，这道题可是有多组数据的哦！<s>小朋友们不要被坑了！</s></p>
+<p><b>坑2：</b>前面 3 个点应该手动加入栈，不然可能会去弹空栈导致 RE！</p>
+<p><b>坑3：</b>凸包在 <i>n</i> ≥ 3 的情况下才是一个封闭图形，所以 Graham 算法在 <i>n</i> = 2 的情况下，返回了 2 倍线段长！所以，<i>n</i> = 1 或 2 的情况下特判，分别输出 <code>0.00</code> 和两个点之间的距离。</p>
