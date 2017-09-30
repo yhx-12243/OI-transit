@@ -1,4 +1,7 @@
-var xh, strBack, strFilter, arr;
+var xh, strBack, recarr;
+var strFilter, pageO, pageC;
+
+const RECORDS_PER_PAGE = 50;
 
 function LoadFile(){
 	strBack = "";
@@ -9,32 +12,50 @@ function LoadFile(){
 }
 
 function DecFile(){
-	var i, j = 0, brr, nm = "", newRow, C0, C1, C2, C3, C4;
-	arr = strBack.split("\n");
-	for(i in arr)
-		if(arr[i] !== ""){
-			brr = arr[i].split("/");
-			nm = brr[0];
-			j = nm.toUpperCase().lastIndexOf(".HTML");
-			if(brr.length === 4 && j === nm.length - 5){
+	var i = 0, j = 0, nm = "", info, count = 0, recnum = 0;
+	var newRow, C0, C1, C2, C3, C4, C5;
+	recarr = strBack.split("\n");
+	for(i in recarr)
+		if(recarr[i] !== ""){
+			info = recarr[i].replace(/[\f\n\r\v]/g, "").split("/");
+			if(info.length !== 5) continue; // invalid record
+			++recnum;
+			nm = info[0];
+			if(Matching(strFilter, nm)){
 				newRow = recTable.insertRow();
 				C0 = newRow.insertCell();
-				C0.className = "bd_table";
-				C0.innerHTML = nm.substr(0, j);
+				C0.innerHTML = (recnum - 1).toString()
 				C1 = newRow.insertCell();
-				C1.className = "bd_table";
-				C1.innerHTML = "<a href=\"records/" + nm + "\" target=\"blank\">链接</a>";
+				C1.innerHTML = nm;
 				C2 = newRow.insertCell();
-				C2.className = "bd_table";
-				C2.innerHTML = brr[1];
+				C2.innerHTML = "<a href=\"records/" + nm.replace(/#/g, "%23") + ".html\" target=\"_blank\">链接</a>";
 				C3 = newRow.insertCell();
-				C3.className = "bd_table";
-				C3.innerHTML = brr[2];
+				C3.innerHTML = info[1];
 				C4 = newRow.insertCell();
-				C4.className = "bd_table";
-				C4.innerHTML = brr[3];
+				C4.innerHTML = info[2];
+				C5 = newRow.insertCell();
+				C5.innerHTML = info[3];
+				C6 = newRow.insertCell();
+				C6.innerHTML = info[4];
+				++count;
+				if(count <= (pageO - 1) * RECORDS_PER_PAGE || pageO * RECORDS_PER_PAGE < count)
+					newRow.style.display = "none";
 			}
 		}
+	for(i in recTable.rows)
+		if(j = parseInt(i)){
+			C0 = recTable.rows[j].cells[0];
+			C0.innerHTML = (recnum - parseInt(C0.innerHTML)).toString();
+		}
+	if(count){
+		if(strFilter === "") // all records
+			recTotal.innerHTML = "scx: 共做了 " + count + " 道题";
+		else // filtered
+			recTotal.innerHTML = "scx: 当前筛选下共有 " + count + " 道题";
+	}else // haven't done any problem (in thes filter)
+		recTotal.innerHTML = "scx: 怎么一道题都还没有啊，快点做题了！";
+	pageC = Math.ceil(count / RECORDS_PER_PAGE);
+	pageDeals();
 }
 
 function read_ok(){
@@ -43,6 +64,6 @@ function read_ok(){
 			strBack = xh.responseText;
 			DecFile();
 		}else
-			alert("ä»Šå¤©è¿æ°”ä¸å¤ªå¥½ï¼Œå’Œ scx å–å£èŒ¶å†æ¥è¯•è¯•å§");
+			alert("今天运气不怎么好，和 scx 喝口茶再试试吧");
 	}
 }
