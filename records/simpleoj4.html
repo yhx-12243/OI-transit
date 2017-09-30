@@ -1,0 +1,124 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>三维空间 $z$ 轴 (竖轴) 上方有一立体图形，且该图形在 $Oxz$ 平面和 $Oyz$ 平面上投影的轮廓，除去与坐标轴重合的部分，都是折线。如下图：</p>
+<p><img src="https://cdn.vijos.org/fs/74cca5ead4157c67053e197454686090eecaac63"></p>
+<p>给出这两条折线，求该立体图形的最大可能体积。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个整数 $n_x$ ($2 \leq n_x \leq 100000$)，表示该立体图形在 $Oxz$ 上的投影折线轮廓上的关键点数，相
+邻两关键点间有线段相连。</p>
+<p>第二行包含 $n_x$ 对整数 $x_i, z_i$，表示折线上的点 ($−10^9 \leq x_1 &lt; x_2 &lt; \cdots &lt; x_{n_x} \leq 10^9$; $0 \leq z_i \leq 10^9$; $z_1 = z_{n_x} = 0$)。</p>
+<p>接下来以相似的格式给出在 $Oyz$ 上投影的信息。(当然数据范围也是一样滴)</p>
+
+<h3>输出格式</h3>
+<p>输出包含一行。若不存在这样的立体图形，输出 <code>Invalid</code>，否则输出一个实数表示答案。答案被认为正确，当且仅当与标准答案的相对误差或绝对误差不超过 $10^{-6}$。</p>
+
+<h3>题解</h3>
+<p>首先考虑一下，什么时候输出 <code>Invalid</code>。</p>
+<p>显然，如果两个投影的最大高度不同，那显然是 <code>Invalid</code>，但是撕烤一下可以发现，如果最大高度相同，由于<b>均在 $z$ 轴上方</b>，所以一定是存在答案的。</p>
+<p>然后考虑一下，要求体积最大，所以立体图形内部一定是实心的。</p>
+<p>又考虑这两条折线，比如说在 $Oxz$ 上的。由于 $x_i &lt; x_{i+1}$，因此<s>凭直觉</s>可以感受到，当一条平行于 $x$ 轴的直线去 "截" 这条折线时，在折线内部截得的线段总长度随这条直线的增高而减小。</p>
+<p>两维结合起来，就是当一个平行于 $Oxy$ 平面的平面去 "截" 这个立体图形时，(在最优情况下) 截面的总面积随这个平面的增高而减小。</p>
+<p>考虑这个立体图形被截后的截面，可以看出，它的截面形状一定为矩形 (或一些不相交矩形的并)。</p>
+<p>其实，设高度为 $z$，平行于 $x$ 轴的直线去截折线时，设截得的线段总长度为 $W_x(z)$，同样定义 $W_y(z)$，则截面的总面积就是 $W_x(z)W_y(z)$。</p>
+<p>由<s>祖暅原理</s>基本的微积分原理，可以得到该立体图形的体积就是 $\int_0^{\max z_i} W_x(z) W_y(z) \mathrm{d}z$。</p>
+<p>所以将所有的 $z$ 坐标 (竖坐标) 排序后离散化，然后使用扫描线，求出每改变一个 "单位" 的竖坐标，$W_x(z)$ 和 $W_y(z)$ 的变化量。</p>
+<p>(scx: 那如何求变化量，是否需要一棵线段树？)</p>
+<p>其实并不是所有的扫描线都需要线段树，我们可以对于每条折线，比如说在 $Oxz$ 上的，求出一种类似的 "斜率"——即每改变一个单位的竖坐标，横坐标的变化量，即 $k_x = \dfrac{x_2 - x_1}{|z_2 - z_1|}$。</p>
+<p>由于可能一条折线经过多个 $z$ 轴的关键点，所以需要改变较多的 $k_x$，所以考虑维护 $k_x$ 差分后的数列 $\left\{ \Delta k_x \right\}$，然后最后求个前缀和。</p>
+<p>最后推一下积分的公式：假如说相邻的两个关键点的竖坐标分别为 $z_1, z_2$ ($z_1 &lt; z_2$)，则 $W_x(z) = W_x(z_1) - k_x(z - z_1)$，记 $W_x = W_x(z_1)$, $W_y = W_y(z_1)$, $d = z_2 - z_1 &gt; 0$，则最终的 (这一块的) 体积</p>
+<p>$$ V = \int_{z_1}^{z_2} W_x(z) W_y(z) \mathrm{d}z
+= \int_{z_1}^{z_2} \left( W_x - k_x(z - z_1) \right) \left( W_y - k_y(z - z_1) \right) \mathrm{d}z
+= \frac13 k_x k_y d^3 - \frac12 \left( W_x k_y + W_y k_x \right) d^2 + W_x W_y d $$</p>
+<p>然后累加一下就做完啦！</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">100034</span>
+<span class="sh_preproc">#define</span> N2 <span class="sh_number">256101</span>
+<span class="sh_preproc">#define</span> v first
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> pair <span class="sh_symbol">&lt;</span><span class="sh_type">int</span><span class="sh_symbol">,</span> <span class="sh_type">int</span><span class="sh_symbol">&gt;</span> pii<span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_type">double</span> eps <span class="sh_symbol">=</span> <span class="sh_number">1e-14</span><span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_type">double</span> third <span class="sh_symbol">=</span> <span class="sh_number">0.33333333333333333333</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">vec2</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> w<span class="sh_symbol">,</span> z<span class="sh_symbol">,</span> Z<span class="sh_symbol">;</span>
+    <span class="sh_function">vec2</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> w0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> z0 <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">):</span> <span class="sh_function">w</span><span class="sh_symbol">(</span>w0<span class="sh_symbol">),</span> <span class="sh_function">z</span><span class="sh_symbol">(</span>z0<span class="sh_symbol">),</span> <span class="sh_function">Z</span><span class="sh_symbol">(</span><span class="sh_number">0</span><span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+    vec2 <span class="sh_symbol">*</span> <span class="sh_function">read</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>w<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>z<span class="sh_symbol">);</span> <span class="sh_keyword">return</span> <span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> nx<span class="sh_symbol">,</span> ny<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_usertype">vec2</span><span class="sh_normal"> </span>xz<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> yz<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> F<span class="sh_symbol">[</span>N2<span class="sh_symbol">],</span> Z1<span class="sh_symbol">,</span> Z2<span class="sh_symbol">,</span> Tx<span class="sh_symbol">,</span> Ty<span class="sh_symbol">;;</span>
+<span class="sh_usertype">pii</span><span class="sh_normal"> </span>D<span class="sh_symbol">[</span>N2<span class="sh_symbol">];</span>
+<span class="sh_type">double</span> dx<span class="sh_symbol">[</span>N2<span class="sh_symbol">],</span> dy<span class="sh_symbol">[</span>N2<span class="sh_symbol">],</span> hx<span class="sh_symbol">[</span>N2<span class="sh_symbol">],</span> hy<span class="sh_symbol">[</span>N2<span class="sh_symbol">];</span>
+<span class="sh_type">double</span> k<span class="sh_symbol">,</span> Wx<span class="sh_symbol">,</span> Wy<span class="sh_symbol">,</span> Kx<span class="sh_symbol">,</span> Ky<span class="sh_symbol">,</span> dz<span class="sh_symbol">,</span> Volume<span class="sh_symbol">;</span>
+
+<span class="sh_type">void</span> <span class="sh_function">up</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>x <span class="sh_symbol">&lt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">Discretize</span><span class="sh_symbol">(</span><span class="sh_type">int</span> n<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> cnt <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>D<span class="sh_symbol">,</span> D <span class="sh_symbol">+</span> n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">&amp;&amp;</span> D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v <span class="sh_symbol">==</span> D<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>v<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            F<span class="sh_symbol">[</span>D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>second<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> cnt <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span><span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+            F<span class="sh_symbol">[</span>D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>second<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> cnt<span class="sh_symbol">;</span>
+            D<span class="sh_symbol">[</span>cnt<span class="sh_symbol">].</span>v <span class="sh_symbol">=</span> D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">;</span>
+            <span class="sh_symbol">++</span>cnt<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> cnt<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    Tx <span class="sh_symbol">=</span> Ty <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>nx<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> nx<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>xz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">read</span><span class="sh_symbol">();</span> <span class="sh_function">up</span><span class="sh_symbol">(</span>Tx<span class="sh_symbol">,</span> xz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>z<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>ny<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> ny<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>yz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">read</span><span class="sh_symbol">();</span> <span class="sh_function">up</span><span class="sh_symbol">(</span>Ty<span class="sh_symbol">,</span> yz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>z<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>Tx <span class="sh_symbol">!=</span> Ty<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_function">puts</span><span class="sh_symbol">(</span><span class="sh_string">"Invalid"</span><span class="sh_symbol">),</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> nx<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> D<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">pii</span><span class="sh_symbol">(</span>xz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>z<span class="sh_symbol">,</span> i<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> ny<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> D<span class="sh_symbol">[</span>nx <span class="sh_symbol">+</span> i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">pii</span><span class="sh_symbol">(</span>yz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>z<span class="sh_symbol">,</span> nx <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+    n <span class="sh_symbol">=</span> <span class="sh_function">Discretize</span><span class="sh_symbol">(</span>nx <span class="sh_symbol">+</span> ny<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> nx<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> xz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>Z <span class="sh_symbol">=</span> F<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> ny<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> yz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>Z <span class="sh_symbol">=</span> F<span class="sh_symbol">[</span>nx <span class="sh_symbol">+</span> i<span class="sh_symbol">];</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> nx<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>Z1 <span class="sh_symbol">=</span> xz<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>Z<span class="sh_symbol">)</span> <span class="sh_symbol">==</span> <span class="sh_symbol">(</span>Z2 <span class="sh_symbol">=</span> xz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>Z<span class="sh_symbol">))</span>
+            hx<span class="sh_symbol">[</span>Z1<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)(</span>xz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>w <span class="sh_symbol">-</span> xz<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>w<span class="sh_symbol">);</span>
+        <span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+            k <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)(</span>xz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>w <span class="sh_symbol">-</span> xz<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>w<span class="sh_symbol">)</span> <span class="sh_symbol">/</span> <span class="sh_symbol">(</span>xz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>z <span class="sh_symbol">-</span> xz<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>z<span class="sh_symbol">);</span>
+            dx<span class="sh_symbol">[</span>Z1<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> k<span class="sh_symbol">;</span> dx<span class="sh_symbol">[</span>Z2<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> k<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> ny<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>Z1 <span class="sh_symbol">=</span> yz<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>Z<span class="sh_symbol">)</span> <span class="sh_symbol">==</span> <span class="sh_symbol">(</span>Z2 <span class="sh_symbol">=</span> yz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>Z<span class="sh_symbol">))</span>
+            hy<span class="sh_symbol">[</span>Z1<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)(</span>yz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>w <span class="sh_symbol">-</span> yz<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>w<span class="sh_symbol">);</span>
+        <span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+            k <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)(</span>yz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>w <span class="sh_symbol">-</span> yz<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>w<span class="sh_symbol">)</span> <span class="sh_symbol">/</span> <span class="sh_symbol">(</span>yz<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>z <span class="sh_symbol">-</span> yz<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>z<span class="sh_symbol">);</span>
+            dy<span class="sh_symbol">[</span>Z1<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> k<span class="sh_symbol">;</span> dy<span class="sh_symbol">[</span>Z2<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> k<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    Wx <span class="sh_symbol">=</span> xz<span class="sh_symbol">[</span>nx <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>w <span class="sh_symbol">-</span> xz<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">].</span>w<span class="sh_symbol">;</span>
+    Wy <span class="sh_symbol">=</span> yz<span class="sh_symbol">[</span>ny <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>w <span class="sh_symbol">-</span> yz<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">].</span>w<span class="sh_symbol">;</span>
+    Volume <span class="sh_symbol">=</span> Kx <span class="sh_symbol">=</span> Ky <span class="sh_symbol">=</span> dz <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        Wx <span class="sh_symbol">+=</span> hx<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> Kx <span class="sh_symbol">*</span> dz<span class="sh_symbol">;</span> Wy <span class="sh_symbol">+=</span> hy<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> Ky <span class="sh_symbol">*</span> dz<span class="sh_symbol">;</span>
+        Kx <span class="sh_symbol">+=</span> dx<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> Ky <span class="sh_symbol">+=</span> dy<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+        dz <span class="sh_symbol">=</span> D<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>v <span class="sh_symbol">-</span> D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">;</span>
+        Volume <span class="sh_symbol">+=</span> <span class="sh_symbol">((</span>third <span class="sh_symbol">*</span> Kx <span class="sh_symbol">*</span> Ky <span class="sh_symbol">*</span> dz <span class="sh_symbol">+</span> <span class="sh_number">0.5</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>Wx <span class="sh_symbol">*</span> Ky <span class="sh_symbol">+</span> Wy <span class="sh_symbol">*</span> Kx<span class="sh_symbol">))</span> <span class="sh_symbol">*</span> dz <span class="sh_symbol">+</span> Wx <span class="sh_symbol">*</span> Wy<span class="sh_symbol">)</span> <span class="sh_symbol">*</span> dz<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%.12lf</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> Volume<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>还是练一下扫描线，坑主要是这么几个：</p>
+<p><b>坑1：</b>首先就是增加斜率的时候，是成块增加的，避免线段树的一个较好方法就是利用差分，还有注意，改变的时候是 <code>+=</code> (或 <code>-=</code>)，不能用 <code>=</code>。</p>
+<p><b>坑2：</b>更新 $W_x(z_1)$ 的时候，除了减少 $k_x d$ 的部分外，还要减少一些水平的部分 (如样例 $y$ 轴 $1 \sim 2$ 这块)，由于分母是 $\Delta z$，<b>不存在斜率</b>，因此需要用一个变量 $h_x(z)$ 来额外记录水平的部分的长度，故更新 $W_x(z_1)$ 的时候，还要减少 $h_x(z)$。</p>

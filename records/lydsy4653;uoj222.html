@@ -1,0 +1,114 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>在数轴上有 $n$ 个闭区间 $[l_1, r_1], [l_2, r_2], \cdots, [l_n, r_n]$。现在要从中选出 $m$ 个区间，使得这 $m$ 个区间共同包含至少一个位置。换句话说，就是存在一个 $x$，使得对于每一个被选中的区间 $[l_i, r_i]$，都有 $l_i \leq x \leq r_i$。</p>
+<p>对于一个合法的选取方案，它的花费为<strong>被选中的最长区间长度减去被选中的最短区间长度</strong>。区间 $[l_i,r_i]$ 的长度定义为 $r_i-l_i$，即等于它的右端点的值减去左端点的值。</p>
+<p>求所有合法方案中最小的花费。如果不存在合法的方案，输出 <code>−1</code>。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个正整数 $n, m$，用空格隔开，意义如上文所述，保证 $1 \leq m \leq n \leq 5 \times 10^5$。</p>
+<p>接下来 $n$ 行，每行表示一个区间，包含用空格隔开的两个整数 $l_i$ 和 $r_i$ 为该区间的左右端点，保证 $0 \leq l_i \leq r_i \leq 10^9$。</p>
+
+<h3>输出格式</h3>
+<p>只有一行，包含一个正整数，即最小花费。</p>
+
+<h3>题解</h3>
+<p>这题相对前面的几题就良心多啦！</p>
+<p>首先，容易想到一个比较暴力的做法，按照区间长度排序，枚举<strong>最长区间和最短区间</strong>，判断是否能行并更新最小值。</p>
+<p>判断某 $k$($k \geq m$) 个区间中是否存在 $m$ 个交集非空，相当于数轴上把 $k$ 个区间覆盖的点都 + 1。</p>
+<p>然后如果最终数轴上存在一个数 $x$，它的值 $\geq m$，说明它被<strong>至少 $m$ 个区间覆盖</strong>，那么选那些区间中的 $m$ 个即可，就是一种合法方案，而这个方案的花费<strong>是已知的</strong>，因为最长区间和最短区间都是已知的。</p>
+<p>至少存在一个数 $\geq m$，也就是这些数的<strong>最大值</strong> $\geq m$，可以建立一棵 (最大值) 线段树，判断根节点的值是否 $\geq m$ (因为我们不需要求出 $x$ 的具体值)，又因为这些区间的端点的数可能比较大 ($10^9$)，因此可以做一下离散化。</p>
+<p>这种办法的时间复杂度为 $O(n^2\log n)$，期望得分 $60$ 分。</p>
+<p>再思考一下，可以发现，按照区间长度排序后，枚举最短区间时，<strong>最长区间的长度是不减的</strong> (如果最长区间从 $[l_k, r_k]$ 到 $[l_t, r_t]$ ($t &lt; r$)，则原来的最短区间到 $[l_t, r_t]$ 的区间个数多于更新后的最短区间到 $[l_t, r_t]$ 的区间个数，从而原来不会枚举到 $[l_k, r_k]$，矛盾)。</p>
+<p>因此，只需用一个单调指针依次往后扫描即可，时间复杂度为 $O(n\log n)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">512202</span>
+<span class="sh_preproc">#define</span> v first
+<span class="sh_preproc">#define</span> segc <span class="sh_type">int</span> M <span class="sh_symbol">=</span> L <span class="sh_symbol">+</span> R <span class="sh_symbol">-</span> <span class="sh_number">1</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> lc <span class="sh_symbol">=</span> id <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> rc <span class="sh_symbol">=</span> lc <span class="sh_symbol">|</span> <span class="sh_number">1</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> pair <span class="sh_symbol">&lt;</span><span class="sh_type">int</span><span class="sh_symbol">,</span> <span class="sh_type">int</span><span class="sh_symbol">&gt;</span> pii<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">Range</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> l<span class="sh_symbol">,</span> r<span class="sh_symbol">;</span>
+    <span class="sh_function">Range</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> l0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> r0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">l</span><span class="sh_symbol">(</span>l0<span class="sh_symbol">),</span> <span class="sh_function">r</span><span class="sh_symbol">(</span>r0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span><span class="sh_symbol">;</span>
+    <span class="sh_type">bool</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&lt;</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">Range</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span> <span class="sh_keyword">const</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_function">len</span><span class="sh_symbol">(*</span><span class="sh_keyword">this</span><span class="sh_symbol">)</span> <span class="sh_symbol">&lt;</span> <span class="sh_function">len</span><span class="sh_symbol">(</span>b<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">friend</span> <span class="sh_keyword">inline</span> <span class="sh_type">int</span> <span class="sh_function">len</span><span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">Range</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>x<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> z<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> l<span class="sh_symbol">,</span> r<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_usertype">Range</span><span class="sh_normal"> </span>a<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">unsigned</span> <span class="sh_type">int</span> ans<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> F<span class="sh_symbol">[</span>N <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">],</span> v<span class="sh_symbol">[</span>N <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">3</span><span class="sh_symbol">],</span> tag<span class="sh_symbol">[</span>N <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">3</span><span class="sh_symbol">];</span>
+<span class="sh_usertype">pii</span><span class="sh_normal"> </span>D<span class="sh_symbol">[</span>N <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">unsigned</span> <span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">unsigned</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">int</span> <span class="sh_function">len</span><span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">Range</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">return</span> D<span class="sh_symbol">[</span>x<span class="sh_symbol">.</span>r<span class="sh_symbol">].</span>v <span class="sh_symbol">-</span> D<span class="sh_symbol">[</span>x<span class="sh_symbol">.</span>l<span class="sh_symbol">].</span>v<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">push_down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> id<span class="sh_symbol">,</span> <span class="sh_type">int</span> lc<span class="sh_symbol">,</span> <span class="sh_type">int</span> rc<span class="sh_symbol">,</span> <span class="sh_type">int</span> L<span class="sh_symbol">,</span> <span class="sh_type">int</span> M<span class="sh_symbol">,</span> <span class="sh_type">int</span> R<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    tag<span class="sh_symbol">[</span>lc<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> tag<span class="sh_symbol">[</span>id<span class="sh_symbol">];</span> tag<span class="sh_symbol">[</span>rc<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> tag<span class="sh_symbol">[</span>id<span class="sh_symbol">];</span>
+    v<span class="sh_symbol">[</span>lc<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> tag<span class="sh_symbol">[</span>id<span class="sh_symbol">];</span> v<span class="sh_symbol">[</span>rc<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> tag<span class="sh_symbol">[</span>id<span class="sh_symbol">];</span>
+    tag<span class="sh_symbol">[</span>id<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">add</span><span class="sh_symbol">(</span><span class="sh_type">int</span> id<span class="sh_symbol">,</span> <span class="sh_type">int</span> L<span class="sh_symbol">,</span> <span class="sh_type">int</span> R<span class="sh_symbol">,</span> <span class="sh_type">int</span> ql<span class="sh_symbol">,</span> <span class="sh_type">int</span> qr<span class="sh_symbol">,</span> <span class="sh_type">int</span> dv<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>ql <span class="sh_symbol">&lt;=</span> L <span class="sh_symbol">&amp;&amp;</span> qr <span class="sh_symbol">&gt;=</span> R<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        v<span class="sh_symbol">[</span>id<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> dv<span class="sh_symbol">;</span> tag<span class="sh_symbol">[</span>id<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> dv<span class="sh_symbol">;</span> <span class="sh_keyword">return</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    segc<span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>tag<span class="sh_symbol">[</span>id<span class="sh_symbol">])</span> <span class="sh_function">push_down</span><span class="sh_symbol">(</span>id<span class="sh_symbol">,</span> lc<span class="sh_symbol">,</span> rc<span class="sh_symbol">,</span> L<span class="sh_symbol">,</span> M<span class="sh_symbol">,</span> R<span class="sh_symbol">);</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>ql <span class="sh_symbol">&lt;=</span> M<span class="sh_symbol">)</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>lc<span class="sh_symbol">,</span> L<span class="sh_symbol">,</span> M<span class="sh_symbol">,</span> ql<span class="sh_symbol">,</span> <span class="sh_function">min</span><span class="sh_symbol">(</span>qr<span class="sh_symbol">,</span> M<span class="sh_symbol">),</span> dv<span class="sh_symbol">);</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>qr <span class="sh_symbol">&gt;</span> M<span class="sh_symbol">)</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>rc<span class="sh_symbol">,</span> M <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> R<span class="sh_symbol">,</span> <span class="sh_function">max</span><span class="sh_symbol">(</span>ql<span class="sh_symbol">,</span> M <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">),</span> qr<span class="sh_symbol">,</span> dv<span class="sh_symbol">);</span>
+    v<span class="sh_symbol">[</span>id<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">max</span><span class="sh_symbol">(</span>v<span class="sh_symbol">[</span>lc<span class="sh_symbol">],</span> v<span class="sh_symbol">[</span>rc<span class="sh_symbol">]);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">query</span><span class="sh_symbol">(</span><span class="sh_type">int</span> id<span class="sh_symbol">,</span> <span class="sh_type">int</span> L<span class="sh_symbol">,</span> <span class="sh_type">int</span> R<span class="sh_symbol">,</span> <span class="sh_type">int</span> ql<span class="sh_symbol">,</span> <span class="sh_type">int</span> qr<span class="sh_symbol">,</span> <span class="sh_type">int</span> v<span class="sh_symbol">);</span>
+
+<span class="sh_type">int</span> <span class="sh_function">Discretize</span><span class="sh_symbol">(</span><span class="sh_type">int</span> n<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> cnt <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>D<span class="sh_symbol">,</span> D <span class="sh_symbol">+</span> n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">&amp;&amp;</span> D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v <span class="sh_symbol">==</span> D<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>v<span class="sh_symbol">)</span>
+            F<span class="sh_symbol">[</span>D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>second<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> cnt <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+            F<span class="sh_symbol">[</span>D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>second<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> cnt<span class="sh_symbol">;</span>
+            D<span class="sh_symbol">[</span>cnt<span class="sh_symbol">].</span>v <span class="sh_symbol">=</span> D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">;</span>
+            <span class="sh_symbol">++</span>cnt<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> cnt<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>k<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>l<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>r<span class="sh_symbol">);</span>
+        D<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">pii</span><span class="sh_symbol">(</span>l<span class="sh_symbol">,</span> i<span class="sh_symbol">);</span>
+        D<span class="sh_symbol">[</span>n <span class="sh_symbol">+</span> i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">pii</span><span class="sh_symbol">(</span>r<span class="sh_symbol">,</span> n <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    z <span class="sh_symbol">=</span> <span class="sh_function">Discretize</span><span class="sh_symbol">(</span>n <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">);</span> 
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">Range</span><span class="sh_symbol">(</span>F<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> F<span class="sh_symbol">[</span>n <span class="sh_symbol">+</span> i<span class="sh_symbol">]);</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>a<span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> n<span class="sh_symbol">);</span>
+    ans <span class="sh_symbol">=</span> UINT_MAX<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n <span class="sh_symbol">&amp;&amp;</span> j <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> j <span class="sh_symbol">&lt;</span> n <span class="sh_symbol">&amp;&amp;</span> v<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> k<span class="sh_symbol">;</span> j<span class="sh_symbol">++)</span>
+            <span class="sh_function">add</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> z<span class="sh_symbol">,</span> a<span class="sh_symbol">[</span>j<span class="sh_symbol">].</span>l <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a<span class="sh_symbol">[</span>j<span class="sh_symbol">].</span>r <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>v<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">&gt;=</span> k<span class="sh_symbol">)</span> <span class="sh_function">down</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">,</span> <span class="sh_function">len</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>j <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">])</span> <span class="sh_symbol">-</span> <span class="sh_function">len</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">]));</span>
+        <span class="sh_function">add</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> z<span class="sh_symbol">,</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>l <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>r <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)</span>ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><b>坑1：</b>如果结构体的比较函数被定义为运算符，那么在使用 <code>sort()</code> 的时候<strong>必须用两个 <code>const</code> 关键字</strong>，否则编译不过去。</p>
+<p><b>坑2：</b>按区间长度排序时，应该比较<strong>原来区间的长度</strong>，而不是<strong>离散化后的长度</strong>，这个反例可以轻松举出来，这里就不举了，同理，最后计算花费的时候，也应该是最长区间的<strong>原来长度</strong>减去最短区间的<strong>原来长度</strong>，不然很容易 WA。</p>
