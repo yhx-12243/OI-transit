@@ -4,52 +4,51 @@
 <script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 
 <h3>题目描述</h3>
-<p>给定图 $G = (V, E)$，对于每条边 $e \in E$ 有一个流量下界 $\inf(e)$ 和流量上界 $\sup(e)$，给定源点 $S$ 和汇点 $T$，问是否存在一个从 $S$ 到 $T$ 的流 $f$ 满足流量平衡条件，如果存在，输出 $|f|$ 的最大可能值。</p>
+<p>给定图 $G = (V, E)$，对于每条边 $e \in E$ 有一个流量下界 $\inf(e)$ 和流量上界 $\sup(e)$，给定源点 $S$ 和汇点 $T$，问是否存在一个从 $S$ 到 $T$ 的流 $f$ 满足流量平衡条件，如果存在，输出 $|f|$ 的<strong>最小</strong>可能值。</p>
 
 <h3>输入格式</h3>
-<p>第一行包含四个正整数 $|V|, |E|, S, T$ ($|V| \leq 202$)，表示原图中的点数、边数、源点与汇点。</p>
+<p>第一行包含四个正整数 $|V|, |E|, S, T$ ($|V| \leq 50003, |E| \leq 125003$)，表示原图中的点数、边数、源点与汇点。</p>
 <p>接下来的 $|E|$ 行，每行四个整数 $u(e_i), v(e_i), \inf(e_i), \sup(e_i)$，表示第 $i$ 条边的起点、终点、流量下界和流量上界。</p>
 <p>保证图 $G$ 中没有自环和重边 (即边 $(u, v)$ 和边 $(v, u)$ 至多存在一条)。</p>
 
 <h3>输出格式</h3>
 <p>如果不存在满足条件的 $f$，输出一行 <code>orzscx</code>。</p>
-<p>否则输出最大流 $|f|$ 的值。</p>
+<p>否则输出最小流 $|f|$ 的值。</p>
 
 <h3>题解</h3>
-<p>和上一题差不多，只是这回增加了源汇点，因此点 $S$ 和点 $T$ <strong>不需要</strong>满足流量平衡。</p>
-<p>所以直接按照上一题跑可能会把有解的误判成无解。</p>
-<p>不过这很简单，只要加一条从 $T$ 到 $S$ 的边，下界为 $0$，上界为 $\infty$，即将所有从 $S$ 到 $T$ 的流通过这条边重新流回 $S$，这样就在形式上没有了源汇点，用<a href="zoj2314.html" target="_blank">上一题</a>的算法判断是否有解。</p>
-<p><strong>当判断出有解时</strong>，删去<strong>新建的源点 $S'$ 和汇点 $T'$</strong>以及连接它们的边，此时原来的边的流量还是要保存着的，<strong>虽然它可能不满足流量平衡</strong>，但是在原图中依然满足。</p>
-<p>因此，只要在这张图中继续增广 (增广的过程保证是平衡的)，即再跑一遍最大流，得到的就是答案。</p>
-<p>注意：第二遍的答案就是最终的答案，不用加上第一遍最大流的答案，因为第一遍搜索出来的边 $T$ 到 $S$ 的流量可能是存在的，而第二遍搜索的时候会把这些流弹回去，<strong>已经包含第一遍的流值了</strong>。</p>
+<p>由于流量有下界，因此是存在非零最小流的。</p>
+<p>同样，还是加一条从 $T$ 到 $S$ 的边，就可以判断是否有解。</p>
+<p>但是，加完边后直接增广可能跑出的不是最小流，比如说这个图：</p>
+<p><img src="https://cdn.vijos.org/fs/81c2e03b27ed80ce3b1c7728e59432e44b6316d2" width="45%"></p>
+<p>增广后的流为 $200$，但是原图中的最小流为 $100$，这是因为我们没有运用循环流。</p>
+<p>因此，我们先<strong>不加从 $T$ 到 $S$ 的边</strong>，直接增广，如下图：</p>
+<p><img src="https://cdn.vijos.org/fs/ff8d38a83423f83df17ea733325c3dff44dcf0e6" width="45%"></p>
+<p>然后再加那条边 (注意原先边的流量还是要保存着的)，再增广一次，此时，边 $(T, S)$ 的剩余流量就是原图的最小流。</p>
 
 <h3>代码</h3>
 
 <div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
-<span class="sh_preproc">#define</span> maxV <span class="sh_number">238</span>
-<span class="sh_preproc">#define</span> maxE <span class="sh_number">85367</span>
+<span class="sh_preproc">#define</span> maxV <span class="sh_number">51221</span>
+<span class="sh_preproc">#define</span> maxE <span class="sh_number">426835</span>
 <span class="sh_preproc">#define</span> <span class="sh_function">ad</span><span class="sh_symbol">(</span>x<span class="sh_symbol">)</span> <span class="sh_symbol">((</span>x <span class="sh_symbol">-</span> <span class="sh_number">1</span> <span class="sh_symbol">^</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">)</span>
 <span class="sh_preproc">#define</span> next scx
 <span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
 
 <span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">edge</span><span class="sh_cbracket">{</span>
-    <span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> d<span class="sh_symbol">,</span> f<span class="sh_symbol">;</span>
-    <span class="sh_function">edge</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> u0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> v0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> d0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> f0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">u</span><span class="sh_symbol">(</span>u0<span class="sh_symbol">),</span> <span class="sh_function">v</span><span class="sh_symbol">(</span>v0<span class="sh_symbol">),</span> <span class="sh_function">d</span><span class="sh_symbol">(</span>d0<span class="sh_symbol">),</span> <span class="sh_function">f</span><span class="sh_symbol">(</span>f0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+    <span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> f<span class="sh_symbol">;</span>
+    <span class="sh_function">edge</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> u0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> v0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> f0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">u</span><span class="sh_symbol">(</span>u0<span class="sh_symbol">),</span> <span class="sh_function">v</span><span class="sh_symbol">(</span>v0<span class="sh_symbol">),</span> <span class="sh_function">f</span><span class="sh_symbol">(</span>f0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
 <span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
 
-<span class="sh_type">int</span> V<span class="sh_symbol">,</span> E <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> si <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> ti <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> Er<span class="sh_symbol">,</span> sz<span class="sh_symbol">,</span> tz<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> V<span class="sh_symbol">,</span> E<span class="sh_symbol">,</span> si <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> ti <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> Er<span class="sh_symbol">,</span> sz<span class="sh_symbol">,</span> tz<span class="sh_symbol">;</span>
 <span class="sh_type">int</span> i<span class="sh_symbol">,</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> l<span class="sh_symbol">,</span> r<span class="sh_symbol">,</span> flow<span class="sh_symbol">;</span>
-
 <span class="sh_usertype">edge</span><span class="sh_normal"> </span>e<span class="sh_symbol">[</span>maxE<span class="sh_symbol">];</span>
 <span class="sh_type">int</span> first<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> next<span class="sh_symbol">[</span>maxE<span class="sh_symbol">];</span>
 <span class="sh_type">int</span> deg<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> dep<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> cur<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> que<span class="sh_symbol">[</span>maxE<span class="sh_symbol">];</span>
 
-<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span><span class="sh_type">int</span> u<span class="sh_symbol">,</span> <span class="sh_type">int</span> v<span class="sh_symbol">,</span> <span class="sh_type">int</span> d<span class="sh_symbol">,</span> <span class="sh_type">int</span> f <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
-    e<span class="sh_symbol">[++</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">edge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> d<span class="sh_symbol">,</span> f<span class="sh_symbol">);</span> next<span class="sh_symbol">[</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> E<span class="sh_symbol">;</span>
-    e<span class="sh_symbol">[++</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">edge</span><span class="sh_symbol">(</span>v<span class="sh_symbol">,</span> u<span class="sh_symbol">,</span> d<span class="sh_symbol">);</span> next<span class="sh_symbol">[</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> E<span class="sh_symbol">;</span>
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span><span class="sh_type">int</span> u<span class="sh_symbol">,</span> <span class="sh_type">int</span> v<span class="sh_symbol">,</span> <span class="sh_type">int</span> f<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    e<span class="sh_symbol">[++</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">edge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> f<span class="sh_symbol">);</span> next<span class="sh_symbol">[</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> E<span class="sh_symbol">;</span>
+    e<span class="sh_symbol">[++</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">edge</span><span class="sh_symbol">(</span>v<span class="sh_symbol">,</span> u<span class="sh_symbol">);</span> next<span class="sh_symbol">[</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> E<span class="sh_symbol">;</span>
 <span class="sh_cbracket">}</span>
-
-<span class="sh_type">void</span> <span class="sh_function">reduce</span><span class="sh_symbol">(</span><span class="sh_type">int</span> v<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">];</span> i <span class="sh_symbol">&amp;&amp;</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v <span class="sh_symbol">&lt;=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span><span class="sh_cbracket">}</span>
 
 <span class="sh_type">bool</span> <span class="sh_function">bfs</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
     <span class="sh_type">int</span> h<span class="sh_symbol">,</span> t <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> x<span class="sh_symbol">,</span> y<span class="sh_symbol">;</span>
@@ -81,7 +80,7 @@
 <span class="sh_cbracket">}</span>
 
 <span class="sh_type">void</span> <span class="sh_function">Dinic</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
-    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>flow <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_function">bfs</span><span class="sh_symbol">();</span> flow <span class="sh_symbol">+=</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>si<span class="sh_symbol">,</span> INT_MAX<span class="sh_symbol">))</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>flow <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_function">bfs</span><span class="sh_symbol">();</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>si<span class="sh_symbol">,</span> INT_MAX<span class="sh_symbol">))</span>
         <span class="sh_function">memcpy</span><span class="sh_symbol">(</span>cur<span class="sh_symbol">,</span> first<span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> cur<span class="sh_symbol">);</span>
 <span class="sh_cbracket">}</span>
 
@@ -89,29 +88,24 @@
     <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>V<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>Er<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>sz<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>tz<span class="sh_symbol">);</span> sz <span class="sh_symbol">+=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> tz <span class="sh_symbol">+=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span>
     <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> Er<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
         <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>l<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>r<span class="sh_symbol">);</span>
-        <span class="sh_function">addedge</span><span class="sh_symbol">(</span>u <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> v <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> l<span class="sh_symbol">,</span> r <span class="sh_symbol">-</span> l<span class="sh_symbol">);</span>
-        deg<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> l<span class="sh_symbol">;</span> deg<span class="sh_symbol">[</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> l<span class="sh_symbol">;</span>
+        <span class="sh_function">addedge</span><span class="sh_symbol">(</span>u <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> v <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> r <span class="sh_symbol">-</span> l<span class="sh_symbol">);</span>
+        deg<span class="sh_symbol">[</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> l<span class="sh_symbol">;</span> deg<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> l<span class="sh_symbol">;</span>
     <span class="sh_cbracket">}</span>
     <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
-        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>deg<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> <span class="sh_number">0</span><span class="sh_symbol">)</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> i <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> deg<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
-        <span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>deg<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span><span class="sh_symbol">)</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span>i <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span>deg<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
-    <span class="sh_function">addedge</span><span class="sh_symbol">(</span>tz<span class="sh_symbol">,</span> sz<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> INT_MAX<span class="sh_symbol">);</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>deg<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> <span class="sh_number">0</span><span class="sh_symbol">)</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> i <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> deg<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+        <span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>deg<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span><span class="sh_symbol">)</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span>i <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span>deg<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
     <span class="sh_function">Dinic</span><span class="sh_symbol">();</span>
-    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">])</span>
+    <span class="sh_function">addedge</span><span class="sh_symbol">(</span>tz<span class="sh_symbol">,</span> sz<span class="sh_symbol">,</span> INT_MAX<span class="sh_symbol">);</span>
+    <span class="sh_function">Dinic</span><span class="sh_symbol">();</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span>
         <span class="sh_keyword">if</span><span class="sh_symbol">(~</span>dep<span class="sh_symbol">[</span>e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">])</span>
             <span class="sh_keyword">return</span> <span class="sh_function">puts</span><span class="sh_symbol">(</span><span class="sh_string">"orzscx"</span><span class="sh_symbol">),</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
-    first<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
-    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> <span class="sh_function">reduce</span><span class="sh_symbol">(</span>i <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">);</span>
-    si <span class="sh_symbol">=</span> sz<span class="sh_symbol">;</span> ti <span class="sh_symbol">=</span> tz<span class="sh_symbol">;</span>
-    <span class="sh_function">Dinic</span><span class="sh_symbol">();</span>
-    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> flow<span class="sh_symbol">);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> e<span class="sh_symbol">[</span>E<span class="sh_symbol">].</span>f<span class="sh_symbol">);</span>
     <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
 <span class="sh_cbracket">}</span>
 
 </code></pre></div>
 
 <h3>坑</h3>
-<p><strong>坑1：</strong>注意第一次 <code>Dinic()</code> 后的原来边的流量不要清零，包括从 $T$ 到 $S$ 的边，因为要在这张图上增广。</p>
-<p><strong>坑2：</strong>第二次 <code>Dinic()</code> 时，要将点 $S', T'$ 以及连接它们的边删去。</p>
-<p>当然，由于这题规模比较小，可以使用邻接矩阵存下 (但可能速度比较慢)，邻接矩阵还是比较好删除的。</p>
-<p>如果是邻接表的话也不难，可以给边打一个标记或者 (由于这些边是最后加的)，直接令 <code>first[1] = first[2] = 0</code>，并对其它不合法的点执行 <code>first[v] = next[...[next[first[v]]]...]</code> 即可。</p>
+<p>依然是两次 <code>Dinic()</code>，同样第一次边的流量不要清零。</p>
+<p>然后加好边后直接上第二次，<strong>然后要注意是否有解</strong> ($S'$ 点出发的所有边都满流)，如果有解，答案就是 $T$ 到 $S$ 的剩余流量 (可能不是 <code>flow</code>)。 </p>
