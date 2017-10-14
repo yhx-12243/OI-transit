@@ -1,0 +1,66 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>一天晚上，scx 正在公路上，从电车站走回家。公路长度为 $L$，电车站的坐标为 $0$，而她家在坐标 $L$ 处。scx 以一个恒定的速度从 $x = 0$ 笔直走到 $x = L$ 处。</p>
+<p>公路上有 $n$ 盏灯。每盏灯照亮一个路上连续的区间，且<strong>任意两盏灯所照亮的区间互不相交</strong>。</p>
+<p>scx 喜欢唱歌，因此她想在行走的过程中不断唱她最喜欢的歌，然而，<del>由于她比较胆小</del>，她不敢在没有光照射的地方唱歌，即她只在有光照射的地方唱歌。</p>
+<p>scx 每唱一首歌可以经过距离 $p$，因此，<strong>如果剩余的光照区间小于 $p$，则她是不能唱歌的</strong>。此外，<strong>她要么接连不断的唱歌，否则，在连续两次唱歌之间，至少需要经过距离 $t$</strong>，正式地，如果在 scx 在 $x_0$ 处唱完一首歌，那么她下一次唱歌的开始地点 $y$ 需要满足 $y = x_0 \vee y \geq x_0 + t$。</p>
+<p>请确定 scx 从 $x = 0$ 走到 $x = L$ 时唱歌次数的最大可能值。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含四个整数 $L, n, p, t$ ($1 \leq L, p, t \leq 10^9, 0 \leq n \leq 10^5$)，分别表示公路的长度、路灯的数量、每唱一首歌经过的距离和最小停顿时间。</p>
+<p>接下来的 $n$ 行描述路灯信息，其中第 $i + 1$ 行 ($1 \leq i \leq n$) 包含两个整数 $l_i, r_i$ ($0 \leq l_i &lt; r_i \leq L$) 表示第 $i$ 盏灯的照射区间的两个端点，数据保证 $r_i &lt; l_{i+1}$ 对 $1 \leq i &lt; n$。</p>
+
+<h3>输出格式</h3>
+<p>输入一行一个整数，代表 scx 能唱歌的次数的最大值。</p>
+
+<h3>题解</h3>
+<p>简单贪心一下可以发现，在一段区间中，要么不唱，要么唱到直到不能唱为止。</p>
+<p>否则如果还能唱就不唱，把这个唱了，然后后一段可唱距离的减少量，是不超过 $p$ 的，也就是说，把这个唱了，最终答案也不比不唱差。</p>
+<p>那么考虑动态规划，记 $f_i$ 表示满足上述条件的情况下，到第 $i$ 个路灯为止的唱歌次数的最大值，$g_i$ 表示满足唱歌次数最大的情况下，最后一次唱歌结束时 scx 的坐标的最小值，则转移如下：</p>
+<p>记 $L_j = \max(l_i, g_j + t)$, $C_j = \left \lfloor \dfrac{r_i - L} p \right \rfloor$，则</p>
+<p>$$ f_i = \max_{1 \leq j &lt; i} \{f_j + C_j\} $$</p>
+<p>，且</p>
+<p>$$ g_i = \min_{\ \ \ 1 \leq j &lt; i \\ f_j + C_j = f_i} \{L_j + C_j \cdot p\} $$</p>
+<p>答案为 $f_n$，时间复杂度为 $O(n^2)$，不过考虑到当 $g_j + t &lt; l_i$ 时只有一个转移是需要的，因此做了很多无用转移。</p>
+<p>考虑到 $g_j$ 是单调递增的，又 $r_i &lt; l_{i+1}$，因为在转移 $i$ 时必有 $g_j + t \leq r_i$，因此必有 $g_j + t &lt; l_{i+1}$，所以下次转移直接从上次的最后一个 $j$ 开始即可，时间复杂度 $O(n)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">100034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> p<span class="sh_symbol">,</span> t<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> C<span class="sh_symbol">,</span> L<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_type">int</span> l<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> r<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> g<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>L<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>p<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>t<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> l <span class="sh_symbol">+</span> i<span class="sh_symbol">,</span> r <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+    f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> g<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> INT_MIN<span class="sh_symbol">;</span> j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        f<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">];</span> g<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> g<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(--</span>j<span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> i <span class="sh_symbol">&amp;&amp;</span> g<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> t <span class="sh_symbol">&lt;=</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            L <span class="sh_symbol">=</span> <span class="sh_function">max</span><span class="sh_symbol">(</span>l<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> g<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> t<span class="sh_symbol">);</span>
+            C <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>r<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> L<span class="sh_symbol">)</span> <span class="sh_symbol">/</span> p<span class="sh_symbol">;</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> C <span class="sh_symbol">&gt;</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">||</span> f<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> C <span class="sh_symbol">==</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;&amp;</span> L <span class="sh_symbol">+</span> C <span class="sh_symbol">*</span> p <span class="sh_symbol">&lt;</span> g<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+                f<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> C<span class="sh_symbol">;</span>
+                g<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> L <span class="sh_symbol">+</span> C <span class="sh_symbol">*</span> p<span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>n<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>代码几乎没什么难度，<del>话说怎么代码越来越短了，居然只有 $28$ 行</del>，不过还是有两个需要注意的地方：</p>
+<p><strong>坑1：</strong>由于第一次是不用停顿 $t$ 的，所以需要设边界 $g_0 = -\infty$，<del>否则连样例都过不去</del>。</p>
+<p><strong>坑2：</strong>还有就是一段区间可能是不唱歌的，所以初始需要置 $f_i \gets f_{i-1}, g_i \gets g_{i-1}$，然后再取 $\max$ ($\min$)。</p>
