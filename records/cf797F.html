@@ -1,0 +1,74 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p><del>一天 scx 回到家发现她公寓的走廊上有 $n$ 只老鼠，当然，她娇喘了一声，于是，受惊吓的老鼠们开始跑到走廊上的洞里。</del></p>
+<p>走廊可以看作是一个一个数轴，上面有 $n$ 个老鼠和 $m$ 个洞，第 $i$ 个老鼠的坐标是 $x_i$，第 $j$ 个洞的坐标是 $p_j$，<strong>可以容纳 $c_j$ 个老鼠</strong>。</p>
+<p>如果第 $i$ 个老鼠去洞 $j$，当然，它需要走 $|x_i - p_j|$ 的距离，求所有老鼠都到达某个洞最小距离和。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个正整数 $n, m$ ($n, m \leq 5000$)，分别表示老鼠和洞的数量。</p>
+<p>第二行包含 $n$ 个整数 $x_1, x_2, \cdots, x_n$ ($-10^9 \leq x_i \leq 10^9$)，$x_i$ 表示第 $i$ 个老鼠的坐标。</p>
+<p>接下来的 $m$ 行，第 $j$ 行有两个正整数 $p_j, c_j$ ($-10^9 \leq p_j \leq 10^9, 1 \leq c_j \leq 5000$)，$p_j, c_j$ 分别表示第 $j$ 个洞的坐标和容量。</p>
+
+<h3>输出格式</h3>
+<p>输入一行一个整数，代表最小距离和，如果<strong>不能使所有老鼠都到达洞</strong>，输出 <code>-1</code>。</p>
+
+<h3>题解</h3>
+<p>显然先将老鼠的坐标和洞的坐标排序。故以下假设 $x_i \leq x_{i+1}$ 且 $p_j \leq p_{j+1}$。</p>
+<p>记 $C_k = \sum\limits_{i=1}^k c_i$，$f_{i, j}$ ($0 \leq i \leq m, 0 \leq j \leq n$) 表示 (排序后) <strong>对前 $i$ 个洞，前 $j$ 个老鼠均跑进洞中</strong>的最小距离和，当然，这只对 $0 \leq j \leq C_i$ 时才有定义，否则记 $f_{i, j} = +\infty$，根据定义有 $f_{i, 0} = 0$。</p>
+<p>考虑转移，因为第 $i$ 个洞<strong>至多能容纳 $c_i$ 个老鼠</strong>，因此转移方程如下：</p>
+<p>$$ f_{i, j} = \min_{j-c_i \leq k \leq j} \left\{ f_{i-1, k} + \sum_{l=k+1}^j |x_l - p_i| \right\} $$</p>
+<p>记 $y_{i, j} = \sum\limits_{l=1}^j |x_l - p_i|$，即前 $j$ 个老鼠进第 $i$ 个洞的距离和，则</p>
+<p>$$ f_{i, j} = \min_{j-c_i \leq k \leq j} \left\{ f_{i-1, k} + y_{i, j} - y_{i, k} \right\} = \min_{j-c_i \leq k \leq j} \left\{ f_{i-1, k} - y_{i, k} \right\} + y_{i, j} $$</p>
+<p>最后答案是 $f_{m, n}$。可以看出，这是一个 $O(n^2 m)$ 的动态规划，然而取 $\min$ 的一些值<strong>是关于 $k$ 的单变量函数</strong>，故可以使用<strong>单调队列</strong>优化，最终时间复杂度 $O(nm)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">5122</span>
+<span class="sh_preproc">#define</span> INF <span class="sh_number">0x7f7f7f7f7f7f7f7fll</span>
+<span class="sh_preproc">#define</span> p first
+<span class="sh_preproc">#define</span> c second
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> pair <span class="sh_symbol">&lt;</span><span class="sh_type">int</span><span class="sh_symbol">,</span> <span class="sh_type">int</span><span class="sh_symbol">&gt;</span> pr<span class="sh_symbol">;</span>
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> h<span class="sh_symbol">,</span> t<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> x<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">pr</span><span class="sh_normal"> </span>hole<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> s<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> que<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>m<span class="sh_symbol">);</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_number">127</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> x <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> m<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>hole<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>p<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>hole<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>c<span class="sh_symbol">);</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>x <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> x <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>n <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">));</span> <span class="sh_function">sort</span><span class="sh_symbol">(</span>hole <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> hole <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>m <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">));</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> m<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> <span class="sh_cbracket">{</span>hole<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>c <span class="sh_symbol">+=</span> hole<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>c<span class="sh_symbol">;</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> m<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> j<span class="sh_symbol">++)</span> s<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> s<span class="sh_symbol">[</span>j <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_function">abs</span><span class="sh_symbol">(</span>x<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> hole<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>p<span class="sh_symbol">);</span>
+        h <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> t <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> que<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> hole<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>c <span class="sh_symbol">&amp;&amp;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> j<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+            k <span class="sh_symbol">=</span> j <span class="sh_symbol">-</span> hole<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>c <span class="sh_symbol">+</span> hole<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>c<span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> h <span class="sh_symbol">&lt;</span> t <span class="sh_symbol">&amp;&amp;</span> que<span class="sh_symbol">[</span>h<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> k<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>h<span class="sh_symbol">);</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> h <span class="sh_symbol">&lt;</span> t <span class="sh_symbol">&amp;&amp;</span> f<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>que<span class="sh_symbol">[</span>t <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]]</span> <span class="sh_symbol">-</span> s<span class="sh_symbol">[</span>que<span class="sh_symbol">[</span>t <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]]</span> <span class="sh_symbol">&gt;=</span> f<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> s<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span> <span class="sh_symbol">--</span>t<span class="sh_symbol">);</span>
+            que<span class="sh_symbol">[</span>t<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> j<span class="sh_symbol">;</span> k <span class="sh_symbol">=</span> que<span class="sh_symbol">[</span>h<span class="sh_symbol">];</span>
+            f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> s<span class="sh_symbol">[</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> s<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>m<span class="sh_symbol">][</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> INF <span class="sh_symbol">?</span> f<span class="sh_symbol">[</span>m<span class="sh_symbol">][</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">:</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>毕竟是单调队列，比斜率优化要好写多了 (虽然都差不多的)，有两个坑点：</p>
+<p><strong>坑1：</strong>由于洞的容量有限制，所以转移的时候取 $\min$ 的下标 $k$ 满足 $\max\{0, j-c_i\} \leq k \leq j$，而不是单纯的 $0 \leq k \leq j$。</p>
+<p><strong>坑2：</strong>可以经过简单的撕烤可以得到，这显然是要开 <code>long long</code> 的 (好像样例 $2$ 的答案已经报 <code>int</code> 了)……</p>

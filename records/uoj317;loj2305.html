@@ -1,0 +1,186 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 计划进行 $n$ 场游戏，每场游戏使用一张地图，scx 会选择一辆车在该地图上完成游戏。</p>
+<p>scx 有三辆赛车，分别用大写字母 A, B, C 表示。地图一共有四种，分别用小写字母 <em>x</em>, <em>a</em>, <em>b</em>, <em>c</em> 表示。其中，赛车 A 不适合在地图 <em>a</em> 上使用，赛车 B 不适合在地图 <em>b</em> 上使用，赛车 C 不适合在地图 <em>c</em> 上使用，而地图 <em>x</em> 则适合所有赛车参加。适合所有赛车参加的地图并不多见，最多只会有 $d$ 张。</p>
+<p>$n$ 场游戏的地图可以用一个小写字母组成的字符串描述。例如：$S = \texttt{xaabxcbc}$ 表示 scx 计划进行 $8$ 场游戏，其中第 $1$ 场和第 $5$ 场的地图类型是 <em>x</em>，适合所有赛车，第 $2$
+场和第 $3$ 场的地图是 <em>a</em>，不适合赛车 A，第 $4$ 场和第 $7$ 场的地图是 <em>b</em>，不适合赛车 B，第 $6$ 场和第 $8$ 场的地图是 <em>c</em>，不适合赛车 C。</p>
+<p>scx 对游戏有一些特殊的要求，这些要求可以用四元组 $(i, h_i, j, h_j)$ 来描述，表示若在第 $i$ 场使用型号为 $h_i$ 的车子，则第 $j$ 场游戏要使用型号为 $h_j$ 的车子。</p>
+<p>你能帮 scx 选择每场游戏使用的赛车吗？如果有多种方案，输出任意一种方案。如果无解，输出 <code>-1</code>。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个非负整数 $n, d$ ($1 \leq n \leq 50000, 0 \leq d \leq 8$)，含义见题目描述。</p>
+<p>第二行包含一个字符串 $S$，含义见题目描述，其中 $S$ 包含 $n$ 个字符，且其中恰好 $d$ 个为小写字母 <em>x</em>。</p>
+<p>第三行包含一个正整数 $m$ ($1 \leq m \leq 10^5$)，表示有 $m$ 条用车规则。</p>
+<p>接下来 $m$ 行，每行包含一个四元组 $i, h_i, j, h_j$，其中 $i, j$ 为整数，$h_i, h_j$ 为字符 A, B 或 C，含义见题目描述。</p>
+
+<h3>输出格式</h3>
+<p>输出一行。</p>
+<p>若无解，输出 <code>-1</code>。</p>
+<p>若有解，则输出一个长度为 $n$ 的仅包含大写字母 A, B, C 的字符串，表示 scx 在这 $n$ 场游戏中如何安排赛车的使用。如果存在多组解，输出其中任意一组即可。</p>
+
+<h3>题解</h3>
+
+<script type="math/tex">\DeclareMathOperator{\forbid}{\mathrm{forbid}}
+\DeclareMathOperator{\conf}{\mathrm{conf}}</script>
+
+<p><del>可以看出，这题是一道 3-SAT……</del></p>
+<p><del>然而 3-SAT 时 NP 完全的……</del></p>
+<p>好在 $d \leq 8$，因此我们可以<strong>暴力枚举</strong>每一个 <em>x</em> 的格子作为 <em>a</em> 还是 <em>b</em> (注意不用枚举 <em>c</em> 了)，这样就多乘了一个 $2^d$ <del>常数</del>将它变成一道 2-SAT。</p>
+<p>2-SAT 其实也不用废话，但这里还是在废话几句：</p>
+<p>记二元组 $(i, h_i)$ 表示在第 $i$ 场游戏中使用赛车 $h_i$，则共有 $3n$ 个这样的二元组，将它们作为图中的顶点 (即每个顶点是一个二元组，实现的时候可以压成一个 <code>int</code>）。</p>
+<p>考虑到 $S_i$ 就是第 $i$ 场游戏禁用的赛车，于是将点 $(i, S_i)$ 标记为禁用点 ($\forbid(i, S_i) = 1$)，将其它两种赛车 $u, v$ 记对立函数 $\conf(i, u) = (i, v), \conf(i, v) = (i, u)$。</p>
+<p>考虑一条用车规则 $(i, h_i, j, h_j)$，若满足 $(i, h_i) = (j, h_j)$ 或 $\forbid(i, h_i) = 1$，则完全可以忽略这一条用车规则。</p>
+<p>反之，如果 $i = j \wedge h_i \neq h_j$ 或 $\forbid(j, h_j) = 1$，那么可以发现，第 $i$ 场游戏就绝对不能选择赛车 $h_i$ (否则一定矛盾)，于是连边 $e = \left( (i, h_i), \conf(i, h_i) \right)$。</p>
+<p>除去这两种特殊的用车规则外，其余的就是正常的规则，直接连边 $e = \left( (i, h_i), (j, h_j) \right)$ 和 $e' = \left( \conf(j, h_j), \conf(i, h_i) \right)$</p>
+<p>然后就可以<del>尽情地</del> Tarjan 强连通分量 + 缩点啦！</p>
+<p>如果对于一个二元组，如果它和它的对立在同一个强联通分量中，显然就是无解的啦。</p>
+<p>否则，将缩点后的 (有向无环) 图进行拓扑排序后，直接按照拓扑逆序染色，最后检验二元组的颜色是 1 (<code>true</code>), -1 (<code>false</code>) <del>还是 0 (<code>undefined</code>)<del>，输出就行了。</p>
+<p>时间复杂度 $O(2^d n)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">50034</span>
+<span class="sh_preproc">#define</span> M <span class="sh_number">100034</span>
+<span class="sh_preproc">#define</span> D <span class="sh_number">13</span>
+<span class="sh_preproc">#define</span> maxV <span class="sh_number">256101</span>
+<span class="sh_preproc">#define</span> maxE <span class="sh_number">512202</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">request</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> Su<span class="sh_symbol">,</span> Sv<span class="sh_symbol">;</span>
+    request <span class="sh_symbol">*</span> <span class="sh_function">read</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d %c%d %c"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>Su<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>Sv<span class="sh_symbol">);</span> <span class="sh_symbol">--</span>u<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>v<span class="sh_symbol">;</span> Su <span class="sh_symbol">&amp;=</span> <span class="sh_number">31</span><span class="sh_symbol">;</span> Sv <span class="sh_symbol">&amp;=</span> <span class="sh_number">31</span><span class="sh_symbol">;</span> <span class="sh_keyword">return</span> <span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">bool</span> succeed<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> d<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> _<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> x<span class="sh_symbol">[</span>D<span class="sh_symbol">],</span> cx <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+<span class="sh_type">char</span> s<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> ans<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">request</span><span class="sh_normal"> </span>r<span class="sh_symbol">[</span>M<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> forbid<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> conflict<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> Conflict<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> col<span class="sh_symbol">[</span>maxV<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">namespace</span> Graph<span class="sh_cbracket">{</span>
+    <span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">edge</span><span class="sh_cbracket">{</span>
+        <span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">;</span>
+        <span class="sh_function">edge</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> u0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> v0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">u</span><span class="sh_symbol">(</span>u0<span class="sh_symbol">),</span> <span class="sh_function">v</span><span class="sh_symbol">(</span>v0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+    <span class="sh_cbracket">}</span>e<span class="sh_symbol">[</span>maxE<span class="sh_symbol">];</span>
+
+    <span class="sh_type">int</span> V<span class="sh_symbol">,</span> E <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> first<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> next<span class="sh_symbol">[</span>maxE<span class="sh_symbol">];</span>
+    <span class="sh_type">int</span> id<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> low<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> cnt <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> sta<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> instack<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> top<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> stc <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> deg<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> que<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> Topo<span class="sh_symbol">[</span>maxV<span class="sh_symbol">],</span> tpc <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+
+    <span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span><span class="sh_type">int</span> u<span class="sh_symbol">,</span> <span class="sh_type">int</span> v<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>e<span class="sh_symbol">[++</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">edge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span> next<span class="sh_symbol">[</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> E<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+    <span class="sh_type">void</span> <span class="sh_function">init</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+        E <span class="sh_symbol">=</span> cnt <span class="sh_symbol">=</span> stc <span class="sh_symbol">=</span> tpc <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>first<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> first<span class="sh_symbol">);</span> <span class="sh_function">memset</span><span class="sh_symbol">(</span>deg<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> deg<span class="sh_symbol">);</span> <span class="sh_function">memset</span><span class="sh_symbol">(</span>id<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> id<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+
+    <span class="sh_type">void</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>
+        <span class="sh_type">int</span> i<span class="sh_symbol">,</span> y<span class="sh_symbol">;</span>
+        id<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> low<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">++</span>cnt<span class="sh_symbol">;</span> instack<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> sta<span class="sh_symbol">[</span>stc<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>id<span class="sh_symbol">[</span>y <span class="sh_symbol">=</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+                <span class="sh_function">dfs</span><span class="sh_symbol">(</span>y<span class="sh_symbol">);</span> <span class="sh_function">down</span><span class="sh_symbol">(</span>low<span class="sh_symbol">[</span>x<span class="sh_symbol">],</span> low<span class="sh_symbol">[</span>y<span class="sh_symbol">]);</span>
+            <span class="sh_cbracket">}</span><span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>instack<span class="sh_symbol">[</span>y<span class="sh_symbol">])</span>
+                <span class="sh_function">down</span><span class="sh_symbol">(</span>low<span class="sh_symbol">[</span>x<span class="sh_symbol">],</span> id<span class="sh_symbol">[</span>y<span class="sh_symbol">]);</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>id<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> low<span class="sh_symbol">[</span>x<span class="sh_symbol">])</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>y <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span> y <span class="sh_symbol">!=</span> x<span class="sh_symbol">;</span> <span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                y <span class="sh_symbol">=</span> sta<span class="sh_symbol">[--</span>stc<span class="sh_symbol">];</span> instack<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> top<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+
+    <span class="sh_type">void</span> <span class="sh_function">shrink</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>first<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> first<span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> E<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">((</span>e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>u <span class="sh_symbol">=</span> top<span class="sh_symbol">[</span>e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>u<span class="sh_symbol">])</span> <span class="sh_symbol">!=</span> <span class="sh_symbol">(</span>e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v <span class="sh_symbol">=</span> top<span class="sh_symbol">[</span>e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">]))</span><span class="sh_cbracket">{</span>
+                <span class="sh_symbol">++</span>deg<span class="sh_symbol">[</span>e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>u<span class="sh_symbol">];</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+
+    <span class="sh_type">void</span> <span class="sh_function">Toposort</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+        <span class="sh_type">int</span> h<span class="sh_symbol">,</span> t <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> x<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">==</span> top<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">!</span>deg<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> que<span class="sh_symbol">[</span>t<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>h <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> h <span class="sh_symbol">&lt;</span> t<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>h<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            Topo<span class="sh_symbol">[++</span>tpc<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x <span class="sh_symbol">=</span> que<span class="sh_symbol">[</span>h<span class="sh_symbol">];</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(!--</span>deg<span class="sh_symbol">[</span>e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>u<span class="sh_symbol">])</span>
+                    que<span class="sh_symbol">[</span>t<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>u<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+
+    <span class="sh_type">void</span> <span class="sh_function">final</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+        <span class="sh_type">int</span> i<span class="sh_symbol">,</span> x<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> tpc<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>col<span class="sh_symbol">[</span>x <span class="sh_symbol">=</span> Topo<span class="sh_symbol">[</span>i<span class="sh_symbol">]])</span><span class="sh_cbracket">{</span>
+                col<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> col<span class="sh_symbol">[</span>Conflict<span class="sh_symbol">[</span>x<span class="sh_symbol">]]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">int</span> <span class="sh_function">F</span><span class="sh_symbol">(</span><span class="sh_type">int</span> id<span class="sh_symbol">,</span> <span class="sh_type">int</span> S<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_symbol">(</span>id <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">+</span> id <span class="sh_symbol">+</span> S<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span> <span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> TIME_LIMIT <span class="sh_symbol">=</span> CLOCKS_PER_SEC <span class="sh_symbol">*</span> <span class="sh_number">5</span> <span class="sh_symbol">/</span> <span class="sh_number">6</span><span class="sh_symbol">;</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%s%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>d<span class="sh_symbol">,</span> s<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>m<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> <span class="sh_number">120</span> <span class="sh_symbol">?</span> <span class="sh_symbol">(</span>x<span class="sh_symbol">[++</span>cx<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">)</span> <span class="sh_symbol">:</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;=</span> <span class="sh_number">31</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">read</span><span class="sh_symbol">();</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>_ <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> _ <span class="sh_symbol">&lt;</span> <span class="sh_symbol">(</span><span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> d<span class="sh_symbol">);</span> <span class="sh_symbol">++</span>_<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        Graph<span class="sh_symbol">::</span><span class="sh_function">init</span><span class="sh_symbol">();</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> d<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> s<span class="sh_symbol">[</span>x<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>_ <span class="sh_symbol">&gt;&gt;</span> i <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>forbid<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> forbid<span class="sh_symbol">);</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>Conflict<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> Conflict<span class="sh_symbol">);</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>col<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> col<span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> <span class="sh_number">3</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span> conflict<span class="sh_symbol">[</span><span class="sh_function">F</span><span class="sh_symbol">(</span>i<span class="sh_symbol">,</span> j<span class="sh_symbol">)]</span> <span class="sh_symbol">=</span> <span class="sh_function">F</span><span class="sh_symbol">(</span>i<span class="sh_symbol">,</span> j <span class="sh_symbol">^</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+            forbid<span class="sh_symbol">[</span><span class="sh_function">F</span><span class="sh_symbol">(</span>i<span class="sh_symbol">,</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">])]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> conflict<span class="sh_symbol">[</span><span class="sh_function">F</span><span class="sh_symbol">(</span>i<span class="sh_symbol">,</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">])]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            u <span class="sh_symbol">=</span> <span class="sh_function">F</span><span class="sh_symbol">(</span>r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>u<span class="sh_symbol">,</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>Su<span class="sh_symbol">);</span> v <span class="sh_symbol">=</span> <span class="sh_function">F</span><span class="sh_symbol">(</span>r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">,</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>Sv<span class="sh_symbol">);</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>u <span class="sh_symbol">==</span> v <span class="sh_symbol">||</span> forbid<span class="sh_symbol">[</span>u<span class="sh_symbol">])</span> <span class="sh_keyword">continue</span><span class="sh_symbol">;</span> <span class="sh_comment">// ignore it</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>u <span class="sh_symbol">==</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v <span class="sh_symbol">||</span> forbid<span class="sh_symbol">[</span>v<span class="sh_symbol">])</span>
+                Graph<span class="sh_symbol">::</span><span class="sh_function">addedge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> conflict<span class="sh_symbol">[</span>u<span class="sh_symbol">]);</span>
+            <span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+                Graph<span class="sh_symbol">::</span><span class="sh_function">addedge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span>
+                Graph<span class="sh_symbol">::</span><span class="sh_function">addedge</span><span class="sh_symbol">(</span>conflict<span class="sh_symbol">[</span>v<span class="sh_symbol">],</span> conflict<span class="sh_symbol">[</span>u<span class="sh_symbol">]);</span>
+            <span class="sh_cbracket">}</span>
+        <span class="sh_cbracket">}</span>
+        Graph<span class="sh_symbol">::</span>V <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>n <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">+</span> n<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> Graph<span class="sh_symbol">::</span>V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_keyword">if</span><span class="sh_symbol">(!(</span>forbid<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">||</span> Graph<span class="sh_symbol">::</span>id<span class="sh_symbol">[</span>i<span class="sh_symbol">]))</span> Graph<span class="sh_symbol">::</span><span class="sh_function">dfs</span><span class="sh_symbol">(</span>i<span class="sh_symbol">);</span>
+        succeed <span class="sh_symbol">=</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> Graph<span class="sh_symbol">::</span>V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>forbid<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">((</span>u <span class="sh_symbol">=</span> Graph<span class="sh_symbol">::</span>top<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_symbol">==</span> <span class="sh_symbol">(</span>v <span class="sh_symbol">=</span> Graph<span class="sh_symbol">::</span>top<span class="sh_symbol">[</span>conflict<span class="sh_symbol">[</span>i<span class="sh_symbol">]]))</span><span class="sh_cbracket">{</span>succeed <span class="sh_symbol">=</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>    
+                Conflict<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> v<span class="sh_symbol">;</span> Conflict<span class="sh_symbol">[</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> u<span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>succeed<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            Graph<span class="sh_symbol">::</span><span class="sh_function">shrink</span><span class="sh_symbol">();</span>
+            Graph<span class="sh_symbol">::</span><span class="sh_function">Toposort</span><span class="sh_symbol">();</span>
+            Graph<span class="sh_symbol">::</span><span class="sh_function">final</span><span class="sh_symbol">();</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> <span class="sh_number">3</span><span class="sh_symbol">;</span> j<span class="sh_symbol">++)</span>
+                    <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>forbid<span class="sh_symbol">[</span>u <span class="sh_symbol">=</span> <span class="sh_function">F</span><span class="sh_symbol">(</span>i<span class="sh_symbol">,</span> j<span class="sh_symbol">)]</span> <span class="sh_symbol">&amp;&amp;</span> col<span class="sh_symbol">[</span>Graph<span class="sh_symbol">::</span>top<span class="sh_symbol">[</span>u<span class="sh_symbol">]]</span> <span class="sh_symbol">==</span> <span class="sh_number">1</span><span class="sh_symbol">)</span>
+                        ans<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> j <span class="sh_symbol">|</span> <span class="sh_number">64</span><span class="sh_symbol">;</span>
+            ans<span class="sh_symbol">[</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+            <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%s</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+            <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span><span class="sh_function">clock</span><span class="sh_symbol">()</span> <span class="sh_symbol">&gt;</span> TIME_LIMIT<span class="sh_symbol">)</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">45</span><span class="sh_symbol">),</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">49</span><span class="sh_symbol">),</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>在含有 <em>x</em> 的图中，由于要多次计算，所以一定要记得把变量归零，使用过的数组 <code>memset</code> 回去，比如说 <code>forbid[]</code>, <code>Conflict[]</code>, <code>col[]</code>, <code>first[]</code>, <code>deg[]</code> 和 <code>id[]</code>。否则会造成后面的数据乱算，<del>可能是原题的数据比较弱，还有 $90$ 分</del>。</p>
+<p><strong>坑2：</strong>由于 $O(2^d n)$ 的算法常数比较紧，非常容易 TLE，这时可能需要加入一点 Sherwood 算法来随机化 <em>x</em> 的选择，随机到一定时间 (<code>clock()</code>) 后如果还是无解直接输出 <code>-1</code>。</p>

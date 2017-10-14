@@ -17,12 +17,12 @@ function DecFile(){
 	recarr = strBack.split("\n");
 	for(i in recarr)
 		if(recarr[i] !== ""){
-			info = recarr[i].replace(/[\f\n\r\v]/g, "").split("/");
+			info = recarr[i].replace(/[\f\n\r\v]/g, "").split("|");
 			if(info.length !== 5) continue; // invalid record
 			++recnum;
 			nm = info[0];
 			if(Matching(strFilter, nm)){
-				newRow = recTable.insertRow();
+				newRow = recTable.tBodies[0].insertRow();
 				C0 = newRow.insertCell();
 				C0.innerHTML = (recnum - 1).toString()
 				C1 = newRow.insertCell();
