@@ -1,0 +1,111 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 在考试中取得了好成绩，因此赢得了去 Alushta 夏令营的机会，那是一个在海边的小岛，但是不幸地，正值 Alushta 的飓风季，因此帐篷有一定概率倒塌！</p>
+<p>营地建筑可以看成一个高 $n + 2$，宽 $m$ 的砖块构成的矩形，每个白天，从海边会吹来一阵风，<strong>除了最上、最下那两行</strong>，其余每行<strong>最左边</strong>的砖块都有独立的 $p = \dfrac ab$ 的概率被吹走，类似地，每个晚上，会有另一阵风吹向海边，<strong>除了最上、最下那两行</strong>，其余每行<strong>最右边</strong>的砖块也各有独立的 $p$ 的概率吹走，记住，最上面的一行和最下面的一行的砖块特别坚固，因此只有 $n \cdot m$ 的砖块可能被吹走。</p>
+<p>飓风季一共会持续 $k$ 天 $k$ 夜，如果在某一天，营地建筑被分成两个及以上连通分量，它就会被倒塌，scx 不得不寻找另一个地方度假。</p>
+<p>求 scx 不需要寻找其它地方，即她能这个营地度假的概率。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个正整数 $n, m$ ($n, m \leq 1500$)，表示建筑物<strong>可能被倒塌部分的</strong>高度和宽度。</p>
+<p>第二行包含两个正整数 $a, b$ ($a &lt; b \leq 10^9$)，表示每个砖块被吹走的概率为 $p = \dfrac ab$。</p>
+<p>第三行包含一个正整数 $k$ ($k \leq 10^5$)，表示飓风季持续的天数 (夜数)。</p>
+
+<h3>输出格式</h3>
+<p>输入一行一个整数，表示 scx 能在这个营地度假的概率<strong>在模 $10^9 + 7$ 意义下</strong>的取值。</p>
+
+<h3>题解</h3>
+<p>依旧考虑 DP。</p>
+<p>因为所有的行是独立的，所以记 $pl_i$ (<code>pl[i]</code>) 表示某一行中，$k$ 个白天后最左边的砖块为第 $i$ 块的概率，类似地，记 $pr_i$ (<code>pr[i]</code>) 表示某一行中，$k$ 个晚上后最右边的砖块为第 $i$ 块的概率。</p>
+<p>可以看出，如果将 $pl_i$ 中的 $i$ 看作一个随机变量，即 $k$ 个白天后吹掉了多少个砖块，则它应该<strong>服从二项分布</strong>，即，记 $q = 1 - p$ 是一个砖块不被吹走的概率，则有</p>
+<p>$$ pl_{i+1} = \binom ki q^i p^{k-i} $$</p>
+<p>由对称性，应有 $pr_{c-i} = pl_{i+1}$。再记 $f_{i, l, r}$ 表示 $k$ 天后，从下往上数第 $i$ 行仅剩下砖块 $l, l + 1, \cdots, r$ (且下面 $i$ 行不倒塌) 的概率。</p>
+<p>可以看出，如果营地建筑最后没有倒塌 (只有一个连通分量)，那么任意相邻的两行一定是有交集的。</p>
+<p>因此，我们只要枚举有交集的部分转移即可，时间复杂度 $O(n^5)$，然而这太慢啦。</p>
+<p>撕烤一下可以得到，有交集的部分不怎么好枚举，但是没交集的部分，可以看出，都是在两边，还是比较好枚举的。</p>
+<p>因此，记 $F_{i, r}$ (<code>F[i][r]</code>) 表示 $k$ 天后，下数第 $i$ 行最右边的砖块为第 $r$ 块的概率，即</p>
+<p>$$ F_{i, r} = \sum_{l=1}^r f_{i, l, r} $$</p>
+<p>再记 $\sigma r_{i, j}$ (<code>sr[i][j]</code>) 表示前面条件相同，最右边的砖块为第 $j$ 块<strong>或更靠左</strong>的概率，即</p>
+<p>$$ \sigma r_{i, j} = \sum_{r=1}^j F_{i, r} = \sum_{r=1}^j \sum_{l=1}^r f_{i, l, r} = \sum_{1 \leq l \leq r \leq j} f_{i, l, r} $$</p>
+<p>同理，记 $\sigma l_{i, j}$ (<code>sl[i][j]</code>) 表示前面条件相同，最左边的砖块为第 $j$ 块<strong>或更靠右</strong>的概率，即</p>
+<p>$$ \sigma l_{i, j} = \sum_{j \leq l \leq r \leq m} f_{i, l, r} $$</p>
+<p>可以由对称性由 $\sigma r_{i, c-j+1}$ 的值推得。于是转移方程就是</p>
+<p>$$ f_{i, l, r} = pl_l \cdot pr_r \cdot \sum_{[j, k] \cap [l, r] \neq \varnothing} f_{i-1, j, k}
+= pl_l \cdot pr_r \cdot \left( \sum_{1 \leq j \leq k \leq m} f_{i-1, j, k} - \sum_{1 \leq j \leq k &lt; l} f_{i-1, j, k} - \sum_{r &lt; j \leq k \leq m}f_{i-1, j, k} \right)
+= pl_l \cdot pr_r \cdot (\sigma r_{i-1, m} - \sigma r_{i-1, l-1} - \sigma l_{i-1, r+1}) $$</p>
+<p>对其求前缀和，再和式变换，得</p>
+<p>$$ F_{i, r} = \sum_{l=1}^r f_{i, l, r} = \sum_{l=1}^r \left( pl_l \cdot pr_r \cdot \left( \sigma r_{i-1, m} - \sigma r_{i-1, l-1} - \sigma l_{i-1, r+1} \right) \right)
+= pr_r \cdot \left( \left( \sum_{l=1}^r pl_l \right) \cdot (\sigma r_{i-1, m} - \sigma l_{i-1, r+1}) - \sum_{l=1}^r (pl_l \cdot \sigma r_{i-1, l-1}) \right) $$</p>
+<p>于是记 $\sigma pl_i = \sum\limits_{k=1}^i pl_k$ (<code>spl[i]</code>)，$\sigma pl \sigma r_i = \sum\limits_{k=1}^i pl_k \cdot \sigma r_{i-1, k-1}$ (<code>splsr[i]</code>)，于是</p>
+<p>$$ F_{i, r} = pr_r \cdot \left( \sigma pl_r \cdot (\sigma r_{i-1, m} - \sigma l_{i-1, r+1}) - \sigma pl \sigma r_r \right) $$</p>
+<p>这样就能做到总时间复杂度 $O(nm)$，最终答案就是 $\sigma r_{n, m}$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">2034</span>
+<span class="sh_preproc">#define</span> K <span class="sh_number">100034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>mod <span class="sh_symbol">=</span> <span class="sh_number">1000000007</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> r<span class="sh_symbol">,</span> c<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>p<span class="sh_symbol">,</span> q<span class="sh_symbol">;</span> <span class="sh_comment">// p: not collapse, q: collapse</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>P<span class="sh_symbol">[</span>K<span class="sh_symbol">],</span> Q<span class="sh_symbol">[</span>K<span class="sh_symbol">],</span> C<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> inv<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span> <span class="sh_comment">// p^i, q^i, C(k, i), i^-1</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>pl<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> pr<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> spl<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span> <span class="sh_comment">// probability of a level to i</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>F<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> sl<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> sr<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> splsr<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span> <span class="sh_comment">// Sum[f[i][j]], Sum[pl[i] * sr[i - 1]]</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_function">PowerMod</span><span class="sh_symbol">(</span><span class="sh_usertype">ll</span><span class="sh_normal"> </span>a<span class="sh_symbol">,</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>n<span class="sh_symbol">,</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>m <span class="sh_symbol">=</span> mod<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>n <span class="sh_symbol">||</span> a <span class="sh_symbol">==</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_keyword">return</span> 1ll<span class="sh_symbol">;</span>
+    <span class="sh_usertype">ll</span><span class="sh_normal"> </span>s <span class="sh_symbol">=</span> <span class="sh_function">PowerMod</span><span class="sh_symbol">(</span>a<span class="sh_symbol">,</span> n <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> m<span class="sh_symbol">);</span>
+    <span class="sh_symbol">(</span>s <span class="sh_symbol">*=</span> s<span class="sh_symbol">)</span> <span class="sh_symbol">%=</span> m<span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> n <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span> <span class="sh_symbol">?</span> s <span class="sh_symbol">*</span> a <span class="sh_symbol">%</span> m <span class="sh_symbol">:</span> s<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_function">Mul</span><span class="sh_symbol">(</span><span class="sh_type">int</span> count<span class="sh_symbol">,</span> <span class="sh_symbol">...)</span><span class="sh_cbracket">{</span>
+    <span class="sh_usertype">va_list</span><span class="sh_normal"> </span>ptr<span class="sh_symbol">;</span>
+    <span class="sh_function">va_start</span><span class="sh_symbol">(</span>ptr<span class="sh_symbol">,</span> count<span class="sh_symbol">);</span>
+    <span class="sh_usertype">ll</span><span class="sh_normal"> </span>res <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">int</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> count<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_symbol">(</span>res <span class="sh_symbol">*=</span> <span class="sh_function">va_arg</span><span class="sh_symbol">(</span>ptr<span class="sh_symbol">,</span> ll<span class="sh_symbol">))</span> <span class="sh_symbol">%=</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_function">va_end</span><span class="sh_symbol">(</span>ptr<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> res<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>r<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>c<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>i<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>j<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>k<span class="sh_symbol">);</span>
+    q <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)</span>i <span class="sh_symbol">*</span> <span class="sh_function">PowerMod</span><span class="sh_symbol">(</span>j<span class="sh_symbol">,</span> mod <span class="sh_symbol">-</span> <span class="sh_number">2</span><span class="sh_symbol">)</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_symbol">(</span>p <span class="sh_symbol">=</span> <span class="sh_number">1</span> <span class="sh_symbol">-</span> q<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span> <span class="sh_symbol">?</span> <span class="sh_symbol">(</span>p <span class="sh_symbol">+=</span> mod<span class="sh_symbol">)</span> <span class="sh_symbol">:</span> p<span class="sh_symbol">;</span>
+    inv<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> C<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> P<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> Q<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> C<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> k<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> k<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>P<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> P<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">*</span> p <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span> Q<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> Q<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">*</span> q <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span><span class="sh_cbracket">}</span> <span class="sh_comment">// power of p(q)</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        inv<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>mod <span class="sh_symbol">-</span> mod <span class="sh_symbol">/</span> i<span class="sh_symbol">)</span> <span class="sh_symbol">*</span> inv<span class="sh_symbol">[</span>mod <span class="sh_symbol">%</span> i<span class="sh_symbol">]</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+        C<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">Mul</span><span class="sh_symbol">(</span><span class="sh_number">3</span><span class="sh_symbol">,</span> C<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">],</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)(</span>k <span class="sh_symbol">-</span> i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">),</span> inv<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span> <span class="sh_comment">// binomial coefficients C(k, i)</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> k <span class="sh_symbol">&amp;&amp;</span> i <span class="sh_symbol">&lt;</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> pr<span class="sh_symbol">[</span>c <span class="sh_symbol">-</span> i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> pl<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">Mul</span><span class="sh_symbol">(</span><span class="sh_number">3</span><span class="sh_symbol">,</span> C<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> Q<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> P<span class="sh_symbol">[</span>k <span class="sh_symbol">-</span> i<span class="sh_symbol">]);</span> <span class="sh_comment">// binomial distribution</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_symbol">(</span>spl<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> spl<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> pl<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_symbol">&gt;=</span> mod <span class="sh_symbol">?</span> spl<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> mod <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_comment">// Sum[pl[i]]</span>
+    sr<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span>c<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> r<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            splsr<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>splsr<span class="sh_symbol">[</span>j <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> pl<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> sr<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">])</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span> <span class="sh_comment">// Sum[pl[j] * sr[j - 1]]</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            F<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> pr<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> <span class="sh_symbol">((</span>sr<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>c<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> sl<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">])</span> <span class="sh_symbol">*</span> spl<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">%</span> mod <span class="sh_symbol">-</span> splsr<span class="sh_symbol">[</span>j<span class="sh_symbol">])</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span> <span class="sh_comment">// DP</span>
+            F<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span> <span class="sh_symbol">?</span> F<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> mod <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_symbol">(</span>sr<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> sr<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> F<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">])</span> <span class="sh_symbol">&gt;=</span> mod <span class="sh_symbol">?</span> sr<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> mod <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_comment">// Sum[F[i][j]]</span>
+            sl<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>c <span class="sh_symbol">-</span> j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> sr<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)</span>sr<span class="sh_symbol">[</span>r<span class="sh_symbol">][</span>c<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>各个数组的大小不要开错，特别是计算 <code>pl[i]</code> 时，值大于 0 需要同时满足 $i \leq k \wedge i \leq c$。</p>
+<p><strong>坑2：</strong>在转移到的时候，记得及时取模，不要到时候爆 <code>long long</code> 了。</p>
