@@ -1,0 +1,88 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 非常喜欢 $16$ 进制数，她认为一个正整数是有趣的，当且仅当在它的 $16$ 进制展开式中，每一位上的数 (包括字母) 出现的次数不超过 $t$ 次。</p>
+<p>比如，当 $t = 3$ 时，<code>13a13322</code>, <code>aaa</code>, <code>abcdef0123456789</code> 都是有趣的，但是 <code>aaaa</code>, <code>abababab</code>, <code>1000000</code> 都不是有趣的。</p>
+<p>你的任务就是为 scx 寻找<strong>第 $k$ 小的</strong>有趣的正整数，它们不能包含前导 $0$。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个正整数 $k, t$ ($k \leq 2 \times 10^9, t \leq 10$)，表示这个数的排名和每个数的<strong>最大出现次数</strong>。</p>
+<p>输入数据保证存在这样的答案，且不超过 <code>long long</code>。</p>
+
+<h3>输出格式</h3>
+<p>输出一行，为<strong>第 $k$ 小的</strong>有趣的正整数的 <strong>$16$ 进制展开式</strong>。</p>
+
+<h3>题解</h3>
+<p>第 $k$ 小发现不怎么好搞，所以可以考虑利用二分<strong>的思想</strong>，就是从高到低确定每一位，从而把原问题转化为了求给定范围 (位数) 中<strong>有趣的正整数</strong>的个数。</p>
+<p>记 $f_{i, j}$ 表示由 $0, 1, \cdots, i - 1$ 组成的 $j$ 位有趣<strong>整数</strong>的个数，则有</p>
+<p>$$ f_{i, j} = \sum_{k=0}^{\min\{j, t\}} \left( f_{i-1, j-k} \cdot \binom jk \right) $$</p>
+<p>那么，如果包含前导 $0$，$b$ 位的有趣的<strong>整数</strong> 共有 $f_{16, b}$ 个，由对称性，<strong>首位非 $0$</strong> 的 $b$ 位的有趣的正整数共有 $\dfrac {15}{16} f_{16, b}$ 个。</p>
+<p>这样就能推出答案的最高位为第几位。</p>
+<p>然后确定每一位，就是这样一个问题：已知一个数的前几位，求有趣的正整数的个数。</p>
+<p>由于前几位已知，那么每个数在剩下的位中的出现次数就不一定相同了，记 $d$ 还能出现 $t_d$ 次，类似定义 $g_{i, j}$ 表示由 $0, 1, \cdots, i - 1$ 填充了末 $j$ 位的数的个数，则有</p>
+<p>$$ g_{i+1, j} = \sum_{k=0}^{\min\{j, t_i\}} \left( g_{i-1, j-k} \cdot \binom jk \right) $$</p>
+<p>依照这样的办法，就能确定原数的每一位，然后最后以 <code>%llx</code> 的形式输出即可。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">17</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> li<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>n<span class="sh_symbol">,</span> res<span class="sh_symbol">;</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>t<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> C<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_function">DP</span><span class="sh_symbol">(</span><span class="sh_type">int</span> bits<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">;</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+    f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">16</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> bits<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;=</span> li<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;&amp;</span> k <span class="sh_symbol">&lt;=</span> j<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span>
+                f<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j <span class="sh_symbol">-</span> k<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> C<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">];</span>
+    <span class="sh_keyword">return</span> f<span class="sh_symbol">[</span><span class="sh_number">16</span><span class="sh_symbol">][</span>bits<span class="sh_symbol">];</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>C<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> <span class="sh_number">16</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>C<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            C<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> C<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> C<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> li<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">16</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> li<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> li<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">];</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> <span class="sh_number">8</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        res <span class="sh_symbol">=</span> <span class="sh_function">DP</span><span class="sh_symbol">(</span>i<span class="sh_symbol">);</span>
+        t<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> t<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> res <span class="sh_symbol">-</span> <span class="sh_symbol">(</span>res <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">4</span><span class="sh_symbol">);</span> 
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>t<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;=</span> n<span class="sh_symbol">)</span>
+            <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    res <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    t<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> t<span class="sh_symbol">[--</span>i<span class="sh_symbol">];</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> <span class="sh_symbol">~</span>i<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> j <span class="sh_symbol">&lt;</span> <span class="sh_number">16</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_symbol">--</span>li<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span>
+            t<span class="sh_symbol">[</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> t<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_function">DP</span><span class="sh_symbol">(</span>i<span class="sh_symbol">);</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>t<span class="sh_symbol">[</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">&gt;=</span> n<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                res <span class="sh_symbol">|=</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)</span>j <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>1ll <span class="sh_symbol">&lt;&lt;</span> <span class="sh_symbol">(</span>i <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">2</span><span class="sh_symbol">));</span>
+                n <span class="sh_symbol">-=</span> t<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span>
+                <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span>
+            <span class="sh_symbol">++</span>li<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+        j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%llx</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> res<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><del>经手算</del>，最大可能的答案 (在 $16$ 进制下) 为 <code>0x6a07d23f8</code>，所以一开始求位数时只需要判断到 $8$ 位即可。</p>
+<p><strong>坑1：</strong>然后记得把第一轮的 DP 值存下来，因为没有确定某一位的 DP ($f_{i, j}$) 是<strong>有前导 $0$ 要求的</strong>，和题目略微不同，所以 $f_{i, j}$ 值是乘以 $\dfrac {15}{16}$ 后再累加，后续的 $g_{i, j}$ 由于最高位已确定，所有的 $0$ 都是需要的。</p>

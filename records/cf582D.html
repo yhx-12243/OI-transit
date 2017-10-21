@@ -1,0 +1,146 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>给定一个质数 $p$ 和正整数 $\alpha, A$，计算有多少个有序数对 $(n, k)$，满足 $0 \leq k \leq n \leq A$ 且 $p^\alpha \mid \dbinom nk$。</p>
+<p>由于答案可能很大，请模 $10^9 + 7$ 输出。</p>
+<p>二项式系数 (组合数) $\dbinom nk$ 表示一个 $n$ 元集的 $k$ 子集数目，满足 $\dbinom nk = \dfrac {n!} {k! (n-k)!}$</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个正整数 $p, \alpha$，其中 $p, \alpha \leq 10^9$，且 $p$ 是负数。</p>
+<p>第二行包含一个整数 $A$ ($0 \leq A &lt; 10^{1000}$)，以<strong>无前导 $0$ 的十进制展开式</strong>给出。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示有序数对 $(n, k)$ 的个数模 $10^9 + 7$ 的值。</p>
+
+<h3>题解</h3>
+<p>考虑组合数中含素因子 $p$ 的幂，即 $v_p \dbinom nk$。</p>
+<p>由 Legendre 定理，有</p>
+<p>$$ v_p(n!) = \sum_{i=1}^\infty \left \lfloor \frac n {p^i} \right \rfloor $$</p>
+<p>由素数幂函数 $v_p$ 的性质及二项式系数的公式 $\dbinom nk = \dfrac {n!} {k! (n-k)!}$，可以得到</p>
+<p>$$ v_p \binom nk = \sum_{i=1}^\infty \left \lfloor \frac n {p^i} \right \rfloor - \sum_{i=1}^\infty \left \lfloor \frac k {p^i} \right \rfloor - \sum_{i=1}^\infty \left \lfloor \frac {n-k} {p^i} \right \rfloor
+= \sum_{i=1}^\infty \left( \left \lfloor \frac n {p^i} \right \rfloor - \left \lfloor \frac k {p^i} \right \rfloor - \left \lfloor \frac {n-k} {p^i} \right \rfloor \right) $$</p>
+<p>即 $v_p \dbinom nk$ 为 <strong>$m$ 与 $n-m$ 的加法在 $p$ 进制下的进位次数</strong>。(Kummer 定理)</p>
+<p>因此转化为求多少个有序数对 $(u, v)$ 满足 $u, v$ 非负，$u + v \leq A$ 且 $u + v$ 在 $p$ 进制下的进位次数不少于 $\alpha$。</p>
+<p>因此可以进行数位 DP，本例中采用 <code>dfs()</code> (记忆化搜索) 方法，当然也可以用直接 DP 的方法。</p>
+<p>首先将原数 $A$ 转化为 $p$ 进制展开式，当然要用高精度与单精度的除法<del>或者 Python</del> 啦。</p>
+<p>记 $f_{i, j, carry, bounded}$ 表示当前到 ($p$ 进制展开式高位起的) 第 $i$ 位，前面共执行了 $j$ 次进位，<strong>第 $i+1$ 位</strong>的进位情况为 $carry$ ($carry = 1$ 代表进位)，$bounded = 1$ 代表边界情况，即 $u + v$ 只能等于前 $i$ 位的值；$bounded = 0$ 代表非边界情况，即 $u + v$ 的值要小于前 $i$ 位的值。</p>
+<p>不妨设 $A = (a_1 a_2 \cdots a_l)_p$ 为 $A$ 的 $p$ 进制展开式，则 $l \leq \dfrac {1000} {\lg 2} &lt; 3322$。</p>
+<p>考虑 $f_{i, j, carry, 1}$ 的转移。此类情况因为 $u + v$ 必须严格等于前 $i$ 位的值 $a_1 a_2 \cdots a_l$，于是前 $i - 1$ 位也必须完全相同，根据第 $i$ 位的进位，分两种情况讨论：</p>
+<ol>
+<li>如果这一位不向前进位，则第 $i$ 位有 $u_i + v_i = a_i$，共有 $a_i \, + \, !carry$ 种情况；</li>
+<li>如果这一位向前进位，则第 $i$ 位有 $u_i + v_i = (\overline{1a_i})_p$，共有 $p - (a_i \, + \, !carry)$ 种情况。</li>
+</ol>
+<p>分别乘以 $f_{i-1, j, 0, 1}$ 和 $f_{i-1, j-1, 1, 1}$ 即可。</p>
+<p>接下来考虑 $f_{i, j, carry, 0}$ 的转移，由于 $u + v$ 的要更小，分两种情况讨论：</p>
+<ol style="list-style-type: upper-latin">
+<li>第 $u + v$ 的第 $i - 1$ 位比 $a_{i-1}$ 小，则第 $i$ 位任意，根据第 $i$ 位的进位，分两种情况讨论 (假设 $carry = 0$，$carry = 1$ 同理)：
+	<ol>
+	<li>如果这一位不向前进位，则第 $i$ 位有 $0 \leq u_i + v_i &lt; p$，共有 $\dbinom {p+1} 2$ 种情况；</li>
+	<li>如果这一位向前进位，则第 $i$ 位有 $p \leq u_i + v_i &lt; 2p - 1$，共有 $\dbinom p2$ 种情况。</li>
+	</ol>
+分别乘以 $f_{i-1, j, 0, 0}$ 和 $f_{i-1, j-1, 1, 1}$ 即可。</li>
+<li>第 $u + v$ 的第 $i - 1$ 位与 $a_{i-1}$ 相同，则第 $i$ 为要比 $a_i$ 小 (所以 $a_i = 0$ 时没有此分支)，根据第 $i$ 位的进位，分两种情况讨论 (假设 $carry = 0$，$carry = 1$ 同理)：
+	<ol>
+	<li>如果这一位不向前进位，则第 $i$ 位有 $0 \leq u_i + v_i &lt; a_i$，共有 $\dbinom {a_i + 1} 2$ 种情况；</li>
+	<li>如果这一位向前进位，则第 $i$ 位有 $p \leq u_i + v_i &lt; p + a_i$，共有 $p a_i - \dbinom {a_i + 1} 2$ 种情况。</li>
+	</ol>
+分别乘以 $f_{i-1, j, 0, 1}$ 和 $f_{i-1, j-1, 1, 1}$ 即可。</li>
+</ol>
+<p>最终答案就是 $\sum\limits_{i = a}^n \left( f_{n, i, 0, 1} + f_{n, i, 0, 0} \right)$，时间复杂度 $O(l^2)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">3434</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_type">int</span> mod <span class="sh_symbol">=</span> <span class="sh_number">1000000007</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> p<span class="sh_symbol">,</span> a<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">char</span> str<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> __0__<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> __1__<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> r<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">][</span><span class="sh_number">4</span><span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>ans<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> <span class="sh_function">div</span><span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_type">int</span> <span class="sh_symbol">*</span>A<span class="sh_symbol">,</span> <span class="sh_type">int</span> <span class="sh_symbol">*</span>B<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_usertype">ll</span><span class="sh_normal"> </span>v <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> cur <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">~</span>A<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;&amp;</span> v <span class="sh_symbol">&lt;</span> p<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_symbol">(</span>v <span class="sh_symbol">*=</span> <span class="sh_number">10</span><span class="sh_symbol">)</span> <span class="sh_symbol">+=</span> A<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>v <span class="sh_symbol">&lt;</span> p<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>B<span class="sh_symbol">[</span>cur<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span> <span class="sh_keyword">return</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)</span>v<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    B<span class="sh_symbol">[</span>cur<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)(</span>v <span class="sh_symbol">/</span> p<span class="sh_symbol">);</span>
+    v <span class="sh_symbol">-=</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)</span>B<span class="sh_symbol">[</span>cur<span class="sh_symbol">++]</span> <span class="sh_symbol">*</span> p<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> <span class="sh_symbol">~</span>A<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_symbol">(</span>v <span class="sh_symbol">*=</span> <span class="sh_number">10</span><span class="sh_symbol">)</span> <span class="sh_symbol">+=</span> A<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+        B<span class="sh_symbol">[</span>cur<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)(</span>v <span class="sh_symbol">/</span> p<span class="sh_symbol">);</span>
+        v <span class="sh_symbol">-=</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)</span>B<span class="sh_symbol">[</span>cur<span class="sh_symbol">++]</span> <span class="sh_symbol">*</span> p<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    B<span class="sh_symbol">[</span>cur<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)</span>v<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">init</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> cur <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_symbol">*</span>A <span class="sh_symbol">=</span> __0__<span class="sh_symbol">,</span> <span class="sh_symbol">*</span>B <span class="sh_symbol">=</span> __1__<span class="sh_symbol">;</span>
+    <span class="sh_type">char</span> str<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> <span class="sh_symbol">*</span>ptr<span class="sh_symbol">;</span> 
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> str<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>ptr <span class="sh_symbol">=</span> str<span class="sh_symbol">;</span> <span class="sh_symbol">*</span>ptr<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>ptr<span class="sh_symbol">)</span> A<span class="sh_symbol">[</span>cur<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">*</span>ptr <span class="sh_symbol">&amp;</span> <span class="sh_number">15</span><span class="sh_symbol">;</span> A<span class="sh_symbol">[</span>cur<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>r<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> n <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">~</span>A<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">];</span> <span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        r<span class="sh_symbol">[++</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">div</span><span class="sh_symbol">(</span>A<span class="sh_symbol">,</span> B<span class="sh_symbol">);</span>
+        <span class="sh_function">swap</span><span class="sh_symbol">(</span>A<span class="sh_symbol">,</span> B<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">reverse</span><span class="sh_symbol">(</span>r <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> r <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>n <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">));</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_type">int</span> bit<span class="sh_symbol">,</span> <span class="sh_type">int</span> count<span class="sh_symbol">,</span> <span class="sh_type">char</span> carry<span class="sh_symbol">,</span> <span class="sh_type">char</span> bounded<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>count <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span><span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>bit<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_symbol">!</span>count <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">!</span>carry <span class="sh_symbol">&amp;&amp;</span> bounded<span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>ref <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>bit<span class="sh_symbol">][</span>count<span class="sh_symbol">][</span>carry <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span> <span class="sh_symbol">|</span> bounded<span class="sh_symbol">];</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(~</span>ref<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> ref<span class="sh_symbol">;</span>
+    <span class="sh_usertype">ll</span><span class="sh_normal"> </span>res<span class="sh_symbol">,</span> last<span class="sh_symbol">,</span> t<span class="sh_symbol">,</span> u<span class="sh_symbol">;</span>
+    res <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>bounded<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        last <span class="sh_symbol">=</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>bit <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> count<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+        res <span class="sh_symbol">+=</span> last <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>r<span class="sh_symbol">[</span>bit<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_symbol">!</span>carry<span class="sh_symbol">)</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+        last <span class="sh_symbol">=</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>bit <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> count <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+        res <span class="sh_symbol">+=</span> last <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>p <span class="sh_symbol">-</span> r<span class="sh_symbol">[</span>bit<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> <span class="sh_symbol">!</span>carry<span class="sh_symbol">)</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span><span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+        t <span class="sh_symbol">=</span> <span class="sh_symbol">((</span>ll<span class="sh_symbol">)</span>p <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>p <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+        u <span class="sh_symbol">=</span> <span class="sh_symbol">((</span>ll<span class="sh_symbol">)</span>p <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>p <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+        last <span class="sh_symbol">=</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>bit <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> count<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+        res <span class="sh_symbol">+=</span> last <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>carry <span class="sh_symbol">?</span> u <span class="sh_symbol">:</span> t<span class="sh_symbol">)</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+        last <span class="sh_symbol">=</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>bit <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> count <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+        res <span class="sh_symbol">+=</span> last <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>carry <span class="sh_symbol">?</span> t <span class="sh_symbol">:</span> u<span class="sh_symbol">)</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>r<span class="sh_symbol">[</span>bit<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+            t <span class="sh_symbol">=</span> <span class="sh_symbol">((</span>ll<span class="sh_symbol">)</span>r<span class="sh_symbol">[</span>bit<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>r<span class="sh_symbol">[</span>bit<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>carry <span class="sh_symbol">?</span> <span class="sh_symbol">-</span><span class="sh_number">1</span> <span class="sh_symbol">:</span> <span class="sh_number">1</span><span class="sh_symbol">))</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+            u <span class="sh_symbol">=</span> <span class="sh_symbol">((</span>ll<span class="sh_symbol">)</span>p <span class="sh_symbol">*</span> r<span class="sh_symbol">[</span>bit<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> t<span class="sh_symbol">)</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+            last <span class="sh_symbol">=</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>bit <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> count<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+            res <span class="sh_symbol">+=</span> last <span class="sh_symbol">*</span> t <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+            last <span class="sh_symbol">=</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>bit <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> count <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+            res <span class="sh_symbol">+=</span> last <span class="sh_symbol">*</span> u <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    ref <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)(</span>res <span class="sh_symbol">%=</span> mod<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> res<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>p<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>a<span class="sh_symbol">);</span>
+    <span class="sh_function">init</span><span class="sh_symbol">();</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> n<span class="sh_symbol">;</span> i <span class="sh_symbol">&gt;=</span> a<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        ans <span class="sh_symbol">+=</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+        ans <span class="sh_symbol">+=</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans <span class="sh_symbol">%</span> mod<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>由于 DP 数组是 $O(4l^2)$ 的，且 $l$ (最高) 在 $3400$ 左右，因此数组<strong>不能开 <code>long long</code>，只能开 <code>int</code></strong>，并注意不要让 ($256 \mathrm{M}$ 的) 空间爆掉。</p>
+<p><strong>坑2：</strong>需要注意，$bound = 0$ 的 B 类转移只能在 $a_i &gt; 0$ 时进行。</p>

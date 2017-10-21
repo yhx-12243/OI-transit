@@ -1,0 +1,71 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>最近，scx 写了一个奇怪的程序，伪代码如下：</p>
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_comment">//input: integers x, k, p</span>
+a <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span>
+<span class="sh_keyword">for</span><span class="sh_symbol">(</span>step <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> step <span class="sh_symbol">&lt;=</span> k<span class="sh_symbol">;</span> step <span class="sh_symbol">=</span> step <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    rnd <span class="sh_symbol">=</span> <span class="sh_symbol">[</span>random integer from <span class="sh_number">1</span> to <span class="sh_number">100</span><span class="sh_symbol">];</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>rnd <span class="sh_symbol">&lt;=</span> p<span class="sh_symbol">)</span>
+        a <span class="sh_symbol">=</span> a <span class="sh_symbol">*</span> <span class="sh_number">2</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">else</span>
+        a <span class="sh_symbol">=</span> a <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+s <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">while</span><span class="sh_symbol">(</span>remainder after dividing a by <span class="sh_number">2</span> equals <span class="sh_number">0</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    a <span class="sh_symbol">=</span> a <span class="sh_symbol">/</span> <span class="sh_number">2</span><span class="sh_symbol">;</span>
+    s <span class="sh_symbol">=</span> s <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span></code></pre></div>
+<p>现在 scx 想知道，给定 $x, k, p$，求变量 $s$ 的期望值。</p>
+
+<h3>输入格式</h3>
+<p>输入共一行，包含三个正整数 $x, k, p$ ($1 \leq x \leq 10^9, 1 \leq k \leq 200, 0 \leq p \leq 100$)。</p>
+
+<h3>输出格式</h3>
+<p>输出变量 $s$ 的期望值，绝对误差或相对误差不超过 $10^{-6}$。</p>
+
+<h3>题解</h3>
+<p>记 $f_{i, j}$ 为原始的 $a$ (即 $x$) 经过 $i$ 次外层循环后，$a$ 再加上 $j$，所得的变量 $s$ (<code>ctz</code>，后缀 0 计数) 的期望值，则有 $f_{0, j} = \mathrm{ctz}(x + j)$，其中 <code>ctz(x)</code> 为后缀 0 计数函数，原型为 <code>__builtin_ctz(x)</code>。</p>
+<p>再记 $p$ 为 $\times 2$ 的概率 (<code>= (double)p * 0.01)</code>)，$q = 1 - p$ 位 $+ 1$ 的概率。</p>
+<p>考虑转移，若 $j$ 为奇数，则第 $i$ 次的结果为 $\times 2$ 就无意义了，所以只能由第 $i$ 次的结果为 $+ 1$ 转移过来，即</p>
+<p>$$ f_{i, j} = f_{i-1, j+1} \cdot q $$</p>
+<p>若 $j$ 为偶数，则第 $i$ 次不仅可以 $+ 1$，还可以是 $\times 2$。由于是乘 $2$ 后再加上 $j$，相当于加上 $\dfrac j2$ 后再乘 $2$，因此 $j$ 为偶数的转移是</p>
+<p>$$ f_{i, j} = f_{i-1, j+1} \cdot q + \left( f_{i-1, j/2} + 1 \right) \cdot p $$</p>
+<p>总转移为：</p>
+<p>$$ f_{i, j} = f_{i-1, j+1} \cdot q + [2 \mid j] \left( f_{i-1, j/2} + 1 \right) \cdot p $$</p>
+<p>由于真正有影响的不超过 $256$，所以第二维可以只算到 $O(k)$。</p>
+<p>答案当然就是 $f_{k, 0}$，时间复杂度 $O(k^2)$，<del>轻松水过</del>。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> K <span class="sh_number">544</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> x<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">double</span> p<span class="sh_symbol">,</span> q<span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>K<span class="sh_symbol">][</span>K<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>k<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>i<span class="sh_symbol">);</span>
+    p <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)</span>i <span class="sh_symbol">*</span> <span class="sh_number">0.01</span><span class="sh_symbol">;</span> q <span class="sh_symbol">=</span> <span class="sh_number">1.0</span> <span class="sh_symbol">-</span> p<span class="sh_symbol">;</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> k<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)</span><span class="sh_function">__builtin_ctz</span><span class="sh_symbol">(</span>x <span class="sh_symbol">+</span> j<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> k<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> k<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> f<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">*</span> q<span class="sh_symbol">;</span>
+            f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> <span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1.0</span><span class="sh_symbol">)</span> <span class="sh_symbol">*</span> p<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%.15lf</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>初始化的时候，不要忘记 $0$，就是说对 $0 \leq j \leq k$，有 $f_{0, j} = \mathrm{ctz}(x + j)$。</p>
+<p><strong>坑2：</strong>然后就是 $+ 1$ 和 $- 1$ 搞清楚，还有 $\times 2$ 和 $\div 2$，由于后者只在 $j$ 为偶数时转移，因此可以直接从 $f_{i-1, j}$ 转移到 $f_{i, 2j}$。</p>

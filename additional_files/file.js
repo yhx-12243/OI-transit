@@ -42,11 +42,10 @@ function DecFile(){
 					newRow.style.display = "none";
 			}
 		}
-	for(i in recTable.rows)
-		if(j = parseInt(i)){
-			C0 = recTable.rows[j].cells[0];
-			C0.innerHTML = (recnum - parseInt(C0.innerHTML)).toString();
-		}
+	for(i = 0; i < count; ++i){
+		C0 = recTable.tBodies[0].rows[i].cells[0];
+		C0.innerHTML = (recnum - parseInt(C0.innerHTML)).toString();
+	}
 	if(count){
 		if(strFilter === "") // all records
 			recTotal.innerHTML = "scx: 共做了 " + count + " 道题";

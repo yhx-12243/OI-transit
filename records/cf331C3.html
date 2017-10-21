@@ -1,0 +1,101 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p><del>另一个世界末日善恶决战的战场要来啦！这一次的罪魁祸首是日历部落。</del>(←以上纯属扯淡)</p>
+<p>部落中的成员数学都非常好，scx 作为一个考古学家，发现了一个神圣的地方，上面写有一个魔法整数和一段提示。提示中的文字翻译如下：</p>
+<blockquote>取这个魔法数字，减去它某一位上的一个数字 (这个数字<strong>在它当前的某一位上</strong>)，然后得到一个新的魔法数字，重复这个过程，直到它等于 $0$，具体的奖励取决于你操作的个数！</blockquote>
+<p>显然，不同的操作方法会得到不同的操作个数，但是 scx 想知道，让这个魔法数字变为 $0$，所需的操作个数的最小可能值是多少，<del>以便她获得尽可能多的奖励</del>。</p>
+
+<h3>输入格式</h3>
+<p>输入仅一行，包含一个非负整数 $n$ ($n \leq 10^{18}$)。</p>
+
+<h3>输出格式</h3>
+<p>输出共一行，包含一个整数，代表操作个数的最小可能值。</p>
+
+<h3>题解</h3>
+<h4> ---- Part 1 ---- </h4>
+<p>先来说一个<del>比较显然</del>的性质：每次取<del>最大的一位</del>减，这样的操作个数是最少的。</p>
+<p>记 $c(x)$ 表示依照上述方法 $x$ 的操作个数，用数学归纳法证明如下：</p>
+<p>先证若这样操作，则<strong>对任意 $a$，有 $c(a) \leq c(a+1)$</strong>。</p>
+<p>设对 $1 \leq a \leq n - 1$，原命题成立，则对 $n - 1$ 和 $n$，如果 $n - 1$ 和 $n$ 仅个位不一样，则要么 $n - 1$ 和 $n$ 的最大位相同，要么 $n - 1$ 的最大位比 $n$ 的最大位少 1。</p>
+<p>则两边都这样减以后，$n - 1$ 减出来的比 $n$ 减出来的少 1 或相同，根据归纳假设，原命题成立。</p>
+<p>如果 $n - 1$ 和 $n$ 不止个位不一样，即 $n$ 的末位是 $0$，则 $n - 1$ 的末位，也是它的最大位，为 $9$，$n$ 的最大位显然不超过 $9$，所以 $n - 1$ 减出来的比 $n$ 减出来的少或相同，根据归纳假设，原命题成立。</p>
+<p>再证原命题，设对 $1 \sim n - 1$，这样操作最优，则对 $n$，因为越小的数操作个数越少，所以显然减最大的，然后根据归纳假设，继续减最大的，证毕。</p>
+<h4> ---- Part 2 ---- </h4>
+<p>于是这道题就是一个贪心的玩意儿，就是问你要操作几次。</p>
+<p>继续考虑数位 DP，记 $f_{i, j, k}$ 表示对于有 <code>**...**99...99k</code> 的形式的数 $n$——即个位为 $k$，左边有 $i$ 个 $9$ (位权为 $10, 10^2, \cdots, 10^i$ 的位的值是 $9$)，更高的位 (<code>*</code> 部分) 的最大值为 $j$——<strong>使 $n$ 的位权为 $10^{i+1}$ 的位 (即最右边的 <code>*</code> 位) 发生变化</strong>所需的操作个数 (好绕口啊~)。</p>
+<p>特别地，如果 $j = 0$，则为 $n$ 变为 $0$ 的操作个数 $c(n)$。</p>
+<p>再记 $g_{i, j, k}$ 表示按照 $f_{i, j, k}$ 的方案做完后 $n$ 的个位的值。</p>
+<p>先考虑边界，显然有 $f_{0, 0, k} = 1, g_{0, 0, k} = 0$。</p>
+<p>对 $1 \leq j \leq k &lt; 10$ 有 $f_{0, j, k} = 2, g_{0, j, k} = 10 - j$。</p>
+<p>对 $j \geq 1, 0 \leq k &lt; j$ 有 $f_{0, j, k} = 1, g_{0, j, k} = 10 + k - j$。</p>
+<p>然后考虑转移 $f_{i, j, k}$ ($i \geq 1$)，此时 $n =$ <code>**...**99...99k</code>，可以看作只有 $i - 1$ 个 $9$，然后调用 $f_{i - 1, 9, k}$，然后这一位就变成了 $8$，通过 $g_{i - 1, 9, k}$ 获得新的个位 $k'$。</p>
+<p>一般地，记位权为 $10^i$ 的位现在的值为 $u$，个位为 $k_u$，则转移方程为</p>
+<p>$$ f_{i, j, k} = \sum_{u=0}^9 f_{i - 1, \max\{u, j\}, k_u} $$</p>
+<p>其中</p>
+<p>$$ k_9 = k, k_{u-1} = g_{i - 1, \max\{u, j\}, k_u} $$</p>
+<p>那么</p>
+<p>$$ g_{i, j, k} = k_{-1} $$</p>
+<h4> ---- Part 3 ---- </h4>
+<p>这回答案可不是直接调个数组就完事了，还是需要一点小技巧。</p>
+<p>考虑原数，可以看出，先调用 $f_{0, j, k}$，减到十位为 $9$，然后调用 $f_{1, j, k}$，减到百位为 $9$，……这样减 $\lg n$ 次后答案就是正确结果 $c(n)$。</p>
+<p>时间复杂度 $O(\log n)$ (注意到所有对数之间只差一个常数)。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">;</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span><span class="sh_number">20</span><span class="sh_symbol">][</span><span class="sh_number">10</span><span class="sh_symbol">][</span><span class="sh_number">10</span><span class="sh_symbol">],</span> ans <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_type">int</span> g<span class="sh_symbol">[</span><span class="sh_number">20</span><span class="sh_symbol">][</span><span class="sh_number">10</span><span class="sh_symbol">][</span><span class="sh_number">10</span><span class="sh_symbol">];</span>
+<span class="sh_type">char</span> s<span class="sh_symbol">[</span><span class="sh_number">20</span><span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> s<span class="sh_symbol">);</span>
+    n <span class="sh_symbol">=</span> <span class="sh_function">strlen</span><span class="sh_symbol">(</span>s<span class="sh_symbol">);</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>n <span class="sh_symbol">==</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">48</span> <span class="sh_symbol">|</span> <span class="sh_symbol">(</span>s<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> <span class="sh_number">48</span><span class="sh_symbol">));</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">10</span><span class="sh_symbol">);</span> <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> <span class="sh_number">10</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> j<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> g<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">10</span> <span class="sh_symbol">+</span> k <span class="sh_symbol">-</span> j<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> j<span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> <span class="sh_number">10</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> g<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">10</span> <span class="sh_symbol">-</span> j<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> <span class="sh_number">10</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> g<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_comment">// ..j..99..99k    the number of 9 is i</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> <span class="sh_number">10</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> <span class="sh_number">10</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                <span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>res <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">];</span>
+                v <span class="sh_symbol">=</span> k<span class="sh_symbol">;</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>u <span class="sh_symbol">=</span> <span class="sh_number">9</span><span class="sh_symbol">;</span> <span class="sh_symbol">~</span>u<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>u<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                    w <span class="sh_symbol">=</span> <span class="sh_function">max</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> j<span class="sh_symbol">);</span>
+                    res <span class="sh_symbol">+=</span> f<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>w<span class="sh_symbol">][</span>v<span class="sh_symbol">];</span>
+                    v <span class="sh_symbol">=</span> g<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>w<span class="sh_symbol">][</span>v<span class="sh_symbol">];</span>
+                <span class="sh_cbracket">}</span>
+                g<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> v<span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;=</span> <span class="sh_number">15</span><span class="sh_symbol">;</span>
+    v <span class="sh_symbol">=</span> s<span class="sh_symbol">[</span>n <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> n <span class="sh_symbol">-</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> <span class="sh_symbol">~</span>i<span class="sh_symbol">;</span> <span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span> j <span class="sh_symbol">=</span> <span class="sh_function">max</span><span class="sh_symbol">(</span>j<span class="sh_symbol">,</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)</span>s<span class="sh_symbol">[</span>k<span class="sh_symbol">]);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>u <span class="sh_symbol">=</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> <span class="sh_symbol">~</span>u<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>u<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            w <span class="sh_symbol">=</span> <span class="sh_function">max</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> j<span class="sh_symbol">);</span>
+            ans <span class="sh_symbol">+=</span> f<span class="sh_symbol">[</span>n <span class="sh_symbol">-</span> i <span class="sh_symbol">-</span> <span class="sh_number">2</span><span class="sh_symbol">][</span>w<span class="sh_symbol">][</span>v<span class="sh_symbol">];</span>
+            v <span class="sh_symbol">=</span> g<span class="sh_symbol">[</span>n <span class="sh_symbol">-</span> i <span class="sh_symbol">-</span> <span class="sh_number">2</span><span class="sh_symbol">][</span>w<span class="sh_symbol">][</span>v<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+        s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">9</span><span class="sh_symbol">;</span> <span class="sh_symbol">--</span>s<span class="sh_symbol">[--</span>i<span class="sh_symbol">];</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> <span class="sh_symbol">~</span>i <span class="sh_symbol">&amp;&amp;</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">9</span><span class="sh_symbol">,</span> <span class="sh_symbol">--</span>s<span class="sh_symbol">[--</span>i<span class="sh_symbol">]);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>上述算法在 $n &lt; 10$ 的时候答案会错误 (输出 $0$)，所以在 $n &lt; 10$ 的时候应该特判，输出 $[n &gt; 0]$。</p>

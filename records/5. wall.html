@@ -1,0 +1,93 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 最近在玩一款塔防类游戏。在游戏中，scx 修了一排城墙来保护他的基地。在敌人的一轮进攻之后，城墙许多地方被破坏了，变得参差不齐。</p>
+<p><del>scx 是一个强迫症患者</del>，她看到这些参差不齐的城墙觉得非常难受，因此决定对这些城墙进行修补。</p>
+<p>城墙共分为 $n$ 段，从左到右排成一排，第 $i$ 段城墙的高度为 $h_i$。相邻两段城墙的高度差距越大，scx 看着就越难受，因此她定义整排城墙的混乱程度为相邻两段高差之和。需要注意是，第一段城墙与最后一段一段城墙都与地面相邻 (地面的高度为 $0$)。</p>
+<p>例如，有一排城墙的高度分别为 $3, 7, 2$，则这排城墙的混乱程度为 $|0 - 3| + |3 - 7| + |7 - 2| + |2 - 0| = 3 + 4 + 5 + 2 = 14$。</p>
+<p>现在 scx 希望通过使某些城墙变高的方式来降低总混乱程度，她将一段城墙的高度变高 $1$ 需要花费 $1$ 枚金币，现在他希望让总混乱程度小于等于 $k$，请问至少要花费多少金币。
+
+<h3>输入格式</h3>
+<p>第一行包含两个正整数 $n, k$ ($n \leq 5 \times 10^5, k \leq 10^{18}$)。</p>
+<p>第二行包含 $n$ 个正整数，其中第 $i$ 个正整数表示 $h_i$ ($h_i \leq 10^9$)。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个正整数，表示至少花费的金币。如果无论花费多少金币都无法使得总混乱程度小于等于 $k$，则输出 <code>-1</code>。</p>
+
+<h3>题解</h3>
+<p>可以看到，如果要减少混乱程度，一定是进行了若干次把类似 "山谷" 的区间填平，例如说</p>
+<p><img src="https://cdn.vijos.org/fs/57ff9e090fdb4d37cc8269502e7f77d01069e049"></p>
+<p>假设这个 "山谷" 的宽度为 $w$，则当所有 $w$ 个城墙的高度都增加 $1$ 个单位长度时，混乱程度就减少 $2$，并且这个 "山谷"
+ 填充到至少与两边中的一边相同时就已经不再是 "山谷" 了，故需要寻找新的山谷。</p>
+<p>又因为宽度为 $w$ 的山谷每花费 $w$ 枚金币，混乱程度减少 $2$，那么可以得到，越窄的 "山谷" ($w$ 越小) 越划算，易证这样贪心是正确的。</p>
+<p>那么先算出原来的 $K$ 值 (混乱程度)，用堆维护所有的 "山谷"，然后记录上一个和下一个山谷 (连续区间) 的位置，每次填充将 $K$ 值减少，直到 $\leq k$，输出花费即可。</p>
+<p>总时间复杂度 $O(n \log n)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#include</span> <span class="sh_string">&lt;ext/pb_ds/priority_queue.hpp&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">512202</span>
+<span class="sh_keyword">using</span> std<span class="sh_symbol">::</span>min<span class="sh_symbol">;</span>
+<span class="sh_keyword">using</span> __gnu_pbds<span class="sh_symbol">::</span>priority_queue<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">valley</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> l<span class="sh_symbol">,</span> r<span class="sh_symbol">;</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>dif<span class="sh_symbol">;</span> <span class="sh_comment">// [l, r)</span>
+    <span class="sh_function">valley</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> l0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> r0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>dif0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">l</span><span class="sh_symbol">(</span>l0<span class="sh_symbol">),</span> <span class="sh_function">r</span><span class="sh_symbol">(</span>r0<span class="sh_symbol">),</span> <span class="sh_function">dif</span><span class="sh_symbol">(</span>dif0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+    <span class="sh_type">bool</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&lt;</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">valley</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>B<span class="sh_symbol">)</span> <span class="sh_keyword">const</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> r <span class="sh_symbol">-</span> l <span class="sh_symbol">&gt;</span> B<span class="sh_symbol">.</span>r <span class="sh_symbol">-</span> B<span class="sh_symbol">.</span>l<span class="sh_symbol">;</span><span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">bool</span> bl<span class="sh_symbol">,</span> br<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> la<span class="sh_symbol">,</span> ht<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> prev<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> next<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>K<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> cost<span class="sh_symbol">,</span> h<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_usertype">valley</span><span class="sh_normal"> </span>t<span class="sh_symbol">;</span>
+
+priority_queue <span class="sh_symbol">&lt;</span>valley<span class="sh_symbol">&gt;</span> pq<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%lld"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>k<span class="sh_symbol">);</span>
+    h<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> h<span class="sh_symbol">[</span>n <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld"</span><span class="sh_symbol">,</span> h <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span> K <span class="sh_symbol">+=</span> <span class="sh_function">abs</span><span class="sh_symbol">(</span>h<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> h<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]);</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">((</span>K <span class="sh_symbol">+=</span> h<span class="sh_symbol">[</span>n<span class="sh_symbol">])</span> <span class="sh_symbol">&lt;=</span> k<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">48</span><span class="sh_symbol">);</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">10</span><span class="sh_symbol">);</span> <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    la <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>h<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">!=</span> h<span class="sh_symbol">[</span>la<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>la <span class="sh_symbol">&amp;&amp;</span> h<span class="sh_symbol">[</span>la<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> h<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;&amp;</span> h<span class="sh_symbol">[</span>la<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> h<span class="sh_symbol">[</span>la <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">])</span>
+                pq<span class="sh_symbol">.</span><span class="sh_function">push</span><span class="sh_symbol">(</span><span class="sh_function">valley</span><span class="sh_symbol">(</span>la<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> <span class="sh_function">min</span><span class="sh_symbol">(</span>h<span class="sh_symbol">[</span>la <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">],</span> h<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_symbol">-</span> h<span class="sh_symbol">[</span>la<span class="sh_symbol">]));</span>
+
+            prev<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> la<span class="sh_symbol">;</span> next<span class="sh_symbol">[</span>la<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+            la <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>cost <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">!</span>pq<span class="sh_symbol">.</span><span class="sh_function">empty</span><span class="sh_symbol">();</span> <span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        t <span class="sh_symbol">=</span> pq<span class="sh_symbol">.</span><span class="sh_function">top</span><span class="sh_symbol">();</span> pq<span class="sh_symbol">.</span><span class="sh_function">pop</span><span class="sh_symbol">();</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>t<span class="sh_symbol">.</span>dif <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span> <span class="sh_symbol">&gt;=</span> K <span class="sh_symbol">-</span> k<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            cost <span class="sh_symbol">+=</span> <span class="sh_symbol">(</span>K <span class="sh_symbol">-</span> k <span class="sh_symbol">+</span> <span class="sh_number">1</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>t<span class="sh_symbol">.</span>r <span class="sh_symbol">-</span> t<span class="sh_symbol">.</span>l<span class="sh_symbol">);</span>
+            K <span class="sh_symbol">=</span> k<span class="sh_symbol">;</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+        i <span class="sh_symbol">=</span> t<span class="sh_symbol">.</span>l<span class="sh_symbol">;</span> j <span class="sh_symbol">=</span> t<span class="sh_symbol">.</span>r<span class="sh_symbol">;</span>
+        h<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> t<span class="sh_symbol">.</span>dif<span class="sh_symbol">;</span>
+        cost <span class="sh_symbol">+=</span> t<span class="sh_symbol">.</span>dif <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>j <span class="sh_symbol">-</span> i<span class="sh_symbol">);</span>
+        K <span class="sh_symbol">-=</span> t<span class="sh_symbol">.</span>dif <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>h<span class="sh_symbol">[</span>prev<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">==</span> h<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> i <span class="sh_symbol">=</span> prev<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>h<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> h<span class="sh_symbol">[</span>j<span class="sh_symbol">])</span> j <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span>
+        prev<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> j<span class="sh_symbol">;</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>h<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> h<span class="sh_symbol">[</span>prev<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">&amp;&amp;</span> h<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> h<span class="sh_symbol">[</span>j<span class="sh_symbol">])</span>
+            pq<span class="sh_symbol">.</span><span class="sh_function">push</span><span class="sh_symbol">(</span><span class="sh_function">valley</span><span class="sh_symbol">(</span>i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> <span class="sh_function">min</span><span class="sh_symbol">(</span>h<span class="sh_symbol">[</span>prev<span class="sh_symbol">[</span>i<span class="sh_symbol">]],</span> h<span class="sh_symbol">[</span>j<span class="sh_symbol">])</span> <span class="sh_symbol">-</span> h<span class="sh_symbol">[</span>i<span class="sh_symbol">]));</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> K <span class="sh_symbol">&lt;=</span> k <span class="sh_symbol">?</span> cost <span class="sh_symbol">:</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意堆中 "山谷" 比较的是宽度，而不是可增高的高度，因为宽度越小，修补这个 "山谷" 就越划算。</p>

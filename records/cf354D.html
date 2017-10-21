@@ -1,0 +1,101 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 正在使用一个有趣的数据结构——金字塔。</p>
+<p>金字塔由 $n$ 行组成，其中第 $i$ 行有 $i$ 个格子组成。每一行的最左端相对于上一行<strong>左移了半个格子的宽度</strong>，金字塔上的格子由 $1$ 到 $\dbinom {n+1} 2$，从上至下，从左至右的编号。</p>
+<p>下图是一个 $n = 5$ 的例子：</p>
+<p><img src="http://codeforces.com/predownloaded/15/d1/15d17ab7bc490e052ed16eb5f8ff876c9951449c.png" alt="金字塔"></p>
+<p>这个神奇的数据结构能接受下列两种操作：</p>
+<ol>
+<li>改变一个特定位置上的值。它需要用 $3$ 个数作为指令：<code>1 i v</code>。其中 $i$ 为格子的编号，$v$ 为改变后的值。</li>
+<li>改变一个子金字塔的值。上图蓝色部分显示的是以 $5$ 号格子为顶的子金字塔，它需要用 $s + 2$ 个数作为指令：<code>2 i v<sub>1</sub> v<sub>2</sub> ... v<sub>s</sub></code>，其中 $i$ 为子金字塔顶的格子的编号，$s$ 为子金字塔的大小 (如上图中是 $6$)，$v_i$ 为对应修改后的值。(可以不改变，即 $v_i$ 为之前的值)</li>
+</ol>
+<p>正式地，一个以 $i$ 行 $j$ 列为顶的子金字塔会包含行 $i \sim n$，其中第 $(i + p)$ 行包含格子 $j \sim (j + p)$ ($0 \leq p \leq n - i$)。</p>
+<p>现在有两个金字塔，金字塔 $A$ 的 $k$ 个格子已经有非 $0$ 的数，而金字塔 $B$ 的所有格子都是 $0$。scx 需要寻找一个操作序列，使得当它施加在 $B$ 上后，能使 $B$ 中的所有格子与 $A$ 中的对应格子均相等。</p>
+<p>在她的计算机中，执行一条指令的时钟周期数等于该操作序列的长度。因此，在众多合法操作序列中，她希望找到一条长度最短的操作序列 (时钟周期最短的)，请你帮她求出操作序列的长度的最小可能值。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个正整数 $n, k$ ($n, k \leq 10^5$)，分别表示金字塔的行数与非 $0$ 数的个数。</p>
+<p>接下来的 $k$ 行，每行包含两个正整数，第 $i + 1$ 行的整数 $r_i, c_i$ ($1 \leq c_i \leq r_i \leq n$) 描述其中一个非 $0$ 数所在的格子的行数和列数，保证同一个格子不会被描述超过一遍。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示操作序列的长度的最小可能值。</p>
+
+<h3>题解</h3>
+<p>由于计算机不方便支持这样的结构，所以我们将金字塔稍微倾斜一下，变成一个等腰直角三角形，如下图：</p>
+<p><img src="https://cdn.vijos.org/fs/ebf43a274ed94e6f9969846f9d8d9f869cfeb064" alt="坐标"></p>
+<p>由此可以<del>轻松地</del>把原来的 $r_i, c_i$ 转化为现在的 $x_i, y_i$ 坐标，公式如下：</p>
+<p>\begin{array}l
+x_i = n - r_i + c_i\\
+y_i = n - r_i + 1
+\end{array}</p>
+<p>可以看出，一列至多使用一个塔形赋值。</p>
+<p>考虑区间 DP，记 $f_{i, j}$ ($0 \leq j \leq i \leq n$) 表示第 $i$ <strong>列准备使用高度为 $j$ 的子金字塔</strong>，则<strong>修改剩下的那个类似梯形的区域</strong>的最小花费，比如下图，则表示<strong>准备使用黄色部分</strong>，$f_{i, j}$ 为蓝色部分所需要的最小花费。</p>
+<p><img src="https://cdn.vijos.org/fs/481a3ff06292902544f91a06a962614d6d8c2288" alt="状态"></p>
+<p>则可以看出，答案就应该是 $f_{n, 0}$。</p>
+<p>记第 $i$ 列高度 ($y$ 坐标) 大于等于 $j$ 中的 $i - j + 1$ 个格子中，有 $s_{i, j}$ 个非 $0$ 格，则转移方程如下：</p>
+<p>$$ f_{i, 0} = \min \left\{ f_{i-1, 0} + 3s_{i, 1}, \min_{1 \leq k \leq i} \left\{ f_{i-1, k-1} + \left( \frac 12 k^2 + \frac 12 k + 2 \right) + 3s_{i, k+1} \right\} \right\} $$</p>
+<p>对于一般的 $f_{i, j}$ ($j \geq 1$)，转移方程为</p>
+<p>$$ f_{i, j} = \min \left\{ f_{i, j-1}, f_{i-1, j-1} + 3s_{i, j+1} \right\} $$</p>
+<p>这样就得到了一个时间复杂度为 $O(n^2)$ 的做法，<del>显然过不去</del>，因此继续考虑优化。</p>
+<p>可以发现，选择太大的子金字塔其实是没有意义的。</p>
+<p>由于单点赋值只需花费 $3$，因此 $k$ 个点均单点赋值至多花费 $3k$，所以答案不会超过 $3k$。</p>
+<p>由于高度为 $h$ 的塔形赋值需要花费 $\dfrac 12 h^2 + \dfrac 12 h + 2$，因此可以得到 (比较松) $h &lt; \sqrt{6k}$。</p>
+<p>因此第二维的 $j$ 只需要枚举到 $h_{\max} = \sqrt{6k}$，那么总时间复杂度为 $O(n \sqrt k)$。</p>
+<p>而这样 DP，空间也是 $O(n \sqrt k)$，<del>可能比较紧</del>，然而这可以通过<strong>滚动数组</strong><del>或者像背包一样缩掉一维</del>来解决，空间复杂度 $O(n + k)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">100034</span>
+<span class="sh_preproc">#define</span> H <span class="sh_number">800</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> pair <span class="sh_symbol">&lt;</span><span class="sh_type">int</span><span class="sh_symbol">,</span> <span class="sh_type">int</span><span class="sh_symbol">&gt;</span> pr<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> h<span class="sh_symbol">,</span> r<span class="sh_symbol">,</span> c<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> x<span class="sh_symbol">,</span> y<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> s<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> <span class="sh_symbol">*</span>F <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">],</span> <span class="sh_symbol">*</span>G <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">];</span>
+
+<span class="sh_usertype">pr</span><span class="sh_normal"> </span>V<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>k<span class="sh_symbol">);</span>
+    h <span class="sh_symbol">=</span> <span class="sh_function">min</span><span class="sh_symbol">(</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)</span><span class="sh_function">sqrt</span><span class="sh_symbol">(</span><span class="sh_number">6</span> <span class="sh_symbol">*</span> k<span class="sh_symbol">));</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> k<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>r<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>c<span class="sh_symbol">);</span>
+        x <span class="sh_symbol">=</span> n <span class="sh_symbol">-</span> r <span class="sh_symbol">+</span> c<span class="sh_symbol">;</span> y <span class="sh_symbol">=</span> n <span class="sh_symbol">-</span> r <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        V<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">pr</span><span class="sh_symbol">(</span>x<span class="sh_symbol">,</span> y<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>V<span class="sh_symbol">,</span> V <span class="sh_symbol">+</span> k<span class="sh_symbol">);</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_number">127</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+    F<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        y <span class="sh_symbol">=</span> <span class="sh_function">min</span><span class="sh_symbol">(</span>i<span class="sh_symbol">,</span> h<span class="sh_symbol">);</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>G<span class="sh_symbol">,</span> <span class="sh_number">127</span><span class="sh_symbol">,</span> y <span class="sh_symbol">+</span> <span class="sh_number">2</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">2</span><span class="sh_symbol">);</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>s<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> y <span class="sh_symbol">+</span> <span class="sh_number">2</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">2</span><span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> x <span class="sh_symbol">&lt;</span> k <span class="sh_symbol">&amp;&amp;</span> V<span class="sh_symbol">[</span>x<span class="sh_symbol">].</span>first <span class="sh_symbol">==</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>x<span class="sh_symbol">)</span> <span class="sh_symbol">++</span>s<span class="sh_symbol">[</span>V<span class="sh_symbol">[</span>x<span class="sh_symbol">].</span>second <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> y <span class="sh_symbol">+</span> <span class="sh_number">1</span> <span class="sh_symbol">:</span> V<span class="sh_symbol">[</span>x<span class="sh_symbol">].</span>second<span class="sh_symbol">];</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> y<span class="sh_symbol">;</span> j <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">--</span>j<span class="sh_symbol">)</span> s<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> s<span class="sh_symbol">[</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+        G<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> F<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> s<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">*</span> <span class="sh_number">3</span><span class="sh_symbol">;</span> 
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> y<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            <span class="sh_function">down</span><span class="sh_symbol">(</span>G<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">],</span> F<span class="sh_symbol">[</span>j <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>j <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">+</span> <span class="sh_number">2</span> <span class="sh_symbol">+</span> s<span class="sh_symbol">[</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">*</span> <span class="sh_number">3</span><span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> y<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            G<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> G<span class="sh_symbol">[</span>j <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+            <span class="sh_function">down</span><span class="sh_symbol">(</span>G<span class="sh_symbol">[</span>j<span class="sh_symbol">],</span> F<span class="sh_symbol">[</span>j <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> s<span class="sh_symbol">[</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">*</span> <span class="sh_number">3</span><span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_function">swap</span><span class="sh_symbol">(</span>F<span class="sh_symbol">,</span> G<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> F<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>在计算 <code>s[]</code> 数组的时候，由于空间限制 ($O(n \sqrt{6k})$，不能开两维 (当然你愿意卡也是可以的)，因此可以对每一个 $x$ 坐标开一个 <code>vector &lt;int&gt;</code>，存储对应的 $y$ 坐标。</p>
+<p><strong>坑2：</strong><del>可能是姿势有点问题</del>，我用 <code>vector &lt;int&gt;</code> 写的居然 TLE 了，其实这个根本不需要 <code>vector &lt;int&gt;</code>，将所有点转化为 $x_i, y_i$ 坐标后<strong>按照 $x$ 坐标排序</strong>，然后线性扫描过来，遇到 $x_j = i$ 的将 $s_{i, j}$ 自增，最终求个前缀和即得 $s_{i, j}$。</p>

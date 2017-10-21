@@ -1,0 +1,80 @@
+<link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>Geraldion 市的主道路是笔直的，并且是 (严格的) 南北走向的。这条路灰常长，因此没有人到达过这条路的任何一端 (？？？)。</p>
+<p>市民们喜欢在这条道路上漫步，因此市长派了些使者用照明灯给这条路照明。</p>
+<p>所有的照明灯已经安放好了，所以她们不能挪动这些灯，每盏灯照明一个给定长度的区间，且一端为灯所在的位置，但是可以改变它们的方向 (即向南照和向北照)。</p>
+<p>给定所有灯的位置和每盏灯照亮区间的长度，帮助使者们确定所有灯的方向，使得整条道路中<strong>被照亮的部分</strong>的总长度尽可能大。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $n$ ($n \leq 100$)，代表照明灯的总数。</p>
+<p>接下来的 $n$ 行，每行两个整数 $a_i, l_i$ ($0 \leq a_i \leq 10^8, 1 \leq l_i \leq 10^8$)，分别代表第 $i$ 盏灯的坐标和照亮区间的长度，保证 $a_i$ 互不相同。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示整条道路中<strong>被照亮的部分</strong>的总长度的最大可能值。</p>
+
+<h3>题解</h3>
+<p>显然先按照照明灯的坐标排序。</p>
+<p>考虑区间 DP，即记 $f_{i, j, k}$ 表示<strong>前 $i$ 盏灯中，被照亮的部分的最右端点</strong>由第 $j$ 盏灯向 $k$ 方向 ($k = 1$ 表示正方向) 照得到，此时被照亮的部分的长度最大值。</p>
+<p>考虑转移，由于区间 DP 不像树形 DP 和数位 DP 一样一个转移方程就解决了，它还是有一点技巧的。</p>
+<p>因为所有灯的坐标已知，可以计算出 $f_{i, j, k}$ 所对应的最右端点的坐标 $r$：</p>
+<p>$$ r = a_j + k \cdot l_j $$</p>
+<p>枚举每一个大于 $i$ 的 $ni$ 和方向 $nk$，假如说当前最右端点由 $Mj$ 和 $Mk \in \{0, 1\}$ 给出，则有最右端点的坐标 $Mr$：</p>
+<p>$$ Mr = a_{Mj} + Mk \cdot l_{Mj} $$</p>
+<p>当然还有第 $ni$ 个点的 $nr$：</p>
+<p>$$ nr = a_{ni} + nk \cdot l_{ni} $$</p>
+<p>那么第 $ni$ 盏灯的贡献就是 $\min\{l_{ni}, nr - r\}$，还有它右端的 $Mr - nr$，因此转移方程为</p>
+<p>$$ f_{ni, Mj, Mk} = \max\{f_{ni, Mj, Mk}, f_{i, j, k} + \min\{l_{ni}, nr - r\} + (Mr - nr)\} $$</p>
+<p>答案就是所有 DP 值中最大者，时间复杂度 $O(4n^3)$，就是 $O(n^3)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">105</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">light</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> pos<span class="sh_symbol">,</span> len<span class="sh_symbol">;</span>
+    light <span class="sh_symbol">*</span> <span class="sh_function">read</span><span class="sh_symbol">()</span> <span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>pos<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>len<span class="sh_symbol">);</span> <span class="sh_keyword">return</span> <span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span> 
+    <span class="sh_type">bool</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&lt;</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">light</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> pos <span class="sh_symbol">&lt;</span> b<span class="sh_symbol">.</span>pos<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> r<span class="sh_symbol">,</span> ni<span class="sh_symbol">,</span> nk<span class="sh_symbol">,</span> nr<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> maxj<span class="sh_symbol">,</span> maxk<span class="sh_symbol">,</span> maxr<span class="sh_symbol">;</span>
+<span class="sh_usertype">light</span><span class="sh_normal"> </span>a<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">][</span><span class="sh_number">2</span><span class="sh_symbol">],</span> ans <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">up</span><span class="sh_symbol">(</span><span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&lt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">read</span><span class="sh_symbol">();</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>a <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>n <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">));</span>
+    a<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">].</span>pos <span class="sh_symbol">=</span> <span class="sh_number">0xc0000000</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                <span class="sh_function">up</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">]);</span>
+                r <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>j<span class="sh_symbol">].</span>pos <span class="sh_symbol">+</span> k <span class="sh_symbol">*</span> a<span class="sh_symbol">[</span>j<span class="sh_symbol">].</span>len<span class="sh_symbol">;</span>
+                maxr <span class="sh_symbol">=</span> INT_MIN<span class="sh_symbol">;</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>ni <span class="sh_symbol">=</span> i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> ni <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>ni<span class="sh_symbol">)</span>
+                    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>nk <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> nk <span class="sh_symbol">&lt;</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>nk<span class="sh_symbol">)</span>
+                        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>nr <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>ni<span class="sh_symbol">].</span>pos <span class="sh_symbol">+</span> nk <span class="sh_symbol">*</span> a<span class="sh_symbol">[</span>ni<span class="sh_symbol">].</span>len<span class="sh_symbol">)</span> <span class="sh_symbol">&gt;</span> r<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>nr <span class="sh_symbol">&gt;</span> maxr<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>maxr <span class="sh_symbol">=</span> nr<span class="sh_symbol">;</span> maxj <span class="sh_symbol">=</span> ni<span class="sh_symbol">;</span> maxk <span class="sh_symbol">=</span> nk<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+                            <span class="sh_function">up</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>ni<span class="sh_symbol">][</span>maxj<span class="sh_symbol">][</span>maxk<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_function">min</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>ni<span class="sh_symbol">].</span>len<span class="sh_symbol">,</span> nr <span class="sh_symbol">-</span> r<span class="sh_symbol">)</span> <span class="sh_symbol">+</span> maxr <span class="sh_symbol">-</span> nr<span class="sh_symbol">);</span>
+                        <span class="sh_cbracket">}</span>
+            <span class="sh_cbracket">}</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>为了防止负坐标对取 $\min$ 的影响，应该把 $a_0$ 置为 $-\infty$，这样答案才不会错，更重要的是，这个 $-\infty$ 不能太小 (绝对值太大)，否则减法有可能溢出 (正数减负数得到负数)。</p>
