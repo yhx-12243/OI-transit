@@ -1,0 +1,72 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 要去看奥运，但是她舍不下她的玩具，于是她决定把所有的玩具运到北京。她使用自己的压缩器进行压缩，它可以将任意物品变成一堆，再放到一种特殊的一维容器中。</p>
+<p>scx 有编号为 $1, 2, \cdots, n$ 的 $n$ 件玩具，第 $i$ 件玩具经过压缩后变成一维长度为 $c_i$。为了方便整理，scx 要求在一个一维容器中的玩具编号是连续的。</p>
+<p>同时，如果一个一维容器中有多个玩具，那么两件玩具之间要加入一个单位长度的填充物，形式地说如果将第 $i$ 件玩具到第 $j$ 个玩具放到一个容器中，那么容器的长度将为 $x = j - i + \sum\limits_{k=i}^j c_k$。</p>
+<p>制作容器的费用与容器的长度有关，根据教授研究，如果容器长度为 $x$，其制作费用为 $(x - L)^2$，其中 $L$ 是一个常量。</p>
+<p>scx 不关心容器的数目，她可以制作出任意长度的容器，甚至超过 $L$。但她希望费用最小。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个正整数 $n, L$ ($1 \leq n \leq 50000, 1 \leq L \leq 10^7$)。</p>
+<p>接下来的 $n$ 行，每行包含一个正整数，第 $i+1$ 行的数为 $c_i$ ($1 \leq c_i \leq 10^7$)。</p>
+
+<h3>输出格式</h3> 
+<p>输出一行一个整数，表示最小费用。</p>
+
+<h3>题解</h3>
+<p>和 <a href="hdu3507.html" target="_blank">[HDU3507] Print Article</a> 类似，记前缀和 $s_i = \sum\limits_{k=1}^i (a_k + 1) = \sum\limits_{k=1}^i a_k + i, M = L + 1$，再记 $f_i$ 为装前 $i$ 个玩具的最小费用，则有如下 DP 转移方程：</p>
+<p>$$ f_i = \min_{0 \leq j &lt; i} \left( f_j + (s_i - s_j - M)^2 \right) $$</p>
+<p>时间复杂度为 $O(n^2)$，但是可以看出，这个方程和那道题的方程<strong>几乎是一样的</strong>，只是 $M$ 被移入了平方因子里面。</p>
+<p>完全类似地，考虑 $0 \leq j &lt; k &lt; i$，那么有 $s_j &lt; s_k$，同理，假设 $k$ 的决策比 $j$ 更优 (即 $f_k + (s_i - s_k - M)^2 &lt; f_j + (s_i - s_j - M)^2$)，化简即</p>
+<p>$$ (f_j + s_j^2) - (f_k + s_k^2) &gt; 2(s_i - M)(s_j - s_k) $$</p>
+<p>记 $p_i = (x_i, y_i) = (2s_i, f_i + s_i^2)$，那么上式即 $\dfrac {y_j - y_k} {x_j - x_k} &lt; s_i - M$，像那道题一样证个决策单调性，然后<strong>按照斜率</strong>存入单调队列中即可，具体证明及实现参见上面的链接。时间复杂度 $O(n)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">51221</span>
+<span class="sh_preproc">#define</span> <span class="sh_function">y</span><span class="sh_symbol">(</span>_<span class="sh_symbol">)</span> <span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>_<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> s<span class="sh_symbol">[</span>_<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> s<span class="sh_symbol">[</span>_<span class="sh_symbol">])</span>
+<span class="sh_preproc">#define</span> <span class="sh_function">x</span><span class="sh_symbol">(</span>_<span class="sh_symbol">)</span> <span class="sh_symbol">(</span>s<span class="sh_symbol">[</span>_<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> h<span class="sh_symbol">,</span> t<span class="sh_symbol">,</span> que<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>M<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> s<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">bool</span> <span class="sh_function">test1</span><span class="sh_symbol">(</span><span class="sh_type">int</span> z<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> now <span class="sh_symbol">=</span> que<span class="sh_symbol">[</span>z<span class="sh_symbol">],</span> next <span class="sh_symbol">=</span> que<span class="sh_symbol">[</span>z <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+    <span class="sh_keyword">return</span> <span class="sh_function">y</span><span class="sh_symbol">(</span>next<span class="sh_symbol">)</span> <span class="sh_symbol">-</span> <span class="sh_function">y</span><span class="sh_symbol">(</span>now<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;</span> <span class="sh_symbol">(</span>s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> M<span class="sh_symbol">)</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span><span class="sh_function">x</span><span class="sh_symbol">(</span>next<span class="sh_symbol">)</span> <span class="sh_symbol">-</span> <span class="sh_function">x</span><span class="sh_symbol">(</span>now<span class="sh_symbol">));</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">bool</span> <span class="sh_function">test2</span><span class="sh_symbol">(</span><span class="sh_type">int</span> i<span class="sh_symbol">,</span> <span class="sh_type">int</span> z<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> now <span class="sh_symbol">=</span> que<span class="sh_symbol">[</span>z <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">],</span> prev <span class="sh_symbol">=</span> que<span class="sh_symbol">[</span>z <span class="sh_symbol">-</span> <span class="sh_number">2</span><span class="sh_symbol">];</span>
+    <span class="sh_keyword">return</span> <span class="sh_symbol">(</span><span class="sh_function">y</span><span class="sh_symbol">(</span>i<span class="sh_symbol">)</span> <span class="sh_symbol">-</span> <span class="sh_function">y</span><span class="sh_symbol">(</span>now<span class="sh_symbol">))</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span><span class="sh_function">x</span><span class="sh_symbol">(</span>now<span class="sh_symbol">)</span> <span class="sh_symbol">-</span> <span class="sh_function">x</span><span class="sh_symbol">(</span>prev<span class="sh_symbol">))</span> <span class="sh_symbol">&lt;=</span> <span class="sh_symbol">(</span><span class="sh_function">x</span><span class="sh_symbol">(</span>i<span class="sh_symbol">)</span> <span class="sh_symbol">-</span> <span class="sh_function">x</span><span class="sh_symbol">(</span>now<span class="sh_symbol">))</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span><span class="sh_function">y</span><span class="sh_symbol">(</span>now<span class="sh_symbol">)</span> <span class="sh_symbol">-</span> <span class="sh_function">y</span><span class="sh_symbol">(</span>prev<span class="sh_symbol">));</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>i<span class="sh_symbol">);</span>
+    s<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> M <span class="sh_symbol">=</span> i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>t<span class="sh_symbol">);</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> s<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> t <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    que<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> h <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> t <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> h <span class="sh_symbol">&lt;</span> t <span class="sh_symbol">-</span> <span class="sh_number">1</span> <span class="sh_symbol">&amp;&amp;</span> <span class="sh_function">test1</span><span class="sh_symbol">(</span>h<span class="sh_symbol">);</span> <span class="sh_symbol">++</span>h<span class="sh_symbol">);</span>    
+        k <span class="sh_symbol">=</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> s<span class="sh_symbol">[</span>j <span class="sh_symbol">=</span> que<span class="sh_symbol">[</span>h<span class="sh_symbol">]]</span> <span class="sh_symbol">-</span> M<span class="sh_symbol">;</span>
+        f<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> k <span class="sh_symbol">*</span> k<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> h <span class="sh_symbol">+</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;</span> t <span class="sh_symbol">&amp;&amp;</span> <span class="sh_function">test2</span><span class="sh_symbol">(</span>i<span class="sh_symbol">,</span> t<span class="sh_symbol">);</span> <span class="sh_symbol">--</span>t<span class="sh_symbol">);</span>
+        que<span class="sh_symbol">[</span>t<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>n<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>由于不等式变号由分母的正负号所确定，所以无需关心 $s_i - M$ 的正负号。如果你实在不放心，可以将 $M$ 加过来，变成 $\dfrac {y_j - y_k + M(x_j - x_k)} {x_j - x_k} &lt; s_i$，然后令 $y_j' = y_j + Mx_j$ 即可。</p>
+<p><strong>坑1：</strong>由于 $L, c_i \leq 10^7$，因此 $s_i$ 可能会爆 <code>int</code>，<strong>因此要记得开 <code>long long</code>，还有在输出的时候用 <code>%lld</code>！！！</strong><del>(我居然 WA 了 3 遍)</del></p>

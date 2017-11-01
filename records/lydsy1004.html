@@ -1,0 +1,97 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>小春现在很清闲，面对书桌上的 $n$ 张牌，他决定给每张染色，目前小春只有 $3$ 种颜色：红色、蓝色、绿色。她询问 scx 有多少种染色方案，scx 很快就给出了答案。</p>
+<p>进一步，小春要求染出 $S_r$ 张红色，$S_b$ 张蓝色，$S_g$ 张绿色。她又询问有多少种方案，scx 想了一下，又给出了正确答案。</p>
+<p>最后小春发明了 $m$ 种不同的洗牌法，这里她又问 scx 有多少种不同的染色方案。</p>
+<p>两种染色方法相同当且仅当其中一种可以通过任意的洗牌法 (即可以使用多种洗牌法,而每种方法可以使用多次) 洗成另一种。</p>
+<p>scx 发现这个问题有点难度，决定交给你，答案可能很大，只要求出答案除以 $p$ 的余数 ($p$ 为质数)。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含 $5$ 个正整数 $S_r, S_b, S_g, m, p$ ($S_r, S_b, S_g \leq 20, m \leq 60, m + 1 &lt; p &lt; 100$)，其中 $n = S_r + S_b + S_g$。</p>
+<p>接下来的 $m$ 行，每行描述一种洗牌法，每行包含 $n$ 个用空格隔开的整数 $X_1, X_2, \cdots, X_n$，恰为 $1$ 到 $n$ 的一个排列，表示使用这种洗牌法，第 $i$ 位变为原来的 $X_i$ 位的牌。</p>
+<p>输入数据保证<strong>任意多次洗牌都可用这 $m$ 种洗牌法中的一种代替，且对每种洗牌法，都存在一种洗牌法使得能回到原状态</strong>。</p>
+
+<h3>输出格式</h3> 
+<p>输出一行一个整数，表示不同染法除以 $p$ 的余数。</p>
+
+<h3>题解</h3>
+<p>根据上面的粗体字，应该可以发现，它暗示我们<strong>每一种洗牌法都是一种置换</strong>，且加上恒等置换 $\varepsilon$，则就形成了一个<strong>置换群</strong> $G$，其中 $|G| = m+1$。</p>
+<p>根据 Burnside 引理，有</p>
+<p>$$ L = \frac 1 {|G|} \sum_{f \in G} \left| C_1(f) \right| $$</p>
+<p>其中 $C_1(f)$ 是满足在置换 $f$ 下不变的染色集合。</p>
+<p>于是现在就需要求 $\left| C_1(f) \right|$。</p>
+<p>根据 <strong>Pólya</strong> 定理的思路，将 $f$ 写成若干个<strong>循环</strong>的形式，如：</p>
+<p>$$ f = (a_{11} a_{12} \cdots a_{1x_1}) (a_{21} a_{22} \cdot a_{2x_2}) (a_{y1} a_{y2} \cdot a_{yx_y}) $$</p>
+<p>共有 $y$ 个<strong>循环</strong>，其中第 $i$ 个<strong>循环</strong>的循环节长度为 $x_i$，$\sum\limits_{i=1}^y x_i = n$。</p>
+<p>考虑到每个<strong>循环</strong>内的 $x_i$ 个位置所对应的的颜色<strong>必须相同</strong>，但是这里不能直接套用 Pólya 计数公式 ($C_1(f) = 3^{c(f)}$)，因为每种颜色的个数是有限制的。</p>
+<p>其实这就是一个经典的背包 DP 模型，考虑 $g_{i, j_1, j_2, j_3}$ 表示前 $i$ 个<strong>循环</strong>中共有 $j_1$ 个红色，$j_2$ 个蓝色，$j_3$ 个绿色的方案数，则有如下转移方程：</p>
+<p>$$ g_{i, j_1, j_2, j_3} = g_{i-1, j_1, j_2, j_3} + [j_1 \geq x_i] g_{i-1, j_1 - x_i, j_2, j_3} + [j_2 \geq x_i] g_{i-1, j_1, j_2 - x_i, j_3} + [j_3 \geq x_i] g_{i-1, j_1, j_2, j_3 - x_i} $$</p>
+<p>那么结果 $\left| C_1(f) \right| = g_{y, n_1, n_2, n_3}$。</p>
+<p>然后最后相加除以 $|G|$ 即可。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">68</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> mod<span class="sh_symbol">,</span> ans<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> n1<span class="sh_symbol">,</span> n2<span class="sh_symbol">,</span> n3<span class="sh_symbol">,</span> G<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> len<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> id<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> g<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">add</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_symbol">(</span>x <span class="sh_symbol">+=</span> y<span class="sh_symbol">)</span> <span class="sh_symbol">&gt;=</span> mod <span class="sh_symbol">?</span> x <span class="sh_symbol">-=</span> mod <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">PowerMod</span><span class="sh_symbol">(</span><span class="sh_type">int</span> a<span class="sh_symbol">,</span> <span class="sh_type">int</span> n<span class="sh_symbol">,</span> <span class="sh_type">int</span> m<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>n <span class="sh_symbol">||</span> a <span class="sh_symbol">==</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> s <span class="sh_symbol">=</span> <span class="sh_function">PowerMod</span><span class="sh_symbol">(</span>a<span class="sh_symbol">,</span> n <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> m<span class="sh_symbol">);</span>
+    <span class="sh_symbol">(</span>s <span class="sh_symbol">*=</span> s<span class="sh_symbol">)</span> <span class="sh_symbol">%=</span> m<span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> n <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span> <span class="sh_symbol">?</span> s <span class="sh_symbol">*</span> a <span class="sh_symbol">%</span> m <span class="sh_symbol">:</span> s<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">solve</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> <span class="sh_symbol">*</span>F <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>x<span class="sh_symbol">],</span> cnt <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> l<span class="sh_symbol">;</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>id<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> id<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>id<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+            id<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">++</span>cnt<span class="sh_symbol">;</span>
+            len<span class="sh_symbol">[</span>cnt<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">!</span>id<span class="sh_symbol">[</span>j <span class="sh_symbol">=</span> F<span class="sh_symbol">[</span>j<span class="sh_symbol">]];</span> id<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> cnt<span class="sh_symbol">)</span> <span class="sh_symbol">++</span>len<span class="sh_symbol">[</span>cnt<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>g<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> g<span class="sh_symbol">);</span>
+    g<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> cnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> n1<span class="sh_symbol">;</span> j <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">--</span>j<span class="sh_symbol">)</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> n2<span class="sh_symbol">;</span> k <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">--</span>k<span class="sh_symbol">)</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>l <span class="sh_symbol">=</span> n3<span class="sh_symbol">;</span> l <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">--</span>l<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>j <span class="sh_symbol">&gt;=</span> len<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>g<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">],</span> g<span class="sh_symbol">[</span>j <span class="sh_symbol">-</span> len<span class="sh_symbol">[</span>i<span class="sh_symbol">]][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">]);</span>
+                    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>k <span class="sh_symbol">&gt;=</span> len<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>g<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">],</span> g<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>k <span class="sh_symbol">-</span> len<span class="sh_symbol">[</span>i<span class="sh_symbol">]][</span>l<span class="sh_symbol">]);</span>
+                    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>l <span class="sh_symbol">&gt;=</span> len<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>g<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">],</span> g<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l <span class="sh_symbol">-</span> len<span class="sh_symbol">[</span>i<span class="sh_symbol">]]);</span>
+                <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> g<span class="sh_symbol">[</span>n1<span class="sh_symbol">][</span>n2<span class="sh_symbol">][</span>n3<span class="sh_symbol">];</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n1<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n2<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n3<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>G<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>mod<span class="sh_symbol">);</span>
+    n <span class="sh_symbol">=</span> n1 <span class="sh_symbol">+</span> n2 <span class="sh_symbol">+</span> n3<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(++</span>G<span class="sh_symbol">,</span> i <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> G<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> j<span class="sh_symbol">);;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> G<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_function">add</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">,</span> <span class="sh_function">solve</span><span class="sh_symbol">(</span>i<span class="sh_symbol">));</span>
+    <span class="sh_symbol">(</span>ans <span class="sh_symbol">*=</span> <span class="sh_function">PowerMod</span><span class="sh_symbol">(</span>G <span class="sh_symbol">%</span> mod<span class="sh_symbol">,</span> mod <span class="sh_symbol">-</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> mod<span class="sh_symbol">))</span> <span class="sh_symbol">%=</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>DP 时，需要注意转移条件 (转移方程中的 Iverson 约定) $c_k \geq x_i$，以避免 Runtime Error。</p>
+<p><strong>坑2：</strong>同理，根据背包 DP 的<del>套路</del>，$i$ 这一维可以被优化掉，因此要<strong>倒着循环</strong>，当然循环的时候也不能直接到 $x_i$，因为三个条件是<strong>分别独立地</strong>满足的。</p>

@@ -1,0 +1,110 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 准备报名参加 GT 考试，准考证号为 $n$ 位数 $X_1 X_2 \cdots, X_n$ ($0 \leq X_i \leq 9$)，她不希望准考证号上出现不吉利的数字。</p>
+<p>她的不吉利数字 $A_1 A_2 \cdots A_m$ ($0 \leq A_i \leq 9$) 有 $m$ 位，不出现是指 $X_1 X_2 \cdots X_n$ 中没有恰好一段等于 $A_1 A_2 \cdots A_m$。$A_1$ 和 $X_1$ 可以为 0。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含三个正整数 $n, m, k$ ($n \leq 10^9, m \leq 20, k \leq 1000$)，表示准考证号的位数、不吉利数字的位数和模数。</p>
+<p>第二行包含一个长度为 $m$ 的数字串，表示 scx 的不吉利数字。</p>
+
+<h3>输出格式</h3> 
+<p>输出一行一个整数，表示不出现不吉利数字的号码的数量模 $k$ 的值。</p>
+
+<h3>题解</h3>
+<p><del>看一眼貌似是数位 DP？假的。</del></p>
+<p>因为给的是位数，而不是一个区间。</p>
+<p>字符串匹配？KMP 上跑 DP？真的。</p>
+<p>那么先把模式串 (scx 的不吉利数字) 跑一遍 KMP 后考虑转移。</p>
+<p>记 $f_{i, j}$ 表示只考虑准考证号的前 $i$ 位，其中的 $j$-后缀等于模式串的 $j$-前缀，<strong>且不存在更大的 $j$ 满足这个条件</strong>的前 $i$ 位的<strong>合法</strong>状态总数。</p>
+<p>那么有如下转移方程：</p>
+<p>$$ f_{i, j} = \sum_{k=0}^{m-1} f_{i-1, k} \cdot g_{k, j} $$</p>
+<p>其中 $g_{i, j}$ 为 KMP 后第 $i$ 个状态转移到第 $j$ 个状态的方案数 (有点像 Aho-Corasick 自动机中的 fail 转移)，满足 $\sum\limits_{j=0}^m g_{i, j} = 10$。</p>
+<p>所以可以花 $O(n^2)$ 的时间预处理 $g_{i, j}$，然后进行 DP。</p>
+<p>初始状态为 $f_{0, 0} = 1$，答案为 $\sum\limits_{j=0}^{m-1} f_{n, j}$，因此时间复杂度为 $O(nm)$。</p>
+<p>这显然过不去，然后可以发现这个转移方程有点像<strong>矩阵乘法</strong>的形式，即</p>
+<p>$$ \begin{bmatrix} f_{i, 0} & f_{i, 1} & \cdots & f_{i, m-1} \end{bmatrix}
+= \begin{bmatrix} f_{i-1, 0} & f_{i-1, 1} & \cdots & f_{i-1, m-1} \end{bmatrix} \cdot \begin{bmatrix}
+g_{0, 0} & g_{0, 1} & \cdots & g_{0, m-1} \\
+g_{1, 0} & g_{1, 1} & \cdots & g_{1, m-1} \\
+\vdots & \vdots & \ddots & \vdots \\
+g_{m-1, 0} & g_{m-1, 1} & \cdots & g_{m-1, m-1}
+\end{bmatrix} $$</p>
+<p>根据<strong>矩阵乘法的结合律</strong>，记</p>
+<p>$$ \mathbf{G} = \begin{bmatrix}
+g_{0, 0} & g_{0, 1} & \cdots & g_{0, m-1} \\
+g_{1, 0} & g_{1, 1} & \cdots & g_{1, m-1} \\
+\vdots & \vdots & \ddots & \vdots \\
+g_{m-1, 0} & g_{m-1, 1} & \cdots & g_{m-1, m-1}
+\end{bmatrix} $$</p>
+<p>，就有</p>
+<p>$$ \begin{bmatrix} f_{n, 0} & f_{n, 1} & \cdots & f_{n, m-1} \end{bmatrix}
+= \begin{bmatrix} 1 & 0 & \cdots & 0 \end{bmatrix} \cdot \mathbf{G}^n $$
+<p>可以通过矩阵快速幂实现。时间复杂度降为 $O(m^3 \log n)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">34</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">int</span> <span class="sh_symbol">(*</span>pmatrix<span class="sh_symbol">)[</span>N<span class="sh_symbol">],</span> matrix<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> mod<span class="sh_symbol">,</span> ans<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">char</span> s<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> used<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_usertype">matrix</span><span class="sh_normal"> </span>g<span class="sh_symbol">,</span> h<span class="sh_symbol">,</span> __bufferMul__<span class="sh_symbol">,</span> __bufferPow__<span class="sh_symbol">;</span>
+
+<span class="sh_type">void</span> <span class="sh_function">MatMul</span><span class="sh_symbol">(</span><span class="sh_usertype">pmatrix</span><span class="sh_normal"> </span>A<span class="sh_symbol">,</span> <span class="sh_usertype">pmatrix</span><span class="sh_normal"> </span>B<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">;</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>__bufferMul__<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span><span class="sh_symbol">(</span>matrix<span class="sh_symbol">));</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span>
+                <span class="sh_symbol">(</span>__bufferMul__<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> A<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> B<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>j<span class="sh_symbol">])</span> <span class="sh_symbol">%=</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_function">memcpy</span><span class="sh_symbol">(</span>A<span class="sh_symbol">,</span> __bufferMul__<span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span><span class="sh_symbol">(</span>matrix<span class="sh_symbol">));</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">MatPower</span><span class="sh_symbol">(</span><span class="sh_usertype">pmatrix</span><span class="sh_normal"> </span>A<span class="sh_symbol">,</span> <span class="sh_type">int</span> n<span class="sh_symbol">,</span> <span class="sh_usertype">pmatrix</span><span class="sh_normal"> </span>res<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+    <span class="sh_function">memcpy</span><span class="sh_symbol">(</span>__bufferPow__<span class="sh_symbol">,</span> A<span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span><span class="sh_symbol">(</span>matrix<span class="sh_symbol">));</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>res<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span><span class="sh_symbol">(</span>matrix<span class="sh_symbol">));</span> <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> res<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> n<span class="sh_symbol">;</span> n <span class="sh_symbol">&gt;&gt;=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_function">MatMul</span><span class="sh_symbol">(</span>__bufferPow__<span class="sh_symbol">,</span> __bufferPow__<span class="sh_symbol">))</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>n <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_function">MatMul</span><span class="sh_symbol">(</span>res<span class="sh_symbol">,</span> __bufferPow__<span class="sh_symbol">);</span> 
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">Knuth_Morris_Pratt</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span> f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> s<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">&amp;=</span> <span class="sh_number">15</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;=</span> <span class="sh_number">15</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">while</span><span class="sh_symbol">(</span>j <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span> <span class="sh_symbol">&amp;&amp;</span> s<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">!=</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> j <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span>
+        f<span class="sh_symbol">[++</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d%s"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>m<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>mod<span class="sh_symbol">,</span> s<span class="sh_symbol">);</span>
+    <span class="sh_function">Knuth_Morris_Pratt</span><span class="sh_symbol">();</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        g<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">9</span><span class="sh_symbol">;</span>
+        g<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        used<span class="sh_symbol">[</span>s<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> j <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>j<span class="sh_symbol">])</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>used<span class="sh_symbol">[</span>s<span class="sh_symbol">[</span>j<span class="sh_symbol">]]</span> <span class="sh_symbol">!=</span> i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                g<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> used<span class="sh_symbol">[</span>s<span class="sh_symbol">[</span>j<span class="sh_symbol">]]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>g<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">];</span>
+            <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    h<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> <span class="sh_function">MatPower</span><span class="sh_symbol">(</span>g<span class="sh_symbol">,</span> n<span class="sh_symbol">,</span> g<span class="sh_symbol">);</span> <span class="sh_function">MatMul</span><span class="sh_symbol">(</span>h<span class="sh_symbol">,</span> g<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_symbol">(</span>ans <span class="sh_symbol">+=</span> h<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span>i<span class="sh_symbol">])</span> <span class="sh_symbol">&gt;=</span> mod <span class="sh_symbol">?</span> ans <span class="sh_symbol">-=</span> mod <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>矩阵快速幂这种玩意儿，推荐使用快速幂的<strong>非递归版本</strong>，可以有效的节省栈空间，不过写这种二进制快速幂的时候注意初始状态，也就是在 <code>for(; n; n &gt;&gt;= 1)</code> 中，中间的是 <code>n</code>，不是 <code>n &gt;&gt;= 1</code>。</p>

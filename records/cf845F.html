@@ -1,0 +1,117 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 在 Berland 有一家商店。由于该城市中最近犯罪活动在增长，因此 scx 正在思考如何在仓库建立更好的防护措施。
+<p>仓库可以看作一个 $r$ 行 $c$ 列的矩阵，其中每个格子为空地 (存货区，用 <code>.</code> 表示) 或墙 (用 <code>x</code> 表示)。</p>
+<p>scx 想要雇佣几个看守 (可能是 $0$ 个) 去仓库监视，每个看守必须在一个空地上，并且能保护它右边和下面的所有格子，直到碰到最接近的墙。更正式地，如果这个看守在坐标为 $(x_0, y_0)$ 的空地，则它能保护的坐标 ($x_1, y_1$) 必须满足如下条件：</p>
+<ol>
+<li>$(x_1, y_1)$ 是空地。</li>
+<li>$(x_0 = x_1 \wedge y_0 \leq y_1) \vee (x_0 \leq x_1 \wedge y_0 = y_1)$。</li>
+<li>$(x_0, x_1)$ 与 $(x_1, y_1)$ 之间的连线中没有墙，<strong>注意，连线中可以由其他看守</strong>，<del>因为看守是透明的</del>。</li>
+</ol>
+<p>一个雇佣看守的方案就是一些空地的集合，因此，两个方案不同当且仅当存在一个格子使得两个方案中只有其中一个有看守。</p>
+<p>scx 觉得一个方案是合适的，当且仅当所有空地中未被任何一个看守保护的空地<strong>不超过 $1$ 个</strong>。</p>
+<p>scx 想知道，一共有多少种合适的方案。由于方案数可能很大，请模 $10^9 + 7$ 输出。</p>
+
+<h3>输入格式</h3>
+<p>第一行有两个正整数 $r, c$ ($rc \leq 250$) 表示仓库的行数和列数。</p>
+<p>接下来的 $r$ 行，每行一个长度为 $c$ 的字符串，第 $i$ 行的字符串描述仓库的第 $i$ 行，每个字符为 <code>.</code> 和 <code>x</code> 之一。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示不同的合适的方案数模 $10^9 + 7$ 的值。</p>
+
+<h3>题解</h3>
+<p>考虑到 $1 \leq rc \leq 250$，因此有 $\min\{r, c\} = \sqrt{\min\{r, c\}^2} \leq \sqrt{rc} \leq \sqrt{250}$，因此有 $\min\{r, c\} \leq 15$，以下不妨设 $c \leq 15$，否则将整个矩阵<strong>转置一下</strong>即可。</p>
+<p>记 $f_{i, j, A, s, u}$ 表示当前扫描到第 $i$ 行第 $j$ 个格子，前面的所有格子均已确定，且上面有看守能保护下来的列的集合为 $A$，左边是否有能保护的看守的情况为 $s$ ($s = 1$ 代表有)，前面的格子未被保护的有 $u$ 个的方案总数。</p>
+<p>以下图为例，<code>o</code> 代表看守员，<code>x</code> 代表墙，红色阴影格子代表未被保护的格子：</p>
+<p><img src="images\1.bmp" alt="看守的情况"></p>
+<p>则它就对应状态 $f_{i, j, \{1, 3, c-1\}, 1, 1}$。</p>
+<p>接下来考虑转移。如果 $(i, j)$ 格子是一堵墙，则转移比较简单，就只需让 $A$ 集合减少 $j$ (因为如果上面有看守，已经保护不下去了)，并且 $s$ 也要置 $0$ (因为如果左边有看守，也保护不下去了)，$u$ 照常，故有</p>
+<p>$$ f_{i, j+1, A \backslash \{j\}, 0, u} \uparrow f_{i, j, A, s, u} $$</p>
+<p>其中 $A \backslash B$ 表示<strong>差集</strong>， $a \uparrow b$ 代表 <code>a += b</code>。</p>
+<p>如果 $(i, j)$ 是空地，考虑两种情况：</p>
+<ol>
+<li>$(i, j)$ 格子不雇佣看守，那么 $A$ 集合和 $s$ 不用变化，如果 $(i, j)$ 已经被保护了，则 $u$ 也不变化，故有
+$$ f_{i, j+1, A, s, u} \uparrow [j \in A \vee s = 1] f_{i, j, A, s, u} $$</li>
+如果 $(i, j)$ 没有被保护且 $u = 0$，则这一个格子就是未保护的格子，故有
+$$ f_{i, j+1, A, s, 1} \uparrow [j \notin A][s = 0][u = 0] f_{i, j, A, s, u} $$
+<li>$(i, j)$ 格子雇佣看守，那么 $A$ 需要并上 $\{j\}$，且 $s$ 需要置 $1$，$u$ 照常，故有
+$$ f_{i, j+1, A \cup \{j\}, 1, u} \uparrow f_{i, j, A, s, u} $$</li>
+</ol>
+<p>接下来考虑从 $f_{i, n, \cdots}$ 转移到 $f_{i+1, 0, \cdots}$，可以发现，只需将 $s$ 置 $0$ (因为新的一行左边是没有看守的)，其它都不变就行了，因此转移即</p>
+<p>$$ f_{i+1, 0, A, 0, u} = f_{i, n, A, 0, u} + f_{i, n, A, 1, u} $$</p>
+<p>在实际实现的时候，可以考虑用状态压缩 DP 压一下空间，	记 <code>f[ij][k][l]</code> 中第一维表示坐标 (转化为一维)，第二维表示集合 $A$ (共 $2^{15}$ 种)，第三维高低位表示 $s$ 和 $u$。</p>
+<p>然后新行转移的时候特判一下 $s$ 即可。答案就是最后位置所有情况的和，即</p>
+<p>$$ \sum_{A \in \Omega, s, u \in \{0, 1\}} f_{n, 0, A, s, u} $$</p>
+<p>，时空复杂度均为 $O(2^c rc)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">255</span>
+<span class="sh_preproc">#define</span> <span class="sh_function">enc</span><span class="sh_symbol">(</span>x<span class="sh_symbol">,</span> y<span class="sh_symbol">)</span> <span class="sh_symbol">((</span>x<span class="sh_symbol">)</span> <span class="sh_symbol">*</span> c <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>y<span class="sh_symbol">))</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>mod <span class="sh_symbol">=</span> <span class="sh_number">1000000007</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> r<span class="sh_symbol">,</span> c<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> ij<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> l<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> nk<span class="sh_symbol">,</span> nl<span class="sh_symbol">;</span>
+
+<span class="sh_type">char</span> m<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span><span class="sh_number">18</span><span class="sh_symbol">],</span> __buffer__<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span><span class="sh_number">32780</span><span class="sh_symbol">][</span><span class="sh_number">4</span><span class="sh_symbol">],</span> ans <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_comment">// f[ij][k][l]: ij is the row and column, k is the last row irradiate (vertical)</span>
+<span class="sh_comment">// l &amp; 2 is this row irradiate (horizontal), l &amp; 1 is if there has a grid not unlighted</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">add</span><span class="sh_symbol">(</span><span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>A<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>B<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_symbol">(</span>A <span class="sh_symbol">+=</span> B<span class="sh_symbol">)</span> <span class="sh_symbol">&gt;=</span> mod <span class="sh_symbol">?</span> A <span class="sh_symbol">-=</span> mod <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">init</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>r<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>c<span class="sh_symbol">);</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>r <span class="sh_symbol">&lt;</span> c<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">swap</span><span class="sh_symbol">(</span>r<span class="sh_symbol">,</span> c<span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> __buffer__<span class="sh_symbol">);</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> r<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span> m<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> __buffer__<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span><span class="sh_keyword">else</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> r<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> m<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">init</span><span class="sh_symbol">();</span>
+    f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> r<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            ij <span class="sh_symbol">=</span> <span class="sh_function">enc</span><span class="sh_symbol">(</span>i<span class="sh_symbol">,</span> j<span class="sh_symbol">);</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>l <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> l <span class="sh_symbol">&lt;</span> <span class="sh_number">4</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>l<span class="sh_symbol">)</span>
+                    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>ij<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+                        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> <span class="sh_number">120</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                            nk <span class="sh_symbol">=</span> k <span class="sh_symbol">&amp;</span> <span class="sh_symbol">~(</span><span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> j<span class="sh_symbol">);</span>
+                            <span class="sh_function">add</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>ij <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>nk<span class="sh_symbol">][</span>l <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>ij<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">]);</span> <span class="sh_comment">// found a wall</span>
+                        <span class="sh_cbracket">}</span><span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+                            nl <span class="sh_symbol">=</span> l <span class="sh_symbol">&amp;</span> <span class="sh_symbol">(</span>j <span class="sh_symbol">==</span> c <span class="sh_symbol">-</span> <span class="sh_number">1</span> <span class="sh_symbol">?</span> <span class="sh_number">1</span> <span class="sh_symbol">:</span> <span class="sh_number">3</span><span class="sh_symbol">);</span>
+                            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>k <span class="sh_symbol">&gt;&gt;</span> j <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span> <span class="sh_symbol">||</span> l <span class="sh_symbol">&amp;</span> <span class="sh_number">2</span><span class="sh_symbol">)</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>ij <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>nl<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>ij<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">]);</span> <span class="sh_comment">// (i, j) is lighted</span>
+                            <span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(~</span>l <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>ij <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>nl <span class="sh_symbol">|</span> <span class="sh_number">1</span><span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>ij<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">]);</span> <span class="sh_comment">// (i, j) is unlighted</span>
+                            nk <span class="sh_symbol">=</span> k <span class="sh_symbol">|</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> j<span class="sh_symbol">;</span>
+                            nl <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>j <span class="sh_symbol">==</span> c <span class="sh_symbol">-</span> <span class="sh_number">1</span> <span class="sh_symbol">?</span> l <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span> <span class="sh_symbol">:</span> l <span class="sh_symbol">|</span> <span class="sh_number">2</span><span class="sh_symbol">);</span>
+                            <span class="sh_function">add</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>ij <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>nk<span class="sh_symbol">][</span>nl<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>ij<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">]);</span> <span class="sh_comment">// take a guard</span>
+                        <span class="sh_cbracket">}</span>
+                    <span class="sh_cbracket">}</span>
+        <span class="sh_cbracket">}</span>
+    ij <span class="sh_symbol">=</span> r <span class="sh_symbol">*</span> c<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span> <span class="sh_keyword">for</span><span class="sh_symbol">(</span>l <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> l <span class="sh_symbol">&lt;</span> <span class="sh_number">4</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>l<span class="sh_symbol">)</span> <span class="sh_function">add</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>ij<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">]);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>在状态压缩的时候，子集的各种枚举情况要控制好，转移的时候位运算也要恰当，不要转移错位置。</p>
+<p><strong>坑2：</strong>还有 $r &lt; c$ 时需要转置，读入的时候要做注意点，判断墙的 <code>== 120</code> (<code>== 'x'</code>) 不要忘记。</p>

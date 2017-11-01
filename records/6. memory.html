@@ -1,0 +1,168 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>通过观察，tj 发现 scx 的记忆可以用一个线性的结构表示，每一位都可以记住一个人。</p>
+<p>如果用 $n$ 表示 scx 的记忆上限，那么就可以用 $a_i$ ($i \in [1, n]$) 表示 scx 的记忆的第 $i$ 位记住的人的标号。</p>
+<p>tj 通过一些<del>不可告人的</del>手段拿到了 scx 记忆的修改记录：</p>
+<p><code>A x y z</code> 表示在 $x$ 到 $y$ 的区间内的记忆都变成标号为 $z$ 的人。</p>
+<p>然而 tj 并不知道自己的标号是几，但是她在 scx 的记忆里占据的空间 $&gt; \dfrac n2$。</p>
+<p>她会通过 <code>Q</code> 来询问当前全部记忆中是否有可能代表自己的标号。</p>
+<p style="color: red">ps: 初始时 scx 的记忆是<strong>空的</strong>，没有任何人在他的记忆中 (当然也没有任何人满足条件)。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个整数 $n, m$，分别表示记忆上限和记忆修改/询问次数。</p>
+<p>接下来的 $m$ 行每行是以下两种之一：</p>
+<p><code>A x y z</code></p>
+<p><code>Q</code></p>
+<p>含义如题目描述。</p>
+<p><strong>极限数据输入量较大，建议使用读入优化。</strong></p>
+
+<h3>输出格式</h3>
+<p>对于每个询问输出一行，如果答案存在则输出答案，否则输出 <code>No one</code>。</p>
+
+<h3>题解</h3>
+<p>看起来这道题像是一道线段树，然而实际上这题并不需要线段树。<del>(用了反而更慢)</del></p>
+<p>我们可以发现，在一波区间赋值后，值相同的连续的区间可能会变得非常多，因此考虑用 <code>set &lt;data&gt;</code> 存储每一个连续的区间的值。</p>
+<p>初始时，所有的值全都为 $-1$，然后每次区间赋值 (<code>A x y z</code>)，如果把 $x$ 或 $y$ 原来的区间断掉的话，先把它们分成两个区间，然后把 $x$ 到 $y$ 中间的区间全部删除，最后的赋值就是加上一个新的区间，最后的赋值中以 <code>set</code> 中的元素表达就是 <code>(x, y, z)</code>。</p>
+<p>考虑时间复杂度，以最坏情况计算，考虑区块的删除，由于每个区块至多被删除一次，所以总删除次数最多 $O(m)$ 次，均摊 $O(1)$ 次，考虑区块分裂，由于每次操作最多分裂两个区块，所以总分裂的次数亦最多 $O(m)$ 次，均摊 $O(1)$ 次，算上 <code>set</code> 的复杂度，所以这一部分的复杂度是 $O(m \log n)$ 的。</p>
+<p>考虑每次询问，其实，一个数列中，如果有出现超过 $\dfrac n2$ 次，也就是超过 $\left \lfloor \dfrac n2 \right \rfloor$ 次的整数，那么它就叫做这组数列的<strong>绝对众数</strong>。</p>
+<p>考虑每次集合中区间的删除和插入，只有这两种操作才会改变某个数的出现次数。</p>
+<p>由于数据比较大，因此可以<del>离散化或</del>使用 <code>(hash_)map</code> 记录每个数出现的次数，考虑它的更改：</p>
+<p>如果是增加 (只是增加)，那么当且仅当它修改后，值才超过 $\left \lfloor \dfrac n2 \right \rfloor$ 时，才更新答案，否则显然不更新。</p>
+<p>如果是减少 (只是减少)，那么当且仅当它原来的值超过 $\left \lfloor \dfrac n2 \right \rfloor$，且修改后的值<strong>不超过</strong>$\left \lfloor \dfrac n2 \right \rfloor$，则将答案更新到 <code>No one</code>，因为<strong>在其它值不变的情况下</strong>，其它值的总和不超过 $\left \lfloor \dfrac n2 \right \rfloor$，所以其它值中<strong>不存在</strong>答案。</p>
+<p>于是，在修改的时候，已经处理出询问的答案了，所以询问时直接输出即可，更新的过程可以用 <code>map</code> 或写个 <code>hash_map</code> 完成，单次操作的时间复杂度为 $O(\log n)$ 或 $O(1)$，(由于是分步乘法原理)，总时间复杂度为 $O(m \log^2 n)$ 或 $O(m \log n)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_comment">//#pragma GCC optimize("O2")</span>
+<span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> <span class="sh_usertype">ID</span><span class="sh_normal"> </span><span class="sh_function">isdigit</span><span class="sh_symbol">(</span>c <span class="sh_symbol">=</span> <span class="sh_symbol">*</span>next<span class="sh_symbol">++)</span>
+<span class="sh_preproc">#define</span> <span class="sh_usertype">RT</span><span class="sh_normal"> </span><span class="sh_keyword">if</span><span class="sh_symbol">(!~</span>c<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> flag <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_symbol">*</span><span class="sh_keyword">this</span><span class="sh_symbol">;</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">Istream</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> flag<span class="sh_symbol">;</span> <span class="sh_type">char</span> <span class="sh_symbol">*</span>next<span class="sh_symbol">,</span> buf<span class="sh_symbol">[</span><span class="sh_number">11780646</span><span class="sh_symbol">];</span>
+    <span class="sh_type">void</span> <span class="sh_function">init</span><span class="sh_symbol">(</span><span class="sh_usertype">FILE</span><span class="sh_normal"> </span><span class="sh_symbol">*</span>f <span class="sh_symbol">=</span> stdin<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_function">fread</span><span class="sh_symbol">(</span>buf<span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> buf<span class="sh_symbol">,</span> f<span class="sh_symbol">);</span> next <span class="sh_symbol">=</span> buf<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    Istream<span class="sh_symbol">&amp;</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_type">int</span> c<span class="sh_symbol">,</span> l <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> x <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> <span class="sh_symbol">!</span>ID<span class="sh_symbol">;</span> l <span class="sh_symbol">=</span> c<span class="sh_symbol">)</span> RT<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>x <span class="sh_symbol">=</span> c <span class="sh_symbol">-</span> <span class="sh_number">48</span><span class="sh_symbol">;</span> ID<span class="sh_symbol">;</span> x <span class="sh_symbol">=</span> x <span class="sh_symbol">*</span> <span class="sh_number">10</span> <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>c <span class="sh_symbol">&amp;</span> <span class="sh_number">15</span><span class="sh_symbol">))</span> RT<span class="sh_symbol">;</span> RT<span class="sh_symbol">;</span>
+        <span class="sh_keyword">return</span> flag <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_symbol">*</span><span class="sh_keyword">this</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    Istream<span class="sh_symbol">&amp;</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_symbol">(</span><span class="sh_type">char</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_type">int</span> c<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> <span class="sh_symbol">(</span>c <span class="sh_symbol">=</span> <span class="sh_symbol">*</span>next<span class="sh_symbol">++)</span> <span class="sh_symbol">&lt;=</span> <span class="sh_string">' '</span><span class="sh_symbol">;</span> <span class="sh_symbol">)</span> RT<span class="sh_symbol">;</span> RT<span class="sh_symbol">;</span> x <span class="sh_symbol">=</span> c<span class="sh_symbol">;</span> <span class="sh_keyword">return</span> flag <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_symbol">*</span><span class="sh_keyword">this</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_type">char</span> <span class="sh_function">get</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_symbol">*</span>next<span class="sh_symbol">++;</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">operator</span> <span class="sh_type">void</span> <span class="sh_symbol">*()</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> flag <span class="sh_symbol">?</span> <span class="sh_keyword">this</span> <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>Cin<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">Ostream</span><span class="sh_cbracket">{</span>
+    FILE <span class="sh_symbol">*</span>_f<span class="sh_symbol">;</span> <span class="sh_type">char</span> buf<span class="sh_symbol">[</span><span class="sh_number">34</span><span class="sh_symbol">];</span>
+    <span class="sh_type">void</span> <span class="sh_function">init</span><span class="sh_symbol">(</span><span class="sh_usertype">FILE</span><span class="sh_normal"> </span><span class="sh_symbol">*</span>f <span class="sh_symbol">=</span> stdout<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>_f <span class="sh_symbol">=</span> f<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    Ostream<span class="sh_symbol">&amp;</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>x<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_function">put</span><span class="sh_symbol">(</span><span class="sh_number">48</span><span class="sh_symbol">),</span> <span class="sh_symbol">*</span><span class="sh_keyword">this</span><span class="sh_symbol">;</span>
+        <span class="sh_type">int</span> i<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> x <span class="sh_symbol">&gt;</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> x <span class="sh_symbol">/=</span> <span class="sh_number">10</span><span class="sh_symbol">)</span> buf<span class="sh_symbol">[</span>i<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> x <span class="sh_symbol">%</span> <span class="sh_number">10</span> <span class="sh_symbol">|</span> <span class="sh_number">48</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">while</span><span class="sh_symbol">(--</span>i <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">)</span> <span class="sh_function">put</span><span class="sh_symbol">(</span>buf<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+        <span class="sh_keyword">return</span> <span class="sh_symbol">*</span><span class="sh_keyword">this</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    Ostream<span class="sh_symbol">&amp;</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_symbol">(</span><span class="sh_type">char</span> c<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_function">put</span><span class="sh_symbol">(</span>c<span class="sh_symbol">),</span> <span class="sh_symbol">*</span><span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    Ostream<span class="sh_symbol">&amp;</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_type">char</span> <span class="sh_symbol">*</span>s<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">char</span> <span class="sh_symbol">*</span>p <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">char</span><span class="sh_symbol">*)</span>s<span class="sh_symbol">;</span> <span class="sh_symbol">*</span>p<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>p<span class="sh_symbol">)</span> <span class="sh_function">put</span><span class="sh_symbol">(*</span>p<span class="sh_symbol">);</span> <span class="sh_keyword">return</span> <span class="sh_symbol">*</span><span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_type">void</span> <span class="sh_function">put</span><span class="sh_symbol">(</span><span class="sh_type">char</span> c<span class="sh_symbol">)</span><span class="sh_cbracket">{</span><span class="sh_function">fputc</span><span class="sh_symbol">(</span>c<span class="sh_symbol">,</span> _f<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>Cout<span class="sh_symbol">;</span>
+
+<span class="sh_type">char</span> failed<span class="sh_symbol">[</span><span class="sh_number">8</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_cbracket">{</span><span class="sh_number">0x4e</span><span class="sh_symbol">,</span> <span class="sh_number">0x6f</span><span class="sh_symbol">,</span> <span class="sh_number">0x20</span><span class="sh_symbol">,</span> <span class="sh_number">0x6f</span><span class="sh_symbol">,</span> <span class="sh_number">0x6e</span><span class="sh_symbol">,</span> <span class="sh_number">0x65</span><span class="sh_symbol">,</span> <span class="sh_number">0x0a</span><span class="sh_symbol">,</span> <span class="sh_number">0x00</span><span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">data</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> key<span class="sh_symbol">,</span> val<span class="sh_symbol">,</span> hash<span class="sh_symbol">;</span>
+    <span class="sh_function">data</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> key0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> val0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> hash0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">key</span><span class="sh_symbol">(</span>key0<span class="sh_symbol">),</span> <span class="sh_function">val</span><span class="sh_symbol">(</span>val0<span class="sh_symbol">),</span> <span class="sh_function">hash</span><span class="sh_symbol">(</span>hash0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+    <span class="sh_type">bool</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&lt;</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">data</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span> <span class="sh_keyword">const</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> val <span class="sh_symbol">&gt;</span> b<span class="sh_symbol">.</span>val<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">class</span><span class="sh_normal"> </span><span class="sh_classname">hash_map</span><span class="sh_cbracket">{</span>
+<span class="sh_keyword">public</span><span class="sh_symbol">:</span>
+    <span class="sh_keyword">static</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> HASH_MAX <span class="sh_symbol">=</span> <span class="sh_number">0xffffff</span><span class="sh_symbol">,</span> N <span class="sh_symbol">=</span> <span class="sh_number">8000000</span><span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> cnt<span class="sh_symbol">,</span> first<span class="sh_symbol">[</span>HASH_MAX <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">],</span> next<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span> <span class="sh_usertype">data</span><span class="sh_normal"> </span>z<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+    <span class="sh_keyword">inline</span> <span class="sh_type">int</span> <span class="sh_function">getHash</span><span class="sh_symbol">(</span><span class="sh_type">int</span> key<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_symbol">(</span>key <span class="sh_symbol">^</span> key <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">3</span> <span class="sh_symbol">^</span> key <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">2</span><span class="sh_symbol">)</span> <span class="sh_symbol">&amp;</span> HASH_MAX<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+    <span class="sh_type">void</span> <span class="sh_function">clear</span><span class="sh_symbol">()</span> <span class="sh_cbracket">{</span><span class="sh_keyword">for</span><span class="sh_symbol">(;</span> cnt <span class="sh_symbol">&gt;</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">--</span>cnt<span class="sh_symbol">)</span> first<span class="sh_symbol">[</span>z<span class="sh_symbol">[</span>cnt<span class="sh_symbol">].</span>hash<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+    data <span class="sh_symbol">*</span> <span class="sh_function">find</span><span class="sh_symbol">(</span><span class="sh_type">int</span> key<span class="sh_symbol">,</span> <span class="sh_type">bool</span> inserted<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_type">int</span> x <span class="sh_symbol">=</span> <span class="sh_function">getHash</span><span class="sh_symbol">(</span>key<span class="sh_symbol">),</span> i<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>z<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>key <span class="sh_symbol">==</span> key<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> z <span class="sh_symbol">+</span> i<span class="sh_symbol">;</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>inserted<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> NULL<span class="sh_symbol">;</span>
+        z<span class="sh_symbol">[++</span>cnt<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">data</span><span class="sh_symbol">(</span>key<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> x<span class="sh_symbol">);</span> next<span class="sh_symbol">[</span>cnt<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> cnt<span class="sh_symbol">;</span>
+        <span class="sh_keyword">return</span> z <span class="sh_symbol">+</span> cnt<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">seg</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> left<span class="sh_symbol">,</span> val<span class="sh_symbol">;</span>
+    <span class="sh_function">seg</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> left0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> val0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">left</span><span class="sh_symbol">(</span>left0<span class="sh_symbol">),</span> <span class="sh_function">val</span><span class="sh_symbol">(</span>val0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+    <span class="sh_type">bool</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&lt;</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">seg</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span> <span class="sh_keyword">const</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> left <span class="sh_symbol">&lt;</span> b<span class="sh_symbol">.</span>left<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> set <span class="sh_symbol">&lt;</span>seg<span class="sh_symbol">&gt;</span> sseg<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> q<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> r<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> ans<span class="sh_symbol">;</span>
+<span class="sh_type">char</span> op<span class="sh_symbol">;</span>
+
+<span class="sh_usertype">seg</span><span class="sh_normal"> </span>t<span class="sh_symbol">;</span>
+<span class="sh_usertype">hash_map</span><span class="sh_normal"> </span>m<span class="sh_symbol">;</span>
+
+<span class="sh_usertype">sseg</span><span class="sh_normal"> </span>s<span class="sh_symbol">;</span>
+sseg<span class="sh_symbol">::</span><span class="sh_usertype">iterator</span><span class="sh_normal"> </span>beg<span class="sh_symbol">,</span> en<span class="sh_symbol">,</span> it<span class="sh_symbol">,</span> jt<span class="sh_symbol">;</span>
+
+<span class="sh_type">void</span> <span class="sh_function">modify</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_usertype">data</span><span class="sh_normal"> </span><span class="sh_symbol">*</span>it <span class="sh_symbol">=</span> m<span class="sh_symbol">.</span><span class="sh_function">find</span><span class="sh_symbol">(</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">true</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>it<span class="sh_symbol">-&gt;</span>val <span class="sh_symbol">+</span> y <span class="sh_symbol">&gt;</span> n <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> ans <span class="sh_symbol">=</span> it<span class="sh_symbol">-&gt;</span>key<span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>it<span class="sh_symbol">-&gt;</span>val <span class="sh_symbol">&gt;</span> n <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span> <span class="sh_symbol">&amp;&amp;</span> it<span class="sh_symbol">-&gt;</span>val <span class="sh_symbol">+</span> y <span class="sh_symbol">&lt;=</span> n <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> ans <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+    it<span class="sh_symbol">-&gt;</span>val <span class="sh_symbol">+=</span> y<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    Cin<span class="sh_symbol">.</span><span class="sh_function">init</span><span class="sh_symbol">();</span> Cout<span class="sh_symbol">.</span><span class="sh_function">init</span><span class="sh_symbol">();</span>
+    Cin <span class="sh_symbol">&gt;&gt;</span> n <span class="sh_symbol">&gt;&gt;</span> q<span class="sh_symbol">;</span>
+    s<span class="sh_symbol">.</span><span class="sh_function">insert</span><span class="sh_symbol">(</span><span class="sh_function">seg</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">));</span>
+    s<span class="sh_symbol">.</span><span class="sh_function">insert</span><span class="sh_symbol">(</span><span class="sh_function">seg</span><span class="sh_symbol">(</span>n <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> INT_MAX<span class="sh_symbol">));</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>ans <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span> q<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>q<span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>Cin <span class="sh_symbol">&gt;&gt;</span> op<span class="sh_symbol">,</span> op <span class="sh_symbol">==</span> <span class="sh_string">'A'</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            Cin <span class="sh_symbol">&gt;&gt;</span> u <span class="sh_symbol">&gt;&gt;</span> v <span class="sh_symbol">&gt;&gt;</span> w<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>v<span class="sh_symbol">;</span>
+            it <span class="sh_symbol">=</span> s<span class="sh_symbol">.</span><span class="sh_function">lower_bound</span><span class="sh_symbol">(</span>v<span class="sh_symbol">);</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>it<span class="sh_symbol">-&gt;</span>left <span class="sh_symbol">&gt;</span> v<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                t <span class="sh_symbol">=</span> <span class="sh_function">seg</span><span class="sh_symbol">(</span>v<span class="sh_symbol">,</span> <span class="sh_symbol">(--</span>it<span class="sh_symbol">)-&gt;</span>val<span class="sh_symbol">);</span>
+                en <span class="sh_symbol">=</span> s<span class="sh_symbol">.</span><span class="sh_function">insert</span><span class="sh_symbol">(</span>t<span class="sh_symbol">).</span>first<span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span><span class="sh_keyword">else</span> en <span class="sh_symbol">=</span> it<span class="sh_symbol">;</span>
+            it <span class="sh_symbol">=</span> s<span class="sh_symbol">.</span><span class="sh_function">lower_bound</span><span class="sh_symbol">(</span>u<span class="sh_symbol">);</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>it<span class="sh_symbol">-&gt;</span>left <span class="sh_symbol">&gt;</span> u<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                t <span class="sh_symbol">=</span> <span class="sh_function">seg</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">(--</span>it<span class="sh_symbol">)-&gt;</span>val<span class="sh_symbol">);</span>
+                beg <span class="sh_symbol">=</span> s<span class="sh_symbol">.</span><span class="sh_function">insert</span><span class="sh_symbol">(</span>t<span class="sh_symbol">).</span>first<span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span><span class="sh_keyword">else</span> beg <span class="sh_symbol">=</span> it<span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>it <span class="sh_symbol">=</span> beg<span class="sh_symbol">;</span> it <span class="sh_symbol">!=</span> en<span class="sh_symbol">;</span> <span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                jt <span class="sh_symbol">=</span> it<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>it<span class="sh_symbol">;</span>
+                <span class="sh_function">modify</span><span class="sh_symbol">(</span>jt<span class="sh_symbol">-&gt;</span>val<span class="sh_symbol">,</span> jt<span class="sh_symbol">-&gt;</span>left <span class="sh_symbol">-</span> it<span class="sh_symbol">-&gt;</span>left<span class="sh_symbol">);</span>
+                s<span class="sh_symbol">.</span><span class="sh_function">erase</span><span class="sh_symbol">(</span>jt<span class="sh_symbol">);</span>
+            <span class="sh_cbracket">}</span>
+            s<span class="sh_symbol">.</span><span class="sh_function">insert</span><span class="sh_symbol">(</span><span class="sh_function">seg</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> w<span class="sh_symbol">));</span>
+            <span class="sh_function">modify</span><span class="sh_symbol">(</span>w<span class="sh_symbol">,</span> v <span class="sh_symbol">-</span> u<span class="sh_symbol">);</span>
+
+            <span class="sh_comment">//for(it = s.begin(); it != s.end(); ++it)</span>
+            <span class="sh_comment">//    printf("[%d, %d] ", it-&gt;left, it-&gt;val);</span>
+            <span class="sh_comment">//putchar(10);</span>
+
+        <span class="sh_cbracket">}</span><span class="sh_keyword">else</span>
+            <span class="sh_symbol">~</span>ans <span class="sh_symbol">?</span> <span class="sh_symbol">(</span>Cout <span class="sh_symbol">&lt;&lt;</span> ans <span class="sh_symbol">&lt;&lt;</span> <span class="sh_string">'</span><span class="sh_specialchar">\n</span><span class="sh_string">'</span><span class="sh_symbol">)</span> <span class="sh_symbol">:</span> Cout <span class="sh_symbol">&lt;&lt;</span> failed<span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意在 <code>set &lt;data&gt;</code> 中的 <code>lower_bound()</code> 过程中，迭代器的访问顺序和下标类型不要混掉，<strong>特别是在 <code>set</code> 的遍历删除时，不能单纯的 <code>s.erase(it)</code>，会导致迭代器错误，需要 <code>s.erase(it++)</code> 或拷贝一份迭代器</strong>。</p>

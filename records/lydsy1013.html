@@ -1,0 +1,114 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>有一个球形空间产生器能够在 $n$ 维空间中产生一个坚硬的球体。</p>
+<p>现在，你被困在了这个 $n$ 维球体中，你只知道球面上 $n+1$ 个点的坐标，你需要以最快的速度确定这个 $n$ 维球体的球心坐标，以便于摧毁这个球形空间产生器。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个整数 $n$ ($1 \leq n \leq 10$)。</p>
+<p>接下来的 $n+1$ 行，每行包含 $n$ 个实数，表示球面上一点的 $n$ 维坐标，每一个实数精确到小数点后 $6$ 位，且其绝对值都不超过 $20000$。</p>
+
+<h3>输出格式</h3> 
+<p>输出仅一行，依次给出球心的 $n$ 维坐标 ($n$ 个实数)，两个实数之间用一个空格隔开。每个实数精确到小数点后 $3$ 位。数据保证有解，你的答案必须和标准输出一模一样才能够得分。</p>
+
+<h3>题解</h3>
+<p>不用想什么球心公式，考虑列方程 (组) 求解。</p>
+<p>设球心坐标为 $(x_1, x_2, \cdots, x_n)$，第 $i$ 个点的坐标为 $(a_{i1}, a_{i2}, \cdots, a_{in})$，半径为 $r$。</p>
+<p>则根据 Euclid 距离公式，对于第 $i$ ($1 \leq i \leq n+1$) 个点，有方程</p>
+<p>$$ \sum_{j=1}^n (x_j - a_{ij})^2 = r^2 $$</p>
+<p>那么有 $n+1$ 个方程，$n+1$ 个变量，其中一个是 $r$。我们可以两两相减，把 $r$ 消掉，即第 $i$ ($1 \leq i \leq n$) 个方程为</p>
+<p>$$ \sum_{j=1}^n (x_j - a_{ij})^2 = \sum_{j=1}^n (x_j - a_{i+1,j})^2 $$</p>
+<p>右边减去左边，得到</p>
+<p>$$ \sum_{j=1}^n \left( (x_j - a_{i+1,j})^2 - (x_j - a_{ij})^2 \right)
+= \sum_{j=1}^n \left( 2(a_{ij} - a_{i+1,j}) x_j + (a_{i+1,j}^2 - a_{ij}^2) \right) = 0 $$</p>
+<p>于是就得到了一个 $n$ 元的线性方程组：</p>
+<p>$$ \left\{\begin{matrix}
+(a_{11} - a_{21}) x_1 &+& (a_{12} - a_{22}) x_2 &+& (a_{13} - a_{23}) x_3 &+& \cdots &+& (a_{1n} - a_{2n}) x_n &=& \dfrac {\sum\limits_{j=1}^n a_{1j}^2 - \sum\limits_{j=1}^n a_{2j}^2} 2 \\
+(a_{21} - a_{31}) x_1 &+& (a_{22} - a_{32}) x_2 &+& (a_{23} - a_{33}) x_3 &+& \cdots &+& (a_{2n} - a_{3n}) x_n &=& \dfrac {\sum\limits_{j=1}^n a_{2j}^2 - \sum\limits_{j=1}^n a_{3j}^2} 2 \\
+\cdots & \cdots & \cdots & \cdots & \cdots & \cdots & \cdots & \cdots & \cdots & \cdots & \cdots \\
+(a_{n1} - a_{n+1,1}) x_1 &+& (a_{n2} - a_{n+1,2}) x_2 &+& (a_{n3} - a_{n+1,3}) x_3 &+& \cdots &+& (a_{n,n} - a_{n+1,n}) x_n &=& \dfrac {\sum\limits_{j=1}^n a_{nj}^2 - \sum\limits_{j=1}^n a_{n+1,j}^2} 2 \\
+\end{matrix}\right. $$</p>
+<p>由于 $n \leq 10$，直接使用 Gauss 消元法求解即可。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">LnEqn</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> sz<span class="sh_symbol">;</span>
+    <span class="sh_type">double</span> <span class="sh_symbol">**</span>m<span class="sh_symbol">,</span> <span class="sh_symbol">*</span>b<span class="sh_symbol">;</span>
+    <span class="sh_function">LnEqn</span> <span class="sh_symbol">():</span> <span class="sh_function">sz</span><span class="sh_symbol">(</span><span class="sh_number">0</span><span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>m <span class="sh_symbol">=</span> NULL<span class="sh_symbol">;</span> b <span class="sh_symbol">=</span> NULL<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_type">void</span> <span class="sh_function">resize</span><span class="sh_symbol">(</span><span class="sh_type">int</span> size<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        sz <span class="sh_symbol">=</span> size<span class="sh_symbol">;</span> m <span class="sh_symbol">=</span> <span class="sh_keyword">new</span> <span class="sh_type">double</span> <span class="sh_symbol">*[</span>sz<span class="sh_symbol">];</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">int</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> sz<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+            m<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_keyword">new</span> <span class="sh_type">double</span><span class="sh_symbol">[</span>sz<span class="sh_symbol">];</span>
+            <span class="sh_function">memset</span><span class="sh_symbol">(</span>m<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> sz <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">3</span><span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>
+        b <span class="sh_symbol">=</span> <span class="sh_keyword">new</span> <span class="sh_type">double</span><span class="sh_symbol">[</span>sz<span class="sh_symbol">];</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>b<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> sz <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">3</span><span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_symbol">~</span><span class="sh_function">LnEqn</span> <span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>m<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">int</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> sz<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span> <span class="sh_keyword">delete</span> <span class="sh_symbol">[]</span> <span class="sh_symbol">(</span>m<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span> <span class="sh_keyword">delete</span> <span class="sh_symbol">[]</span> <span class="sh_symbol">(</span>m<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>b<span class="sh_symbol">)</span> <span class="sh_keyword">delete</span> <span class="sh_symbol">[]</span> <span class="sh_symbol">(</span>b<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_type">bool</span> <span class="sh_function">solve</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+        <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> maxi<span class="sh_symbol">;</span> <span class="sh_type">double</span> coe<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> sz<span class="sh_symbol">;</span> k<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+            maxi <span class="sh_symbol">=</span> k<span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> k <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> sz<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(</span><span class="sh_function">fabs</span><span class="sh_symbol">(</span>m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">])</span> <span class="sh_symbol">&gt;</span> <span class="sh_function">fabs</span><span class="sh_symbol">(</span>m<span class="sh_symbol">[</span>maxi<span class="sh_symbol">][</span>k<span class="sh_symbol">]))</span>
+                    maxi <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span><span class="sh_function">fabs</span><span class="sh_symbol">(</span>m<span class="sh_symbol">[</span>maxi<span class="sh_symbol">][</span>k<span class="sh_symbol">])</span> <span class="sh_symbol">&lt;</span> <span class="sh_number">1e-8</span><span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>maxi <span class="sh_symbol">!=</span> k<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                <span class="sh_function">swap</span><span class="sh_symbol">(</span>m<span class="sh_symbol">[</span>maxi<span class="sh_symbol">],</span> m<span class="sh_symbol">[</span>k<span class="sh_symbol">]);</span>
+                <span class="sh_function">swap</span><span class="sh_symbol">(</span>b<span class="sh_symbol">[</span>maxi<span class="sh_symbol">],</span> b<span class="sh_symbol">[</span>k<span class="sh_symbol">]);</span>
+            <span class="sh_cbracket">}</span>
+            coe <span class="sh_symbol">=</span> <span class="sh_number">1.0</span> <span class="sh_symbol">/</span> m<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>k<span class="sh_symbol">];</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> sz<span class="sh_symbol">;</span> j<span class="sh_symbol">++)</span>
+                m<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">*=</span> coe<span class="sh_symbol">;</span>
+            m<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1.0</span><span class="sh_symbol">;</span>
+            b<span class="sh_symbol">[</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">*=</span> coe<span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> sz<span class="sh_symbol">;</span> i<span class="sh_symbol">++)</span><span class="sh_cbracket">{</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">==</span> k<span class="sh_symbol">)</span> <span class="sh_keyword">continue</span><span class="sh_symbol">;</span>
+                coe <span class="sh_symbol">=</span> m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">];</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> sz<span class="sh_symbol">;</span> j<span class="sh_symbol">++)</span>
+                    m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> coe <span class="sh_symbol">*</span> m<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+                m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+                b<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> coe <span class="sh_symbol">*</span> b<span class="sh_symbol">[</span>k<span class="sh_symbol">];</span>
+            <span class="sh_cbracket">}</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">return</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>eqns<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+
+<span class="sh_type">double</span> a<span class="sh_symbol">[</span><span class="sh_number">34</span><span class="sh_symbol">][</span><span class="sh_number">34</span><span class="sh_symbol">],</span> b<span class="sh_symbol">[</span><span class="sh_number">34</span><span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    eqns<span class="sh_symbol">.</span><span class="sh_function">resize</span><span class="sh_symbol">(</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%lf"</span><span class="sh_symbol">,</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> j<span class="sh_symbol">);</span>
+            b<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            eqns<span class="sh_symbol">.</span>m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> a<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+        eqns<span class="sh_symbol">.</span>b<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>b<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> b<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">])</span> <span class="sh_symbol">*</span> <span class="sh_number">0.5</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    eqns<span class="sh_symbol">.</span><span class="sh_function">solve</span><span class="sh_symbol">();</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%.3lf%c"</span><span class="sh_symbol">,</span> eqns<span class="sh_symbol">.</span>b<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> i <span class="sh_symbol">==</span> n <span class="sh_symbol">-</span> <span class="sh_number">1</span> <span class="sh_symbol">?</span> <span class="sh_string">'</span><span class="sh_specialchar">\n</span><span class="sh_string">'</span> <span class="sh_symbol">:</span> <span class="sh_string">' '</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>在用 Gauss 消元法计算的时候，最好加上<strong>绝对值优化</strong>，以减少浮点数的误差。</p>
