@@ -1,0 +1,65 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 养了一些很可爱的兔子。有一天，scx 突然发现兔子们都是严格按照伟大的数学家 Fibonacci 提出的模型来进行繁衍：一对兔子从出生后第二个月起，每个月刚开始的时候都会产下一对小兔子。我们假定，在整个过程中兔子不会出现任何意外。</p>
+<p>scx 把兔子按出生顺序，把兔子们从 $1$ 开始标号，并且 scx 的兔子都是 $1$ 号兔子和 $1$ 号兔子的后代。如果某两对兔子是同时出生的，那么 scx 会将父母标号更小的一对优先标号。</p>
+<p>如果我们把这种关系用图画下来，前六个月大概就是这样的：</p>
+<p><img src="https://cdn.luogu.org/upload/pic/9806.png" alt="兔子编号及家谱树"></p>
+<p>其中，一个箭头 $A \to B$ 表示 $A$ 是 $B$ 的祖先，相同的颜色表示同一个月出生的兔子。</p>
+<p>为了更细致地了解兔子们是如何繁衍的，scx 找来了一些兔子，并且向你提出了 $m$ 个问题：她想知道关于每两对兔子 $a_i$ 和 $b_i$，它们的最近公共祖先是谁。你能帮帮她吗？</p>
+<p>一对兔子的祖先是这对兔子以及他们父母 (如果有的话) 的祖先，而最近公共祖先是指两对兔子所共有的祖先中，离他们的距离之和最近的一对兔子。比如，$5$ 和 $7$ 的最近公共祖先是 $2$，$1$ 和 $2$ 的最近公共祖先是 $1$，$6$ 和 $6$ 的最近公共祖先是 $6$。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $m$。</p>
+<p>接下来的 $m$ 行，每行包含 $2$ 个正整数，表示 $a_i$ 和 $b_i$。</p>
+
+<h3>输出格式</h3> 
+<p>输出共 $m$ 行，每行一个正整数，依次表示你对问题的答案。</p>
+
+<h3>题解</h3>
+<p>记第 $i$ 个 Fibonacci 数为 $f_i$，初始项为 $f_1 = f_2 = 1$。</p>
+<p>找找规律，应该可以发现，对 $x \geq 1$，若 $f_j &lt; x \leq f_{j+1}$，则 $x$ 的父节点为 $x - f_j$ (用数学归纳法极易证明，此处略)。</p>
+<p>又由于 $f_{2n}$ 个节点的树的深度只有 $n$，所以整棵树的深度不是很大，所以求 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 的时候，可以直接两边暴力。因此现在的问题就是求 $x$ 的父节点，即给定 $x$，如何快速地找出 $j$ 满足 $f_j &lt; x \leq f_{j+1}$。</p>
+<p>这看起来可以用二分，或者 <code>for</code> 一遍也可以，而下面的代码直接用 $log_{\phi} \left( \sqrt 5 x \right)$ 估计，为了避免浮点运算，用了二进制近似估计，然后再修正值即可。</p>
+<p>时间复杂度 $O(m \log a)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> <span class="sh_function">lg2</span><span class="sh_symbol">(</span>x<span class="sh_symbol">)</span> <span class="sh_symbol">(</span><span class="sh_number">63</span> <span class="sh_symbol">-</span> <span class="sh_function">__builtin_clzll</span><span class="sh_symbol">(</span>x<span class="sh_symbol">))</span>
+
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>Fib<span class="sh_symbol">[</span><span class="sh_number">100</span><span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>a<span class="sh_symbol">,</span> b<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_function">scx</span><span class="sh_symbol">(</span><span class="sh_usertype">ll</span><span class="sh_normal"> </span>x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>x <span class="sh_symbol">&lt;=</span> <span class="sh_number">4</span><span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> i <span class="sh_symbol">=</span> <span class="sh_function">lg2</span><span class="sh_symbol">(</span>x<span class="sh_symbol">)</span> <span class="sh_symbol">*</span> <span class="sh_number">23</span> <span class="sh_symbol">+</span> <span class="sh_number">18</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">4</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> Fib<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> x<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">);</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>Fib<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> x<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> Fib<span class="sh_symbol">[</span>i <span class="sh_symbol">-=</span> <span class="sh_number">2</span><span class="sh_symbol">];</span>
+    <span class="sh_keyword">return</span> x <span class="sh_symbol">-</span> Fib<span class="sh_symbol">[--</span>i<span class="sh_symbol">];</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    Fib<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> Fib<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">int</span> i <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">93</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> Fib<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> Fib<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> Fib<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">2</span><span class="sh_symbol">];</span>
+    <span class="sh_type">int</span> T<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>T<span class="sh_symbol">);</span> T<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>T<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld%lld"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>a<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>b<span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> a <span class="sh_symbol">!=</span> b<span class="sh_symbol">;</span> <span class="sh_symbol">)</span>
+            a <span class="sh_symbol">&gt;</span> b <span class="sh_symbol">?</span> <span class="sh_symbol">(</span>a <span class="sh_symbol">=</span> <span class="sh_function">scx</span><span class="sh_symbol">(</span>a<span class="sh_symbol">))</span> <span class="sh_symbol">:</span> <span class="sh_symbol">(</span>b <span class="sh_symbol">=</span> <span class="sh_function">scx</span><span class="sh_symbol">(</span>b<span class="sh_symbol">));</span>
+        <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> a<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>这道题常数比较紧，如果求 $j$ 的时候，直接暴力二分，甚至用 STL 的 <code>lower_bound()</code> 函数来进行二分，就很有 TLE 的风险 <del>(实测 TLE (11/1)，听说 (11/2) 重测后又能过了？)</del>。</p>
