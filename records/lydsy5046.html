@@ -1,0 +1,76 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>小 Q 与 scx 正在玩一个有趣的游戏。$n$ 块糖果从左往右排成一排，第 $i$ 颗糖果的能量值为 $r_i$，美味度为 $s_i$。两个人一开始的能量值分别为 $A$ 和 $B$，小 Q 先手，她们轮流做出行动，直到所有糖果都被取完。</p>
+<p>当前操作方每次可以做以下两种选择中的一种：</p>
+<ol>
+<li>不行动，并把机会交给对手，但这需要支付 $1$ 点能量，如果当前剩余能量为 $0$，则必须行动。</li>
+<li>拿走最左边的糖果，再把机会交给对手，这不需要支付能量，同时还能补充拿走的糖果对应的能量值。</li>
+</ol>
+<p>小 Q 和 scx 都想让自己拿到的糖果的美味度之和尽量大，她们都会以最佳策略进行游戏。</p>
+<p>请写一个程序计算最终两人拿到糖果的美味度之和。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含三个整数 $n, a, b$ ($1 \leq n \leq 150, 0 \leq a, b \leq 10^9)$，分别表示糖果的个数以及两人的初始能量。</p>
+<p>接下来的 $n$ 行，每行包含两个整数 $r_i, s_i$ ($0 \leq r_i \leq 10^9, 0 \leq s_i \leq 150$)，分别表示从左往右每个糖果的能量值和美味度。</p>
+<p>输入数据保证 $\sum\limits_{i=1}^n s_i \leq 150$。</p>
+
+<h3>输出格式</h3>
+<p>输出一行两个整数，分别表示小 Q 获得的糖果的美味度之和以及 scx 获得的糖果的美味度之和。</p>
+
+<h3>题解</h3>
+<p>显然可以发现，你让给对方，对方也可以让给你，因此能不能让只和你的能量值<strong>是否比对方大</strong> (即 $A - B$) 有关。</p>
+<p>那么显然有一个根据能量值的 $O(E)$ 的 DP，其中 $E$ 是最大能量值，但是 $E$ 太大了，所以这种 DP 方法不可取。</p>
+<p>注意到一个奇怪的条件 $\sum\limits_{i=1}^n s_i \leq 150$，因此我们考虑将<strong>糖果的美味度</strong>作为一维进行 DP。</p>
+<p>记 $S_j = \sum\limits_{i=j}^n s_j$，$f_{i, j}$ 表示前 $i-1$ 颗糖果被取完后，<strong>先手在第 $i$ 颗糖果做决策</strong>时，并且满足从当前到结束先手所获得的美味度之和<strong>至少为 $j$</strong>，所需要的最大能量<strong>差值</strong> (先手 - 后手)，可以看出，对 $j_1 &lt; j_2$，有 $f_{i, j_1} \leq f_{i, j_2}$，即 $f_{i, j}$ 对 $j$ 单调递增。</p>
+<p>考虑边界，对 $j \leq s_n$，有 $f_{n, j} = -\infty$，对 $j &gt; s_n$，有 $f_{n, j} = +\infty$。并令接下来<strong>未提及或不合法的 $f_{i, j}$</strong> 均置为 $+\infty$。</p>
+<p>考虑转移，首先对 $j \leq s_i$，有 $f_{i, j} = -\infty$，显然 $j &gt; S_i$ 为不合法状态，因此考虑 $s_i &lt; j \leq S_i$。</p>
+<p>如果先手 (记作 A) 把第 $i$ 个糖果<abbr title="吃">噎</abbr>了，那么由于它一共要得到<strong>至少 $j$</strong> 的美味度，因此下一轮到结束，对手 (记作 B) <strong>不能得到 $S_i - j + 1$</strong> 的美味度，而如果此时它与 A 的能量差值 $\geq f_{i+1, S_i - j + 1}$，它就可以得到 $S_i - j + 1$ 的美味度。</p>
+<p>因此，此时 B 与 A 的能量差值<strong>至多为 $f_{i+1, S_i - j + 1} - 1$</strong>，即 A 与 B 的能量差值<strong>至少为 $1 - f_{i+1, S_i - j + 1}$</strong>，又因为<abbr title="吃">噎</abbr>了糖果可以提供能量，<span style="color: blue">因此，如果 A <abbr title="吃">噎</abbr>了这个糖果，它与 B 的能量差值<strong>至少为 $1 - f_{i+1, S_i - j + 1} - r_i$</strong>。</span></p>
+<p>如果 A 把糖果让给了 B，此时 A 和 B 的能量差值至少为 $1$，此时 B 会<abbr title="吃">噎</abbr>掉第 $i$ 个糖果，它的能量值提升了 $r_i$，那么下一轮又轮到 A，且下一轮到结束 A 必须得到<strong>至少 $j$</strong> 的美味度。</p>
+<p>因此，此时 A 与 B 的能量差值<strong>至少为 $f_{i+1, j}$</strong>，又因为 B <abbr title="吃">噎</abbr>了糖果提升了能量，且 A 让给 B 需要比 B 多花 $1$ 点能量，<span style="color: blue">因此，如果 A 不<abbr title="吃">噎</abbr>这个糖果，它与 B 的能量差值<strong>至少为 $\max \left\{ 1, f_{i+1, j} + r_i + 1 \right\}$</strong>。</span></p>
+<p>综上，对 $s_i &lt; j \leq S_i$，总转移方程即为：</p>
+<p>$$ f_{i, j} = \min \left\{ 1 - f_{i+1, S_i - j + 1} - r_i, \max \left\{ 1, f_{i+1, j} + r_i + 1 \right\} \right\} $$</p>
+<p>记初始状态 A 和 B 的能量差值为 $E$，则最终 $A$ 可获得的最大能量值即为 $T_A = \max \left\{ i \mid f_{1, i} \leq A \right\}$，$B$ 可获得的就是 $T_B = s_1 - T_A$，时间复杂度 $O(n S_1)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">170</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>INF <span class="sh_symbol">=</span> <span class="sh_number">0x3f3f3f3f3f3f3f3fll</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> A<span class="sh_symbol">,</span> B<span class="sh_symbol">,</span> n<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> a<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> s<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>need<span class="sh_symbol">,</span> en<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>A<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>B<span class="sh_symbol">);</span> A <span class="sh_symbol">-=</span> B<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld%d"</span><span class="sh_symbol">,</span> en <span class="sh_symbol">+</span> i<span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> n<span class="sh_symbol">;</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>i<span class="sh_symbol">)</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> s<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_number">63</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> a<span class="sh_symbol">[</span>n<span class="sh_symbol">];</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> f<span class="sh_symbol">[</span>n<span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">-</span>INF<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> n <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">-</span>INF<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> j <span class="sh_symbol">&lt;=</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span> <span class="sh_symbol">-</span> f<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>s<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">-</span> en<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+            <span class="sh_function">down</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">],</span> need <span class="sh_symbol">=</span> <span class="sh_function">max</span><span class="sh_symbol">(</span><span class="sh_number">1ll</span><span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> en<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">));</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> s<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">&amp;&amp;</span> f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;=</span> A<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">);</span> <span class="sh_symbol">--</span>i<span class="sh_symbol">;</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d %d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> s<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">-</span> i<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>要注意第二种转移 (A 把糖果让给 B) 的时候，A 和 B 的能量差值<strong>至少为 1</strong>，否则根本就无法把糖果让给 B (因为 B 可以继续让)，因此要与 $1$ 取 $\max$。</p>

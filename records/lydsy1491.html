@@ -1,0 +1,80 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p><img src="http://www.lydsy.com/JudgeOnline/images/1491_1.jpg" alt="题目描述"></p>
+
+<h3>输入格式</h3>
+<p><img src="http://www.lydsy.com/JudgeOnline/images/1491_2.jpg" alt="输入格式"></p>
+<p><img src="http://www.lydsy.com/JudgeOnline/images/1491_4.jpg" alt="数据范围"></p>
+
+<h3>输出格式</h3>
+<p>输出包括 $n$ 行，每行一个实数，精确到小数点后 $3$ 位。第 $i$ 行的实数表示结点 $i$ 在社交网络中的重要程度。</p>
+
+<h3>题解</h3>
+<p>首先要声明的是，不要看到比值就二分！尤其是比值的和 (而不是<a href="lydsy1758.html" target="_blank">和的比值</a>)！</p>
+<p>考虑对每个节点 $v$，分别枚举所需的 $s$ 和 $t$。由最短路的性质可得，存在一条经过 $v$ 的，从 $s$ 到 $t$ 的最短路，等价于 $d_{s, v} + d_{v, t} = d_{s, t}$，其中 $d_{i, j}$ 为从 $i$ 到 $j$ 的最短路。</p>
+<p>于是可以跑一遍 Floyd 后得到 <code>d[]</code> 数组，接下来考虑如何算比值。</p>
+<p>如果我们得到了一个 <code>c[]</code> 数组，其中 $c_{i, j}$ 表示从 $i$ 到 $j$ 的最短路的条数。那么可以得到，在满足上述条件的情况下，从 $s$ 到 $t$ 的最短路中，经过 $v$ 的有 $c_{s, v} \cdot c_{v, t}$ 条。</p>
+<p>考虑如何求 <code>c[]</code> 数组。很明显，是在 Floyd 算法中得到。</p>
+<p>在初始情况下，对每一条边 $(u, v)$，都有 $c_{u, v} = 1$，否则 $c_{u, v} = 0$。</p>
+<p>然后，在更新最短路时，如果 $d_{i, k} + d_{k, j} &lt; d_{i, j}$，则原先计数的值应该废除，$i$ 到 $j$ 的最短路条数应该经过点 $k$，于是令 $c_{i, j} \gets c_{i, k} \cdot c_{k, j}$ (感觉非常像有木有)。否则如果 $d_{i, k} + d_{k, j} = d_{i, j}$，则唯一的区别就是原先计数的值不需要废除，直接令 $c_{i, j} \gets c_{i, j} + c_{i, k} \cdot c_{k, j}$ 即可。</p>
+<p>最后将枚举 $v, s, t$ 的所有值相加即得答案，总时间复杂度为 $O(n^3)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">136</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> V<span class="sh_symbol">,</span> E<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> G<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>c<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">double</span> ans<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">Floyd</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(</span>G<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> G<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> G<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+                    G<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> G<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> G<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>j<span class="sh_symbol">];</span> c<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> c<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> c<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+                <span class="sh_cbracket">}</span><span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>G<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> G<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> G<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">])</span>
+                    c<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> c<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> c<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>G<span class="sh_symbol">,</span> <span class="sh_number">63</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> G<span class="sh_symbol">);</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>c<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> c<span class="sh_symbol">);</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>V<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>E<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> G<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> E<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>w<span class="sh_symbol">);</span>
+        <span class="sh_function">down</span><span class="sh_symbol">(</span>G<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>v<span class="sh_symbol">],</span> w<span class="sh_symbol">);</span> G<span class="sh_symbol">[</span>v<span class="sh_symbol">][</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> G<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>v<span class="sh_symbol">];</span>
+        c<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> c<span class="sh_symbol">[</span>v<span class="sh_symbol">][</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">Floyd</span><span class="sh_symbol">();</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        ans <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>u <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> u <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>u<span class="sh_symbol">)</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>u <span class="sh_symbol">!=</span> i<span class="sh_symbol">)</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>v <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> v <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>v<span class="sh_symbol">)</span>
+                    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>v <span class="sh_symbol">!=</span> i <span class="sh_symbol">&amp;&amp;</span> G<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> G<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> G<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>v<span class="sh_symbol">])</span>
+                        ans <span class="sh_symbol">+=</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)(</span>c<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> c<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>v<span class="sh_symbol">])</span> <span class="sh_symbol">/</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)</span>c<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>v<span class="sh_symbol">];</span>
+        <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%.3lf</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>要注意题目中的条件 $s \neq v, t \neq v$，还有并没有说 $s \neq t$，因此如果在计算过程中保证了 $s &lt; t$ 时答案需要 $\times 2$。不过这完全没必要，直接按照题目所述条件 ($s \neq v, t \neq v$) 枚举即可，再注意条件 $d_{s, v} + d_{v, t} = d_{s, t}$，所得答案就是正确的。</p>
+

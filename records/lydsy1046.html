@@ -1,0 +1,84 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+<style type="text/css">
+.table-text-center>tbody>tr>td {text-align: center}
+.table-vertical-middle>tbody>tr>td {vertical-align: middle}
+</style>
+
+<h3>题目描述</h3>
+<p>对于一个给定的 $S = \{a_1, a_2, a_3, \cdots, a_n\}$，若有 $P = \{a_{x_1}, a_{x_2}, a_{x_3}, \cdots, a_{x_m}\}$，满足 $x_1 &lt; x_2 &lt; \cdots &lt; x_m$ 且 $a_{x_1} &lt; a_{x_2} &lt; \cdots &lt; a_{x_m}$，那么就称 $P$ 为 $S$ 的一个上升序列。如果有多个 $P$ 满足条件，那么我们想求字典序最小的那个。</p>
+<p>任务给出 $S$ 序列，给出若干询问。对于第 $i$ 个询问，求出长度为 $L_i$ 的上升序列，如有多个，求出字典序最小的那个 (即首先 $x_1$ 最小，如果不唯一，再看 $x_2$ 最小……)，如果不存在长度为 $L_i$ 的上升序列，则打印 <code>Impossible</code>。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $n$ ($n \leq 10^4$)，表示序列一共有 $n$ 个元素。</p>
+<p>第二行包含 $n$ 个整数 $a_1, a_2, \cdots, a_n$。</p>
+<p>第三行包含一个整数 $M$ ($M \leq 1000$)，表示询问次数。</p>
+<p>接下来的 $m$ 行，每行包含一个正整数 $L$，表示要询问长度为 $L$ 的上升序列。</p>
+
+<h3>输出格式</h3>
+<p>对于每个询问，如果对应的序列存在，则输出该序列，否则打印 <code>Impossible</code>。</p>
+
+<h3>题解</h3>
+<p>首先根据题意，它不是找值 ($a_{x_i}$) 最小的 <abbr title="Longest Increasing Subsequence, 最长上升子序列">LIS</abbr>，而是找下标 ($x_i$) 最小的 <abbr title="Longest Increasing Subsequence, 最长上升子序列">LIS</abbr>。</p>
+<p>因此，我们可以用二分优化的 DP <strong>倒着做一遍序列</strong>，这样 $f_i$ 就保存了 $S$ 以 $a_i$ 为首项的 <abbr title="Longest Increasing Subsequence, 最长上升子序列">LIS</abbr> 的长度，如下表：</p>
+<table class="table table-bordered table-text-center table-vertical-middle">
+	<tr>
+		<td>$i$</td><td>$1$</td><td>$2$</td><td>$3$</td><td>$4$</td><td>$5$</td><td>$6$</td><td>$7$</td><td>$8$</td>
+	</tr>
+	<tr>
+		<td>$a_i$</td><td>$7$</td><td>$1$</td><td>$3$</td><td>$6$</td><td>$5$</td><td>$8$</td><td>$2$</td><td>$4$</td>
+	</tr>
+	<tr>
+		<td>$f_i$</td><td>$2$</td><td>$4$</td><td>$3$</td><td>$2$</td><td>$2$</td><td>$1$</td><td>$2$</td><td>$1$</td>
+	</tr>
+</table>
+<p>显然，这里的 $\max\limits_{1 \leq i \leq n} f_i$ 就是原序列的 <abbr title="Longest Increasing Subsequence, 最长上升子序列">LIS</abbr>，记作 $l_0$。</p>
+<p>对于每组询问，如果 $L &gt; l_0$，那么显然无解，否则一定有解 (取原序列的一个 <abbr title="Longest Increasing Subsequence, 最长上升子序列">LIS</abbr> 的任意一个子序列即可)，但是我们要求的是字典序最小解。</p>
+<p>既然要字典序最小，因此，如果 $a_1$ 可以做贡献，那就再好不过了，但是以 $a_1$ 为首项的 <abbr title="Longest Increasing Subsequence, 最长上升子序列">LIS</abbr> 的长度只有 $f_1$ (在上表中为 $2$)，因此，如果 $f_1 \geq L$，显然就选它了，否则继续找下一个，直到找到一个 $f_i \geq L$ 的 $i$ 为止。</p>
+<p>如果找到了，由字典序的定义，它一定是正确的，因此，只需在后缀中找一个长度为 $L - 1$ 的 <abbr title="Longest Increasing Subsequence, 最长上升子序列">LIS</abbr> 即可，类似地查找，不过要注意 $a_i$ 要大于你的第一项 (放心，最终总会存在的)，直到我们按照这种方法找到了 $L$ 项，可以证明，它一定是字典序最小的。</p>
+<p>由于每次询问的复杂度为 $O(n)$ 的，因此总时间复杂度为 $O(n \log n + Mn)$，常数较小，可以过。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">10034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> q<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> a<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> c<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> cnt<span class="sh_symbol">,</span> D<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">bool</span> <span class="sh_function">cmp</span><span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> a<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> a<span class="sh_symbol">[</span>y<span class="sh_symbol">];</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">solve</span><span class="sh_symbol">(</span><span class="sh_type">int</span> len<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> la <span class="sh_symbol">=</span> INT_MIN<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n <span class="sh_symbol">&amp;&amp;</span> len<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> la <span class="sh_symbol">&amp;&amp;</span> c<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;=</span> len<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%c"</span><span class="sh_symbol">,</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> <span class="sh_symbol">--</span>len <span class="sh_symbol">?</span> <span class="sh_number">32</span> <span class="sh_symbol">:</span> <span class="sh_number">10</span><span class="sh_symbol">);</span>
+            la <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+    D<span class="sh_symbol">[</span>cnt <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> n<span class="sh_symbol">;</span> c<span class="sh_symbol">[</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> n <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        j <span class="sh_symbol">=</span> <span class="sh_function">lower_bound</span><span class="sh_symbol">(</span>D <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> D <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>cnt <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">),</span> i<span class="sh_symbol">,</span> cmp<span class="sh_symbol">)</span> <span class="sh_symbol">-</span> D<span class="sh_symbol">;</span>
+        D<span class="sh_symbol">[</span>j <span class="sh_symbol">&gt;</span> cnt <span class="sh_symbol">?</span> <span class="sh_symbol">++</span>cnt <span class="sh_symbol">:</span> j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> c<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> j<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>q<span class="sh_symbol">);</span> q<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>q<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>j<span class="sh_symbol">);</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>j <span class="sh_symbol">&gt;</span> cnt<span class="sh_symbol">)</span> <span class="sh_function">puts</span><span class="sh_symbol">(</span><span class="sh_string">"Impossible"</span><span class="sh_symbol">);</span>
+        <span class="sh_function">solve</span><span class="sh_symbol">(</span>j<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意求 <abbr title="Longest Increasing Subsequence, 最长上升子序列">LIS</abbr> 时不要用 $O(n^2)$ 暴力 DP，可以使用二分，<strong>倒着</strong>扫描一遍后，如果二分出来 <code>D[j] = i</code>，那么 <code>f[i] = j</code>。还有二分的比较器理清楚，当然可以手写二分减少常数。</p>
+

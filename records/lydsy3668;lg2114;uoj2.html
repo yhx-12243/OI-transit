@@ -1,0 +1,58 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>历经千辛万苦，scx 终于来到了 drd 所在的地方，准备与其展开艰苦卓绝的战斗。drd 有着十分特殊的技能，他的防御战线能够使用一定的运算来改变他受到的伤害。具体说来，drd 的防御战线由 $n$ 扇防御门组成。每扇防御门包括一个运算 $\mathrm{op}$ 和一个参数 $t$，其中运算一定是 $\texttt{OR}, \texttt{XOR}, \texttt{AND}$ 中的一种，参数则一定为非负整数。如果还未通过防御门时攻击力为 $x$，则其通过这扇防御门后攻击力将变为 $x \mathbin{\mathrm{op}} t$。最终 drd 受到的伤害为对方初始攻击力 $x$ <strong>依次经过所有 $n$ 扇防御门</strong>后转变得到的攻击力。</p>
+<p>由于 scx 水平有限，她的初始攻击力只能为 $0$ 到 $m$ 之间的一个整数 (即她的初始攻击力只能在 $0, 1, \cdots, m$ 中任选，但在通过防御门之后的攻击力不受 $m$ 的限制)。为了节省体力，她希望通过选择合适的初始攻击力使得她的攻击能让 drd 受到最大的伤害，请你帮她计算一下，她的一次攻击最多能使 drd 受到多少伤害。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个非负整数 $n, m$ ($2 \leq n \leq 10^5, m &lt; 2^{30}$)，表示 drd 有 $n$ 扇防御门，scx 的初始攻击力为 $0$ 到 $m$ 之间的整数。</p>
+<p>接下来 $n$ 行，依次表示每一扇防御门。每行包含一个字符串 $\mathrm{op}$ 和一个非负整数 $t$ ($0 \leq t &lt; 2^{30}$)，$op$ 表示该防御门所对应的操作，$t$ 表示对应的参数。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示 scx 的一次攻击最多使 drd 受到多少伤害。</p>
+
+<h3>题解</h3>
+<p>原题即选择一个 $[0, m]$ 中的数，使得它做一系列位运算后所得到的值最大。</p>
+<p>首先，因为这些运算都是<strong>位运算</strong>，因此可以发现运算中每一位都是独立的。</p>
+<p>因此，首先可以预处理出每一位为 $0$/$1$ 时最终的结果 (其实可以代入 <code>0</code> 和 <code>(unsigned int)-1</code> 来快速得到)。</p>
+<p>然后，根据二进制数<strong>各位独立</strong>的特点和比较规则，可以想到使用贪心。</p>
+<p>从高到低枚举每一位，如果发现代入 $0$ 可以得到 $1$，那么就代入 $0$ 即可。如果代入 $0$ 得到了 $0$ ，且代入 $1$ 能得到 $1$，由于有<strong>数不超过 $m$ </strong>的限制，又因为贪心规则，因此如果 $m$ 的这一位为 $1$ 的话，就要代入 $1$，然后让 $m$ 的该位置 $0$。</p>
+<p>当然，不能只判断 $m$ 的这一位是否为 $1$，因为如果 $m$ 的这一位为 $0$，但它更高位的 $1$ 中，所选择的数为 $0$，这样这一位照样可以选择 $1$，而且以后的位也能选择 $1$。</p>
+<p>这其实很简单，我们对于位 $i$ (值为 $2^i$)，我们只需判断它 (当前的) $m$ 是否 $2^i$ 即可，如果选择了 $1$，就让 $m$ <strong>减去 $2^i$</strong>。</p>
+<p>易证，这样选择出来的答案就是最优答案，时间复杂度 $O(n + \omega)$ ($\omega$ 为字长)。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">unsigned</span> <span class="sh_type">int</span> uint<span class="sh_symbol">;</span>
+
+<span class="sh_type">char</span> op<span class="sh_symbol">[</span><span class="sh_number">6</span><span class="sh_symbol">];</span>
+
+<span class="sh_usertype">uint</span><span class="sh_normal"> </span>n<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> t<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_usertype">uint</span><span class="sh_normal"> </span>lo <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> hi <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>uint<span class="sh_symbol">)-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> ans <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%u%u"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>m<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">switch</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s%u"</span><span class="sh_symbol">,</span> op<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>t<span class="sh_symbol">),</span> <span class="sh_symbol">*</span>op<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">case</span> <span class="sh_number">65</span><span class="sh_symbol">:</span> lo <span class="sh_symbol">&amp;=</span> t<span class="sh_symbol">;</span> hi <span class="sh_symbol">&amp;=</span> t<span class="sh_symbol">;</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">case</span> <span class="sh_number">79</span><span class="sh_symbol">:</span> lo <span class="sh_symbol">|=</span> t<span class="sh_symbol">;</span> hi <span class="sh_symbol">|=</span> t<span class="sh_symbol">;</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">case</span> <span class="sh_number">88</span><span class="sh_symbol">:</span> lo <span class="sh_symbol">^=</span> t<span class="sh_symbol">;</span> hi <span class="sh_symbol">^=</span> t<span class="sh_symbol">;</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>uint<span class="sh_symbol">)</span>INT_MIN<span class="sh_symbol">;</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">&gt;&gt;=</span> <span class="sh_number">1</span><span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>lo <span class="sh_symbol">&amp;</span> i<span class="sh_symbol">)</span> ans <span class="sh_symbol">|=</span> i<span class="sh_symbol">;</span>
+        <span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">((</span>hi <span class="sh_symbol">&amp;</span> i<span class="sh_symbol">)</span> <span class="sh_symbol">&amp;&amp;</span> i <span class="sh_symbol">&lt;=</span> m<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>m <span class="sh_symbol">-=</span> i<span class="sh_symbol">;</span> ans <span class="sh_symbol">|=</span> i<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%u</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意判断的时候是 $2^i \leq m$，不是 $\leq n$，不要辨认错了。另外，代码中的 $i$ 其实是那一位的位值 $2^i$。</p>
+

@@ -1,0 +1,116 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>有 $n$ 个圆盘从天而降，后面落下的可以盖住前面的，求最后形成的封闭区域的周长。</p>
+<p>如下图，所有的红色线条的总长度即为所求。</p>
+<img class="center-block" src="http://www.lydsy.com/JudgeOnline/images/1043.jpg" alt="圆盘覆盖">
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $n$ ($n \leq 1000$)，表示圆盘的个数。</p>
+<p>接下来 $n$ 行每行包含三个实数 $r_i, x_i, y_i$ 表示下落时第 $i$ 个圆盘的半径和圆心坐标。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个实数，表示最后的周长，保留三位小数。</p>
+
+<h3>题解</h3>
+<p>易知，对于第 $i$ 个圆，只有后面的圆 ($i &lt; j \leq n$) 才能对这个圆造成影响。</p>
+<p>由于这个周长包含内部，因此考虑分别求每个圆对总周长的贡献。当然，考虑某个圆周长的贡献时，只考虑它后面的圆的影响。</p>
+<p>考虑圆 $i$ 和圆 $j$ ($i &lt; j \leq n$)，如果这两个圆相离，则 $j$ 未对 $i$ 造成影响。如果 $j$ 包含 $i$，则换句话说，即 $i$ 这个圆被覆盖，于是 $i$ 就<strong>不对答案产生任何贡献</strong>，直接 <code>break;</code>。如果 $i$ 包含 $j$，同样，$j$ 也不对 $i$ 造成影响。
+<p>接下来讨论 $i$ 和 $j$ <strong>相交</strong>，设 $i$ 的圆心坐标为 $(x_i, y_i)$，半径为 $r_i$，$j$ 的类似，见下图：</p>
+<img class="center-block" src="uploads/10.png" alt="两圆相交">
+<p>可以发现，圆 $i$ 有 $2 \theta \left( \mathrm{rad}\right )$ 的部分 (虚线) 被圆 $j$ 覆盖。</p>
+<p>(scx: 那这个 $\theta$ 值怎么求呢？)</p>
+<p>我们可以发现，两个圆心与其中一个交点构成了一个三角形，三边分别为 $r_i, r_j$ 和 $\sqrt {(x_i - x_j)^2 + (y_i - y_j)^2}$，于是可以利用<strong>余弦定理的逆定理</strong>反求出 $\theta$ 的值。</p>
+<p>但是，仅仅知道 $\theta$ 是不够的，因为你无法知道 $i$ 被两个圆 (如 $j_1, j_2$) 覆盖的部分有多少是相交的，因此还需要记录它们的相交部分的一个<strong>绝对位置</strong>，比如<strong>极角</strong>如上图中的 $\alpha$，显然可以通过它们的坐标和 $\arctan$ 函数求得。</p>
+<p>最后，我们就得到了圆 $i$ 所有被覆盖的部分，接下来就要求它未被覆盖的部分的弧度总和。</p>
+<p>在 $\theta = 0$ 处<strong>破环为链</strong>，可以看出这是个<del>弱智的</del>线段覆盖问题。</p>
+<p>显然可以用贪心，将每个覆盖线段<strong>按照左端点 $[l_i, r_i]$ </strong>排序，如果遇到左端点 $l_i &gt; now$ 的，加上一个区间，然后令 $now \gets r_i$，否则令 $now \gets \max \{now, r_i\}$。</p>
+<p>最后由弧长公式 $l = \alpha \cdot r$，相加即得结果，时间复杂度 $O \left( n^2 + n f(n) \right)$，其中 $f(n)$ 为排序复杂度。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">1034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">const</span> <span class="sh_type">double</span> eps <span class="sh_symbol">=</span> <span class="sh_number">1e-8</span><span class="sh_symbol">,</span> pi2 <span class="sh_symbol">=</span> M_PI <span class="sh_symbol">*</span> <span class="sh_number">2.0</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">enum</span> relation <span class="sh_cbracket">{</span>outside <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> intersective <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> contained <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> containing <span class="sh_symbol">=</span> <span class="sh_number">3</span><span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">vec2</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">double</span> x<span class="sh_symbol">,</span> y<span class="sh_symbol">;</span>
+    <span class="sh_function">vec2</span> <span class="sh_symbol">(</span><span class="sh_type">double</span> x0 <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">,</span> <span class="sh_type">double</span> y0 <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">):</span> <span class="sh_function">x</span><span class="sh_symbol">(</span>x0<span class="sh_symbol">),</span> <span class="sh_function">y</span><span class="sh_symbol">(</span>y0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+    vec2 <span class="sh_symbol">*</span> <span class="sh_function">read</span><span class="sh_symbol">()</span> <span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%lf%lf"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>y<span class="sh_symbol">);</span> <span class="sh_keyword">return</span> <span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_comment">//    inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}</span>
+    <span class="sh_keyword">inline</span> <span class="sh_usertype">vec2</span><span class="sh_normal"> </span><span class="sh_keyword">operator</span> <span class="sh_symbol">-</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">vec2</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>B<span class="sh_symbol">)</span> <span class="sh_keyword">const</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_function">vec2</span><span class="sh_symbol">(</span>x <span class="sh_symbol">-</span> B<span class="sh_symbol">.</span>x<span class="sh_symbol">,</span> y <span class="sh_symbol">-</span> B<span class="sh_symbol">.</span>y<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+<span class="sh_comment">//    inline vec2 operator * (double k) {return vec2(x * k, y * k);}</span>
+    <span class="sh_keyword">inline</span> <span class="sh_type">double</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">vec2</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>B<span class="sh_symbol">)</span> <span class="sh_keyword">const</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> x <span class="sh_symbol">*</span> B<span class="sh_symbol">.</span>x <span class="sh_symbol">+</span> y <span class="sh_symbol">*</span> B<span class="sh_symbol">.</span>y<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_comment">//    inline double operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}</span>
+    <span class="sh_keyword">inline</span> <span class="sh_type">double</span> <span class="sh_function">norm2</span><span class="sh_symbol">()</span> <span class="sh_keyword">const</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_symbol">*</span><span class="sh_keyword">this</span> <span class="sh_symbol">*</span> <span class="sh_symbol">*</span><span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_type">bool</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&lt;</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">vec2</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>B<span class="sh_symbol">)</span> <span class="sh_keyword">const</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> x <span class="sh_symbol">&lt;</span> B<span class="sh_symbol">.</span>x<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>O<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> l<span class="sh_symbol">[</span>N <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> cnt<span class="sh_symbol">;</span>
+<span class="sh_type">double</span> r<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> il<span class="sh_symbol">,</span> ir<span class="sh_symbol">,</span> ans<span class="sh_symbol">;</span>
+<span class="sh_usertype">relation</span><span class="sh_normal"> </span>rel<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_usertype">relation</span><span class="sh_normal"> </span><span class="sh_function">circle_relation</span><span class="sh_symbol">(</span><span class="sh_usertype">vec2</span><span class="sh_normal"> </span>O1<span class="sh_symbol">,</span> <span class="sh_type">double</span> r1<span class="sh_symbol">,</span> <span class="sh_usertype">vec2</span><span class="sh_normal"> </span>O2<span class="sh_symbol">,</span> <span class="sh_type">double</span> r2<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">double</span> d <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>O1 <span class="sh_symbol">-</span> O2<span class="sh_symbol">).</span><span class="sh_function">norm2</span><span class="sh_symbol">();</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">((</span>r1 <span class="sh_symbol">+</span> r2<span class="sh_symbol">)</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>r1 <span class="sh_symbol">+</span> r2<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;</span> d <span class="sh_symbol">+</span> eps<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> outside<span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">((</span>r1 <span class="sh_symbol">-</span> r2<span class="sh_symbol">)</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>r1 <span class="sh_symbol">-</span> r2<span class="sh_symbol">)</span> <span class="sh_symbol">&gt;</span> d <span class="sh_symbol">-</span> eps<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> r1 <span class="sh_symbol">&lt;</span> r2 <span class="sh_symbol">+</span> eps <span class="sh_symbol">?</span> contained <span class="sh_symbol">:</span> containing<span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> intersective<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">get_intersection</span><span class="sh_symbol">(</span><span class="sh_usertype">vec2</span><span class="sh_normal"> </span>O1<span class="sh_symbol">,</span> <span class="sh_type">double</span> r1<span class="sh_symbol">,</span> <span class="sh_usertype">vec2</span><span class="sh_normal"> </span>O2<span class="sh_symbol">,</span> <span class="sh_type">double</span> r2<span class="sh_symbol">,</span> <span class="sh_type">double</span> <span class="sh_symbol">&amp;</span>beg<span class="sh_symbol">,</span> <span class="sh_type">double</span> <span class="sh_symbol">&amp;</span>end<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_usertype">vec2</span><span class="sh_normal"> </span>O12 <span class="sh_symbol">=</span> O2 <span class="sh_symbol">-</span> O1<span class="sh_symbol">;</span>
+    <span class="sh_type">double</span> d2 <span class="sh_symbol">=</span> O12<span class="sh_symbol">.</span><span class="sh_function">norm2</span><span class="sh_symbol">(),</span> d <span class="sh_symbol">=</span> <span class="sh_function">sqrt</span><span class="sh_symbol">(</span>d2<span class="sh_symbol">),</span>
+    Cos <span class="sh_symbol">=</span> <span class="sh_symbol">((</span>r1 <span class="sh_symbol">+</span> r2<span class="sh_symbol">)</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>r1 <span class="sh_symbol">-</span> r2<span class="sh_symbol">)</span> <span class="sh_symbol">+</span> d2<span class="sh_symbol">)</span> <span class="sh_symbol">/</span> <span class="sh_symbol">(</span><span class="sh_number">2.0</span> <span class="sh_symbol">*</span> d <span class="sh_symbol">*</span> r1<span class="sh_symbol">),</span>
+    sAng <span class="sh_symbol">=</span> <span class="sh_function">acos</span><span class="sh_symbol">(</span>Cos<span class="sh_symbol">),</span> iAng <span class="sh_symbol">=</span> <span class="sh_function">atan2</span><span class="sh_symbol">(</span>O12<span class="sh_symbol">.</span>y<span class="sh_symbol">,</span> O12<span class="sh_symbol">.</span>x<span class="sh_symbol">);</span>
+    iAng <span class="sh_symbol">&lt;</span> <span class="sh_number">0.0</span> <span class="sh_symbol">?</span> iAng <span class="sh_symbol">+=</span> pi2 <span class="sh_symbol">:</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+    <span class="sh_symbol">(</span>beg <span class="sh_symbol">=</span> iAng <span class="sh_symbol">-</span> sAng<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;</span> <span class="sh_number">0.0</span> <span class="sh_symbol">?</span> beg <span class="sh_symbol">+=</span> pi2 <span class="sh_symbol">:</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+    <span class="sh_symbol">(</span>end <span class="sh_symbol">=</span> iAng <span class="sh_symbol">+</span> sAng<span class="sh_symbol">)</span> <span class="sh_symbol">&gt;</span> pi2 <span class="sh_symbol">?</span> end <span class="sh_symbol">-=</span> pi2 <span class="sh_symbol">:</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%lf"</span><span class="sh_symbol">,</span> r <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span> O<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">read</span><span class="sh_symbol">();</span><span class="sh_cbracket">}</span>
+    ans <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">((</span>rel<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">circle_relation</span><span class="sh_symbol">(</span>O<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> O<span class="sh_symbol">[</span>j<span class="sh_symbol">],</span> r<span class="sh_symbol">[</span>j<span class="sh_symbol">]))</span> <span class="sh_symbol">==</span> contained<span class="sh_symbol">)</span>
+                <span class="sh_keyword">break</span><span class="sh_symbol">;</span> <span class="sh_comment">// contained in another circle</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">)</span> <span class="sh_keyword">continue</span><span class="sh_symbol">;</span>
+        cnt <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>rel<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> intersective<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                <span class="sh_function">get_intersection</span><span class="sh_symbol">(</span>O<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> O<span class="sh_symbol">[</span>j<span class="sh_symbol">],</span> r<span class="sh_symbol">[</span>j<span class="sh_symbol">],</span> il<span class="sh_symbol">,</span> ir<span class="sh_symbol">);</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(</span>il <span class="sh_symbol">&lt;</span> ir <span class="sh_symbol">+</span> eps<span class="sh_symbol">)</span>
+                    l<span class="sh_symbol">[</span>cnt<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> <span class="sh_function">vec2</span><span class="sh_symbol">(</span>il<span class="sh_symbol">,</span> ir<span class="sh_symbol">);</span>
+                <span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+                    l<span class="sh_symbol">[</span>cnt<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> <span class="sh_function">vec2</span><span class="sh_symbol">(</span><span class="sh_number">0</span><span class="sh_symbol">,</span> ir<span class="sh_symbol">);</span>
+                    l<span class="sh_symbol">[</span>cnt<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> <span class="sh_function">vec2</span><span class="sh_symbol">(</span>il<span class="sh_symbol">,</span> pi2<span class="sh_symbol">);</span>
+                <span class="sh_cbracket">}</span>
+            <span class="sh_cbracket">}</span>
+        l<span class="sh_symbol">[</span>cnt<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> <span class="sh_function">vec2</span><span class="sh_symbol">(</span>pi2<span class="sh_symbol">,</span> pi2<span class="sh_symbol">);</span>
+        <span class="sh_function">sort</span><span class="sh_symbol">(</span>l<span class="sh_symbol">,</span> l <span class="sh_symbol">+</span> cnt<span class="sh_symbol">);</span>
+        il <span class="sh_symbol">=</span> ir <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> cnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>il <span class="sh_symbol">&lt;</span> l<span class="sh_symbol">[</span>j<span class="sh_symbol">].</span>x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                ir <span class="sh_symbol">+=</span> l<span class="sh_symbol">[</span>j<span class="sh_symbol">].</span>x <span class="sh_symbol">-</span> il<span class="sh_symbol">;</span>
+                il <span class="sh_symbol">=</span> l<span class="sh_symbol">[</span>j<span class="sh_symbol">].</span>y<span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span><span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>il <span class="sh_symbol">&lt;</span> l<span class="sh_symbol">[</span>j<span class="sh_symbol">].</span>y<span class="sh_symbol">)</span>
+                il <span class="sh_symbol">=</span> l<span class="sh_symbol">[</span>j<span class="sh_symbol">].</span>y<span class="sh_symbol">;</span>
+        ans <span class="sh_symbol">+=</span> ir <span class="sh_symbol">*</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%.3lf</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意 <code>atan2()</code> 函数的返回值值域为 $[-\pi, \pi]$，因此需要手动转为 $[0, 2 \pi]$ 再处理，避免产生负数导致排序时废掉。(当然把所有变量转移到 $[-\pi, \pi]$ 也是可以滴)</p>
+

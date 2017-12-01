@@ -1,0 +1,68 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 在玩 JSOI 提供的一个称之为 "建筑抢修" 的电脑游戏：经过了一场激烈的战斗，T 部落消灭了所有 Z 部落的入侵者。但是 T 部落的基地里已经有 $n$ 个建筑设施受到了严重的损伤，如果不尽快修复的话，这些建筑设施将会完全毁坏。</p>
+<p>现在的情况是：T 部落基地里只有一个修理工人，虽然他能瞬间到达任何一个建筑，但是修复每个建筑都需要一定的时间。同时，修理工人修理完一个建筑才能修理下一个建筑，不能同时修理多个建筑。如果某个建筑在一段时间之内没有完全修理完毕，这个建筑就报废了。</p>
+<p>你的任务是帮 scx 合理的制订一个修理顺序，以抢修尽可能多的建筑。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个整数 $n$ ($n \leq 1.5 \times 10^5$)，表示需要修复的建筑个数。</p>
+<p>接下来 $n$ 行每行两个整数 $T_1, T_2$ ($T_1 &lt; T_2 &lt; 2^{31}$) 描述一个建筑：修理这个建筑需要 $T_1$ 秒，如果在 $T_2$ 秒之内还没有修理完成，这个建筑就报废了。</p>
+
+<h3>输出格式</h3>
+<p>输出一个一行整数 $S$，表示最多可以抢修 $S$ 个建筑。</p>
+
+<h3>题解</h3>
+<p>首先考虑贪心，根据直觉，感觉是根据 $T_2$ 排序，时间限制越短的建筑，看起来肯定要先修理。然而事实真的是这样吗？</p>
+<p>比如，时间限制比较短的建筑，它们的修理时间都比较大，比如只能刚好修完，而时间限制略长的建筑，它们的修理时间却比较短，短时间内可以修理多个这样的建筑，这样就应该先修理短时间的建筑。</p>
+<p>因此，排序后从头到尾扫描时，如果发现一个建筑来不及修了，<strong>且它的修理时间比目前修理时间最长的建筑短</strong>，则我们可以修理这个建筑而不是那个修理时间最长的建筑 (这个建筑显然是来得及的)，从而节省时间。</p>
+<p>因此，每修理一个建筑，能修理则修理，来不及则找出目前<strong>修理时间最长</strong>的建筑，与之比较后更新，而这<del>显然</del>可以用优先队列，即堆来维护，时间复杂度为 $O(n \log n)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#include</span> <span class="sh_string">&lt;ext/pb_ds/priority_queue.hpp&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">170734</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">pr</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> t<span class="sh_symbol">,</span> r<span class="sh_symbol">;</span>
+    <span class="sh_function">pr</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> t0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> r0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">t</span><span class="sh_symbol">(</span>t0<span class="sh_symbol">),</span> <span class="sh_function">r</span><span class="sh_symbol">(</span>r0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+    pr <span class="sh_symbol">*</span> <span class="sh_function">read</span><span class="sh_symbol">()</span> <span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>t<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>r<span class="sh_symbol">);</span> <span class="sh_keyword">return</span> <span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_type">bool</span> <span class="sh_keyword">operator</span> <span class="sh_symbol">&lt;</span> <span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">pr</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>b<span class="sh_symbol">)</span> <span class="sh_keyword">const</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> r <span class="sh_symbol">&lt;</span> b<span class="sh_symbol">.</span>r<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> __gnu_pbds<span class="sh_symbol">::</span>priority_queue <span class="sh_symbol">&lt;</span><span class="sh_type">int</span><span class="sh_symbol">&gt;</span> prio_que<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> t<span class="sh_symbol">,</span> r<span class="sh_symbol">,</span> ans<span class="sh_symbol">;</span>
+<span class="sh_usertype">pr</span><span class="sh_normal"> </span>a<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">prio_que</span><span class="sh_normal"> </span>pq<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">read</span><span class="sh_symbol">();</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>a<span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> n<span class="sh_symbol">);</span>
+    ans <span class="sh_symbol">=</span> t <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>t <span class="sh_symbol">+</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>t <span class="sh_symbol">&lt;=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>r<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            t <span class="sh_symbol">+=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>t<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>ans<span class="sh_symbol">;</span>
+            pq<span class="sh_symbol">.</span><span class="sh_function">push</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>t<span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span><span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>pq<span class="sh_symbol">.</span><span class="sh_function">empty</span><span class="sh_symbol">())</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>t <span class="sh_symbol">&lt;</span> pq<span class="sh_symbol">.</span><span class="sh_function">top</span><span class="sh_symbol">())</span><span class="sh_cbracket">{</span>
+                t <span class="sh_symbol">+=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>t <span class="sh_symbol">-</span> pq<span class="sh_symbol">.</span><span class="sh_function">top</span><span class="sh_symbol">();</span> pq<span class="sh_symbol">.</span><span class="sh_function">pop</span><span class="sh_symbol">();</span>
+                pq<span class="sh_symbol">.</span><span class="sh_function">push</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>t<span class="sh_symbol">);</span>
+            <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意不能单纯地贪心 (按照 $T1, T2, T2 - T1$ 排序都是错的)，应当思考如何正确的选择方案，在本题中即在给定的时间内修复给定数量的建筑，让剩余的时间 (时间限制 - 修理时间) 尽可能的长。</p>
+
+

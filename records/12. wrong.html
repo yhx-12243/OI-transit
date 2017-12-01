@@ -1,0 +1,98 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>给定一个 $1$ 到 $n$ 的排列 $p = [p_1, p_2, \cdots, p_n]$，定义逆序对 $(i, j)$ 满足 $i &lt; j \wedge p_i &gt; p_j$ 的数对。求排列 $p$ 中有多少个逆序对。</p>
+<p>scx 想出了一个算法来解决这个问题，对于每一个 $i$ ($1 \leq i \leq n$)，如果 $i &gt; p_i$，则将 $i − p_i$ 累加进答案。即答案等于 $\sum\limits_{i=1}^n \max \{i − p_i, 0 \}$。很快 scx 就发现这个算法是错误的，例如对于 $p = [4, 3, 1, 2]$，scx 计算出来的答案是 $0 + 0 + 2 + 2 = 4$，而实际的逆序对数量应该是 $5$ 个。</p>
+<p>但是 scx 已经把程序写完并交上去了。现在她知道了测试数据中 $n$ 的值，以及排列 $p$ 中的前 $m$ ($0 \leq m \leq n$) 个数 $[p_1, p_2, \cdots, p_m]$，她想知道在这些条件有多少种排列能使得她的算法输出的结果是正确的。</p>
+<p>你只需要计算答案模 $⁡10^9 + 7$ 的值即可。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $T$ ($1 \leq T \leq 10$)，表示数据组数。</p>
+<p>接下来 $T$ 行，每行表示一组数据。每行的前两个非负整数 $n, m$ ($m \leq n \leq 200$) 的含义如题面中所述，接下来 $m$ 个数表示排列的前 $m$ 个数 $p_1, p_2, \cdots, p_m$。</p>
+
+<h3>输出格式</h3>
+<p>对于每组数据，输出一行，表示答案模 $10^9 + 7$ 的值。</p>
+
+<h3>题解</h3>
+<p>可以证明，该算法正确当且仅当原排列的<strong>最长下降子序列</strong>的长度不超过 $2$。</p>
+<p>因此，比如说前面出现了 $6, 2$，那么后面一定会有 $1$，则 <abbr title="Longest Decreasing Subsequence">LDS</abbr> 的长度就会 $\geq 3$，因此，<abbr title="Longest Decreasing Subsequence">LDS</abbr> 的长度 $\leq 2$ 的条件可以转化为原序列可以拆分成两个<strong>递增的子序列</strong>。</p>
+<p>因此，对较大的子序列，一定可以满足 $p_i \geq i$，对较小的子序列，一定可以满足 $p_i \leq i$，如果较大的子序列在原序列中的前 $k$ 项是确定的，则原序列的前 $k$ 项中，<strong>较小的子序列时唯一确定的</strong>。</p>
+<p>记 $f_{i, j}$ 为当前序列中前 $i$ 项已确定，且较大的子序列到达了 $j$，后续的可能方案数，其中 $i \leq j$。</p>
+<p>显然有 $f_{n, n} = 1$，考虑 $f_{i, j}$，如果较大的子序列的下一项为原序列的第 $i+1$ 项，且值为 $k$ ($k &gt; j$)，则有 $f_{i+1, k}$ 种方案，如果较大的子序列的下一项不为原序列的第 $i+1$ 项，则相当于原序列的前 $i+1$ 项已确定，且较大的子序列到达了 $j$ 的方案数，即 $f_{i+1, j}$ 种方案，故总转移方程为</p>
+<p>$$ f_{i, j} = \sum_{k=j}^n f_{i+1, k} $$</p>
+<p>时间复杂度 $O(n^3)$ <del>能过</del>，显然可以进行一波前缀和优化，得到新的转移方程：</p>、
+<p>$$ f_{i, j} = f_{i, j+1} + f_{i+1, j} $$</p>
+<p>别忘了条件 $i \leq j$，时间复杂度 $O(n^2)$，并且记原来较大的子序列到达了 $g$ (不合法？直接输出 $0$ 呀！如果 $m = 0$，则令 $g = 0$)，则答案就是 $f_{m, g}$，更加稳了，不过还可以更快 <del>(感觉已疯)</del>。</p>
+<p>可以发现，这个方程非常像杨辉三角的转移形式，因此可以试着将这个递推式是解出来，而它恰好是可解的。</p>
+<p>试着用和式变换、组合意义、生成函数等一波乱搞，可以得到 <strong>$f_{i, j}$ 的封闭形式</strong>，如下：</p>
+<p>$$ f_{i, j} = \frac {(j-i+1) (2n-i-j)!} {(n-i+1)! (n-j)!} $$
+<p>(不妨可以使用数学归纳法证明该等式是正确的)</p>
+<p>于是可以在 $O(n)$ 时间内预处理出阶乘及其逆元，然后 $O(m)$ -- $O(1)$ 回答，总时间复杂度 $O(Tn)$ (读入复杂度)。</p>
+<p style="color: red">ps: 代码中被注释掉的部分是 $O(Tn^2)$ 算法，实体部分是 $O(Tn)$ 算法。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">408</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>mod <span class="sh_symbol">=</span> <span class="sh_number">1000000007</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> g<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> a<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> used<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>fact<span class="sh_symbol">[</span>N <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">],</span> finv<span class="sh_symbol">[</span>N <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_function">PowerMod</span><span class="sh_symbol">(</span><span class="sh_usertype">ll</span><span class="sh_normal"> </span>a<span class="sh_symbol">,</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>n<span class="sh_symbol">,</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>m <span class="sh_symbol">=</span> mod<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>n <span class="sh_symbol">||</span> a <span class="sh_symbol">==</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_keyword">return</span> 1ll<span class="sh_symbol">;</span>
+    <span class="sh_usertype">ll</span><span class="sh_normal"> </span>s <span class="sh_symbol">=</span> <span class="sh_function">PowerMod</span><span class="sh_symbol">(</span>a<span class="sh_symbol">,</span> n <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> m<span class="sh_symbol">);</span>
+    <span class="sh_symbol">(</span>s <span class="sh_symbol">*=</span> s<span class="sh_symbol">)</span> <span class="sh_symbol">%=</span> m<span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> n <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span> <span class="sh_symbol">?</span> s <span class="sh_symbol">*</span> a <span class="sh_symbol">%</span> m <span class="sh_symbol">:</span> s<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">calc</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_usertype">ll</span><span class="sh_normal"> </span>ret <span class="sh_symbol">=</span> x <span class="sh_symbol">-</span> y <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_symbol">(</span>ret <span class="sh_symbol">*=</span> fact<span class="sh_symbol">[</span>x <span class="sh_symbol">+</span> y<span class="sh_symbol">])</span> <span class="sh_symbol">%=</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_symbol">(</span>ret <span class="sh_symbol">*=</span> finv<span class="sh_symbol">[</span>x <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">])</span> <span class="sh_symbol">%=</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_symbol">(</span>ret <span class="sh_symbol">*=</span> finv<span class="sh_symbol">[</span>y<span class="sh_symbol">])</span> <span class="sh_symbol">%=</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)</span>ret<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>fact<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> N<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> fact<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> fact<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">*</span> i <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+    finv<span class="sh_symbol">[</span>N<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">PowerMod</span><span class="sh_symbol">(</span>fact<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> mod <span class="sh_symbol">-</span> <span class="sh_number">2</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> N<span class="sh_symbol">;</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>i<span class="sh_symbol">)</span> finv<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> finv<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> i <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> T<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>T<span class="sh_symbol">);</span> T<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>T<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>m<span class="sh_symbol">);</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>used<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> used<span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+        g <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> g<span class="sh_symbol">)</span> used<span class="sh_symbol">[</span>g <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">!=</span> j<span class="sh_symbol">)</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> used<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">&lt;=</span> m<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">48</span><span class="sh_symbol">);</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">10</span><span class="sh_symbol">);</span> <span class="sh_keyword">continue</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+        <span class="sh_comment">//memset(f, 0, sizeof f);</span>
+        <span class="sh_comment">//f[n][n] = 1;</span>
+        <span class="sh_comment">//for(i = n - 1; i &gt;= m; --i)</span>
+        <span class="sh_comment">//    for(j = n; j &gt;= i; --j)</span>
+        <span class="sh_comment">//        (f[i][j] = f[i][j + 1] + f[i + 1][j]) &gt;= mod ? f[i][j] -= mod : 0;</span>
+        <span class="sh_comment">//printf("%d\n", (int)f[m][g]);</span>
+
+        <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> <span class="sh_function">calc</span><span class="sh_symbol">(</span>n <span class="sh_symbol">-</span> m<span class="sh_symbol">,</span> n <span class="sh_symbol">-</span> g<span class="sh_symbol">));</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><del><strong>坑1：</strong>数据有毒</del></p>
+<p><strong>坑2：</strong>记得阶乘数组开 $2n$，因为 $f_{i, j}$ 的表达式中最大的阶乘可能是 $(2n)!$。</p>

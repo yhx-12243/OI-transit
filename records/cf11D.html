@@ -1,0 +1,77 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>给定一个无向简单图，求它的简单环的个数。<strong>一个简单环即不经过重复点的环。</strong></p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个非负整数 $n, m$ ($1 \leq n \leq 19$)，分别表示该图的点数和边数。</p>
+<p>接下来的 $m$ 行，每行包含两个正整数 $a, b$ ($1 \leq a, b \leq n, a \neq b$)，表示 $a$ 和 $b$ 之间有一条无向边。保证两点间至多只有一条边。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示图中简单环的个数。</p>
+
+<h3>题解</h3>
+<p>考虑到 $n$ 并不大，能感觉到应该并没有什么多项式算法。</p>
+<p>由于简单环经过的点是不重复的，于是可以进行状压 DP，记录一条路径所经过的点。</p>
+<p>接下来考虑如何记录状态。对于这道题目，在一条路径中我们关心的肯定是<strong>起点</strong>、<strong>终点</strong>和<strong>所经过的点的集合</strong>，分别记为 $s, A, t$，那么可以用 $f_{s, A, t}$ 表示这样的路径的条数。</p>
+<p>(scx: 可是这样空间是 $O(2^n n^2)$ 的！)</p>
+<p>但是我们这样记录的是路径 (path)，才具有起点和终点，而将它变成环 (cycle) 后就没有起点和终点了，于是根据<a href="hdu1599.html" target="_blank">这道题</a>的经验，不过这回我们要设一个环中，<strong>编号最小</strong>的节点为 $u$。</p>
+<p>
+<p>于是我们默认 $u$ 为 $A$ 中最小的节点 $u = \min A$，这样，状态就只有两维了，接下来就可以进行 DP 了。</p>
+<p>记 $f_{A, v}$ ($u = \min A$) 表示以 $u$ 为起点，$v$ 为终点，且经过点集合为 $A$ 的路径条数，则初始状态有 $f_{\{i\}, i} = 1$。</p>
+<p>考虑 $f_{A, v}$ ($u = \min A$) 的转移，记我们要枚举路径中的下一个节点 $j$ (显然 $v, j$ 通过边直接相连)，由于 $s$ 要作为环中编号最小的节点，<strong>因此枚举的 $j$ 要满足 $j &gt; s$</strong>。接下来分 $j$ 的情况讨论：</p>
+<ol>
+<li>如果 $j \in A$，说明形成了环。更特别地，如果 $j = u$，说明回到了起点，那么对答案的贡献，即形成的环的个数就是 $f_{A, v}$，但是要注意的是，可能出现 $u \to v \to u$ 的形式，所以需要再加一个限制条件：$|A| &gt; 2$。否则，说明它回到了路径中的某个点。那么它将会 (或已经) 在 $u$ 为其它值时枚举到，忽略它即可。</li>
+<li>如果 $j \notin A$，说明走到了一个新的节点，那么直接转移 $f_{A \cup \{j\}, j} \uparrow f_{A, v}$，其中 $a \uparrow b$ 代表 <code>a += b</code>。</li>
+</ol>
+<p>最后要注意的是，对于每个环 $C$，设其中编号最小的节点为 $u$，那么它将被顺时针和逆时针计算了两次，所以最后答案要除以 $2$ 哦！</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">20</span>
+<span class="sh_preproc">#define</span> NN <span class="sh_number">597569</span>
+<span class="sh_preproc">#define</span> popc __builtin_popcount
+<span class="sh_preproc">#define</span> ctz __builtin_ctz
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> V<span class="sh_symbol">,</span> E<span class="sh_symbol">,</span> n<span class="sh_symbol">,</span> c<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> G<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span>NN<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> ans<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>V<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>E<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> E<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">);</span> <span class="sh_symbol">--</span>u<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>v<span class="sh_symbol">;</span>
+        G<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> G<span class="sh_symbol">[</span>v<span class="sh_symbol">][</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> f<span class="sh_symbol">[</span><span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> i<span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    n <span class="sh_symbol">=</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> V<span class="sh_symbol">;</span> ans <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        u <span class="sh_symbol">=</span> <span class="sh_function">ctz</span><span class="sh_symbol">(</span>i<span class="sh_symbol">);</span> c <span class="sh_symbol">=</span> <span class="sh_function">popc</span><span class="sh_symbol">(</span>i<span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>v <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> v <span class="sh_symbol">&lt;</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>v<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>v<span class="sh_symbol">])</span> <span class="sh_keyword">continue</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>G<span class="sh_symbol">[</span>v<span class="sh_symbol">][</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;&amp;</span> c <span class="sh_symbol">&gt;</span> <span class="sh_number">2</span><span class="sh_symbol">)</span> ans <span class="sh_symbol">+=</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>v<span class="sh_symbol">];</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> u <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(!(</span>i <span class="sh_symbol">&gt;&gt;</span> j <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">&amp;&amp;</span> G<span class="sh_symbol">[</span>v<span class="sh_symbol">][</span>j<span class="sh_symbol">])</span>
+                    f<span class="sh_symbol">[</span>i <span class="sh_symbol">|</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> j<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>v<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意不要忘记判断 $|A| &gt; 2$，因为无向图的简单环至少要 $3$ 个顶点。</p>
+<p><strong>坑2：</strong>还有转移的时候需要满足 $j \notin A$，否则分情况贡献答案。</p>
+

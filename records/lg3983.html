@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+<style type="text/css">
+.table-text-center>tbody>tr>td {text-align: center}
+.table-vertical-middle>tbody>tr>td {vertical-align: middle}
+</style>
+
+<h3>题目描述</h3>
+
+<script type="math/tex">\DeclareMathOperator{\si}{\mathrm{si}}</script>
+
+<p>现需上市 $n$ 赛斯重量的赛斯石，卖家想算出这些赛斯石经过某种合并方式来获得的最大收益。然而目前有一个问题，市场在真程大殿附近 (真程海洋中心位置)，卖家需要租船送赛斯石过去 (即不考虑卖家自己租船过去的费用)，目前有 $10$ 种船可以租，载重量从 $1 \si$ 到 $10 \si$，每艘船的租价也是有所不同的，如下表所示：</p>
+<table class="table table-bordered table-text-center table-vertical-middle">
+	<tr>
+		<td>载重 ($\si$)</td><td>$1$</td><td>$2$</td><td>$3$</td><td>$4$</td><td>$5$</td><td>$6$</td><td>$7$</td><td>$8$</td><td>$9$</td><td>$10$</td>
+	</tr>
+	<tr>
+		<td>价格 (元)</td><td>$1$</td><td>$3$</td><td>$5$</td><td>$7$</td><td>$9$</td><td>$10$</td><td>$11$</td><td>$14$</td><td>$15$</td><td>$17$</td>
+	</tr>
+</table>
+<p>由于真程大殿附近有强烈的赛斯力，导致无法对赛斯石进行任何操作，商家将赛斯石运过来之后就只能按照之前合并好的卖。假设卖家不返回，且这些赛斯石全部能卖出去。现在卖家他要计算总盈利 (设总盈利 = 赛斯石的总收益 - 租船所需总费用)，请你设计一个程序，算出一种最佳方案，以获得最大总盈利。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $n$ ($n &lt; 10^5$)，表示赛斯石的总量 (单位：$\si$)。</p>
+<p>第二行包含 $10$ 个正整数 $a_1, a_2, \cdots, a_{10}$ ($a_i &lt; 10^5$)，分别为 $1 \si$ 到 $10 \si$ 的赛斯石市场价格 (单位：元)。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示最大总盈利。</p>
+
+<h3>题解</h3>
+<p>看起来像个裸的背包 DP，不过有可能会在船上进行分割，因此需要增加一个预处理。</p>
+<p>显然，每艘船必须是要放满的，否则可以使用更轻的船。</p>
+<p>记 $b_i$ 为使用大小为 $i$ 的船的<strong>赛斯石收益 (不包括租船费用)</strong>的最大值，那么有非常 simple 的转移方程：</p>
+<p>$$ b_i = \max \left\{ a_i, \max_{1 \leq j &lt; i} \{ b_{i-j} + b_j \} \right\} $$
+<p>那么<strong>算上租船费用</strong>，租大小为 $i$ 的船的净收益为 $b_i - g_i$，其中 $g_i$ 为船的租价，见上表。</p>
+<p>然后再跑一个大的背包 DP，记 $f_{i, j}$ 表示只租大小为 $1 \sim i$ 的船，一共运了 $j \si$ 的赛斯石所能获得的最大净收益，则</p>
+<p>$$ f_{i, j} = \max \{f_{i-1, j}, (f_{i, j-i} + b_i)[j \geq i]\} $$</p>
+<p>最终答案即 $f_{10, n}$，$f$ 的第一维 ($i$) 可以压缩掉，时间复杂度 $O(w \cdot n)$，其中 $w$ 为船的最大载重 (也是最大可以卖的赛斯石重)，本题中为 $10$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">100034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">const</span> <span class="sh_type">int</span> _<span class="sh_symbol">[</span><span class="sh_number">11</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_cbracket">{</span><span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">3</span><span class="sh_symbol">,</span> <span class="sh_number">5</span><span class="sh_symbol">,</span> <span class="sh_number">7</span><span class="sh_symbol">,</span> <span class="sh_number">9</span><span class="sh_symbol">,</span> <span class="sh_number">10</span><span class="sh_symbol">,</span> <span class="sh_number">11</span><span class="sh_symbol">,</span> <span class="sh_number">14</span><span class="sh_symbol">,</span> <span class="sh_number">15</span><span class="sh_symbol">,</span> <span class="sh_number">17</span><span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> a<span class="sh_symbol">[</span><span class="sh_number">11</span><span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">template</span> <span class="sh_symbol">&lt;</span><span class="sh_keyword">typename</span><span class="sh_normal"> </span><span class="sh_classname">T</span><span class="sh_symbol">&gt;</span>
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">up</span><span class="sh_symbol">(</span><span class="sh_usertype">T</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_usertype">T</span><span class="sh_normal"> </span>y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&lt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> <span class="sh_number">10</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> <span class="sh_number">10</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            <span class="sh_function">up</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> a<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> j<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> a<span class="sh_symbol">[</span>j<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> <span class="sh_number">10</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> _<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_number">192</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+    f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> <span class="sh_number">10</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            <span class="sh_function">up</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>j<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>j <span class="sh_symbol">-</span> i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>ll<span class="sh_symbol">)</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>n<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>需要注意的是，$j \si$ 的赛斯石不一定是只装在 $j \si$ 的船上才收益最大，可能是和其它赛斯石共同装在一个船上，故第一个 DP 必不可少。</p>
+<p><strong>坑2：</strong>其次是开 <code>long long</code>。</p>

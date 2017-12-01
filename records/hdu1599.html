@@ -1,0 +1,73 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>杭州有 $n$ 个景区，景区之间有一些双向的路来连接，现在 scx 想找一条旅游路线，这个路线从 $A$ 点出发并且最后回到 $A$ 点，假设经过的路线为 $v_1, v_2, \cdots, v_k, v_1$，那么必须满足 $k &gt; 2$，就是说至除了出发点以外至少要经过 $2$ 个其他不同的景区，而且不能重复经过同一个景区。</p>
+<p>现在 scx 需要你帮他找一条这样的路线，并且花费越少越好。 </p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个整数 $n$ 和 $m$ ($n \leq 100, m \leq 1000$)，代表景区的个数和道路的条数。</p>
+<p>接下来的 $m$ 行，每行包含三个整数 $a, b, c$ ($c \leq 100$)。代表 $a$ 和 $b$ 之间有一条通路，并且需要花费 $c$ 元。
+
+<h3>输出格式</h3>
+<p>对于每个测试实例，如果能找到这样一条路线的话，输出花费的最小值。如果找不到的话，输出 <code>It's impossible.</code>。</p>
+
+<h3>题解</h3>
+<p>可以看出，原问题就是一个无向图的最小环问题。有向图的情况，已经在<a href="lydsy1027.html" target="_blank">这道题</a>中解决了，当时是使用 Floyd 算法，令 $G_{i, i} = + \infty$，然后跑一遍基本 Floyd 后取 $\min\limits_{1 \leq i \leq n} G_{i, i}$ 即得。</p>
+<p>当然，细心的同学可能已经发现，这个算法是<strong>不能用于</strong>无向图的。由于无向图中边 $(i, j)$ 和 $(j, i)$ 一定是同时存在的，因此上述算法跑出来的结果就是<strong>最小边权</strong>的 $2$ 倍，显然不符合要求。</p>
+<p>这也是无向图和有向图的区别之一，无向图的简单环至少要 $3$ 个顶点，而在某种情况下，有向图的简单环允许只有 $2$ 个顶点 (但也有强制规定 $3$ 个以上的顶点，那么也不能运用上面的算法了)。</p>
+<p>其实，无向图的最小环问题也是通过 Floyd 解决。</p>
+<p>考虑一个环 $C = (v_1, v_2, \cdots, v_k, v_1)$，且 $v_i$ <strong>互不相同</strong>，<del>则根据最小数原理</del>，编号后必有一个是最大的，不妨设 $v_1$ 是它们之中最大者。</p>
+<p>那么考虑环 $C$ 中与 $v_1$ 相邻的顶点 $v_2$ 和 $v_k$，可以看出，环的长度就是 $G_{v_1, v_2} + \mathrm{dist} (v_2, v_k) + G_{v_k, v_1}$。其中 $\mathrm{dist} (v_2, v_k)$ 为 $v_2 \to v_3 \to \cdots \to v_k$ 这条路径的长度。如果贸然跑 Floyd，最终得到的 $f_{v_2, v_k}$ 可能反而会经过 $v_1$，于是就失去了作用。</p>
+<p>根据 Floyd 算法的动态规划本质，其实是 $f_{k, i, j}$ 代表<strong>允许经过点 $1, 2, \cdots, k$ 时</strong>，点 $i$ 到点 $j$ 的最短路。因为我们要保证 $v_2 \to v_3 \to \cdots \to v_k$ 这条简单路径<strong>不能经过点 $v_1$</strong>，又由于 $v_1$ 是最大者，也就是说，对 $1 &lt; i \leq k$ 有 $v_i &lt; v_1$ (这就是为什么要设一个最大的)。
+<p>因此，这条路径应该满足 $f_{v_1-1, v_2, v_k}$ 的定义。由于我们要求经过这三点的最小环，因此当然要求满足上述条件的最短路啦，因此那个 $\mathrm{dist} (v_2, v_k) = f_{v_1-1, v_2, v_k}$。</p>
+<p>于是，环 $C$ 的长度就是 $G_{v_1, v_2} + f_{v_1-1, v_2, v_k} + G_{v_k, v_1}$。对于整个无向图的最小环，我们只需要枚举 $v_1, v_2, v_k$ ($v_2, v_k &lt; v_1$)，就可以在 $O(n^3)$ 的时间内得到解。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">136</span>
+<span class="sh_preproc">#define</span> INF <span class="sh_number">0x2a2a2a2a</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> V<span class="sh_symbol">,</span> E<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> G<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> d<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">while</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>V<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>E<span class="sh_symbol">)</span> <span class="sh_symbol">==</span> <span class="sh_number">2</span> <span class="sh_symbol">&amp;&amp;</span> V<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>d<span class="sh_symbol">,</span> <span class="sh_number">42</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> d<span class="sh_symbol">);</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>G<span class="sh_symbol">,</span> <span class="sh_number">42</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> G<span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> d<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> E<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>w<span class="sh_symbol">);</span>
+            <span class="sh_function">down</span><span class="sh_symbol">(</span>G<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>v<span class="sh_symbol">],</span> w<span class="sh_symbol">);</span>
+            d<span class="sh_symbol">[</span>v<span class="sh_symbol">][</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> d<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> G<span class="sh_symbol">[</span>v<span class="sh_symbol">][</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> G<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>v<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+        w <span class="sh_symbol">=</span> INF<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>u <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> u <span class="sh_symbol">&lt;</span> i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>u<span class="sh_symbol">)</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>v <span class="sh_symbol">=</span> u <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> v <span class="sh_symbol">&lt;</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>v<span class="sh_symbol">)</span>
+                    <span class="sh_function">down</span><span class="sh_symbol">(</span>w<span class="sh_symbol">,</span> G<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> d<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> G<span class="sh_symbol">[</span>v<span class="sh_symbol">][</span>i<span class="sh_symbol">]);</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>u <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> u <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>u<span class="sh_symbol">)</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>v <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> v <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>v<span class="sh_symbol">)</span>
+                    <span class="sh_function">down</span><span class="sh_symbol">(</span>d<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>v<span class="sh_symbol">],</span> d<span class="sh_symbol">[</span>u<span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> d<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>v<span class="sh_symbol">]);</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>w <span class="sh_symbol">&gt;=</span> INF<span class="sh_symbol">)</span>
+            <span class="sh_function">puts</span><span class="sh_symbol">(</span><span class="sh_string">"It's impossible."</span><span class="sh_symbol">);</span>
+        <span class="sh_keyword">else</span>
+            <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> w<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意上文中的 $G$ 数组表示<strong>原图中的邻接矩阵</strong> (边权)，而不是跑若干次 Floyd 后的值，因为 $v_1$ 和 $v_2$ ($v_k$) 之间可能存在经过多条边的最短路。</p>
+<p><strong>坑2：</strong>还有就是 <code>INF</code> 不要置太大，否则会导致加法溢出的 (像本代码中出现三值相加，可以 <code>memset(G, 42, sizeof G)</code>。</p>
+

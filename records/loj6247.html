@@ -1,0 +1,71 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>给定 $n, k$，满足 $k$ 是 $2$ 的幂，求</p>
+<p>$$ \sum_{k \mid i, 0 \leq i \leq n} \binom ni $$</p>
+<p>对 $998244353$ 取模的值。</p>
+
+<h3>输入格式</h3>
+<p>共一行，包含两个正整数 $n, k$ ($n \leq 10^{15}, k \leq 2^{20}$)。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示上式模 $998244353$ 的值。</p>
+
+<h3>题解</h3>
+<p>先考虑 $k = 1$ 怎么做。$k = 1$ 时，原式即 $\sum\limits_{i=0}^n \dbinom ni$，由二项式定理 $$ (1 + x)^n = \sum_{i=0}^n \binom ni x^i $$，则答案为 $2^n$。</p>
+<p>那 $k = 2$ 时，即 $$ \sum_{2 \mid i, 0 \leq i \leq n} \binom ni $$ 尝试代入 $x = -1$ 得到 $$ \sum_{i=0}^n \binom ni (-1)^i = 0 $$ 和代入 $x = 1$ 的式子相加后再除以 $2$ 即得答案。</p>
+<p>那 $k = 4$ 时怎么做呢？好像并没有思路。</p>
+<p>我们应该想想 $k = 2$ 时这样能成功的原因：原因就是对任意 $j$，$\dfrac {1^j + (-1)^j} 2 = \left[ 2 \mid j \right]$，于是两式相加合并同类项后即得。</p>
+<p>那么 $k = 4$ 时，有没有这样的式子能把 $0$ 和 $1, 2, 3 \pmod 4$ 区分开来呢？</p>
+<p>有，那就是虚数单位 $i$。不难发现，对任意 $j$，有 $\dfrac {1^j + i^j + (-1)^j + (-i)^j} 4 = \left[ 4 \mid j \right]$。</p>
+<p>那么，对任意的 $k$，由<strong>单位根</strong>的性质，只需取 $x^k = 1$ 的一个单位根 $\omega_k = \exp \left( \dfrac {2 \pi i} k \right) = \cos \dfrac {2 \pi} k + i \sin \dfrac {2 \pi} k$，则对任意 $j$，都有</p>
+<p>$$ \frac {1^j + \omega_k^j + \omega_k^{2j} + \cdots + \omega_k^{(k-1)j}} k = \left[ k \mid j \right] $$</p>
+<p>那么，在复数范围内使用二项式定理，就有</p>
+<p>$$ (1 + \omega_k^b)^n = \sum_{j=0}^n \binom nj \omega_k^{bj} $$</p>
+<p>于是，就可以做如下变换</p>
+<p>$$ \sum_{k \mid i, 0 \leq i \leq n} \binom ni = \sum_{i=0}^n \binom ni [k \mid i] = \sum_{j=0}^n \binom nj \left( \frac 1k \sum_{b=0}^{k-1} w_k^{bj} \right)
+= \frac 1k \sum_{b=0}^{k-1} \sum_{j=0}^n \binom nj w_k^{bj}
+= \frac 1k \sum_{b=0}^{k-1} (1 + \omega_k^b)^n $$</p>
+<p>等等，这需要复数啊，那原式的值可能很大，又要取模，怎么办呢？</p>
+<p>注意到 $k$ 只是 $2$ 的 $20$ 次以内的幂，且素数 $998244353 = 7 \times 17 \times 2^{23} + 1$，可以发现，在该模意义下，$k$ 次单位根均存在，它等于 $31 ^ {1 \ll 23-l} \bmod 998244353$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> <span class="sh_function">lg2</span><span class="sh_symbol">(</span>x<span class="sh_symbol">)</span> <span class="sh_symbol">(</span><span class="sh_number">31</span> <span class="sh_symbol">-</span> <span class="sh_function">__builtin_clz</span><span class="sh_symbol">(</span>x<span class="sh_symbol">))</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>mod <span class="sh_symbol">=</span> <span class="sh_number">998244353</span><span class="sh_symbol">,</span> root <span class="sh_symbol">=</span> <span class="sh_number">31</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> k<span class="sh_symbol">,</span> l<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>n<span class="sh_symbol">,</span> g<span class="sh_symbol">,</span> t<span class="sh_symbol">,</span> ans<span class="sh_symbol">;</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_function">PowerMod</span><span class="sh_symbol">(</span><span class="sh_usertype">ll</span><span class="sh_normal"> </span>a<span class="sh_symbol">,</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>n<span class="sh_symbol">,</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>m <span class="sh_symbol">=</span> mod<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>n <span class="sh_symbol">||</span> a <span class="sh_symbol">==</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_keyword">return</span> 1ll<span class="sh_symbol">;</span>
+    <span class="sh_usertype">ll</span><span class="sh_normal"> </span>s <span class="sh_symbol">=</span> <span class="sh_function">PowerMod</span><span class="sh_symbol">(</span>a<span class="sh_symbol">,</span> n <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> m<span class="sh_symbol">);</span>
+    <span class="sh_symbol">(</span>s <span class="sh_symbol">*=</span> s<span class="sh_symbol">)</span> <span class="sh_symbol">%=</span> m<span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> n <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span> <span class="sh_symbol">?</span> s <span class="sh_symbol">*</span> a <span class="sh_symbol">%</span> m <span class="sh_symbol">:</span> s<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>k<span class="sh_symbol">);</span>
+    l <span class="sh_symbol">=</span> <span class="sh_function">lg2</span><span class="sh_symbol">(</span>k<span class="sh_symbol">);</span> g <span class="sh_symbol">=</span> <span class="sh_function">PowerMod</span><span class="sh_symbol">(</span>root<span class="sh_symbol">,</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">23</span> <span class="sh_symbol">-</span> l<span class="sh_symbol">);</span>
+    t <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> ans <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> k<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_symbol">(</span>ans <span class="sh_symbol">+=</span> <span class="sh_function">PowerMod</span><span class="sh_symbol">(</span><span class="sh_number">1</span> <span class="sh_symbol">+</span> t<span class="sh_symbol">,</span> n<span class="sh_symbol">))</span> <span class="sh_symbol">&gt;=</span> mod <span class="sh_symbol">?</span> ans <span class="sh_symbol">-=</span> mod <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_symbol">(</span>t <span class="sh_symbol">*=</span> g<span class="sh_symbol">)</span> <span class="sh_symbol">%=</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    ans <span class="sh_symbol">=</span> ans <span class="sh_symbol">*</span> <span class="sh_function">PowerMod</span><span class="sh_symbol">(</span>k<span class="sh_symbol">,</span> mod <span class="sh_symbol">-</span> <span class="sh_number">2</span><span class="sh_symbol">)</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)</span>ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意在相加的过程中及时取模，最后的除以 $k$ 不要忘记。</p>
+

@@ -1,0 +1,57 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>有 $n$ 个小朋友坐成一圈，每人有 $a_i$ 个糖果。每人只能给左右两人传递糖果，每人每次传递一个糖果代价为 $1$，求使所有人获得均等糖果的最小代价。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $n$ ($n \leq 10^6$)，表示小朋友的个数。</p>
+<p>接下来的 $n$ 行，每行包含一个正整数 $a_i$ ($\sum a_i &lt; 2^{31}$)，表示第 $i$ 个小朋友得到的糖果的颗数。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示最小代价。</p>
+
+<h3>题解</h3>
+<p>记最终每个人得到的糖果数为 $\bar a$ ($\bar a = \dfrac 1n \sum\limits_{i=1}^n a_i$)，令 $b_i = a_i - \bar a$，易得用 $b_i$ 代替 $a_i$，所得的答案不变，且最终每个数都会变为 $0$。</p>
+<p>在一个方案中，考虑每相邻两人之间的累计传递，可以看作是其中一个人给另一个人，或没有传递 (比如说总共是 A 给了 B $6$ 颗糖果或 B 给了 A $4$ 颗糖果)，总之可以用一个整数 $x_i$ (可正可负) 表示。那么，记 $x_i$ 表示最终累计 $i$ 给了 $i+1$ 多少颗糖果 (<a href="lydsy1021.html" target="_blank">类似地</a>，负数就代表 $i+1$ 给了 $i$)，由于最终糖果数均为 $0$，则有 $$ a_i + x_{i-1} - x_i = 0 $$</p>
+<p>可以看出，答案就是 $\sum\limits_{i=1}^n \left| x_i \right|$，因此我们就要最小化 $x_i$。</p>
+<p>可以发现，这里一共有 $n$ 个方程，但是其中独立的只有 $n-1$ 个 (任意一个方程都能由剩余 $n-1$ 个方程线性得出)，于是我们假定 $t = x_1$，则有</p>
+<p>\begin{array}l
+x_2 = a_2 + x_1 = a_2 + t \\
+x_3 = a_3 + x_2 = a_3 + a_2 + t \\
+x_4 = a_4 + x_3 = a_4 + a_3 + a_2 + t \\
+\cdots \\
+x_n = a_n + x_{n-1} = a_n + \cdots + a_2 + t
+\end{array}</p>
+<p>记 $s_i = \sum\limits_{k=2}^i a_k$，问题转移成了最小化 $$ \sum_{i=1}^n \left| s_i + t \right| $$</p>
+<p>换元 $x = -t$ 后，由几何意义可以得知，就是在数轴上寻找一点，使得与 $n$ 个已知点的距离之和最小。<del>很显然</del>，当这个点为这组数据的<strong>中位数</strong>时，取得最小值。</p>
+<p>于是我们只需要求个前缀和然后排个序就可以得到答案了，当然，求中位数可以直接 $O(n)$得到 (<code>nth_element()</code>)。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">1024404</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>s<span class="sh_symbol">,</span> a<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span> s <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld"</span><span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span> s <span class="sh_symbol">+=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span><span class="sh_cbracket">}</span> s <span class="sh_symbol">/=</span> n<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> a<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">-</span> s<span class="sh_symbol">;</span>
+    <span class="sh_function">nth_element</span><span class="sh_symbol">(</span>a <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> n <span class="sh_symbol">+</span> <span class="sh_number">1</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">),</span> a <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>n <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">));</span> s <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> s <span class="sh_symbol">+=</span> <span class="sh_function">abs</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> a<span class="sh_symbol">[</span>j<span class="sh_symbol">]);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> s<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>不要被 $\sum a_i &lt; 2^{31}$ 迷惑住了，这题由于有各种减法运算照样是需要 $64$ 位整数的！</p>
+

@@ -1,0 +1,96 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>给定 $n$ 个仅包含小写字母的字符串 $s_i$ ，对于每个字符串给出 $q_i$ 个询问，每次询问给出一个正整数 $k_{ij}$ ，你需要输出所有满足以下条件的的字符串 $a$ 的数量：</p>
+<ol>
+<li>字符串 $a$ 的长度为 $k_{ij}$；</li>
+<li>字符串 $a$ 仅包含小写字母；</li>
+<li>$s_i$ 是 $a$ 的子序列，即 $s_i$ 中的每个字符都在中按顺序出现。例如 $\texttt{acd}$ 是 $\texttt{abcbd}$ 的子序列，但 $\texttt{acd}$ 不是 $\texttt{cbad}$ 的子序列，因为 $\texttt{acd}$ 没有按顺序出现。</li>
+</ol>
+<p>你只需要输出答案模 $10^9 + 7$ 的值。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $n$ ($n \leq 10000$)。</p>
+<p>接下来的 $2n$ 行，第 $2i$ 行包含一个字符串 $s_i$ 和一个正整数 $q_i$，第 $2i+1$ 行包含 $q_i$ 个正整数，分别表示 $k_{ij}$，其中 $\sum\limits_{i=1}^n |s_i|, \sum\limits_{i=1}^n q_i, k_{ij} \leq 10^5$。</p>
+
+<h3>输出格式</h3>
+对于每个询问，输出一行一个整数，表示满足条件的 $a$ 的数量模 $10^9 + 7$ 的值。</p>
+
+<h3>题解</h3>
+<p>对一个长度为 $k$ 的串 $s$，它要作为一个长度为 $n$ 的串 $a$ 的子序列，首先由 $k \leq n$ (否则答案为 $0$)，显然不能简单地 $\dbinom nk 26^{n-k}$，否则会有重复计算，当然也不是 $\dbinom nk 25^{n-k}$，显然有遗漏。</p>
+<p>我们考虑对一个满足条件的串 $a$，并记它所<strong>对应</strong>的 $s$ 为出现在最左边 (位置字典序最小) 的那个 $s$ (即从左往右贪心的结果)，那么，统计出来的结果就有对应性了。</p>
+<p>不放设 $s_i$ 在 $a$ 中的位置为 $b_i$，如下图所示：</p>
+<p><img src="uploads/7.bmp" alt="一个字符串对应的例子"></p>
+<p>那么 $1$ 到 $b_1 - 1$ 这一段不能出现 $s_1$ (否则会有更优匹配)，同理，$b_1 + 1$ 到 $b_2 - 1$ 这一段不能出现 $s_2$ (但是可以出现 $s_1$)，这样一直下去，可能有点段的长度为 $0$ ($b_3 + 1$ 到 $b_4 - 1$)，最后 $b_{k-1} + 1$ 到 $b_k - 1$ 这一段不能出现 $s_k$，但是 $b_k + 1$ 到 $n$ 可以出现任何字母。</p>
+<p>因此对应一个固定的 $b_k$，$b_k + 1$ 到 $n$ 可以出现任何字母，即有 $26^{n - b_k}$ 种情况，前面就是从 $b_k - 1$ 个格子中选 $k - 1$ 个，剩下的 $b_k - k$ 个任意填充 $25$ 个字母之一，故共有</p>
+<p>$$ \binom {b_k-1} {k-1} \cdot 26^{n - b_k} \cdot 25^{b_k - k} $$</p>
+<p>种情况，枚举 $b_k$ 从 $k$ 到 $n$，那么答案就是</p>
+<p>$$ \sum_{i=k}^n \binom {i-1} {k-1} 26^{n-i} 25^{i-k} $$</p>
+<p>(可以告诉你这个式子等于 $\sum\limits_{i=0}^{n-k} \dbinom n i 25^i$，不过化简后就没法做了)</p>
+<p>这样，可以把原式转化为</p>
+<p>$$ 26^{n-k} \left( \sum_{i=0}^{n-k} \binom {i+k-1} {k-1} (25 \cdot 26^{-1})^i \right) $$</p>
+<p>预处理出 $25 \cdot 26^{-1} \equiv 423076927 \pmod {10^9 + 7}$，然后对于一个<strong>确定的</strong> $k$，可以在 $O(n)$ 的时间预处理出右边括号内的表达式和 $26$ 的幂，然后在询问的时候 $O(1)$ 回答。</p>
+<p>(scx: 那么每次询问都是 $O(n)$，复杂度不是变成 $O(qn)$ 了吗？)</p>
+<p>注意到条件 $\sum k \leq 10^5$，故<strong>不同的 $k$</strong> 至多只有 $2 \sqrt n = O \left( \sqrt n \right)$ 个 (精确的说应该是 $446$ 个)，所以只需对 $O \left( \sqrt n \right)$ 个不同的 $k$ 分别预处理一次<strong>并记忆化</strong>，相同的 $k$ 直接用之前算过的答案即可，时间复杂度 $O \left( q \sqrt n \right)$，可过。</p>
+
+<!--$$ \sum_{i=k}^n \binom {i-1} {k-1} (x+1)^{n-i} x^{i-k}
+= \sum_{i=k}^n \binom {i-1} {k-1} \left( \sum_{j=0}^{n-i} \binom {n-i} j x^j \right) x^{i-k}
+= \sum_{i=k}^n \binom {i-1} {k-1} \left( \sum_{j=0}^{n-i} \binom {n-i} j x^{i+j-k} \right) \\
+= \sum_{i=0}^{n-k} \binom {i+k-1} {k-1} \left( \sum_{j=0}^{n-i-k} \binom {n-i-k} j x^{i+j} \right)
+= \sum_{0 \leq i+j \leq n-k} \binom {i+k-1} {k-1} \binom {n-i-k} j x^{i+j} \\
+= \sum_{i=0}^{n-k} \sum_{j=0}^i \binom {j+k-1} {k-1} \binom {n-j-k} {n-i-k} x^i
+= \sum_{i=0}^{n-k} \binom n {n-i} x^i = \sum_{i=0}^{n-k} \binom n i x^i $$
+
+其中，最后一步运用了恒等式
+
+$$ \sum_{j=0}^i \binom {A+j} A \binom {B-j} {B-i} = \binom {A+B+1} i $$-->
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">100034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>mod <span class="sh_symbol">=</span> <span class="sh_number">1000000007ll</span><span class="sh_symbol">,</span> _div_ <span class="sh_symbol">=</span> <span class="sh_number">423076927ll</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">char</span> s<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> cnt <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> Map<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>inv<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> pw26<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>ans<span class="sh_symbol">,</span> <span class="sh_symbol">*</span>f<span class="sh_symbol">,</span> g<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> F<span class="sh_symbol">[</span><span class="sh_number">476</span><span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> T1<span class="sh_symbol">,</span> T2<span class="sh_symbol">;</span>
+    pw26<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> inv<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> pw26<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">26</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> N<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        inv<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>mod <span class="sh_symbol">-</span> mod <span class="sh_symbol">/</span> i<span class="sh_symbol">)</span> <span class="sh_symbol">*</span> inv<span class="sh_symbol">[</span>mod <span class="sh_symbol">%</span> i<span class="sh_symbol">]</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+        pw26<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> pw26<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">*</span> <span class="sh_number">26</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>T1<span class="sh_symbol">);</span> T1<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>T1<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> s<span class="sh_symbol">);</span> k <span class="sh_symbol">=</span> <span class="sh_function">strlen</span><span class="sh_symbol">(</span>s<span class="sh_symbol">);</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>Map<span class="sh_symbol">[</span>k<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+            Map<span class="sh_symbol">[</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">++</span>cnt<span class="sh_symbol">;</span> f <span class="sh_symbol">=</span> F<span class="sh_symbol">[</span>cnt<span class="sh_symbol">];</span>
+            f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> g<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> N<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                g<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> g<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">*</span> _div_ <span class="sh_symbol">%</span> mod <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>i <span class="sh_symbol">+</span> k <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">%</span> mod <span class="sh_symbol">*</span> inv<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+                <span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> g<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_symbol">&gt;=</span> mod <span class="sh_symbol">?</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> mod <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span>
+        <span class="sh_cbracket">}</span><span class="sh_keyword">else</span> f <span class="sh_symbol">=</span> F<span class="sh_symbol">[</span>Map<span class="sh_symbol">[</span>k<span class="sh_symbol">]];</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>T2<span class="sh_symbol">);</span> T2<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>T2<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">((</span>n <span class="sh_symbol">-=</span> k<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span><span class="sh_symbol">)</span> ans <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+            ans <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> pw26<span class="sh_symbol">[</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">%</span> mod<span class="sh_symbol">;</span>
+            <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)</span>ans<span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>要注意 $\sum k \leq 10^5$ 等类似的条件，它提示我们不同的 $k$ 并不是很多，因此可以使用<strong>记忆化</strong>，用 <code>map</code>/<code>hash_map</code> 或离散化存储，当然像本题 $k$ 不大的情况可以直接用数组 (桶) 存储。</p>

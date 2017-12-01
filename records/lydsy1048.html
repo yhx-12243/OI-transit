@@ -1,0 +1,76 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>将一个 $a \times b$ 的数字矩阵进行如下分割：将原矩阵沿某一条直线分割成两个矩阵，再将生成的两个矩阵继续如此分割 (当然也可以只分割其中的一个)，这样分割了 $n-1$ 次后，原矩阵被分割成了 $n$ 个矩阵。(注：每次分割都只能沿着数字间的缝隙进行)</p>
+<p>原矩阵中每一位置上有一个分值，一个矩阵的总分为其所含各位置上分值之和。现在需要把矩阵按上述规则分割成 $n$ 个矩阵，并使各矩阵总分的均(biao)方(zhun)差最小。请编程对给出的矩阵及 $n$，求出均(biao)方(zhun)差的最小值。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含三个正整数 $a, b, n$ ($a, b, n \leq 10$)。</p>
+<p>接下来的 $n$ 行，每行包含 $b$ 个小于 $100$ 的非负整数，表示矩阵中相应位置上的分值。每行相邻两数之间用一个空
+格分开。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个实数，表示均方差的最小值 (四舍五入精确到小数点后 $2$ 位)。</p>
+
+<h3>题解</h3>
+<p>Q：均方差是什么？A：标准差的别名~(所以最后不要忘记开根号)</p>
+<p>由方差的公式 $V(X) = \dfrac 1n \left( E(X^2) - (E(X))^2 \right)$，又发现 $E(X)$ 即所有矩阵总分的平均数，等于所有矩阵总分的和除以矩阵个数 $n$，发现恰好是个常数 (可以预处理出来)。</p>
+<p>于是让 $V(X)$ 最小只需让 $E(X^2)$ 最小，而它就是所有矩阵总分的<strong>平方和</strong>。</p>
+<p>注意到 $n$ 并不是很大，因此可以考虑最暴力的 DP：记 $f_{r_1, c_1, r_2, c_2, k}$ 表示原矩阵的 $(r_1, c_1)$ 到 $(r_2, c_2)$ 的子矩阵中，分成 $k$ 块的平方和的最小值，那么有边界 $k = 1$ 时就是这个子矩阵的总分的平方，答案就是 $f_{1, 1, a, b, n}$。</p>
+<p>然而这个不太好转移 (一是 <code>for</code> 循环太多，二是速度太慢)，因此可以考虑使用记忆化搜索，每次考虑按行割或按列割，再枚举两边还要分割成多少个矩阵，最后再取个 $\min$。</p>
+<p>当然，当 $k = 1$ 时，这个边界可以通过二维前缀和预处理出来。最后由开头提到的公式，直接算出标准差即可。时间复杂度大概就 $n$ 的五六次左右，还是比较小的。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">12</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> r<span class="sh_symbol">,</span> c<span class="sh_symbol">,</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> t<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> s<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">double</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">double</span> average<span class="sh_symbol">,</span> avrQuad<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">double</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">double</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">double</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span><span class="sh_type">int</span> r1<span class="sh_symbol">,</span> <span class="sh_type">int</span> c1<span class="sh_symbol">,</span> <span class="sh_type">int</span> r2<span class="sh_symbol">,</span> <span class="sh_type">int</span> c2<span class="sh_symbol">,</span> <span class="sh_type">int</span> k<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> r0<span class="sh_symbol">,</span> c0<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+    <span class="sh_type">double</span> <span class="sh_symbol">&amp;</span>ret <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>r1<span class="sh_symbol">][</span>c1<span class="sh_symbol">][</span>r2<span class="sh_symbol">][</span>c2<span class="sh_symbol">][</span>k<span class="sh_symbol">];</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>ret <span class="sh_symbol">==</span> ret<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> ret<span class="sh_symbol">;</span> <span class="sh_comment">// ret isn't NaN</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>k <span class="sh_symbol">==</span> <span class="sh_number">1</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_type">int</span> s0 <span class="sh_symbol">=</span> s<span class="sh_symbol">[</span>r2<span class="sh_symbol">][</span>c2<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> s<span class="sh_symbol">[</span>r2<span class="sh_symbol">][</span>c1 <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">-</span> s<span class="sh_symbol">[</span>r1 <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>c2<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> s<span class="sh_symbol">[</span>r1 <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>c1 <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+        <span class="sh_keyword">return</span> ret <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)(</span>s0 <span class="sh_symbol">*</span> s0<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    ret <span class="sh_symbol">=</span> INFINITY<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> k<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>r0 <span class="sh_symbol">=</span> r1<span class="sh_symbol">;</span> r0 <span class="sh_symbol">&lt;</span> r2<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>r0<span class="sh_symbol">)</span> <span class="sh_function">down</span><span class="sh_symbol">(</span>ret<span class="sh_symbol">,</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span>r1<span class="sh_symbol">,</span> c1<span class="sh_symbol">,</span> r0<span class="sh_symbol">,</span> c2<span class="sh_symbol">,</span> i<span class="sh_symbol">)</span> <span class="sh_symbol">+</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span>r0 <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> c1<span class="sh_symbol">,</span> r2<span class="sh_symbol">,</span> c2<span class="sh_symbol">,</span> k <span class="sh_symbol">-</span> i<span class="sh_symbol">));</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>c0 <span class="sh_symbol">=</span> c1<span class="sh_symbol">;</span> c0 <span class="sh_symbol">&lt;</span> c2<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>c0<span class="sh_symbol">)</span> <span class="sh_function">down</span><span class="sh_symbol">(</span>ret<span class="sh_symbol">,</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span>r1<span class="sh_symbol">,</span> c1<span class="sh_symbol">,</span> r2<span class="sh_symbol">,</span> c0<span class="sh_symbol">,</span> i<span class="sh_symbol">)</span> <span class="sh_symbol">+</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span>r1<span class="sh_symbol">,</span> c0 <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> r2<span class="sh_symbol">,</span> c2<span class="sh_symbol">,</span> k <span class="sh_symbol">-</span> i<span class="sh_symbol">));</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> ret<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>r<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>c<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> r<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>t<span class="sh_symbol">);</span>
+            s<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> s<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> s<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> t<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span> <span class="sh_comment">// fill NaN to f[]</span>
+    average <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)</span>s<span class="sh_symbol">[</span>r<span class="sh_symbol">][</span>c<span class="sh_symbol">]</span> <span class="sh_symbol">/</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)</span>n<span class="sh_symbol">;</span>
+    avrQuad <span class="sh_symbol">=</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> r<span class="sh_symbol">,</span> c<span class="sh_symbol">,</span> n<span class="sh_symbol">)</span> <span class="sh_symbol">/</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)</span>n<span class="sh_symbol">;</span>
+    <span class="sh_comment">// V(X) = (E(X^2) - E^2(X))/n, D(X) = sqrt(V(X))</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%.2lf</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> <span class="sh_function">sqrt</span><span class="sh_symbol">(</span>avrQuad <span class="sh_symbol">-</span> average <span class="sh_symbol">*</span> average<span class="sh_symbol">));</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>浮点数预处理这东西没有必要写一个笨拙的五重循环，可以使用神奇的 <code>memset()</code> 方法。比如说将浮点数组 <code>f[]</code> 进行 <code>memset(f, 127, sizeof f)</code> 后就得到了非常大的数 (<code>1.38e306</code>，但不是 <code>inf</code>)，将 <code>f[]</code> 进行 <code>memset(f, -1, sizeof f)</code> 后就可以得到 <code>nan</code>。</p>
+<p>然后就可以利用 <code>inf</code> 或 <code>nan</code> 来判断是否搜索到过，比如说本题代码就是用了 <code>ret == ret</code> 来判断它是不是 <code>nan</code>。</p>
+<p><strong>坑1：</strong>然后就是可以使用数组引用，减少高维数组的寻址来减少常数。</p>
+

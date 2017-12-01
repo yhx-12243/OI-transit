@@ -1,0 +1,96 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>Alice、Bob 和 Cynthia 总是为他们之间混乱的债务而烦恼，终于有一天，他们决定坐下来一起解决这个问题。</p>
+<p>不过，鉴别钞票的真伪是一件很麻烦的事情，于是他们决定要在清还债务的时候尽可能少的交换现金。</p>
+<p>比如说，Alice 欠 Bob $10$ 元，而 Cynthia 和他俩互不相欠。现在假设 Alice 只有一张 $50$ 元，Bob 有 $3$ 张 $10$ 元和 $10$ 张 $1$ 元，Cynthia 有 $3$ 张 $20$ 元。一种比较直接的做法是：Alice将 $50$ 元交给 Bob，而 Bob 将他身上的钱找给 Alice，这样一共就会有 $14$ 张钞票被交换。</p>
+<p>但这不是最好的做法，最好的做法是：Alice 把 $50$ 块给 Cynthia，Cynthia 再把两张 $20$ 给Alice，另一张 $20$ 给 Bob，而 Bob 把一张 $10$ 块给 C，此时只有 $5$ 张钞票被交换过。没过多久他们就发现这是一个很棘手的问题，于是他们找到了精通数学的你为他们解决这个难题。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含三个整数：$x_1, x_2, x_3$ ($-1000 \leq x_1, x_2, x_3 \leq 1000$)，其中 $x_1$ 代表 Alice 欠 Bob 的钱 (如果 $x_1$ 是负数，说明 Bob 欠了 Alice 的钱)，$x_2$ 代表 Bob 欠 Cynthia 的钱 (如果 $x_2$ 是负数，说明 Cynthia 欠了 Bob 的钱)，$x_3$ 代表 Cynthia 欠 Alice 的钱 (如果 $x_3$ 是负数，说明 Alice 欠了 Cynthia 的钱)。</p>
+<p>接下来有三行，每行包含 $6$ 个非负整数：</p>
+<p>$a_{100}, a_{50}, a_{20}, a_{10}, a_5, a_1$</p>
+<p>$b_{100}, b_{50}, b_{20}, b_{10}, b_5, b_1$</p>
+<p>$c_{100}, c_{50}, c_{20}, c_{10}, c_5, c_1$</p>
+<p>$a_{100}$ 表示 Alice 拥有的 $100$ 元钞票张数，$b_{50}$ 表示 Bob 拥有的 $50$ 元钞票张数，以此类推。</p>
+<p>另外，我们保证有 $a_{10} + a_5 + a_1 \leq 30, b_{10} + b_5 + b_1 \leq 30, c_{10} + c_5 + c_1 \leq 30$，而且三人总共拥有的钞票面值总额不会超过 $1000$。</p>
+
+<h3>输出格式</h3>
+<p>如果债务可以还清，则输出需要交换钞票的最少张数；如果不能还清，则输出 <code>impossible</code> (注意单词全部小写)。</p>
+
+<h3>题解</h3>
+<p>首先可以注意到，对于每种面值，它们之间的交换式互相独立的，因此我们可以对每种面值分开考虑。</p>
+<p>可以先预处理出三个人原有的钱数和最终应该有的钱数。然后对每种面值进行考虑，可以发现，在任意时刻，<strong>它们钱数的总和是一定的</strong>，因此考虑使用 DP。</p>
+<p>记 $f_{i, x, y}$ 表示交换了前 $i$ 种面值的钞票，此时 Alice 有 $x$ 元，Bob 有 $y$ 元 (Cynthia 的钱可以计算出来) 时，最小的交换次数，如果不存在，则为 $+ \infty$。</p>
+<p>显然初始有 $f_{0, x, y} = 0$，其中 $x, y$ 分别为 Alice 和 Bob 的钱数。</p>
+<p>考虑对一非无穷 $f_{i, x, y}$，设此时 Cynthia 有 $z$ 元，枚举下一种面值的钞票的分配情况 (由于总数一定)，可以计算出下一轮三个人拥有的钱数 $x', y', z'$，那么，只需要计算出那种面值的钞票需要转移多少次。</p>
+<p>记对于面值 $i$，原来三个人分别有 $a_i, b_i, c_i$ 张，后来变成了 $a'_i, b'_i, c'_i$，由于一定是三个人转移一定是一给二或二给一，因此易推出 (最小) 转移的次数为</p>
+<p>$$ f(i) = \frac {\left| a_i - a'_i \right| + \left| b_i - b'_i \right| + \left| c_i - c'_i \right|} 2 $$</p>
+<p>，当然，如果此时 $x', y', z' \geq 0$，则有转移方程</p>
+<p>$$ f_{i+1, x', y'} \downarrow f_{i, x, y} + f(i) $$</p>
+<p>那么答案就是 $f_{6, X, Y}$，其中 $X, Y$ 为最终钱数。时间复杂度为 $O(6W^2C^2)$，$6$ 为面值的个数，$W$ 为钱数，$C$ 为同一张钞票的最大个数，不超过 $30$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">1034</span>
+<span class="sh_preproc">#define</span> INF <span class="sh_number">0x3f3f3f3f</span>
+<span class="sh_preproc">#define</span> count scx
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">const</span> <span class="sh_type">int</span> value<span class="sh_symbol">[</span><span class="sh_number">6</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_cbracket">{</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">5</span><span class="sh_symbol">,</span> <span class="sh_number">10</span><span class="sh_symbol">,</span> <span class="sh_number">20</span><span class="sh_symbol">,</span> <span class="sh_number">50</span><span class="sh_symbol">,</span> <span class="sh_number">100</span><span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> x<span class="sh_symbol">,</span> y<span class="sh_symbol">,</span> z<span class="sh_symbol">,</span> X<span class="sh_symbol">,</span> Y<span class="sh_symbol">,</span> Z<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> l<span class="sh_symbol">,</span> sum<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> m<span class="sh_symbol">[</span><span class="sh_number">3</span><span class="sh_symbol">],</span> n<span class="sh_symbol">[</span><span class="sh_number">3</span><span class="sh_symbol">],</span> c<span class="sh_symbol">[</span><span class="sh_number">3</span><span class="sh_symbol">][</span><span class="sh_number">6</span><span class="sh_symbol">],</span> count<span class="sh_symbol">[</span><span class="sh_number">6</span><span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span><span class="sh_number">7</span><span class="sh_symbol">][</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">int</span> <span class="sh_function">dist</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">,</span> <span class="sh_type">int</span> z<span class="sh_symbol">,</span> <span class="sh_type">int</span> nx<span class="sh_symbol">,</span> <span class="sh_type">int</span> ny<span class="sh_symbol">,</span> <span class="sh_type">int</span> nz<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> <span class="sh_function">abs</span><span class="sh_symbol">(</span>x <span class="sh_symbol">-</span> nx<span class="sh_symbol">)</span> <span class="sh_symbol">+</span> <span class="sh_function">abs</span><span class="sh_symbol">(</span>y <span class="sh_symbol">-</span> ny<span class="sh_symbol">)</span> <span class="sh_symbol">+</span> <span class="sh_function">abs</span><span class="sh_symbol">(</span>z <span class="sh_symbol">-</span> nz<span class="sh_symbol">)</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>y<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>z<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">3</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">5</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">--</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> c<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> j<span class="sh_symbol">);</span>
+            m<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> c<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> value<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span>
+            count<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> c<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+    n<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> m<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">-</span> x <span class="sh_symbol">+</span> z<span class="sh_symbol">;</span>
+    n<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> m<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">-</span> y <span class="sh_symbol">+</span> x<span class="sh_symbol">;</span>
+    n<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> m<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">]</span> <span class="sh_symbol">-</span> z <span class="sh_symbol">+</span> y<span class="sh_symbol">;</span>
+    sum <span class="sh_symbol">=</span> m<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> m<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> m<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">];</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_number">63</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+    f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span>m<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]][</span>m<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">6</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>x <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> x <span class="sh_symbol">&lt;=</span> sum<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>x<span class="sh_symbol">)</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>y <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> x <span class="sh_symbol">+</span> y <span class="sh_symbol">&lt;=</span> sum<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>y<span class="sh_symbol">)</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>x<span class="sh_symbol">][</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> INF<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                    z <span class="sh_symbol">=</span> sum <span class="sh_symbol">-</span> x <span class="sh_symbol">-</span> y<span class="sh_symbol">;</span>
+                    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> count<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+                        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">+</span> k <span class="sh_symbol">&lt;=</span> count<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                            l <span class="sh_symbol">=</span> count<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> j <span class="sh_symbol">-</span> k<span class="sh_symbol">;</span>
+                            X <span class="sh_symbol">=</span> x <span class="sh_symbol">+</span> value<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>j <span class="sh_symbol">-</span> c<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span>i<span class="sh_symbol">]);</span>
+                            Y <span class="sh_symbol">=</span> y <span class="sh_symbol">+</span> value<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>k <span class="sh_symbol">-</span> c<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>i<span class="sh_symbol">]);</span>
+                            Z <span class="sh_symbol">=</span> z <span class="sh_symbol">+</span> value<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>l <span class="sh_symbol">-</span> c<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">][</span>i<span class="sh_symbol">]);</span>
+                            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>X <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span> <span class="sh_symbol">&amp;&amp;</span> Y <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span> <span class="sh_symbol">&amp;&amp;</span> Z <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">)</span>
+                                <span class="sh_function">down</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>X<span class="sh_symbol">][</span>Y<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>x<span class="sh_symbol">][</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_function">dist</span><span class="sh_symbol">(</span>c<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span>i<span class="sh_symbol">],</span> c<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>i<span class="sh_symbol">],</span> c<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">][</span>i<span class="sh_symbol">],</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> l<span class="sh_symbol">));</span>
+                        <span class="sh_cbracket">}</span>
+                <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>n<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span> <span class="sh_symbol">||</span> n<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span> <span class="sh_symbol">||</span> n<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span> <span class="sh_symbol">||</span> f<span class="sh_symbol">[</span><span class="sh_number">6</span><span class="sh_symbol">][</span>n<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]][</span>n<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]]</span> <span class="sh_symbol">&gt;=</span> INF<span class="sh_symbol">)</span> <span class="sh_function">puts</span><span class="sh_symbol">(</span><span class="sh_string">"impossible"</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">else</span> <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> f<span class="sh_symbol">[</span><span class="sh_number">6</span><span class="sh_symbol">][</span>n<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]][</span>n<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>最终判断答案 <code>impossible</code> 的条件式 $X &lt; 0 \vee Y &lt; 0 \vee Z &lt; 0 \vee f_{6, X, Y} = +\infty$，不要写错了。</p>
+

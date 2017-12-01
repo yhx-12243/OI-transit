@@ -1,0 +1,66 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>一共有 $4$ 种硬币。面值分别为 $c_1, c_2, c_3, c_4$。某人去商店买东西，去了 $tot$ 次。每次带 $d_i$ 枚 $c_i$ 硬币，买 $s$ 的价值的东西。请问每次有多少种付款方法。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含 $5$ 个非负整数 $c_1, c_2, c_3, c_4, tot$ ($c_i \leq 10^5, tot \leq 1000$)。</p>
+<p>接下来的 $tot$ 行，每行包含 $5$ 个非负整数 $d_1, d_2, d_3, d_4, s$ ($d_i, s \leq 10^5$)。</p>
+
+<h3>输出格式</h3>
+<p>输出 $tot$ 行，每行一个整数，代表对应的方法数。</p>
+
+<h3>题解</h3>
+<p>首先，看到这道题应该可以先想到是背包 DP，不过裸的背包 DP 复杂度会达到 $O(4ns)$ ($n$ 为原题中的 $tot$)，过不去。</p>
+<p>换种角度，如果 $d_i$ 都充分大，那么就无需考虑硬币不够用的情况了，那么可以发现没有必要去做 $s$ 次 DP，只需做一次 DP 然后存下来即可。</p>
+<p>(scx: 如果出现硬币不够用的情况呢？)</p>
+<p>首先，还是假装 $d_i$ 都充分大，做一次 DP，那么 $f_s$ 就表示<strong>可能会不够用</strong>的情况的方案数，那怎么求不够用的总方案数呢？</p>
+<p>记命题 $P_i$ ($1 \leq i \leq 4$) 表示第 $i$ 种硬币不够用，则由容斥原理，我们只需要求若干总硬币不够用的情况即可。</p>
+<p>比如说第 $i$ 种硬币不够用，那么就是说明第 $i$ 种硬币<strong>使用了至少 $d_i + 1$ 个</strong>，而这样的方案有多少种捏？显然要 $s \geq c_i (d_i + 1)$，那么剩余的 $s - c_i (d_i + 1)$ 可以随意分配，相当于是原问题的一个 (已解决的) 子问题。</p>
+<p>当然，如果 $s &lt; c_i (d_i + 1)$，那么说明这种硬币显然不会不够用，方案数当然为 $0$ 啦。并且，多个硬币的情况也是类似的。</p>
+<p>于是利用容斥原理，只需要进行一次 DP 即可得到答案，时间复杂度 $O(4s + 2^4 n)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">100034</span>
+<span class="sh_preproc">#define</span> parity __builtin_parity
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> q<span class="sh_symbol">,</span> s<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> c<span class="sh_symbol">[</span><span class="sh_number">4</span><span class="sh_symbol">],</span> d<span class="sh_symbol">[</span><span class="sh_number">4</span><span class="sh_symbol">];</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> ans<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_function">F</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> x <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span> <span class="sh_symbol">?</span> f<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d%d%d"</span><span class="sh_symbol">,</span> c<span class="sh_symbol">,</span> c <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> c <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> c <span class="sh_symbol">+</span> <span class="sh_number">3</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>q<span class="sh_symbol">);</span>
+    f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">4</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> c<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> j <span class="sh_symbol">&lt;</span> N<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            f<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> f<span class="sh_symbol">[</span>j <span class="sh_symbol">-</span> c<span class="sh_symbol">[</span>i<span class="sh_symbol">]];</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> q<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>q<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d%d%d"</span><span class="sh_symbol">,</span> d<span class="sh_symbol">,</span> d <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> d <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> d <span class="sh_symbol">+</span> <span class="sh_number">3</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+        <span class="sh_symbol">++</span>d<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">];</span> <span class="sh_symbol">++</span>d<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">];</span> <span class="sh_symbol">++</span>d<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">];</span> <span class="sh_symbol">++</span>d<span class="sh_symbol">[</span><span class="sh_number">3</span><span class="sh_symbol">];</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>ans <span class="sh_symbol">=</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">16</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>s <span class="sh_symbol">=</span> n<span class="sh_symbol">,</span> j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> <span class="sh_number">4</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">&gt;&gt;</span> j <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span>
+                    s <span class="sh_symbol">-=</span> c<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">*</span> d<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span>
+            ans <span class="sh_symbol">+=</span> <span class="sh_function">parity</span><span class="sh_symbol">(</span>i<span class="sh_symbol">)</span> <span class="sh_symbol">?</span> <span class="sh_symbol">-</span><span class="sh_function">F</span><span class="sh_symbol">(</span>s<span class="sh_symbol">)</span> <span class="sh_symbol">:</span> <span class="sh_function">F</span><span class="sh_symbol">(</span>s<span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>有哪些硬币不够用，就把哪些硬币所对应的价值减掉，再乘以 $(-1)^k$，其中 $k$ 是不够用的硬币的个数。注意在减去 DP 值的时候要满足 $s \geq \sum c_i (d_i + 1)$，否则直接为 $0$。</p>
+

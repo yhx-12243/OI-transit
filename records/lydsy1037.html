@@ -1,0 +1,69 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>今天是 scx 的生日，她邀请了许多朋友来参加她的生日 party。scx 带着朋友们来到花园中，打算坐成一排玩游戏。</p>
+<p>为了游戏不至于无聊，就座的方案应满足如下条件：对于任意连续的一段，男孩与女孩的数目之差不超过 $k$。很快，小朋友便找到了一种方案坐了下来开始游戏。</p>
+<p>scx 的好朋友 sse 发现，这样的就座方案其实是很多的，所以大家很快就找到了一种，那么到底有多少种呢？</p>
+<p>热爱数学的 scx 和她的朋友们开始思考这个问题：假设参加 party 的人中共有 $n$ 个男孩与 $m$ 个女孩，你是否能解答 scx 和 sse 的疑问呢？由于这个数目可能很多，她们只想知道这个数目除以 $12345678$ 的余数。</p>
+
+<h3>输入格式</h3>
+<p>共一行，包含三个非负整数 $n, m, k$ ($n, m \leq 150, k \leq 20$)，分别表示男孩数目、女孩数目和给定的常数。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示方案数模 $12345678$ 的值。</p>
+
+<h3>题解</h3>
+<p>假如说这道题的题目改为 "对于任意前 $l$ 个人 (即一个前缀)，男孩与女孩的数目之差不超过 $k$"，很容易想到，应该用 DP，用两维记录当前男孩个数的女孩个数，然后转移。</p>
+<p>考虑原题，继续考虑 DP。由于不仅是前缀，而且任意一个子串都要满足要求，因此 $k = 1$ 时像 $\texttt{bgg}$ 一样的就不行了 (存在子串 $\texttt{g}$)，因此单纯地二维 DP 就不够了。</p>
+<p>不过我们发现，每次往后加一个人，能造成影响的子串就是包含最后一个人的所有子串 (即后缀)，因此我们考虑记录<strong>后缀的男女之差</strong>，于是可以这样记录状态：</p>
+<p>用 $f_{i, j, k, l}$ 表示当前用了 $i$ 个男孩，$j$ 个女孩，且<strong>它的所有后缀</strong>中 (包括空串)，男孩个数 - 女孩个数的最大值为 $k$，女孩个数 - 男孩个数的最大值为 $l$，满足条件的方案数。那么显然有边界 $f_{0, 0, 0, 0} = 1$。 (ps: 此处及以后用 $K$ 代表原题中的 $k$，而 $k$ 只是一个普通的下标变量)</p>
+<p>考虑状态 $(i, j, k, l)$，如果后面放一个男孩，可以发现 $i$ 值加 $1$，$j$ 值不变，$k$ 值——即男孩个数 - 女孩个数的最大值——将会增加 $1$，$l$ 值——即女孩个数 - 男孩个数的最大值，如果它非 $0$，将会减少 $1$，如果它为 $0$，那么它将还是 $0$，因为<strong>空串中</strong>这个差值为 $0$。</p>
+<p>那么一来，后面放一个男孩的转移方程就是 $$ f_{i+1, j, k+1, \max \{0, l-1\} } \uparrow f_{i, j, k, l} $$</p>
+<p>完全类似地，后面放一个女孩的转移方程就是 $$ f_{i, j+1, \max \{0, k-1\}, l+1} \uparrow f_{i, j, k, l} $$</p>
+<p>不过要注意的是，以上两种转移都需要保证新的下标 $i \leq n, j \leq m$，且 (新的) $k, l \leq K$。</p>
+<p>枚举最终状态的任意差值 $k, l$，就有答案为 $\sum\limits_{k, l} f_{n, m, k, l}$，时空复杂度均为 $O(nmK^2)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">170</span>
+<span class="sh_preproc">#define</span> K <span class="sh_number">24</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">const</span> <span class="sh_type">int</span> mod <span class="sh_symbol">=</span> <span class="sh_number">12345678</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> D<span class="sh_symbol">,</span> ans <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> l<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">][</span>K<span class="sh_symbol">][</span>K<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">add</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_symbol">(</span>x <span class="sh_symbol">+=</span> y<span class="sh_symbol">)</span> <span class="sh_symbol">&gt;=</span> mod <span class="sh_symbol">?</span> x <span class="sh_symbol">-=</span> mod <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>m<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>D<span class="sh_symbol">);</span>
+    f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;=</span> i <span class="sh_symbol">&amp;&amp;</span> k <span class="sh_symbol">&lt;=</span> D<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>l <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> l <span class="sh_symbol">&lt;=</span> j <span class="sh_symbol">&amp;&amp;</span> l <span class="sh_symbol">&lt;=</span> D<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>l<span class="sh_symbol">)</span>
+                    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+                        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">&lt;</span> n <span class="sh_symbol">&amp;&amp;</span> k <span class="sh_symbol">&lt;</span> D<span class="sh_symbol">)</span>
+                            <span class="sh_function">add</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span><span class="sh_function">max</span><span class="sh_symbol">(</span><span class="sh_number">0</span><span class="sh_symbol">,</span> l <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">)],</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">]);</span>
+                        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>j <span class="sh_symbol">&lt;</span> m <span class="sh_symbol">&amp;&amp;</span> l <span class="sh_symbol">&lt;</span> D<span class="sh_symbol">)</span>
+                            <span class="sh_function">add</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span><span class="sh_function">max</span><span class="sh_symbol">(</span><span class="sh_number">0</span><span class="sh_symbol">,</span> k <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">)][</span>l <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">]);</span>
+                    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;=</span> D<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>l <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> l <span class="sh_symbol">&lt;=</span> D<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>l<span class="sh_symbol">)</span>
+            <span class="sh_function">add</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>n<span class="sh_symbol">][</span>m<span class="sh_symbol">][</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">]);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>要注意转移的时候，原先的 $k$ (或 $l$) 需要<strong>严格小于</strong> $K$，才能保证 $+ 1$ 后不超过 $K$。</p>
+<p><strong>坑2：</strong>取模不要忘记。</p>
+
