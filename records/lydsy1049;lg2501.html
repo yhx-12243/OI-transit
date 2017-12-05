@@ -1,0 +1,105 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>有一个长度为 $n$ 的整数序列 $A$，<del>但是它太不好看了</del>，于是我们希望把它变成一个单调严格上升的序列。但是不希望改变过多的数，也不希望改变的幅度太大。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $n$ ($n \leq 35000$)。</p>
+<p>第二行包含 $n$ 个整数，按顺序描述每一项的键值，保证所有数列是随机的。</p>
+
+<h3>输出格式</h3>
+<p>第一行输出一个整数，表示最少需要改变多少个数。</p>
+<p>第二行输出一个整数，表示在改变的数最少的情况下，每个数改变的<strong>绝对值之和</strong>的最小值。</p>
+
+<h3>题解</h3>
+<p>由于最少改变多少个数不怎么直观，于是考虑它的反面——最多有多少个数不改变。</p>
+<p>如果 $a_i$ 和 $a_j$ 都不改变 ($i &lt; j$)，那么它们要满足什么要求呢？</p>
+<p>假如说中间的都可以改变，那么由最终数列的<strong>严格递增</strong>特性，必须有 $a_i &lt; a_{i+1} &lt; \cdots &lt; a_{j-1} &lt; a_j$，由整数的离散型，就有 $a_i \leq a_{i+1} - 1 \leq a_{i+2} - 2 \leq \cdots \leq a_j - (j - i)$，化简后得到 $a_i - i \leq a_j - j$。</p>
+<p>于是我们令 $b_i = a_i - i$，则这个条件就等价于 $b_i \leq b_j$，也就是说，不改变的数所对应的 $\{b_i\}$ 数列是单调递增的。</p>
+<p style="color: red">(注意：$\{b_i\}$ 单调递增不等价于 $\{a_i\}$ 严格递增，可以考虑这个例子：<code>2 5 3 1 4</code>，其中 $a_1 &lt; a_3 &lt; a_5$，而对应的 $\{b_i\}$ 为 <code>1 3 0 -3 -1</code>，不满足 $b_1 \leq b_3 \leq b_5$。)</p>
+<p>于是我们只需要求出数列 $\{b_i\}$ 的最长 (非严格) 递增子序列，此即不改变的数的最大数量 $l$，那么改变的数的最小数量就等于 $n - l$。</p>
+<p>然后是第二问，注意题目，是<strong>满足改变的数为 $n - l$ 的情况</strong>下，绝对值之和的最小值。</p>
+<p>还是考虑 $\{b_i\}$ 数组，可以看出，它的实际意义就是改变一些数让 $\{b_i\}$ 单调 (非严格) 递增，并且有 $l$ 个数是不能动的，于是考虑以这 $l$ 个数作为状态进行 DP。</p>
+<p>记 $g_i$ 为使前 $i$ 个数满足要求的最小花费，<strong>且 $b_i$ 是一个不动的数</strong>。则有初始状态 $g_0 = g_1 = 0$。考虑转移，枚举上一个不动的数 $j$，并记 $f_i$ 为前 $i$ 个数的 <abbr title="Longest Increasing Subsequence, 最长上升子序列">LIS</abbr> 的长度，则有转移方程</p>
+<p>$$ g_i = \min_{0 \leq j &lt; i, b_j \leq b_i \\ f_i = f_j + 1} \left\{ g_j + w_{j, i} \right\} $$</p>
+<p>其中 $w_{j, i}$ 表示 $b_j$ 和 $b_i$ 不动，适当调整 $\{b_i\}$ 下标在 $[j, i]$ 中的数，使其变为(非严格) 递增所需的最小花费。</p>
+<p>如何求 $w_{j, i}$ 的事情我们先放一放，先考虑这样 DP 的结果。最终的答案就是 $g_n$ 吗？并不是。</p>
+<p>由于 $g_n$ 的意义是<strong>使所有数满足要求，且 $b_n$ 不动</strong>的最小花费。然而 $b_n$ 不一定要不动啊！</p>
+<p>举个例子，$\{b_i\}$ 为 <code>3 2 2 1</code>，最优方案显然是 $b_1$ 减 $1$，$b_4$ 加 $1$，花费为 $2$，如果 $b_4$ 不动，则花费至少是 $4$！可见答案并不是 $g_n$。</p>
+<p>(scx: 那该怎么解决呢？)</p>
+<p>其实并不难，我们只需<span style="color: red">令 $b_{n+1} = + \infty$</span>，这样下来一定会有 $f_{n+1} = f_n + 1$，<strong>且 $b_{n+1}$ 一定是不动的</strong> (否则花费就是无穷大了！)，因此，$g_{n+1}$ 就是正确的答案。</p>
+<p>最后是如何求 $w_{i, j}$ 的问题。由于 $b_i, b_j$ 不动，故只能调整 $[i+1, j-1]$ 中的数使其递增。记最终调整后的序列为 $b_i, b'_{i+1}, b'_{i+2}, \cdots, b'_{j-1}, b_j$，最终的结论是：</p>
+<p>$$ \exists k \in \left[ i, j \right), b_i = b'_{i+1} = b'_{i+2} = \cdots = b'_k, \ b'_{k+1} = b'_{k+2} = \cdots = b'_{j-1} = b_j $$</p>
+<p>接下来试着证明一下 (<a href="#finished">跳过证明</a>)。以下标为横坐标，$\{b_i\}$ 为纵坐标，将每个数看作二维平面上的一个点，如下图：</p>
+<img class="center-block" src="uploads/11.png" alt="二维平面中的点">
+<p>过 $(i, b_i)$ 和 $(j, b_j)$ 做垂直于 $y$ 轴的直线，很显然，这两条直线中间显然没有横坐标在区间 $\left( i, j \right)$ 中的点 (否则就不满足 $f_i = f_j + 1$ 了)。</p>
+<p>接下来根据 $j - i$ 使用归纳法证明。显然 $j - i \leq 3$ 时结论成立。</p>
+<p>假设当 $j - i &lt; n$ 时成立，考虑 $j - i = n$ 时：</p>
+<p>若存在 $k \in \left(i, j-1 \right)$ 使得 $b_k &gt; b_j, b_{k+1} &lt; b_i$，则有 $b'_k = b'_{k+1}$，否则我们可以强制令 $b'_{k+1} \gets b'_k$ 或 $b'_k \gets b'_{k+1}$，仍然满足题意，且花费变少，如下图：</p>
+<img class="center-block" src="uploads/12.png" alt="一个性质"></img>
+<p>则最终不论 $b'_k = b'_{k+1} = \alpha$ 的 $\alpha$ 是多少，这个绝对值和是固定的，于是可以将它们忽略，对剩下的 $n-3$ 个元素使用 ($n-2$ 的) 归纳假设即可。</p>
+<p>若不存在 $k$ 满足上述条件，则必存在某个 $l$ 使得 $b_{i+1}, \cdots, b_l &lt; b_i, b_{l+1}, \cdots, b_{j-1} &gt; b_j$，则显然用最贪心地方法，让 $\left( i, l \right]$ 中的元素都跑到 $b_i$，其余元素跑到 $b_j$ 即可。</p>
+<p id="finished">于是结论成立，我们可以直接枚举结论中的 $k$ 是哪个数，用前缀和或者直接调整计算即可。</p>
+<p>总时间复杂度 $O(n^2)$，由于数据随机，$n = 35000$ 大概要跑 $150 \texttt{ ms}$ 左右。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">35034</span>
+<span class="sh_preproc">#define</span> INF <span class="sh_number">0x3f3f3f3f</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> cnt<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> a<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> D<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> prv<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> up<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> down<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>g<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> r<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">downll</span><span class="sh_symbol">(</span><span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">bool</span> <span class="sh_function">cmp</span><span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> a<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> a<span class="sh_symbol">[</span>y<span class="sh_symbol">];</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+        a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> i<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    prv<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span> a<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> INT_MIN<span class="sh_symbol">;</span>
+    D<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    D<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> cnt <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    g<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> g<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    a<span class="sh_symbol">[++</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> INF<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        j <span class="sh_symbol">=</span> <span class="sh_function">upper_bound</span><span class="sh_symbol">(</span>D <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> D <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>cnt <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">),</span> i<span class="sh_symbol">,</span> cmp<span class="sh_symbol">)</span> <span class="sh_symbol">-</span> D<span class="sh_symbol">;</span>
+        f<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> j<span class="sh_symbol">;</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>j <span class="sh_symbol">&gt;</span> cnt<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>prv<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span> D<span class="sh_symbol">[++</span>cnt<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+        <span class="sh_keyword">else</span> <span class="sh_cbracket">{</span>prv<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> D<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span> D<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        g<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> LLONG_MAX<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> D<span class="sh_symbol">[</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">];</span> j <span class="sh_symbol">&gt;</span> i<span class="sh_symbol">;</span> j <span class="sh_symbol">=</span> prv<span class="sh_symbol">[</span>j<span class="sh_symbol">]);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> <span class="sh_symbol">~</span>j <span class="sh_symbol">&amp;&amp;</span> a<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> j <span class="sh_symbol">=</span> prv<span class="sh_symbol">[</span>j<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+            r <span class="sh_symbol">=</span> g<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                r <span class="sh_symbol">+=</span> <span class="sh_symbol">(</span>up<span class="sh_symbol">[</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">abs</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">]));</span>
+                down<span class="sh_symbol">[</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">abs</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> a<span class="sh_symbol">[</span>j<span class="sh_symbol">]);</span>
+            <span class="sh_cbracket">}</span>
+            <span class="sh_function">downll</span><span class="sh_symbol">(</span>g<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> r<span class="sh_symbol">);</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> j <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span>
+                <span class="sh_function">downll</span><span class="sh_symbol">(</span>g<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> r <span class="sh_symbol">+=</span> down<span class="sh_symbol">[</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> up<span class="sh_symbol">[</span>k<span class="sh_symbol">]);</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> n <span class="sh_symbol">-</span> cnt<span class="sh_symbol">,</span> g<span class="sh_symbol">[</span>n<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>DP 时要善于记录方案，如这道题中的 $g_i$：如果只记 $g_i$ 为前 $i$ 个数的最小花费，那就不好转移了。如果加上条件 <span style="color: red">且 $b_i$ 不动</span>，那么就很好转移了。当然，也要理清楚最终的答案式怎么得到的，是不是 $g_n$ 就是答案，还是要进行什么操作。</p>
+

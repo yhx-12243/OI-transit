@@ -1,0 +1,72 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>在一个 $4 \times 4$ 的方框内摆放了若干个相同的玩具，scx 想将这些玩具重新摆放成为她心中理想的状态。</p>
+<p>规定移动时只能将玩具向上下左右四个方向移动，并且移动的位置不能有玩具，请你用最少的移动次数将初始的玩具状态移动到她心中的目标状态。</p>
+
+<h3>输入格式</h3>
+<p>前 $4$ 行表示玩具的初始状态，每行有 $4$ 个数字，为 $1$ 或 $0$，$1$ 表示该方格中放置了玩具，$0$ 表示没有放置玩具。</p>
+<p>接着是一个空行。接下来的 $4$ 行表示玩具的目标状态，每行有 $4$ 个数字，为 $1$ 或 $0$，意义同上。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，为所需要的最少移动次数。</p>
+
+<h3>题解</h3>
+<p>咋一看这道题，感觉像是一道 <code>bfs()</code>，然后发现状态数至多只有 $2^{16} = 65536$ 个 (其实最大值为 $\dbinom {16} 8 = 12870$ 个)，于是考虑把可行状态记录下来<strong>记忆化搜索</strong>。</p>
+<p>使用 <code>bfs()</code> 那肯定是枚举每一个玩具，看它周围有没有玩具，如果没有，就朝该方向移动。并记录状态，如果发现重复了 (由于是 <code>bfs()</code>)，那就直接舍弃。</p>
+<p>记录状态时，可以利用二进制的思想，状态压缩到 $0 \sim 65535$ 之间的整数。</p>
+<p>具体也不多啰嗦了，那就讲一个小优化，枚举每一个玩具需要 $1 \sim 2$ 层 <code>for</code>，再枚举周围又要一层 <code>for</code>。其实我们只需要枚举<strong>每一对相邻的格子</strong>，如果其中恰好有一个玩具，则将这两个格子的 $0/1$ 值反转，用位运算实现尤为方便。</p>
+<p>(有人说要 Hash？一共就 $2^{16}$ 种状态，直接状态压缩就可以了，没必要 Hash 的。)</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">85367</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">const</span> <span class="sh_type">int</span> trans<span class="sh_symbol">[</span><span class="sh_number">24</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_cbracket">{</span><span class="sh_number">0x0003</span><span class="sh_symbol">,</span> <span class="sh_number">0x0006</span><span class="sh_symbol">,</span> <span class="sh_number">0x000c</span><span class="sh_symbol">,</span> <span class="sh_number">0x0030</span><span class="sh_symbol">,</span> <span class="sh_number">0x0060</span><span class="sh_symbol">,</span> <span class="sh_number">0x00c0</span><span class="sh_symbol">,</span> <span class="sh_number">0x0300</span><span class="sh_symbol">,</span> <span class="sh_number">0x0600</span><span class="sh_symbol">,</span> <span class="sh_number">0x0c00</span><span class="sh_symbol">,</span> <span class="sh_number">0x3000</span><span class="sh_symbol">,</span> <span class="sh_number">0x6000</span><span class="sh_symbol">,</span> <span class="sh_number">0xc000</span><span class="sh_symbol">,</span>
+                       <span class="sh_number">0x0011</span><span class="sh_symbol">,</span> <span class="sh_number">0x0022</span><span class="sh_symbol">,</span> <span class="sh_number">0x0044</span><span class="sh_symbol">,</span> <span class="sh_number">0x0088</span><span class="sh_symbol">,</span> <span class="sh_number">0x0110</span><span class="sh_symbol">,</span> <span class="sh_number">0x0220</span><span class="sh_symbol">,</span> <span class="sh_number">0x0440</span><span class="sh_symbol">,</span> <span class="sh_number">0x0880</span><span class="sh_symbol">,</span> <span class="sh_number">0x1100</span><span class="sh_symbol">,</span> <span class="sh_number">0x2200</span><span class="sh_symbol">,</span> <span class="sh_number">0x4400</span><span class="sh_symbol">,</span> <span class="sh_number">0x8800</span><span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> init<span class="sh_symbol">,</span> final<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> que<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">read</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> c<span class="sh_symbol">,</span> ret <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">int</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">16</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">do</span> c <span class="sh_symbol">=</span> <span class="sh_function">getchar</span><span class="sh_symbol">();</span> <span class="sh_keyword">while</span><span class="sh_symbol">(</span>c <span class="sh_symbol">&lt;=</span> <span class="sh_number">32</span><span class="sh_symbol">);</span>
+        ret <span class="sh_symbol">=</span> ret <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span> <span class="sh_symbol">|</span> <span class="sh_symbol">(</span>c <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> ret<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">bfs</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> h<span class="sh_symbol">,</span> t <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> x<span class="sh_symbol">,</span> y<span class="sh_symbol">;</span>
+    que<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> init<span class="sh_symbol">;</span> f<span class="sh_symbol">[</span>init<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>init <span class="sh_symbol">==</span> final<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>h <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> h <span class="sh_symbol">&lt;</span> t<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>h<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        x <span class="sh_symbol">=</span> que<span class="sh_symbol">[</span>h<span class="sh_symbol">];</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">24</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">((</span>y <span class="sh_symbol">=</span> x <span class="sh_symbol">&amp;</span> trans<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">(</span>y <span class="sh_symbol">^</span> trans<span class="sh_symbol">[</span>i<span class="sh_symbol">]))</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>y <span class="sh_symbol">=</span> x <span class="sh_symbol">^</span> trans<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">&gt;</span> f<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                    f<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+                    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>y <span class="sh_symbol">==</span> final<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> f<span class="sh_symbol">[</span>y<span class="sh_symbol">];</span>
+                    que<span class="sh_symbol">[</span>t<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> y<span class="sh_symbol">;</span>
+                <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    init <span class="sh_symbol">=</span> <span class="sh_function">read</span><span class="sh_symbol">();</span> final <span class="sh_symbol">=</span> <span class="sh_function">read</span><span class="sh_symbol">();</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_number">127</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> <span class="sh_function">bfs</span><span class="sh_symbol">());</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意在 <code>bfs()</code> 的时候，不要忘记初始状态和结束状态相同的情况，此时直接输出 $0$！</p>
+

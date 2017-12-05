@@ -1,0 +1,77 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 有一套玩具，并想法给玩具命名。</p>
+<p>首先她选择 $\texttt{WING}$ 四个字母中的任意一个字母作为玩具的基本名字。然后她会根据自己的喜好，将名字中任意一个字母用 $\texttt{WING}$ 中任意两个字母代替，使得自己的名字能够扩充得很长。</p>
+<p>现在，她想请你猜猜某一个很长的名字，最初可能是由哪几个字母变形过来的。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含四个正整数 $W, I, N, G$ ($W, I, N, G \leq 16$)，表示每一个字母能由几种两个字母所替代。</p>
+<p>接下来的 $W$ 行，每行两个字母，表示 $\texttt{W}$ 可以用这两个字母替代。</p>
+<p>接下来的 $I$ 行，每行两个字母，表示 $\texttt{I}$ 可以用这两个字母替代。</p>
+<p>接下来的 $N$ 行，每行两个字母，表示 $\texttt{N}$ 可以用这两个字母替代。</p>
+<p>接下来的 $G$ 行，每行两个字母，表示 $\texttt{G}$ 可以用这两个字母替代。</p>
+<p>最后一行为一个长度不超过 $200$ 的字符串，表示这个玩具的名字。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个字符串，该名字可能由哪些字母变形而得到，按照 $\texttt{WING}$ 的顺序输出。如果给的名字不能由任何一个字母变形而得到，则输出 <code>The name is wrong!</code>。</p>
+
+<h3>题解</h3>
+<p>可以看出用 DP 解决吧。</p>
+<p>首先将 $\texttt{W, I, N, G}$ 映射为数字 ($0, 1, 2, 3$)。其次考虑字符串扩充的逆过程——合并，记 $f_{i, j, k}$ 表示原字符串的下标 $[i, j]$ 中的子串是否可以合并为 $k$ ($0/1$)，则像<a href="lydsy1032;lg2145.html" target="_blank">那题</a>一样类似地进行<strong>区间 DP</strong>。</p>
+<p>记 $k$ 可以合并为 $(x_t, y_t)$，则有 $$ f_{i, j, k} = \bigvee_{i \leq l &lt; j} \bigvee_t \left( f_{i, l, x_t} \wedge f_{l+1, j, y_t} \right) $$</p>
+<p>最终答案就是看 $f_{1, n, k}$ 中有哪些 $k$ 使得 DP 值为 $1$ 即可。时间复杂度 $O \left( n^3 (W + I + N + G) \right)$，其中 $n$ 是字符串长度。</p>
+<p><del>提个小优化</del>：由于第三维只有 $4$ 个状态 ($4 \,\mathrm{bit}$)，因此可以压缩到一个 <code>int</code> 中的 $4$ 个 $\mathrm{bit}$，再用位运算解决，可以优化掉 (数组的) 一维。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">204</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> Map<span class="sh_symbol">[</span><span class="sh_number">128</span><span class="sh_symbol">];</span> <span class="sh_comment">// Map = {'W': 0, 'I': 1, 'N': 2, 'G': 3}</span>
+
+<span class="sh_type">char</span> tok<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> m<span class="sh_symbol">[</span><span class="sh_number">4</span><span class="sh_symbol">],</span> d<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> l<span class="sh_symbol">,</span> u<span class="sh_symbol">;</span>
+<span class="sh_type">bool</span> s<span class="sh_symbol">[</span><span class="sh_number">4</span><span class="sh_symbol">][</span><span class="sh_number">16</span><span class="sh_symbol">];</span>
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    Map<span class="sh_symbol">[</span><span class="sh_number">87</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> Map<span class="sh_symbol">[</span><span class="sh_number">73</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> Map<span class="sh_symbol">[</span><span class="sh_number">78</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> Map<span class="sh_symbol">[</span><span class="sh_number">71</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">3</span><span class="sh_symbol">;</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d%d"</span><span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> m <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> m <span class="sh_symbol">+</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> m <span class="sh_symbol">+</span> <span class="sh_number">3</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">4</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> tok<span class="sh_symbol">);</span>
+            s<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>Map<span class="sh_symbol">[*</span>tok<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">2</span> <span class="sh_symbol">|</span> Map<span class="sh_symbol">[</span>tok<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]]]</span> <span class="sh_symbol">=</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> tok <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span> n <span class="sh_symbol">=</span> <span class="sh_function">strlen</span><span class="sh_symbol">(</span>tok <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> Map<span class="sh_symbol">[</span>tok<span class="sh_symbol">[</span>i<span class="sh_symbol">]];</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>d <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> d <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>d<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n <span class="sh_symbol">-</span> d<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            j <span class="sh_symbol">=</span> i <span class="sh_symbol">+</span> d<span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> <span class="sh_number">4</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>l <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> l <span class="sh_symbol">&lt;</span> <span class="sh_number">16</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>l<span class="sh_symbol">)</span>
+                    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>s<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>l<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+                        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>u <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> u <span class="sh_symbol">&lt;</span> j<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>u<span class="sh_symbol">)</span>
+                            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_symbol">(</span>l <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">2</span><span class="sh_symbol">)</span> <span class="sh_symbol">&amp;</span> f<span class="sh_symbol">[</span>u <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_symbol">(</span>l <span class="sh_symbol">&amp;</span> <span class="sh_number">3</span><span class="sh_symbol">)</span> <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                                f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">|=</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> k<span class="sh_symbol">;</span>
+                                <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+                            <span class="sh_cbracket">}</span>
+                        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>u <span class="sh_symbol">&lt;</span> j<span class="sh_symbol">)</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+                    <span class="sh_cbracket">}</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">87</span><span class="sh_symbol">);</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;</span> <span class="sh_number">2</span><span class="sh_symbol">)</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">73</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;</span> <span class="sh_number">4</span><span class="sh_symbol">)</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">78</span><span class="sh_symbol">);</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;</span> <span class="sh_number">8</span><span class="sh_symbol">)</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">71</span><span class="sh_symbol">);</span>
+    f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>n<span class="sh_symbol">]</span> <span class="sh_symbol">?</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">10</span><span class="sh_symbol">)</span> <span class="sh_symbol">:</span> <span class="sh_function">puts</span><span class="sh_symbol">(</span><span class="sh_string">"The name is wrong!"</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意枚举顺序 (先枚举 $k$)，以便在合适的地方 <code>break;</code> 掉。</p>
+<p><del><strong>坑2：</strong>其次就是字符串的数组要开大点。</del></p>
