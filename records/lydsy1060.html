@@ -1,0 +1,90 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 在电子工艺实习课上学习焊接电路板。</p>
+<p>一块电路板由若干个元件组成，我们不妨称之为节点，并将其用数字 $1, 2, 3, \cdots$ 进行标号。电路板的各个节点由若干不相交的导线相连接，且对于电路板的任何两个节点，都存在且仅存在一条通路 (通路指连接两个元件的导线序列)。</p>
+<p>在电路板上存在一个特殊的元件称为 "激发器"。当激发器工作后，产生一个激励电流，通过导线传向每一个它所连接的节点。</p>
+<p>而中间节点接收到激励电流后，得到信息，并将该激励电流传向与它连接并且尚未接收到激励电流的节点。最终，激励电流将到达一些 "终止节点"——接收激励电流之后不再转发的节点。</p>
+<p>激励电流在导线上的传播是需要花费时间的，对于每条边 $e$，激励电流通过它需要的时间为 $t(e)$，而节点接收到激励电流后的转发可以认为是在瞬间完成的。</p>
+<p>现在这块电路板要求每一个 "终止节点" 同时得到激励电路——即保持时态同步。由于当前的构造并不符合时态同步的要求，故需要通过改变连接线的构造。</p>
+<p>目前 scx 有一个道具，使用一次该道具，可以使得激励电流通过某条连接导线的时间增加一个单位。请问 scx 最少使用多少次道具才可使得所有的 "终止节点" 时态同步？</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $n$ ($n \leq 5 \times 10^5$)，表示电路板中节点的个数。</p>
+<p>第二行包含一个正整数 $S$，为该电路板的激发器的编号。</p>
+<p>接下来的 $n-1$ 行，每行三个整数 $a, b, t$ ($t \leq 10^6$)，表示该条导线连接节点 $a$ 与节点 $b$，且激励电流通过这条导线需要 $t$ 个单位时间。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数 $V$，为 scx 最少使用的道具次数。</p>
+
+<h3>题解</h3>
+<p>可以看出，这电路板相当于一个树结构，还是棵以 $S$ 为根的树。</p>
+<p>我们的目标就是增加一些权值，使得根到每个叶节点的权值之和 (记作叶节点的 "和值") 相等，并且让增加的权值的和尽可能小。</p>
+<p>那么，显然<strong>只增加</strong>叶节点所连的边的权值是可以的，但这很可能不是最小的。因为增加一个树枝可能会增加多个叶节点的 "和值"，显然更划算，因此就可以贪心地尽量往上调整。</p>
+<p>考虑两个 "和值" 不同的叶节点，那么如果要使它们的 "和值" 相同，必然要更改[以它们的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为根的子树]中的边 (否则它俩的 "和值" 是同时加，同时减的)。</p>
+<p>先 DP 出 $f_i$，即点 $i$ 到以它为根的子树中的叶节点的最远距离。记 $c_1, c_2, \cdots, c_{\lambda_i}$ 为 $i$ 的子节点，$w_1, w_2, \cdots, w_{\lambda_i}$ 分别为对应的边的权值，则 $$ f_i = \max_{1 \leq j \leq \lambda_i} \{f_{c_j} + w_j\} $$</p>
+<p>接下来归纳着思考，考虑这 $\lambda_i$ 条边需要增加多少。显然，以 $c_i$ 为根的子树中的 "和值" 必须相同，否则根据上面的结论，它们的相对 "和值" 在之后的更改中就不会变化了。</p>
+<p>于是，$i$ 的 $\lambda_i$ 个子节点对应的子树中，分别有 $\lambda_i$ 个不同的和值，且它们之间的相对 "和值" <strong>只能通过这 $\lambda_i$ 条边更改</strong>，于是肯定要把这些边的和值都改成最大的。</p>
+<p>亦即，更改后的 $w'_1, w'_2, \cdots, w'_{\lambda_i}$ 需要满足 $$ f_{c_1} + w'_1 = f_{c_2} + w'_2 = \cdots = f_{c_{\lambda_i}} + w'_{\lambda_i} $$</p>
+<p>由于只能加不能减，于是上式只能等于其中的最大值，即它们还等于 $f_i$。因此需要增加的权值和 $\sum\limits_{j=1}^{\lambda_i} \left(w'_j - w_j \right)$ 就变为 $$ \sum_{j=1}^{\lambda_i} \left( f_i - f_{c_j} - w_j \right) $$</p>
+<p>答案就是把所有的 $i$ 相加，即 $$ \sum_{i=1}^n \sum_{j=1}^{\lambda_i} \left( f_i - f_{c_{ij}} - w_{ij} \right) $$</p>
+<p>时间复杂度 $O(n)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">512202</span>
+<span class="sh_preproc">#define</span> M <span class="sh_number">1024404</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">edge</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">;</span>
+    <span class="sh_function">edge</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> u0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> v0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> w0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">u</span><span class="sh_symbol">(</span>u0<span class="sh_symbol">),</span> <span class="sh_function">v</span><span class="sh_symbol">(</span>v0<span class="sh_symbol">),</span> <span class="sh_function">w</span><span class="sh_symbol">(</span>w0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+<span class="sh_cbracket">}</span>e<span class="sh_symbol">[</span>M<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> E<span class="sh_symbol">,</span> si<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> first<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> next<span class="sh_symbol">[</span>M<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> ans <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">up</span><span class="sh_symbol">(</span><span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&lt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span><span class="sh_type">int</span> u<span class="sh_symbol">,</span> <span class="sh_type">int</span> v<span class="sh_symbol">,</span> <span class="sh_type">int</span> w<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    e<span class="sh_symbol">[++</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">edge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">);</span> next<span class="sh_symbol">[</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> E<span class="sh_symbol">;</span>
+    e<span class="sh_symbol">[++</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">edge</span><span class="sh_symbol">(</span>v<span class="sh_symbol">,</span> u<span class="sh_symbol">,</span> w<span class="sh_symbol">);</span> next<span class="sh_symbol">[</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> E<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> px<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> y<span class="sh_symbol">;</span>
+    f<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>y <span class="sh_symbol">=</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">)</span> <span class="sh_symbol">!=</span> px<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">dfs</span><span class="sh_symbol">(</span>y<span class="sh_symbol">,</span> x<span class="sh_symbol">);</span>
+            <span class="sh_function">up</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>x<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>w<span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>y <span class="sh_symbol">=</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>v<span class="sh_symbol">)</span> <span class="sh_symbol">!=</span> px<span class="sh_symbol">)</span>
+            ans <span class="sh_symbol">+=</span> f<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> <span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> e<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>w<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>si<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>w<span class="sh_symbol">);</span>
+        <span class="sh_function">addedge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> w<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">dfs</span><span class="sh_symbol">(</span>si<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>推出越往上越划算的结论，就能想到贪心的思想。又注意到两点的相对 "和值" 只能在 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 以内修改，就可以想到正解。</p>
+

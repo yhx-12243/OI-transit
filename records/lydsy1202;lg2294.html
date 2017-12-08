@@ -1,0 +1,72 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 接到一个任务，为税务部门调查一位商人的账本，看看账本是不是伪造的。</p>
+<p>账本上记录了 $n$ 个月以来的收入情况，其中第 $i$ 个月的收入额为 $A_i$ ($i = 1, 2, \cdots, n-1, n$)。当 $A_i &gt; 0$ 时表示这个月盈利 $A_i$ 元，当 $A_i &lt; 0$ 时表示这个月亏损 $A_i$ 元。</p>
+<p>所谓一段时间内的总收入，就是这段时间内每个月的收入额的总和。</p>
+<p>scx 的任务是秘密进行的，为了调查商人的账本，她只好跑到商人那里打工。她趁商人不在时去偷看账本，可是她无法将账本偷出来，每次偷看账本时她都只能看某段时间内账本上记录的收入情况，并且她只能记住这段时间内的总收入。</p>
+<p>现在，scx 总共偷看了 $m$ 次账本，当然也就记住了 $m$ 段时间内的总收入，你的任务是根据记住的这些信息来判断账本是不是假的。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $w$ ($w &lt; 100$)，表示有 $w$ 组数据，即 $w$ 个账本，需要你判断。</p>
+<p>每组数据的第一行包含两个正整数 $n, m$ ($n &lt; 100, m &lt; 1000$)，分别表示对应的账本记录了多少个月的收入情况以及偷看了多少次账本。</p>
+<p>接下来的 $m$ 行表示 scx 偷看 $m$ 次账本后记住的 $m$ 条信息，每条信息占一行，包含三个整数 $s, t, v$，表示从第 $s$ 个月到第 $t$ 个月 (两端包含) 的总收入为 $v$，这里假设 $s$ 总是小于等于 $t$。
+
+<h3>输出格式</h3>
+<p>输出 $w$ 行，每行是 <code>true</code> 或 <code>false</code>，其中第 $i$ 行为 <code>true</code>当且仅当第 $i$ 组数据，即第 $i$ 个账本不是假的；第 $i$ 行为 <code>false</code> 当且仅当第 $i$ 组数据，即第 $i$ 个账本是假的。</p>
+
+<h3>题解</h3>
+<p>首先上一波前缀和，于是它给的信息就形如 $S_t - S_s = v$。</p>
+<p>当然如果熟练的话，将它拆成 $S_t - S_s \leq v$ 和 $S_s - S_t \leq -v$，跑一遍差分约束，即 <strong>SPFA 判负圈</strong>即可。</p>
+<p>然而这里面的条件都是<strong>取等号</strong>的，可以让我们想到<a href="uoj127.html" target="_blank">这道题</a>，使用<strong>并查集</strong>来处理。</p>
+<p>(scx: 可是这次不是直接相等，而是有权值了！)</p>
+<p>其实这都是大同小异的。我们只需让我们的并查集也带上权值，成为<strong>带权并查集</strong>即可。</p>
+<p>注意到并查集其实是一个<strong>树结构</strong> (森林)，于是做一次<strong>树上差分</strong>，让一个节点 $i$ 的权值为 <strong>$S_i$ 与 $S_{p_i}$</strong> 的差 ($p_i$ 为 $i$ 的父节点)，根节点的权值为 $0$ (由于我们只知道一个<strong>相对关系</strong>)。</p>
+<p>于是路径压缩中，回溯的时候需要让一个节点的权值加上它父节点的权值。于是下面代码写了个非递归版本的 <del>(貌似是我第一次写非递归的并查集？)</del>。</p>
+<p>合并的时候，如果是根去合并，那么直接把权值更新即可。否则先<del>转到</del>把它变成根的子节点，然后重新设置<strong>根节点的权值</strong>，使得该节点的权值等于对面的权值 + $v$ ($x + w_t = w_s + v$，把根的权值 $x$ 解出来)。</p>
+<p>如果发现两个点已经在同一集合，直接判断 $w_s + v = w_t$ 是否成立即可，如果不成立，这个账本就 GG 了。总时间复杂度 $O(wm)$ <del>(默认忽略 $\alpha$)</del>。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">136</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> U<span class="sh_symbol">,</span> V<span class="sh_symbol">,</span> W<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> p<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> w<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> st<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">char</span> s<span class="sh_symbol">[</span><span class="sh_number">34</span><span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> x <span class="sh_symbol">!=</span> p<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> st<span class="sh_symbol">[++</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">,</span> x <span class="sh_symbol">=</span> p<span class="sh_symbol">[</span>x<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>st<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span> i<span class="sh_symbol">;</span> p<span class="sh_symbol">[</span>st<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">,</span> <span class="sh_symbol">--</span>i<span class="sh_symbol">)</span> w<span class="sh_symbol">[</span>st<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">+=</span> w<span class="sh_symbol">[</span>st<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]];</span>
+    <span class="sh_keyword">return</span> x<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> T<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>T<span class="sh_symbol">);</span> T<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>T<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>m<span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>p<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> w<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>W<span class="sh_symbol">);</span>
+            U <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(--</span>u<span class="sh_symbol">);</span> V <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span>v<span class="sh_symbol">);</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>U <span class="sh_symbol">!=</span> V<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>p<span class="sh_symbol">[</span>V<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> U<span class="sh_symbol">;</span> w<span class="sh_symbol">[</span>V<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> w<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> w<span class="sh_symbol">[</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> W<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+            <span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>w<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> W <span class="sh_symbol">!=</span> w<span class="sh_symbol">[</span>v<span class="sh_symbol">])</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">puts</span><span class="sh_symbol">(</span>i <span class="sh_symbol">&gt;=</span> m <span class="sh_symbol">?</span> <span class="sh_string">"true"</span> <span class="sh_symbol">:</span> <span class="sh_string">"false"</span><span class="sh_symbol">);</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">gets</span><span class="sh_symbol">(</span>s<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>因为是多组数据，所以如果你提早发现账单为假，并且 <code>break;</code> 掉后，注意把剩余的输入读完。或者不 <code>break;</code>，直接用一个 <code>flag</code> 记录即可。</p>
+

@@ -1,0 +1,57 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 有 $n$ 个小猪存钱罐，每个存钱罐只能用钥匙打开或者砸开。scx 已经把每个存钱罐的钥匙放到了某些存钱罐里。</p>
+<p>scx 现在想买一台汽车于是要把所有的钱都取出来。她想尽量少的打破存钱罐取出所有的钱，问最少要打破多少个存钱罐。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $n$ ($n \leq 10^6$)，表示存钱罐的总数。</p>
+<p>接下来的 $n$ 行，每行一个整数，第 $i+1$ 行的整数代表第 $i$ 个存钱罐对应的钥匙放置的存钱罐编号。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示最少要打破多少个存钱罐。</p>
+
+<h3>题解</h3>
+<p>如果第 $i$ 个存钱罐的钥匙在 $j$ 里，我们就记作 $i$ 依赖 $j$。对于这种依赖关系，我们在图中连一条从 $i$ 到 $j$ 的有向边。</p>
+<p>考虑点 $i$ 所在的连通块，设其大小为 $t$，则在这个 $t$ 个点的导出子图中，可以发现一共有 $t$ 条 (有向) 边。又由于它是联通的，于是和<a href="lydsy1040.html" target="_blank">这道题</a>类似，可以推出这张图的<strong>无向形式要么是树，要么是基环树</strong> (其实树就是有一条重边的基环树，下面都当作基环树处理)。</p>
+<p>由于所有点的出度都是 $1$，因此只要不停地向 $i$ 所指向的点 (即 $i$ 依赖的存钱罐) 走，形成序列 $i \to i_1 \to i_2 \to \cdots$，由抽屉原理，必会出现循环 (周期可能是 $1$ 或 $2$ 哦)，而且在这个连通块内，如下图 <del>(Pollard-Rho 即视感)</del>：</p>
+<img class="center-block" src="uploads/15.png" alt="出现循环">
+<p>考虑这个环，显然这个环 (对应的存钱罐) 是必须要砸的，否则就取不出来。然后考虑这个连通分量的其它部分，由于这个环已经<strong>无法指向</strong>其他节点，因此只有其它节点指向环中节点。</p>
+<p>我们把<strong>环</strong>看作<strong>树根</strong>，<del>由归纳法</del>易证所有的边都是从子节点连向父节点，于是对于这棵树，只要把它的根节点砸了，其它节点自然都是可以通过钥匙取到的。</p>
+<p>这就说明了<strong>一个连通分量中，需要恰好砸一个存钱罐</strong>。</p>
+<p>于是，我们只需要统计图中的连通分量数即可，用并查集或 dfs 均可。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">1024404</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> t<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> p<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> p<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> x <span class="sh_symbol">?</span> x <span class="sh_symbol">:</span> <span class="sh_symbol">(</span>p<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span>p<span class="sh_symbol">[</span>x<span class="sh_symbol">]));</span><span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">Union</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>p<span class="sh_symbol">[</span><span class="sh_function">ancestor</span><span class="sh_symbol">(</span>x<span class="sh_symbol">)]</span> <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span>y<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> p<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>t<span class="sh_symbol">);</span>
+        <span class="sh_function">Union</span><span class="sh_symbol">(</span>i<span class="sh_symbol">,</span> t<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>t <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> t <span class="sh_symbol">+=</span> p<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> i<span class="sh_symbol">;</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> t<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>无</p>
+

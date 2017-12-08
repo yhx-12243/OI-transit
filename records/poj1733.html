@@ -1,0 +1,92 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>你正在和 scx 玩一个游戏。scx 写了一个包含 $0$ 和 $1$ 的数字串，你可以选择其中一个<strong>子串</strong> (比如第 $3, 4, 5$ 个数字组成的子串)，然后去问她其中 $1$ 的个数是奇数还是偶数。scx 会回答这个问题，然后你就能继续向她问其它的子串，如此继续。你的任务就是猜出整个串的数字。</p>
+<p>你担心 scx 的回答可能是错误的，于是你准备写一个程序去验证。这个程序读取若干次询问和 scx 给出的答案，你的目标就是找出第一组可以得出矛盾的询问，也就是说，如果答案是 $i$，则存在一个数字串满足前 $i$ 组询问，但不存在一个数字串满足前 $i+1$ 组询问。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $n$ ($n \leq 10^9$)，表示数字串的长度。</p>
+<p>第二行包含一个正整数 $m$ ($m \leq 5000$)，表示询问和答案的个数。</p>
+<p>接下来的 $m$ 行，每行包含两个正整数 $s, t$ 和一个字符串。如果子串 $a[s..t]$ 的 $1$ 的个数是奇数，则字符串为 <code>odd</code>，否则为 <code>even</code>。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数 $X$，表示存在一个数字串满足前 $X$ 个询问，但不存在一个数字串满足前 $X+1$ 组询问。</p>
+<p>如果存在一个数字串满足所有询问，则输出 $m$ (询问的个数)。</p>
+
+<h3>题解</h3>
+<p>显然取个前缀和，于是 $a[s..t]$ 中 $1$ 的个数为奇数等价于 $A_{s-1} \equiv \, !A_t \pmod 2$，为偶数就等价于 $A_{s-1} \equiv A_t \pmod 2$。</p>
+<p>于是在模 $2$ 意义下就和<a href="cf776D.html" target="_blank">这道题</a>基本相同了，使用<strong>多并查集</strong>或<strong>带权并查集</strong>即可。</p>
+<p>听说 $n \leq 10^9$ 很大？真正有用的只有 $2m$ 个，因此离散化即可。<del>(非常怀疑 NOI 2015 的题就是从这道题得到启发的，也许说反了)</del></p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;cstdio&gt;</span>
+<span class="sh_preproc">#include</span> <span class="sh_string">&lt;algorithm&gt;</span>
+<span class="sh_preproc">#include</span> <span class="sh_string">&lt;utility&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">20034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> pair <span class="sh_symbol">&lt;</span><span class="sh_type">int</span><span class="sh_symbol">,</span> <span class="sh_type">int</span><span class="sh_symbol">&gt;</span> pr<span class="sh_symbol">;</span>
+
+<span class="sh_type">char</span> op<span class="sh_symbol">[</span><span class="sh_number">6</span><span class="sh_symbol">];</span>
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> w<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> p<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_usertype">pr</span><span class="sh_normal"> </span>D<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> F<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> p<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> x <span class="sh_symbol">?</span> x <span class="sh_symbol">:</span> <span class="sh_symbol">(</span>p<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span>p<span class="sh_symbol">[</span>x<span class="sh_symbol">]));</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">bool</span> <span class="sh_function">test</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">,</span> <span class="sh_type">bool</span> un <span class="sh_symbol">=</span> <span class="sh_keyword">false</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">((</span>x <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span>x<span class="sh_symbol">))</span> <span class="sh_symbol">==</span> <span class="sh_symbol">(</span>y <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span>y<span class="sh_symbol">)))</span> <span class="sh_keyword">return</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>un<span class="sh_symbol">)</span> p<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> y<span class="sh_symbol">;</span> <span class="sh_keyword">return</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">Discretize</span><span class="sh_symbol">(</span><span class="sh_type">int</span> n<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> cnt <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>D<span class="sh_symbol">,</span> D <span class="sh_symbol">+</span> n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">&amp;&amp;</span> D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>first <span class="sh_symbol">==</span> D<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">].</span>first<span class="sh_symbol">)</span>
+            F<span class="sh_symbol">[</span>D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>second<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> cnt <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+            F<span class="sh_symbol">[</span>D<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>second<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> cnt<span class="sh_symbol">;</span>
+            D<span class="sh_symbol">[</span>cnt<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> D<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> cnt<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>m<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%s"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">,</span> op<span class="sh_symbol">);</span>
+        D<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">pr</span><span class="sh_symbol">(--</span>u<span class="sh_symbol">,</span> i<span class="sh_symbol">);</span>
+        D<span class="sh_symbol">[</span>m <span class="sh_symbol">+</span> i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">pr</span><span class="sh_symbol">(</span>v<span class="sh_symbol">,</span> m <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+        w<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">*</span>op <span class="sh_symbol">==</span> <span class="sh_number">111</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    n <span class="sh_symbol">=</span> <span class="sh_function">Discretize</span><span class="sh_symbol">(</span>m <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> p<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        u <span class="sh_symbol">=</span> F<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> v <span class="sh_symbol">=</span> F<span class="sh_symbol">[</span>m <span class="sh_symbol">+</span> i<span class="sh_symbol">];</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>w<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span><span class="sh_function">test</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">))</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+            <span class="sh_function">test</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v <span class="sh_symbol">+</span> n<span class="sh_symbol">,</span> <span class="sh_keyword">true</span><span class="sh_symbol">);</span>
+            <span class="sh_function">test</span><span class="sh_symbol">(</span>u <span class="sh_symbol">+</span> n<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> <span class="sh_keyword">true</span><span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span><span class="sh_keyword">else</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span><span class="sh_function">test</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v <span class="sh_symbol">+</span> n<span class="sh_symbol">))</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+            <span class="sh_function">test</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> <span class="sh_keyword">true</span><span class="sh_symbol">);</span>
+            <span class="sh_function">test</span><span class="sh_symbol">(</span>u <span class="sh_symbol">+</span> n<span class="sh_symbol">,</span> v <span class="sh_symbol">+</span> n<span class="sh_symbol">,</span> <span class="sh_keyword">true</span><span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> i<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>判 <code>odd</code> 和 <code>even</code> 不要判错，当初把判 <code>odd</code> 的 <code>if</code> 写成了判 <code>even</code> 然后就 WA 得特别惨……</p>
+
