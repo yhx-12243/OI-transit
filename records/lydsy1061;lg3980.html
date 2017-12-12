@@ -1,0 +1,104 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>申奥成功后，scx 经过不懈努力，终于成为奥组委下属公司人力资源部门的主管。scx 刚上任就遇到了一个难题：为即将启动的奥运新项目招募一批短期志愿者。</p>
+<p>经过估算，这个项目需要 $N$ 天才能完成，其中第 $i$ 天至少需要 $A_i$ 个人。</p>
+<p>scx 通过了解得知，一共有 $M$ 类志愿者可以招募。其中第 $i$ 类可以从第 $S_i$ 天工作到第 $T_i$ 天，招募费用是每人 $C_i$ 元。</p>
+<p><del>新官上任三把火</del>，为了出色地完成自己的工作，scx 希望用尽量少的费用招募足够的志愿者，但这并不是她的特长！于是 scx 找到了你，希望你帮她设计一种最优的招募方案。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个正整数 $N, M$ ($N \leq 1000, M \leq 10000$)，表示完成项目的天数和可以招募的志愿者的种类。</p>
+<p>第二行包含 $N$ 个非负整数 $A_1, A_2, \cdots, A_N$ ($A_i &lt; 2^{31}$)，表示每天至少需要的志愿者人数。</p>
+<p>接下来的 $M$ 行，每行包含三个非负整数 $S_i, T_i, C_i$ ($C_i &lt; 2^{31}$)，含义如上文所述。为了方便起见，我们可以认为每类志愿者的数量都是无限多的。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示你所设计的最优方案的总费用。</p>
+
+<h3>题解</h3>
+<p>设第 $i$ 天需要 $x_i$ 个志愿者，记 $m_{ij}$ 表示第 $i$ 天第 $j$ 个志愿者是否能工作，则需要满足如下条件：</p>
+\begin{array}l
+m_{11} x_1 + m_{12} x_2 + \cdots + m_{1m} x_m \geq A_1 \\
+m_{21} x_1 + m_{22} x_2 + \cdots + m_{2m} x_m \geq A_2 \\
+\cdots \\
+m_{n1} x_1 + m_{n2} x_2 + \cdots + m_{nm} x_m \geq A_n \\
+x_1, x_2, \cdots, x_m \geq 0
+\end{array}
+<p>我们所需的费用即为 $C_1 x_1 + C_2 x_2 + \cdots + C_m x_m$。</p>
+<p>可以看出，这是一个<strong>线性规划</strong>问题。</p>
+<p>由于它是<strong>最小化</strong>型线性规划，不是标准形式的。因此，可以利用<a href="../memos/6.html" target="_blank"><strong>线性规划对偶定理</strong></a>将其转化为一个<strong>最大化</strong>型线性规划：</p>
+\begin{array}l
+最大化 & \sum\limits_{i=1}^n A_i y_i \\
+满足约束 & \sum\limits_{i=1}^n m_{ij} y_i \leq C_j, & j = 1, 2, \cdots, m \\
+& y_j \geq 0
+\end{array}
+<p>由于 $C_i$ 都是 $\geq 0$ 的整数，于是上面的线性规划就有基本解 (零解)。于是写个<del>比较单纯</del>的单纯形法就可以了 <del>(连 <code>init()</code> 都不用写~)</del>，关于单纯形的过程，还是见<a href="../memos/6.html" target="_blank">此便笺 (线性规划)</a>。</p>
+<p><del>(听说这题可以用最小费用最大流做？)</del></p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">1034</span>
+<span class="sh_preproc">#define</span> E <span class="sh_number">10034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">const</span> <span class="sh_type">double</span> eps <span class="sh_symbol">=</span> <span class="sh_number">1e-8</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> e<span class="sh_symbol">,</span> l<span class="sh_symbol">,</span> r<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> id<span class="sh_symbol">[</span>N <span class="sh_symbol">+</span> E<span class="sh_symbol">];</span>
+<span class="sh_type">double</span> m<span class="sh_symbol">[</span>E<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> b<span class="sh_symbol">[</span>E<span class="sh_symbol">],</span> <span class="sh_symbol">*</span>c <span class="sh_symbol">=</span> m<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">],</span> ans<span class="sh_symbol">[</span>N <span class="sh_symbol">+</span> E<span class="sh_symbol">];</span>
+
+<span class="sh_type">void</span> <span class="sh_function">pivot</span><span class="sh_symbol">(</span><span class="sh_type">int</span> r<span class="sh_symbol">,</span> <span class="sh_type">int</span> c<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span> <span class="sh_type">double</span> coe <span class="sh_symbol">=</span> <span class="sh_number">1.0</span> <span class="sh_symbol">/</span> m<span class="sh_symbol">[</span>r<span class="sh_symbol">][</span>c<span class="sh_symbol">];</span>
+    <span class="sh_function">swap</span><span class="sh_symbol">(</span>id<span class="sh_symbol">[</span>n <span class="sh_symbol">+</span> r<span class="sh_symbol">],</span> id<span class="sh_symbol">[</span>c<span class="sh_symbol">]);</span>
+    m<span class="sh_symbol">[</span>r<span class="sh_symbol">][</span>c<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1.0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+        m<span class="sh_symbol">[</span>r<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">*=</span> coe<span class="sh_symbol">;</span>
+    b<span class="sh_symbol">[</span>r<span class="sh_symbol">]</span> <span class="sh_symbol">*=</span> coe<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> e<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">==</span> r<span class="sh_symbol">)</span> <span class="sh_keyword">continue</span><span class="sh_symbol">;</span>
+        coe <span class="sh_symbol">=</span> m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>c<span class="sh_symbol">];</span> m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>c<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> coe <span class="sh_symbol">*</span> m<span class="sh_symbol">[</span>r<span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+        b<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> coe <span class="sh_symbol">*</span> b<span class="sh_symbol">[</span>r<span class="sh_symbol">];</span>
+    <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">bool</span> <span class="sh_function">simplex</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> basic<span class="sh_symbol">,</span> free<span class="sh_symbol">;</span> <span class="sh_type">double</span> G<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> <span class="sh_symbol">;</span> <span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        basic <span class="sh_symbol">=</span> free <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> G <span class="sh_symbol">=</span> INFINITY<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_comment">// free (nonbasic) variable</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>c<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> c<span class="sh_symbol">[</span>free<span class="sh_symbol">])</span> free <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>free<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> e<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span> <span class="sh_comment">// basic variable</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>m<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>free<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> eps <span class="sh_symbol">&amp;&amp;</span> b<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> G <span class="sh_symbol">*</span> m<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>free<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+                G <span class="sh_symbol">=</span> b<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">/</span> m<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>free<span class="sh_symbol">];</span> basic <span class="sh_symbol">=</span> j<span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>basic<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_function">puts</span><span class="sh_symbol">(</span><span class="sh_string">"Unbounded"</span><span class="sh_symbol">),</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span>
+        <span class="sh_function">pivot</span><span class="sh_symbol">(</span>basic<span class="sh_symbol">,</span> free<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>e<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%lf"</span><span class="sh_symbol">,</span> c <span class="sh_symbol">+</span> j<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> e<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%lf"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>l<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>r<span class="sh_symbol">,</span> b <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> l<span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> r<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+            m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1.0</span><span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span><span class="sh_function">simplex</span><span class="sh_symbol">())</span>
+        <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%.lf</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> <span class="sh_symbol">-*</span>b<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意单纯形转轴 <code>Pivot()</code> 操作时和 Gauss 消元法的一个比较大的区别： 由于转轴操作涉及到<strong>基变量</strong>和<strong>非基变量</strong>的转换，所以要<strong>在循环之前</strong>令 <code>m[r][c] = 1.0</code> 和 <code>m[i][c] = 0.0</code>。</p>
+

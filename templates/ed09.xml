@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/css" href="../additional_files/bootstrap.template.css"?>
+<?xml-stylesheet type="text/css" href="../additional_files/sh_typical.min.css"?>
+	
+<template>
+<title>线性规划 (x&#8346; ≥ 0, b&#8346; ≥ 0)</title>
+<pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_keyword">const</span> <span class="sh_type">double</span> eps <span class="sh_symbol">=</span> <span class="sh_number">1e-8</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> id<span class="sh_symbol">[</span>N <span class="sh_symbol">+</span> E<span class="sh_symbol">];</span>
+
+<span class="sh_type">double</span> m<span class="sh_symbol">[</span>E<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> b<span class="sh_symbol">[</span>E<span class="sh_symbol">],</span> <span class="sh_symbol">*</span>c <span class="sh_symbol">=</span> m<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">],</span> ans<span class="sh_symbol">[</span>N <span class="sh_symbol">+</span> E<span class="sh_symbol">];</span>
+
+<span class="sh_type">void</span> <span class="sh_function">pivot</span><span class="sh_symbol">(</span><span class="sh_type">int</span> toFree<span class="sh_symbol">,</span> <span class="sh_type">int</span> toBasic<span class="sh_symbol">);</span> <span class="sh_comment">// basic(1,m) -&gt; free, free(1,n) -&gt; basic</span>
+
+<span class="sh_type">void</span> <span class="sh_function">pivot</span><span class="sh_symbol">(</span><span class="sh_type">int</span> r<span class="sh_symbol">,</span> <span class="sh_type">int</span> c<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+	<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span> <span class="sh_type">double</span> coe <span class="sh_symbol">=</span> <span class="sh_number">1.0</span> <span class="sh_symbol">/</span> m<span class="sh_symbol">[</span>r<span class="sh_symbol">][</span>c<span class="sh_symbol">];</span>
+	<span class="sh_function">swap</span><span class="sh_symbol">(</span>id<span class="sh_symbol">[</span>n <span class="sh_symbol">+</span> r<span class="sh_symbol">],</span> id<span class="sh_symbol">[</span>c<span class="sh_symbol">]);</span>
+	m<span class="sh_symbol">[</span>r<span class="sh_symbol">][</span>c<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1.0</span><span class="sh_symbol">;</span>
+	<span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+		m<span class="sh_symbol">[</span>r<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">*=</span> coe<span class="sh_symbol">;</span>
+	b<span class="sh_symbol">[</span>r<span class="sh_symbol">]</span> <span class="sh_symbol">*=</span> coe<span class="sh_symbol">;</span>
+	<span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> e<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+		<span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">==</span> r<span class="sh_symbol">)</span> <span class="sh_keyword">continue</span><span class="sh_symbol">;</span>
+		coe <span class="sh_symbol">=</span> m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>c<span class="sh_symbol">];</span> m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>c<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0.0</span><span class="sh_symbol">;</span>
+		<span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+			m<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> coe <span class="sh_symbol">*</span> m<span class="sh_symbol">[</span>r<span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+		b<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> coe <span class="sh_symbol">*</span> b<span class="sh_symbol">[</span>r<span class="sh_symbol">];</span>
+	<span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">bool</span> <span class="sh_function">simplex</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+	<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> basic<span class="sh_symbol">,</span> free<span class="sh_symbol">;</span> <span class="sh_type">double</span> G<span class="sh_symbol">;</span>
+	<span class="sh_keyword">for</span><span class="sh_symbol">(;</span> <span class="sh_symbol">;</span> <span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+		basic <span class="sh_symbol">=</span> free <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> G <span class="sh_symbol">=</span> INFINITY<span class="sh_symbol">;</span>
+		<span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_comment">// free (nonbasic) variable</span>
+			<span class="sh_keyword">if</span><span class="sh_symbol">(</span>c<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> c<span class="sh_symbol">[</span>free<span class="sh_symbol">])</span> free <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+		<span class="sh_keyword">if</span><span class="sh_symbol">(!</span>free<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span>
+		<span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> e<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span> <span class="sh_comment">// basic variable</span>
+			<span class="sh_keyword">if</span><span class="sh_symbol">(</span>m<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>free<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> eps <span class="sh_symbol">&amp;&amp;</span> b<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> G <span class="sh_symbol">*</span> m<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>free<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+				G <span class="sh_symbol">=</span> b<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">/</span> m<span class="sh_symbol">[</span>j<span class="sh_symbol">][</span>free<span class="sh_symbol">];</span> basic <span class="sh_symbol">=</span> j<span class="sh_symbol">;</span>
+			<span class="sh_cbracket">}</span>
+		<span class="sh_keyword">if</span><span class="sh_symbol">(!</span>basic<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_function">puts</span><span class="sh_symbol">(</span><span class="sh_string">"Unbounded"</span><span class="sh_symbol">),</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span>
+		<span class="sh_function">pivot</span><span class="sh_symbol">(</span>basic<span class="sh_symbol">,</span> free<span class="sh_symbol">);</span>
+	<span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_comment">// initialize :</span>
+<span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n <span class="sh_symbol">+</span> e<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span> id<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> j<span class="sh_symbol">;</span>
+c<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> eps<span class="sh_symbol">;</span>
+
+<span class="sh_comment">// output:</span>
+<span class="sh_keyword">if</span><span class="sh_symbol">(</span><span class="sh_function">simplex</span><span class="sh_symbol">())</span><span class="sh_cbracket">{</span>
+	<span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%.8lg</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> <span class="sh_symbol">-*</span>b<span class="sh_symbol">);</span>
+	<span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> e<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> ans<span class="sh_symbol">[</span>id<span class="sh_symbol">[</span>n <span class="sh_symbol">+</span> i<span class="sh_symbol">]]</span> <span class="sh_symbol">=</span> b<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+	<span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span> <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%.8lg%c"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">[</span>j<span class="sh_symbol">],</span> j <span class="sh_symbol">==</span> n <span class="sh_symbol">?</span> <span class="sh_number">10</span> <span class="sh_symbol">:</span> <span class="sh_number">32</span><span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span></code></pre>
+</template>
