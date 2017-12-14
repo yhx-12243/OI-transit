@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>给一个由小写字母组成的字符串，我们可以用一种简单的方法来压缩其中的重复信息。</p>
+<p>压缩后的字符串除了小写字母外还可以 (但不必) 包含大写字母 R 与 M，其中 M 标记重复串的开始，R 重复从上一个 M (如果当前位置左边没有 M，则从串的开始算起) 开始的解压结果 (称为缓冲串)。</p>
+<p>$\texttt{bcdcdcdcd}$ 可以压缩为 $\texttt{bMcdRR}$，下面是解压缩的过程：</p>
+<table class="table table-bordered table-text-center table-vertical-middle">
+	<thead>
+		<tr>
+			<th>已经解压的部分</th><th>解压结果</th><th>缓冲串</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>$\texttt{b}$</td><td>$\texttt{b}$</td><td>$\texttt{b}$</td>
+		</tr>
+		<tr>
+			<td>$\texttt{bM}$</td><td>$\texttt{b}$</td><td></td>
+		</tr>
+		<tr>
+			<td>$\texttt{bMc}$</td><td>$\texttt{bc}$</td><td>$\texttt{c}$</td>
+		</tr>
+		<tr>
+			<td>$\texttt{bMcd}$</td><td>$\texttt{bcd}$</td><td>$\texttt{cd}$</td>
+		</tr>
+		<tr>
+			<td>$\texttt{bMcdR}$</td><td>$\texttt{bcdcd}$</td><td>$\texttt{cdcd}$</td>
+		</tr>
+		<tr>
+			<td>$\texttt{bMcdRR}$</td><td>$\texttt{bcdcdcdcd}$</td><td>$\texttt{cdcdcdcd}$</td>
+		</tr>
+	</tbody>
+</table>
+<p>另一个例子是 $\texttt{abcabcdabcabcdxyxyz}$ 可以被压缩为 $\texttt{abcRdRMxyRz}$。</p>
+
+<h3>输入格式</h3>
+<p>输入仅一行，包含待压缩字符串，仅包含小写字母，长度为 $n$ ($n \leq 50$)。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，即压缩后字符串的最短长度。</p>
+
+<h3>题解</h3>
+<p>跟<a href="lydsy1055.html" target="_blank">这道题</a>类似，考虑使用区间 DP。</p>
+<p>由于 $M$ 的默认开头性有点麻烦，因此方便起见，我们<strong>约定所有段落均以 $\texttt{M}$ 开头</strong> (不管是否压缩，如题目描述中的字符串被压缩成 $\texttt{MbMcdRR}$)。</p>
+<p>记 $f_{i, j}$ 表示子串 $s[i..j]$ 能被压缩到的最短长度 (包括开头的 $\texttt{M}$)，那么答案就是 $f_{1, n} - 1$ 且有边界 $f_{i, i} = 2$。</p>
+<p>不过，在<strong>相同的串</strong>拼接时候的转移中，你会发现，这个缓冲串检测的 $\texttt{M}$ <strong>只会像右移动</strong>，比如说你想压缩 $ABBABB$ 之类的 ($A, B$ 是<em>子串</em>)，那么不能提前把两个 $B$ 压缩起来 ($\texttt{M}B\texttt{R}$)，这样 $ABB$ 就无法压缩了，因此只能压缩成 $\texttt{M}ABB\texttt{R}$ 或另找他法。</p>
+<p>那么，$s[i..j-1]$ 能否和 $s[j..k-1]$ ($k = 2j - i$) 合并取决于 $s[i..j]$ 的压缩串中除了开头的 $\texttt{M}$ 外<strong>是否有其它的 $\texttt{M}$</strong>。</p>
+<p>于是，重新记 $f_{i, j}$ 表示子串 $s[i..j]$ 的压缩串中，除了开头的 $\texttt{M}$ 外，<strong>没有其它的 $\texttt{M}$</strong>，这样的压缩串的最短长度，$g_{i, j}$ 表示压缩串除开头的 $\texttt{M}$ 外，<strong>还有其它的 $\texttt{M}$</strong>，这样的最短长度。那么答案就是 $\min \left\{ f_{1, n}, g_{1, n} \right\} - 1$，且有边界 $f_{i, i} = 2$。</p>
+<p>考虑 $f_{i, j}$ 的转移。第一种情况，即两串合并，那么要满足 $k = \dfrac {i + j + 1} 2$ 为整数，且 $s[i..k-1] = s[k..j]$，那么由于 $s[i..k]$ 的压缩串中只有开头的 $\texttt{M}$，那么就有 $$ f_{i, j} \downarrow f_{i, k-1} + 1 $$</p>
+<p>第二种情况，即平凡地添加字符。那么对 $\forall k \in [i, j)$，有 $$ f_{i, j} \downarrow f_{i, k} + j - k $$</p>
+<p>然后是 $g_{i, j}$ 的转移。这个随便转移即可，找到两边的拼起来就可以了。对 $\forall k \in [i, j)$，转移方程为 $$ g_{i, j} \downarrow \min \left\{ f_{i, k}, g_{i, k} \right\} + \min \left\{ f_{k+1, j}, g_{k+1, j} \right\} $$</p>
+<p>时间复杂度为 $O(n^3)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">68</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">char</span> s<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> d<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> l<span class="sh_symbol">,</span> hd<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> g<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+<span class="sh_comment">// f[i][j]: compress (i, j) with only a 'M' at first</span>
+<span class="sh_comment">// g[i][j]: compress (i, j) with over one 'M'</span>
+
+<span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> s <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span> n <span class="sh_symbol">=</span> <span class="sh_function">strlen</span><span class="sh_symbol">(</span>s <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_number">63</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>g<span class="sh_symbol">,</span> <span class="sh_number">63</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> g<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>d <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> d <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>d<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>hd <span class="sh_symbol">=</span> d <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n <span class="sh_symbol">-</span> d<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> i <span class="sh_symbol">+</span> d<span class="sh_symbol">,</span> d <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span> <span class="sh_comment">// can split</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>l <span class="sh_symbol">=</span> j <span class="sh_symbol">-</span> hd<span class="sh_symbol">,</span> k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;=</span> hd<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>s<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> k<span class="sh_symbol">]</span> <span class="sh_symbol">!=</span> s<span class="sh_symbol">[</span>l <span class="sh_symbol">+</span> k<span class="sh_symbol">])</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(</span>k <span class="sh_symbol">&gt;</span> hd<span class="sh_symbol">)</span> <span class="sh_function">down</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>l <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span> <span class="sh_comment">// [i, l) = [l, j)</span>
+            <span class="sh_cbracket">}</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> j<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                <span class="sh_function">down</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> j <span class="sh_symbol">-</span> k<span class="sh_symbol">);</span>
+                <span class="sh_function">down</span><span class="sh_symbol">(</span>g<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">],</span> <span class="sh_function">min</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">],</span> g<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">])</span> <span class="sh_symbol">+</span> <span class="sh_function">min</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>k <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">],</span> g<span class="sh_symbol">[</span>k <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">]));</span>
+            <span class="sh_cbracket">}</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> <span class="sh_function">min</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>n<span class="sh_symbol">],</span> g<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>n<span class="sh_symbol">])</span> <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>要注意本题的压缩特征，从而采用两个数组相互 DP。当然，也可以记 $f_{i, j}$ 的那个长度不包括 $\texttt{M}$，最终答案不 $- 1$，也可以 DP 出来。</p>
+

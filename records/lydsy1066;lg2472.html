@@ -10,13 +10,19 @@
 
 <h3>输入格式</h3>
 <p>第一行包含三个正整数 $r, c, d$，表示地图的规模与最大跳跃距离。</p>
-<p>以下 $r$ 行为石竹的初始状态，$0$ 表示没有石柱，$1 \sim 3$ 表示石柱的初始高度。</p>
+<p>以下 $r$ 行为石柱的初始状态，$0$ 表示没有石柱，$1 \sim 3$ 表示石柱的初始高度。</p>
 <p>以下 $r$ 行为蜥蜴位置，<code>L</code> 表示蜥蜴，<code>.</code> 表示没有蜥蜴。</p>
 
 <h3>输出格式</h3>
 <p>输出一个整数，表示无法逃离的蜥蜴总数的最小值。</p>
 
 <h3>题解</h3>
+<p>首先，"任何时刻两个蜥蜴那个在同一个石柱上" 这个信息我觉得没什么意义，因为这道题没有总限制时间这类的，于是可以先后跳。题目的意思可能是说如果在同一个石柱上下一次 (同时) 跳出去时石柱高度要减少 $2$ 吧。</p>
+<p>那么，不管怎么样，石柱的高度可以看作是一个点权，代表<strong>蜥蜴能跳到它的最大次数</strong>。</p>
+<p>首先预处理出哪些石柱 (的位置) 再跳一次可以跳出地图 (与出口连边)，还有哪些石柱之间可以相互跳 (连边)。于是整个过程就是寻找若干条从蜥蜴到出口的路径，且每个点经过的次数是有限的。</p>
+<p>有没有感觉这很熟悉？寻找若干条从某个点到固定点的路径，且每个点经过的次数有上限。这不是经典的网络流吗？把<strong>出口</strong>当作汇点 $T$，源点 $S$ 向所有蜥蜴连容量为 $1$ 的边。</p>
+<p>由于点经过的次数有上限，于是采用点分裂，将一个点 $v$ 变成 $v_b$ 和 $v_e$ (可以想象为从石柱的顶部到底部)，连一条容量为<em>石柱高度</em>的边。对于可以跳出地图的石柱 $v$，将 $v_e$ 与 $T$ 连容量为 $+ \infty$ 的边，对于能相互跳的石柱 $u \to v$，将 $u_e$ 与 $v_b$ 连容量为 $+ \infty$ 的边。</p>
+<p>那么原图的<em>最大流</em>就是能逃离地图的蜥蜴的总数，所求答案就是用总蜥蜴数去减就行了。</p>
 
 <h3>代码</h3>
 
@@ -32,7 +38,7 @@
 
     <span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">edge</span><span class="sh_cbracket">{</span>
         <span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> f<span class="sh_symbol">;</span> <span class="sh_comment">// f is remaining flow</span>
-        <span class="sh_function">edge</span><span class="sh_symbol">(</span><span class="sh_type">int</span> u0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> v0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> f0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">u</span><span class="sh_symbol">(</span>u0<span class="sh_symbol">),</span> <span class="sh_function">v</span><span class="sh_symbol">(</span>v0<span class="sh_symbol">),</span> <span class="sh_function">f</span><span class="sh_symbol">(</span>f0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
+        <span class="sh_function">edge</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> u0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> v0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> f0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">u</span><span class="sh_symbol">(</span>u0<span class="sh_symbol">),</span> <span class="sh_function">v</span><span class="sh_symbol">(</span>v0<span class="sh_symbol">),</span> <span class="sh_function">f</span><span class="sh_symbol">(</span>f0<span class="sh_symbol">)</span> <span class="sh_cbracket">{}</span>
     <span class="sh_cbracket">}</span>e<span class="sh_symbol">[</span>maxE<span class="sh_symbol">];</span>
 
     <span class="sh_type">int</span> V<span class="sh_symbol">,</span> E<span class="sh_symbol">,</span> si <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> ti <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> flow<span class="sh_symbol">;</span>
@@ -116,4 +122,5 @@
 </code></pre></div>
 
 <h3>坑</h3>
+<p><strong>坑1：</strong>距离 $\leq d$ 是 Euclid 距离不超过 $d$，当然距离也要 $\geq 0$，不然会有环出现 <del>(不过貌似没关系)</del>，并且只在高度 $\geq 0$ (即存在) 的石柱之间连边 (不然边数可能会太多)。</p>
 
