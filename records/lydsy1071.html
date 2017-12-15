@@ -1,0 +1,90 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>NBA 每年都有球员选秀环节。通常用速度和身高两项数据来衡量一个篮球运动员的基本素质。</p>
+<p>假如一支球队里速度最慢的球员速度为 $\min V$，身高最矮的球员高度为 $\min H$，那么这支球队的所有队员都应该满足：$$ A \cdot (\mathrm{height} - \min H) + B \cdot (\mathrm{speed} - \min V) \leq C $$</p>
+<p>其中 $A, B, C$ 为给定的经验值。这个式子很容易理解，如果一个球队的球员速度和身高差距太大，会造成配合的不协调。</p>
+<p>请问作为球队管理层的你，在 $N$ 名选秀球员中，最多能有多少名符合条件的候选球员。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含四个正整数 $N, A, B, C$ ($N \leq 5000, A, B, C &lt; 2^{31}$)。</p>
+<p>接下来的 $N$ 行，每行两个正整数描述一个球员的 $\mathrm{height}$ 和 $\mathrm{speed}$ ($\mathrm{height, speed} \leq 10000$)。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，表示候选球员数目的最大值。</p>
+
+<h3>题解</h3>
+<p>先考虑暴力，$O(n^2)$ 枚举 $\mathrm{height}$ 和 $\mathrm{speed}$ (以下简称 $h, s$) 的最小值，然后 $O(n)$ 检查每个球员是否满足要求，总复杂度 $O(n^3)$，显然过不去。</p>
+<p>像<a href="lydsy1069.html" target="_blank">这题</a>一样，考虑如何优化这个暴力。当初，我们是利用<strong>凸多边形</strong>的斜率单调性推出了<strong>旋转卡壳</strong>算法。那么这道题，是否还具有单调性呢？答案是肯定的。</p>
+<p>先将原数组按 $h$ 排序后枚举 $h_0, s_0$，考察接下来是否有单调性。</p>
+<p>将题目中的式子变形，得到 $A \cdot h + B \cdot s \leq A \cdot h_0 + B \cdot s_0 + C$，发现对于确定的 $h_0, s_0$，右端是个常数，于是可以对于每个元素求出对应的 $w = A \cdot h + B \cdot s$。当然，如果这个元素候选，还需要满足 $h \geq h_0, s \geq s_0$。</p>
+<p>于是可以将原数组 (备份后) 按照 $w$ 排序，分别加入 (关于 $w$ 的) 单调队列。至于第二维的 $s$，不管怎样先将它加入队列，如果 $s \geq s_0$，则答案 <code>++cur</code>。</p>
+<p>当然，还有第一维，于是我们可以从 (按 $h$ 排序的) 数组中把 $h &lt; h_0$ 的踢掉即可，当然对 $s \geq s_0$ 的，则答案 <code>--cur</code>，然后 <code>ans = max(ans, cur);</code> 即可。</p>
+<p>这样还有一个问题，就是如果有元素没有入队的反而出队了。假如说有这样的元素，记它的值为 $h_1, s_1, w_1$，则它需要满足</p>
+\begin{align}
+(w_1 = ) A \cdot h_1 + B \cdot s_1 &amp;&gt; A \cdot h_0 + B \cdot s_0 + C \\
+h_1 &amp;&lt; h_0
+\end{align}
+<p>于是 $B \cdot (s_1 - s_0) &gt; C + A \cdot (h_0 - h_1) &gt; C$，即它需要满足 $s_1 &gt; s_0 + \dfrac CB$。</p>
+<p>也就是说，这种元素会有没有入队且出队的情况，<strong>而且它还会因 $s_1 \geq s_0$ 造成 <code>--cur</code></strong>，于是出队时对满足 $s &gt; s_0 + \dfrac CB$ 的元素<strong>不影响 <code>cur</code></strong>。</p>
+<p>那么，这样会不会少减呢？如果这种元素入队了，如果 $h_1 \geq h_0$，则 $A \cdot h_1 + B \cdot s_1 &gt; A \cdot h_0 + B \cdot s_0 + C$，根本不会入队，反之如果 $h_1 &lt; h_0$，那也不符合要求，直接对这种元素不影响 <code>cur</code> 即可。</p>
+<p>于是，最终影响 <code>cur</code> 的元素必须满足 $s_0 \leq s \leq s_0 + \dfrac CB$ (说白了就是 $s$ 的所有可行值)。</p>
+<p>于是先枚举 $s_0$，然后在枚举 $h_0$ 的时候，可以用一个单调队列添加/删除元素，最终复杂度为 $O(n^2)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">5122</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+<span class="sh_keyword">typedef</span> <span class="sh_type">unsigned</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ull<span class="sh_symbol">;</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>A<span class="sh_symbol">,</span> B<span class="sh_symbol">,</span> C<span class="sh_symbol">;</span>
+<span class="sh_usertype">ull</span><span class="sh_normal"> </span>CB<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">struct</span><span class="sh_normal"> </span><span class="sh_classname">pr</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> h<span class="sh_symbol">,</span> s<span class="sh_symbol">;</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>w<span class="sh_symbol">;</span>
+    <span class="sh_function">pr</span> <span class="sh_symbol">(</span><span class="sh_type">int</span> h0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_type">int</span> s0 <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">):</span> <span class="sh_function">h</span><span class="sh_symbol">(</span>h0<span class="sh_symbol">),</span> <span class="sh_function">s</span><span class="sh_symbol">(</span>s0<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>w <span class="sh_symbol">=</span> A <span class="sh_symbol">*</span> h0 <span class="sh_symbol">+</span> B <span class="sh_symbol">*</span> s0<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    pr <span class="sh_symbol">*</span> <span class="sh_function">read</span><span class="sh_symbol">()</span> <span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>h<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>s<span class="sh_symbol">);</span> w <span class="sh_symbol">=</span> A <span class="sh_symbol">*</span> h <span class="sh_symbol">+</span> B <span class="sh_symbol">*</span> s<span class="sh_symbol">;</span> <span class="sh_keyword">return</span> <span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>H<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> W<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> l<span class="sh_symbol">,</span> r<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> min_speed<span class="sh_symbol">,</span> min_height<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> ans<span class="sh_symbol">,</span> cur<span class="sh_symbol">;</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>limit_weight<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">up</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&lt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_keyword">inline</span> <span class="sh_type">bool</span> <span class="sh_function">sort_by_H</span><span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">pr</span><span class="sh_normal"> </span>A<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_usertype">pr</span><span class="sh_normal"> </span>B<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> A<span class="sh_symbol">.</span>h <span class="sh_symbol">&lt;</span> B<span class="sh_symbol">.</span>h<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_keyword">inline</span> <span class="sh_type">bool</span> <span class="sh_function">sort_by_W</span><span class="sh_symbol">(</span><span class="sh_keyword">const</span> <span class="sh_usertype">pr</span><span class="sh_normal"> </span>A<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_usertype">pr</span><span class="sh_normal"> </span>B<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> A<span class="sh_symbol">.</span>w <span class="sh_symbol">&lt;</span> B<span class="sh_symbol">.</span>w<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%lld%lld%lld"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>A<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>B<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>C<span class="sh_symbol">);</span> CB <span class="sh_symbol">=</span> C <span class="sh_symbol">/</span> B<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> W<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">*</span>H<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">read</span><span class="sh_symbol">();</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>H<span class="sh_symbol">,</span> H <span class="sh_symbol">+</span> n<span class="sh_symbol">,</span> sort_by_H<span class="sh_symbol">);</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>W<span class="sh_symbol">,</span> W <span class="sh_symbol">+</span> n<span class="sh_symbol">,</span> sort_by_W<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>ans <span class="sh_symbol">=</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        l <span class="sh_symbol">=</span> r <span class="sh_symbol">=</span> cur <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        min_speed <span class="sh_symbol">=</span> H<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>s<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            limit_weight <span class="sh_symbol">=</span> A <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>min_height <span class="sh_symbol">=</span> H<span class="sh_symbol">[</span>j<span class="sh_symbol">].</span>h<span class="sh_symbol">)</span> <span class="sh_symbol">+</span> B <span class="sh_symbol">*</span> min_speed <span class="sh_symbol">+</span> C<span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> r <span class="sh_symbol">&lt;</span> n <span class="sh_symbol">&amp;&amp;</span> W<span class="sh_symbol">[</span>r<span class="sh_symbol">].</span>w <span class="sh_symbol">&lt;=</span> limit_weight<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>r<span class="sh_symbol">)</span>
+                cur <span class="sh_symbol">+=</span> <span class="sh_symbol">(</span>ull<span class="sh_symbol">)(</span>W<span class="sh_symbol">[</span>r<span class="sh_symbol">].</span>s <span class="sh_symbol">-</span> min_speed<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;=</span> CB<span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> l <span class="sh_symbol">&lt;</span> n <span class="sh_symbol">&amp;&amp;</span> H<span class="sh_symbol">[</span>l<span class="sh_symbol">].</span>h <span class="sh_symbol">&lt;</span> min_height<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>l<span class="sh_symbol">)</span>
+                cur <span class="sh_symbol">-=</span> <span class="sh_symbol">(</span>ull<span class="sh_symbol">)(</span>H<span class="sh_symbol">[</span>l<span class="sh_symbol">].</span>s <span class="sh_symbol">-</span> min_speed<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;=</span> CB<span class="sh_symbol">;</span>
+            <span class="sh_function">up</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">,</span> cur<span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>    
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>单调队列不仅仅是一端插入，一端删除，还可以像本题一样有很多变种。不过在变种的时候要理清楚会不会出现<strong>没有入队反而出队</strong>的情况。</p>
+<p><strong>坑2：</strong>比较的时候可以用无符号比较，计算 $w$ 数组的时候注意用 <code>long long</code>。</p>
+
