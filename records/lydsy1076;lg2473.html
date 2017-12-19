@@ -1,0 +1,68 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>你正在玩你最喜欢的电子游戏，并且刚刚进入一个奖励关。</p>
+<p>在这个奖励关里，系统将依次随机抛出 $k$ 次宝物，每次你都可以选择吃或者不吃 (必须在抛出下一个宝物之前做出选择，且现在决定不吃的宝物以后也不能再吃)。</p>
+<p>宝物一共有 $n$ 种，系统每次抛出这 $n$ 种宝物的概率都相同且相互独立。也就是说，即使前 $k-1$ 次系统都抛出宝物 $1$ (这种情况是有可能出现的，尽管概率非常小)，第 $k$ 次抛出各个宝物的概率依然均为 $\dfrac 1n$。</p>
+<p>获取第 $i$ 种宝物将得到 $P_i$ 分，但并不是每种宝物都是可以随意获取的。第 $i$ 种宝物有一个前提宝物集合 $S_i$。只有当 $S_i$ 中所有宝物都至少吃过一次，才能吃第 $i$ 种宝物 (如果系统抛出了一个目前不能吃的宝物，相当于白白的损失了一次机会)。</p>
+<p>注意，$P_i$ 可以是负数，但如果它是很多高分宝物的前提，损失短期利益而吃掉这个负分宝物将获得更大的长期利益。</p>
+<p>假设你采取最优策略，平均情况你一共能在奖励关得到多少分值？</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个正整数 $k, n$ ($k \leq 100, n \leq 15$)，表示宝物的数量和种类。</p>
+<p>接下来的 $m$ 行，分别描述 $m$ 种宝物，其中每行包含两个整数，其中第一个整数 $P_i$ ($|P_i| \leq 10^6$) 代表分值，随后的整数依次代表该宝物的各个前提宝物 (各宝物编号为 $1$ 到 $n$)，以 $0$ 结尾。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个实数，保留六位小数，即在最优策略下平均情况的得分。</p>
+
+<h3>题解</h3>
+<p>看起来 $n$ 并不大，于是可以想到使用状压 DP。</p>
+<p>对于第 $i$ 种宝物，如果 $S_i$ 中的宝物全部<abbr title="吃">噎</abbr>过，那么你才能<abbr title="吃">噎</abbr>第 $i$ 种宝物。</p>
+<p>记状态 $(i, S)$ 表示前 $i$ 个宝物中，<abbr title="吃">噎</abbr>过的宝物组成了集合 $S$。那么 $f_{i, S}$ 表示什么呢？如果 $f_{i, S}$ 表示这样前 $i$ 个宝物 (在最优情况下) 的得分期望，那么转移的时候，$1 \sim i-1$ 个宝物中，<abbr title="吃">噎</abbr>过的宝物组成的集合是 $S$，还是 $S$ 减去某个元素，这不好清楚。</p>
+<p>于是换一种思路，记 $f_{i, S}$ 表示前 $i$ 个宝物中，<abbr title="吃">噎</abbr>过的宝物组成的集合是 $S$，那么<strong>后面 $k - i$ 种宝物 (在最优情况下) 的得分期望</strong>。那么必须倒着转移，这样对于给定的 $(i, S)$，再<abbr title="吃">噎</abbr>一个宝物，所得的新的 $(i', S')$ 也是可以轻松得到的。</p>
+<p>考虑转移，随机下一个宝物是 $j$，如果 $S_j \subseteq S$，那么就可以<abbr title="吃">噎</abbr>它了，此时宝物 $j$ 对应的贡献即为 $$ \Large \frac 1n \max \left\{ f_{i+1, S}, f_{i+1, S \cup \{j\}} + P_j \right\} $$
+<p>如果 $S_j \nsubseteq S$，那么就不能<abbr title="吃">噎</abbr>它，此时宝物 $j$ 对应的贡献即为 $$ \Large \frac 1n f_{i+1, S} $$</p>
+<p>最后将所有 $j$ 对应的贡献加起来，就得到了 $f_{i, j}$，最后 $f_{0, \varnothing}$ 就是答案，时间复杂度为 $O(2^n nk)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">17</span>
+<span class="sh_preproc">#define</span> N2 <span class="sh_number">85367</span>
+<span class="sh_preproc">#define</span> K <span class="sh_number">136</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> t<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> P<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> S<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">double</span> f<span class="sh_symbol">[</span>K<span class="sh_symbol">][</span>N2<span class="sh_symbol">],</span> r<span class="sh_symbol">,</span> n1<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">up</span><span class="sh_symbol">(</span><span class="sh_type">double</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">double</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&lt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>m<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> P <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>t<span class="sh_symbol">)</span> <span class="sh_symbol">==</span> <span class="sh_number">1</span> <span class="sh_symbol">&amp;&amp;</span> t<span class="sh_symbol">;</span> S<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">|=</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_symbol">--</span>t<span class="sh_symbol">);</span>
+    t <span class="sh_symbol">=</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> n<span class="sh_symbol">;</span> n1 <span class="sh_symbol">=</span> <span class="sh_number">1.0</span> <span class="sh_symbol">/</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)</span>n<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> m <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">--</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> t<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                r <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(!(~</span>j <span class="sh_symbol">&amp;</span> S<span class="sh_symbol">[</span>k<span class="sh_symbol">]))</span>
+                    <span class="sh_function">up</span><span class="sh_symbol">(</span>r<span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">][</span>j <span class="sh_symbol">|</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> k<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_symbol">(</span><span class="sh_type">double</span><span class="sh_symbol">)</span>P<span class="sh_symbol">[</span>k<span class="sh_symbol">]);</span>
+                f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> r<span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span>
+            f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">*=</span> n1<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lf</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>由于后面一维操作只和集合 $S$ 和宝物 $j$，因此 DP 时第一维 $i$ 可以滚动掉 <del>(只是我懒得滚动罢了)</del>。</p>
+

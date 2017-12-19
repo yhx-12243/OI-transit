@@ -1,0 +1,69 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>斜堆 (skew heap) 是一种常用的数据结构。它也是二叉树，且满足与二叉堆相同的堆性质：每个非根结点的值都比它父亲大。因此在整棵斜堆中，根的值最小。但斜堆不必是平衡的，每个结点的左右儿子的大小关系也没有任何规定。</p>
+<p>在本题中，斜堆中各个元素的值均不相同。在斜堆 $H$ 中插入新元素 $x$ 的过程是递归进行的：当 $H$ 为空或者 $x$ 小于 $H$ 的根结点时 $x$ 变为新的树根，而原来的树根 (如果有的话) 变为 $x$ 的左儿子。当 $x$ 大于 $H$ 的根结点时，<strong>$H$ 根结点的两棵子树交换</strong>，而 $x$ (递归) 插入到交换后的左子树中。</p>
+<p>给出一棵斜堆，包含值为 $0 \sim n$ 的结点各一次。求一个结点序列，使得该斜堆可以通过在空树中依次插入这些结点得到。如果答案不唯一，输出字典序最小的解。输入保证有解。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $n$ ($2 \leq n \leq 50$)。</p>
+<p>第二行包含 $n$ 个整数 $d_1, d_2, \cdots, d_n$，其中 $d_i &lt; 100$ 表示 $i$ 是 $d_i$ 的左儿子，$d_i \geq 100$ 表示 $i$ 是 $d_i - 100$ 的右儿子。显然 $0$ 总是根，所以输入中不含 $d_0$。</p>
+
+<h3>输出格式</h3>
+<p>输出仅一行，包含 $n+1$ 个整数，即字典序最小的插入序列。</p>
+
+<h3>题解</h3>
+<p>这题裸搜显然是没有希望的，应当去发掘<em>斜堆</em>的某些性质。</p>
+<p>这里有一个斜堆的 demo：<a href="http://www.cs.usfca.edu/~galles/visualization/SkewHeap.html" target="_blank">Skew Heap Visualization</a></p>
+<p><del>玩了一会儿</del>可以发现，最后一个插入的节点 $v$ 具有一些性质：</p>
+<ol>
+<li><p><strong>根到 $v$ 的路径都是向左走的</strong>。证明很简单：因为如果直接插入，那么会插入到<strong>左子树</strong>，否则，子树交换后<strong>向左子树递归</strong>，因此节点 $v$ 一定是根的 $k$ 级左子树 (注意那个 demo 中是先向右找最后交换的，本质上其实是一样的)。</p></li>
+<li><p><strong>$v$ 没有右子树</strong>。证明亦很简单：如果 $v$ 是向下插入的 (大于根节点的值)，则 $v$ 就是一个叶节点，否则如果 $v$ 是向上插入的 (小于根节点的值)，则原来的根会作为 $v$ 的左子树，$v$ 还是没有右子树。</p>
+<p>其实还可以知道，如果 (任意) 一个节点没有左子树，则它一定不会有右子树。证明：用反证法。假如说点 $u$ 存在右子树 $u.r$，那么它一定是由左子树 $u.l$ 通过<strong>交换</strong>得来的 (由于插入只会插到左子树)。那么访问到 $u$ 时，会交换 $u.l$ 和 $u.r$，此时 $u.l$ 一定非空。亦即一个有右子树的点<strong>一定有左子树</strong>。</p></li>
+<li><p>于是，对新插入的节点 $v$，有这样一个性质：<strong>如果 $v$ 不是叶节点，那么，根到 $v$ 的路径上的所有点都有右子树</strong>。否则假设 $u$ 没有右子树，那么在访问 $u$ 的时候 $u$ 变成了只有左子树 (且最终这棵左子树不是单独的 $v$)，那么说明 (插入 $v$ 之前) $u$ 原先<strong>只有右子树</strong>，矛盾。类似地，如果 $v$ 是叶节点，那个根到 $v.p$ 的路径上的所有点都有右子树。</p></li>
+<li>那么，就有了 $v$ 的判定方法了：根据性质 1, 2 可得，它一定在根不停向左走形成的一条链 $L$ 上，且没有右子树。根据性质 3，它是链 $L$ 中<strong>没有右子树</strong>的深度最小 (最浅) 的节点 $u$。唯一的例外是，$u.l$ 为叶节点，那么这个叶节点 $u.l$ 也是满足要求的。</li>
+</ol>
+<p>好了，这样对于最后插入的节点 $v$，它<strong>至多有两个候选</strong>，如果它只有唯一的候选，那么最后一个值就是它，否则如果它有两个候选 $u$ 和 $u.l$，由 (小根) 堆的性质，$u$ 的值 $val_u$ 比 $u.l$ 的值 $val_{u.l}$ 要小，根据<strong>字典序最小</strong>的要求，由此肯定 $u$ 先插入，$u.l$ 后插入。(如下图有 $0-1-2-3$ 和 $0-3-2-1$ 两种插入方案)</p>
+<img class="center-block" src="uploads/25.png" alt="两种插入方案">
+<p>找到<strong>最后插入的节点</strong> $v$ 后，把它记入答案，然后<strong>将斜堆复原</strong>，即恢复成未插入 $v$ 时的情况。我们只需重新连接 $v.l$ 和 $v.p$，然后向上跑到根，并把所经过的节点左右子树交换即可，重复 $n + 1$ 次即得答案。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">68</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> t<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> root <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_type">int</span> lc<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> rc<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> p<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> ans<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>p<span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> p<span class="sh_symbol">);</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>lc<span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> lc<span class="sh_symbol">);</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>rc<span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> rc<span class="sh_symbol">);</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>j<span class="sh_symbol">);</span>
+        <span class="sh_symbol">(</span>j <span class="sh_symbol">&gt;=</span> <span class="sh_number">100</span> <span class="sh_symbol">?</span> rc<span class="sh_symbol">[</span>j <span class="sh_symbol">-=</span> <span class="sh_number">100</span><span class="sh_symbol">]</span> <span class="sh_symbol">:</span> lc<span class="sh_symbol">[</span>j<span class="sh_symbol">])</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+        p<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> j<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> n<span class="sh_symbol">;</span> i <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">--</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>t <span class="sh_symbol">=</span> root<span class="sh_symbol">;</span> <span class="sh_symbol">~</span>rc<span class="sh_symbol">[</span>t<span class="sh_symbol">];</span> t <span class="sh_symbol">=</span> lc<span class="sh_symbol">[</span>t<span class="sh_symbol">]);</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(~(</span>j <span class="sh_symbol">=</span> lc<span class="sh_symbol">[</span>t<span class="sh_symbol">])</span> <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">!(~</span>lc<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">||</span> <span class="sh_symbol">~</span>rc<span class="sh_symbol">[</span>j<span class="sh_symbol">]))</span> t <span class="sh_symbol">=</span> j<span class="sh_symbol">;</span>
+        ans<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> t<span class="sh_symbol">;</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>t <span class="sh_symbol">==</span> root<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>root <span class="sh_symbol">=</span> lc<span class="sh_symbol">[</span>t<span class="sh_symbol">];</span> p<span class="sh_symbol">[</span>root<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span> <span class="sh_keyword">continue</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(~(</span>lc<span class="sh_symbol">[</span>p<span class="sh_symbol">[</span>t<span class="sh_symbol">]]</span> <span class="sh_symbol">=</span> lc<span class="sh_symbol">[</span>t<span class="sh_symbol">]))</span> p<span class="sh_symbol">[</span>lc<span class="sh_symbol">[</span>t<span class="sh_symbol">]]</span> <span class="sh_symbol">=</span> p<span class="sh_symbol">[</span>t<span class="sh_symbol">];</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>t <span class="sh_symbol">=</span> p<span class="sh_symbol">[</span>t<span class="sh_symbol">];</span> <span class="sh_symbol">~</span>t<span class="sh_symbol">;</span> t <span class="sh_symbol">=</span> p<span class="sh_symbol">[</span>t<span class="sh_symbol">])</span> <span class="sh_function">swap</span><span class="sh_symbol">(</span>lc<span class="sh_symbol">[</span>t<span class="sh_symbol">],</span> rc<span class="sh_symbol">[</span>t<span class="sh_symbol">]);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d "</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">10</span><span class="sh_symbol">),</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意最后一个数后面<strong>要加空格</strong>，否则会 <abbr title="格式错误">Presentation Error</abbr>！</p>
+

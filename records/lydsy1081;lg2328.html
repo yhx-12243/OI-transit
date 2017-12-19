@@ -1,0 +1,88 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>著名的格雷码是指 $2^n$ 个不同 $n$ 位二进制数 (即 $0 \sim 2^n - 1$，不足 $n$ 位在前补零) 的一个排列，这个排列满足相邻的两个二进制数的 $n$ 位数字中最多只有一个数字不同 (例如 $003$ 和 $001$ 就有一个数位不同，而 $003$ 和 $030$ 有两个数位不同，不符合条件)。例如 $n = 2$ 时，$(00, 01, 11, 10)$ 就是一个满足条件的格雷码。</p>
+<p>所谓超级格雷码就是指 $B^n$ 个不同的 $n$ 位 $B$ 进制数的排列满足上面的条件。</p>
+<p>任务：给出 $n$ 和 $B$，求一个满足条件的格雷码。对于大于 $9$ 的数位用 $\texttt A \sim \texttt Z$ 表示 ($10 \sim 35$)。</p>
+
+<h3>输入格式</h3>
+<p>仅一行，包含两个整数 $n, B$ ($2 \leq B \leq 36, 1 \leq B^n \leq 65535$)。</p>
+
+<h3>输出格式</h3>
+<p>共 $B^n$ 行，每行一个 $B$ 进制数，表示你所求得的符合条件的排列。</p>
+
+<h3>题解</h3>
+<p>首先考虑二进制。二进制的格雷码应该<del>都比较熟悉</del>，大概长这个样子：</p>
+<pre>0000
+0001
+0011
+0010
+0110
+0111
+0101
+0100
+----
+1100
+1101
+1111
+1110
+1010
+1011
+1001
+1000</pre>
+<p>可以发现，前一半和后一半 (用横线 '-' 分割) 的数字有如下规律：</p>
+<ol>
+<li>对于最高位，前一半为 $0$，后一半为 $1$。</li>
+<li>对于其它位，前一半和后一半关于该直线 "轴对称"。</li>
+</ol>
+<p>其实更高进制的也是一样的。当最高位变化时，由于<strong>至多变化一位</strong>，则其它位都不能变化，相当于复制，然后最高位不动，其它位做一次 "轴对称" 变换就可以了，比如 $n = 3$ 时如下：</p>
+<pre>000
+001
+002
+012
+011
+010
+020
+021
+022
+122
+121
+120
+...</pre>
+<p>可以发现 (从 $0$ 编号右起) 第 $i$ 位的周期是 $2 \cdot B_i$。</p>
+<p>最后就是基本的位处理了。对于 $B$ 进制数 $a = (a_n a_{n-1} \cdots a_1 a_0)_B$，令 $M = \left \lfloor \dfrac a {B^{i+1}} \right \rfloor = (a_n a_{n-1} \cdots a_{i+1})_B$。那么可以看出，第 $a$ 个数的第 $i$ 位应为 $\begin{cases} a_i &amp; 2 \mid M \\ B - 1 - a_i &amp; 2 \nmid M \end{cases}$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">34</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">const</span> <span class="sh_type">char</span> trans<span class="sh_symbol">[</span><span class="sh_number">37</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_string">"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> s<span class="sh_symbol">,</span> c<span class="sh_symbol">,</span> x<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> r<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> r <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>r<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> i <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> r<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> r<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">*</span> r<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">];</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> r<span class="sh_symbol">[</span>n<span class="sh_symbol">];</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            s <span class="sh_symbol">=</span> i <span class="sh_symbol">/</span> r<span class="sh_symbol">[</span>j<span class="sh_symbol">];</span> c <span class="sh_symbol">=</span> s <span class="sh_symbol">/</span> r<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">];</span> x <span class="sh_symbol">=</span> s <span class="sh_symbol">-</span> c <span class="sh_symbol">*</span> r<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">];</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>c <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> x <span class="sh_symbol">=</span> r<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">-</span> <span class="sh_number">1</span> <span class="sh_symbol">-</span> x<span class="sh_symbol">;</span>
+            <span class="sh_function">putchar</span><span class="sh_symbol">(</span>trans<span class="sh_symbol">[</span>x<span class="sh_symbol">]);</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">10</span><span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>由于 Lydsy 上没有 Special Judge，因此需要把所得到的格雷码序列反转输出 (每个格雷码内部反转)。</p>
+

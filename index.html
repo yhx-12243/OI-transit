@@ -1,91 +1,106 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<!-- version 2.0 -->
 		<meta charset="utf-8">
 		<link type="text/css" rel="stylesheet" href="additional_files/bootstrap.simplify.min.css">
 		<link type="text/css" rel="stylesheet" href="additional_files/sh_typical.min.css">
 		<link type="text/css" rel="stylesheet" href="additional_files/pgmain.min.css">
 		<title>OI 中转站 - 做题记录</title>
+		<script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
 		<script type="text/javascript" src="additional_files/basic.min.js"></script>
 		<script type="text/javascript" src="additional_files/file.min.js"></script>
+		<script type="text/javascript" src="additional_files/sort.min.js"></script>
 		<script type="text/javascript">
 			// document loaded
-			window.onload = function () {
-				init();
-
-				dispTime.innerHTML = getTime();
-				setInterval('dispTime.innerHTML = getTime()', 250);
-
-				if(localStorage.getItem('marquee') === 'on'){
-					intro.style.display = '';
-					intro.start();
-				}
-
-				strFilter = parseSearch('selOJ', '');
-				pLocation.innerHTML = '当前位置: ' + getDisplay(strFilter);
-
-				pageO = parseInt(parseSearch('page', '1'));
-				LoadRecordsTo(recTable.tBodies[0], recTotal);
-			}
+			$(document).ready(function (){
+				updTime(); setInterval(updTime, 250);
+				if(getStorage('marquee') === 'on') $("#intro").show().get(0).start();
+				
+				curLocation = parseSearch('curLoc', '');
+				$('#pLocation').html('当前位置: ' + getDisplay(curLocation));
+				
+				curROrder = getStorage('srtRec') || 'n';
+				curPage = parseInt(parseSearch('page', '1'));
+				LoadRecords();
+				
+				// submit location
+				$('#form0 input[type="submit"]').click(function (){
+					$('#form0 input[name="curLoc"]').val($(this).attr('loc'));
+					$('#form0').submit();
+				});
+				
+				// submit page in button
+				$('#form1 input[type="button"]').click(function (){
+					var p = $(this).val(), q;
+					if(isNaN(p))
+						switch(p){
+							case '>': p = curPage + 1; break;
+							case '<': p = curPage - 1; break;
+							case '\u00bb': p = totPage; break;
+							case '\u00ab': p = 1; break;
+						}
+					$('#selPage').val(p);
+					$('#form1 input[name="curLoc"]').val(curLocation);
+					$('#form1').submit();
+				});
+				
+				// submit page in input
+				$('#selPage').blur(function (){
+					var p = parseInt(this.value);
+					if(p < 1 || p > totPage) {this.value = curPage.toString(); return;}
+					if(p === curPage) return;
+					$('#form1 input[name="curLoc"]').val(curLocation);
+					$('#form1').submit();
+				});
+				
+				$('#selPage').keypress(function (e){
+					if(e.which === 13 || e.keyCode === 13){
+						var p = parseInt(this.value);
+						if(p < 1 || p > totPage) return alert('scx: 你都输入的些什么呀，认真点！'), false;
+						$('#form1 input[name="curLoc"]').val(curLocation);
+					}
+				});
+				
+				// adjust marquee
+				$('#btnMarquee').click(function (){
+					var t = $('#intro');
+					if(t.is(':hidden')) {t.show().get(0).start(); setStorage('marquee', 'on');}
+					else {t.hide(); setStorage('marquee', 'off');}
+				});
+				
+				// sort table
+				$('.sortlink').click(function (){
+					var t = $(this.parentNode).index(), s;
+					// if(t in [0, 1, 3, 4, 6]){
+					if(t != 2){
+						s = getSortChar(t);
+						$('#recTable > tbody').empty();
+						if(s === curROrder) {curROrder += 'r'; tableReverse();}
+						else if(s + 'r' === curROrder) {curROrder = s; tableReverse();}
+						else {curROrder = s; sortTable(s);}
+						setStorage('srtRec', curROrder);
+						$('#recTable').append(Rows);
+					}	
+				});
+			});
+			
 			// loading page turnings
 			function pageDeals(){
-				if(pageC <= 1){
-					form1.style.display = 'none';
-					return;
-				}
-				selPage.value = pageO;
-				pagela1.value = pageO - 1;
-				pagela2.value = pageO - 2;
-				pagela3.value = pageO - 3;
-				pagene1.value = pageO + 1;
-				pagene2.value = pageO + 2;
-				pagene3.value = pageO + 3;
-				if(pageO <= 3) pagela3.style.display = 'none';
-				if(pageO <= 2) pagela2.style.display = 'none';
-				if(pageO <= 1){
-					page1.style.display = 'none';
-					pagela.style.display = 'none';
-					pagela1.style.display = 'none';
-				}
-				selPage.max = pageC;
-				if(pageC - 2 <= pageO) pagene3.style.display = 'none';
-				if(pageC - 1 <= pageO) pagene2.style.display = 'none';
-				if(pageC <= pageO){
-					pageN.style.display = 'none';
-					pagene.style.display = 'none';
-					pagene1.style.display = 'none';
-				}
-			}
-			// submit form0
-			function ojSubmit(oj0) {form0.selOJ.value = oj0;}
-			// submit form1(page) in button
-			function pgSubmit(p){
-				form1.selOJ.value = strFilter;
-				selPage.value = p;
-				form1.submit();
-			}
-			// submit form1(page) in input
-			function ptSubmit(){
-				if(event.keyCode === 13 || event.which === 13){
-					var pg0 = parseInt(form1.page.value);
-					if(pg0 < 1 || pg0 > pageC){
-						alert('scx: 你都输入的些什么呀，认真点！');
-						return false;
-					}
-					form1.selOJ.value = strFilter;
-					form1.submit();
-				}
-			}
-			// adjust marquee
-			function MarqAdj(){
-				if(intro.style.display == 'none'){
-					intro.style.display = '';
-					intro.start();
-					localStorage.setItem('marquee', 'on');
-				}else{
-					intro.style.display = 'none';
-					localStorage.setItem('marquee', 'off');
-				}
+				if(totPage <= 1) return $('#form1').hide(), 0;
+				$('#selPage').val(curPage).attr('max', totPage);
+				$('#pgN1').val(curPage + 1);
+				$('#pgN2').val(curPage + 2);
+				$('#pgN3').val(curPage + 3);
+				$('#pgP1').val(curPage - 1);
+				$('#pgP2').val(curPage - 2);
+				$('#pgP3').val(curPage - 3);
+				if(curPage <= 3) $('#pgP3').hide();
+				if(curPage <= 2) $('#pgP2').hide();
+				if(curPage <= 1) $('#pgP1, #pgPrev, #pgFirst').hide();
+				if(curPage >= totPage - 2) $('#pgN3').hide();
+				if(curPage >= totPage - 1) $('#pgN2').hide();
+				if(curPage >= totPage) $('#pgN1, #pgNext, #pgLast').hide();
 			}
 		</script>
 	</head>
@@ -95,7 +110,7 @@
 			<p id="dispTime">当前时间：2017-7-34 17:07:34</p>
 		</div>
 		<div class="dmarquee" style="height: 25px">
-			<button class="button" id="btnMarquee" onclick="MarqAdj()" style="float: left">开启/关闭字幕</button>
+			<button class="button" id="btnMarquee" style="float: left">开启/关闭字幕</button>
 			<div style="overflow: hidden">
 				<marquee id="intro" scrollamount="1334" style="display: none;">注：(字幕修改，版本 1.2)</marquee>
 			</div>
@@ -108,37 +123,34 @@
 				<fieldset>
 					<legend>做题记录</legend>
 					<form id="form0"><p>
-						<input name="selOJ" type="hidden" />
-						<input value="全部" type="submit" onclick="ojSubmit(&quot;&quot;)"><input value="Lydsy" type="submit" onclick="ojSubmit(&quot;Lydsy&quot;)" /><input value="洛谷" type="submit" onclick="ojSubmit(&quot;Luogu&quot;)" /><input value="Vijos" type="submit" onclick="ojSubmit(&quot;Vijos&quot;)" /><input value="HDU" type="submit" onclick="ojSubmit(&quot;HDU&quot;)" /><input value="POJ" type="submit" onclick="ojSubmit(&quot;POJ&quot;)" /><input value="UOJ" type="submit" onclick="ojSubmit(&quot;UOJ&quot;)" /><input value="LibreOJ" type="submit" onclick="ojSubmit(&quot;LibreOJ&quot;)" /><input value="SimpleOJ" type="submit" onclick="ojSubmit(&quot;SimpleOJ&quot;)" /><input value="Codeforces" type="submit" onclick="ojSubmit(&quot;Codeforces&quot;)" /><input value="Codechef" type="submit" onclick="ojSubmit(&quot;Codechef&quot;)" /><input value="SPOJ" type="submit" onclick="ojSubmit(&quot;SPOJ&quot;)" /><input value="本地" type="submit" onclick="ojSubmit(&quot;Local&quot;)" /><input value="连 scx 都不知道的 OJ" type="submit" onclick="ojSubmit(&quot;Unknown&quot;)" />
+						<input name="curLoc" type="hidden" />
+						<input value="全部" type="submit" loc="" /><input value="Lydsy" type="submit" loc="Lydsy" /><input value="洛谷" type="submit" loc="Luogu" /><input value="Vijos" type="submit" loc="Vijos" /><input value="HDU" type="submit" loc="HDU" /><input value="POJ" type="submit" loc="POJ" /><input value="UOJ" type="submit" loc="UOJ" /><input value="LibreOJ" type="submit" loc="LibreOJ" /><input value="SimpleOJ" type="submit" loc="SimpleOJ" /><input value="Codeforces" type="submit" loc="Codeforces" /><input value="Codechef" type="submit" loc="Codechef" /><input value="SPOJ" type="submit" loc="SPOJ" /><input value="本地" type="submit" loc="Local" /><input value="连 scx 都不知道的 OJ" type="submit" loc="Unknown" />
 					</p></form>
 					<p id="pLocation">当前位置: 全部</p>
 					<table class="main-table" id="recTable" style="width: 100%">
 						<thead>
 							<tr>
-								<th style="width: 8%">记录编号</th>
-								<th style="width: 19%">题目编号</th>
-								<th style="width: 11%">题解/代码链接</th>
-								<th style="width: 18%">AC 时间</th>
-								<th style="width: 8%">算法难度</th>
-								<th style="width: 8%">代码难度</th>
-								<th style="width: 28%">主要算法</th>
+								<th style="width: 8%"><span class="sortlink">记录编号</span></th>
+								<th style="width: 19%"><span class="sortlink">题目编号</span></th>
+								<th style="width: 11%"><span class="sortlink">题解/代码链接</span></th>
+								<th style="width: 18%"><span class="sortlink">AC 时间</span></th>
+								<th style="width: 8%"><span class="sortlink">算法难度</span></th>
+								<th style="width: 8%"><span class="sortlink">代码难度</span></th>
+								<th style="width: 28%"><span class="sortlink">主要算法</span></th>
 							</tr>
 						</thead>
 						<tbody>
 						</tbody>
 					</table>
 					<p id="recTotal" class="cen">请稍等，和 scx 喝喝茶就加载完毕啦！</p>
-					<form id="form1"><p>页码：<input name="selOJ" type="hidden" value="">
-						<input id="page1" value="&laquo;" type="button" onclick="pgSubmit(1)" /><input id="pagela" value="&lt;" type="button" onclick="pgSubmit(pageO - 1)" /><input id="pagela3" value="-2" type="button" onclick="pgSubmit(pageO - 3)" /><input id="pagela2" value="-1" type="button" onclick="pgSubmit(pageO - 2)" /><input id="pagela1" value="0" type="button" onclick="pgSubmit(pageO - 1)" />
-						<input id="selPage" name="page" value="1" type="number" min="1" max="170734" class="cen" style="width: 64px" onkeypress="return ptSubmit()" />
-						<input id="pagene1" value="2" type="button" onclick="pgSubmit(pageO + 1)" /><input id="pagene2" value="3" type="button" onclick="pgSubmit(pageO + 2)" /><input id="pagene3" value="4" type="button" onclick="pgSubmit(pageO + 3)" /><input id="pagene" value="&gt;" type="button" onclick="pgSubmit(pageO + 1)" /><input id="pageN" value="&raquo;" type="button" onclick="pgSubmit(pageC)" />
+					<form id="form1"><p>页码：<input name="curLoc" type="hidden" value="">
+						<input id="pgFirst" value="&laquo;" type="button" /><input id="pgPrev" value="&lt;" type="button" /><input id="pgP3" value="-2" type="button" /><input id="pgP2" value="-1" type="button" /><input id="pgP1" value="0" type="button" />
+						<input id="selPage" name="page" value="1" type="number" min="1" max="170734" class="cen" style="width: 50px; height: 21px" />
+						<input id="pgN1" value="2" type="button" /><input id="pgN2" value="3" type="button" /><input id="pgN3" value="4" type="button" /><input id="pgNext" value="&gt;" type="button" /><input id="pgLast" value="&raquo;" type="button" />
 					</p></form>
 				</fieldset>
 			</div>
 		</div>
-		<script type="text/javascript">
-			if(console)
-				console.log("scx: 这下可找到你了！哈哈哈~");
-		</script>
+		<script type="text/javascript">if(console) console.log("scx: 这下可找到你了！哈哈哈~");</script>
 	</body>
 </html>

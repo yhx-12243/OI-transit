@@ -1,0 +1,69 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>给一个数字串 $s$ 和正整数 $d$, 统计 $s$ 有多少种不同的排列能被 $d$ 整除 (可以有前导 $0$)。</p>
+<p>例如 $123434$ 有 $90$ 种排列能被 $2$ 整除，其中末位为 $2$ 的有 $30$ 种，末位为 $4$ 的有 $60$ 种。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $T$ ($T \leq 15)$，表示测试数据的个数。</p>
+<p>每组数据共一行，包含一个字符串 $s$ 和正整数 $d$ ($|s| \leq 10, d \leq 1000$)，中间用空格隔开。$s$ 保证只包含数字 $0, 1, 2, 3, 4, 5, 6, 7, 8, 9$。</p>
+
+<h3>输出格式</h3>
+<p>对于每组数据，输出一行一个整数，表示能被 $d$ 整除的排列的个数。</p>
+
+<h3>题解</h3>
+<p>由于 $|s| \leq 10$，因此可以考虑暴力枚举所有的排列，计算哪些可以整除的，其中暴力枚举可以用 <code>dfs()</code> 或者 <code>next_permutation()</code> 等等，时间复杂度为 $O \left( |s|! \right)$。</p>
+<p>虽然能过，但是它的复杂度还是比较大的，比如 $|s| = 15$ 时可能就吃不消了。</p>
+<p>由于字符串给的字符不是很多，于是这道题就可以进行<strong>状态压缩 DP</strong> 进行优化。</p>
+<p>将原字符串中的字符看作一个可重集，记 $f_{A, j}$ 代表了使用集合 $A$ ($A \subseteq \mathrm{set}(s)$) 中的数字，目前模 $d$ 的值为 $j$，($|A|$ 个数) 排列的方案数。那么，<del>使用刷表法</del>，枚举下一个数是 $k$ ($k \notin A$)，那么就有 $$ \Large f_{A \cup \{k\}, (10j + k) \bmod d} \uparrow f_{i, j} $$</p>
+<p>其中 $a \uparrow b$ 代表 <code>a += b</code>。</p>
+<p>当然，最终状态应该是 $F = f_{\mathrm{set}(s), 0}$，但是这样可能会有重复 (是有序排列)，比如说两个 $0$，它就会被算两次——先枚举左边的 $0$，再枚举右边的 $0$ 和先枚举右边的 $0$，再枚举左边的 $0$。</p>
+<p>像推导组合数一样，可以发现，每个数的重复是独立的。且如果这个数出现了 $i$ 次，那么它就会被重复计算 (共) $i!$ 遍。因此，我们只需要预处理出 $0 \sim 9$ 中每个数出现的次数，最后让 $F$ 分别除以它们的阶乘即为答案 (其实暴力也要这样的哦)，总时间复杂度 $O \left( 2^{|s|} d \right)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">12</span>
+<span class="sh_preproc">#define</span> N2 <span class="sh_number">2068</span>
+<span class="sh_preproc">#define</span> D <span class="sh_number">1034</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">const</span> <span class="sh_type">int</span> fact<span class="sh_symbol">[</span><span class="sh_number">11</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_cbracket">{</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> <span class="sh_number">6</span><span class="sh_symbol">,</span> <span class="sh_number">24</span><span class="sh_symbol">,</span> <span class="sh_number">120</span><span class="sh_symbol">,</span> <span class="sh_number">720</span><span class="sh_symbol">,</span> <span class="sh_number">5040</span><span class="sh_symbol">,</span> <span class="sh_number">40320</span><span class="sh_symbol">,</span> <span class="sh_number">362880</span><span class="sh_symbol">,</span> <span class="sh_number">3628800</span><span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> n2<span class="sh_symbol">,</span> d<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">,</span> ni<span class="sh_symbol">,</span> nj<span class="sh_symbol">;</span>
+<span class="sh_type">char</span> s<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> <span class="sh_symbol">*</span>p<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> cnt<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span>N2<span class="sh_symbol">][</span>D<span class="sh_symbol">],</span> ans<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> T<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>T<span class="sh_symbol">);</span> T<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>T<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s%d"</span><span class="sh_symbol">,</span> s<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>d<span class="sh_symbol">);</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>cnt<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> cnt<span class="sh_symbol">);</span>
+        <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>p <span class="sh_symbol">=</span> s<span class="sh_symbol">;</span> <span class="sh_symbol">*</span>p<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>p<span class="sh_symbol">)</span> <span class="sh_symbol">++</span>cnt<span class="sh_symbol">[*</span>p <span class="sh_symbol">&amp;=</span> <span class="sh_number">15</span><span class="sh_symbol">];</span>
+        n2 <span class="sh_symbol">=</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_symbol">(</span>n <span class="sh_symbol">=</span> p <span class="sh_symbol">-</span> s<span class="sh_symbol">);</span>
+        f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n2<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;</span> d<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">])</span>
+                    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span>
+                        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>ni <span class="sh_symbol">=</span> i <span class="sh_symbol">|</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> k<span class="sh_symbol">)</span> <span class="sh_symbol">!=</span> i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                            nj <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>j <span class="sh_symbol">*</span> <span class="sh_number">10</span> <span class="sh_symbol">+</span> s<span class="sh_symbol">[</span>k<span class="sh_symbol">])</span> <span class="sh_symbol">%</span> d<span class="sh_symbol">;</span>
+                            f<span class="sh_symbol">[</span>ni<span class="sh_symbol">][</span>nj<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">];</span>
+                        <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">10</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> j <span class="sh_symbol">*=</span> fact<span class="sh_symbol">[</span>cnt<span class="sh_symbol">[</span>i<span class="sh_symbol">]];</span>
+        <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>n2 <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">/</span> j<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意数组清零不要忘记，当然阶乘也可以事先预处理出来。</p>
+

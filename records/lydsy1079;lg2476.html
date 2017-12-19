@@ -1,0 +1,66 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>有 $n$ 个木块排成一行，从左到右依次编号为 $1 \sim n$。你有 $k$ 种颜色的油漆，其中第 $i$ 种颜色的油漆足够涂 $c_i$ 个木块。</p>
+<p>所有油漆刚好足够涂满所有木块，即 $c_1 + c_2 + \cdots + c_k = n$。相邻两个木块涂相同色显得很难看，所以你希望统计任意两个相邻木块颜色不同的着色方案。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $k$ ($k \leq 15$)。</p>
+<p>第二行包含 $k$ 个正整数 $c_1, c_2, \cdots, c_k$ ($c_i \leq 5$)。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，即方案总数模 $10^9 + 7$ 的结果。
+
+<h3>题解</h3>
+<p>这题其实是<a href="../memos/day3/sequence.cpp">这道题</a>的数据规模加强版。那道题当时是使用<strong>容斥原理</strong>做的，复杂度 (依照此题的字母表示) 为 $O(c_1 c_2 \cdots c_k)$，在这里变成了 $5^{15}$，显然要 TLE 掉的 <del>(我是不会告诉你我交了一发居然只 T 了两个点)</del>。</p>
+<p>于是考虑优化。<del>看到这种题面就感觉这种题就很可 DP 的样子</del>，瞟一眼数据规模，$k = 15$，于是考虑使用<strong>状压 DP</strong>。</p>
+<p>可以发现，如果两种油漆的个数 ($c_i$) 是相同的，那么这两种油漆的本质是相同的，意思是说，只要上一个油漆的 $c_i$ 相同，剩下的方案数是相同的。(比如说油漆 $u, v$ 满足 $c_u = c_v$，那么上一个油漆是 $u$ 或 $v$，答案相同)</p>
+<p>这样一来，状态可以这样记录：对于每个 $m$ ($1 \leq m \leq 5$)，有多少个 $i$ 满足 $c_i = m$，记作 $b_m$，则 $5$ 维向量 $\mathbf b = (b_1, b_2, b_3, b_4, b_5)$ 就是一种状态。当然，还要记录上一个油漆的 $c_i$，记作 $l$。我们把这种状态记作 $(\mathbf b, l)$</p>
+<p>然后记 $f_{\mathbf b, l}$ 表示<strong>上一个油漆是 $l$</strong> (即第一个油漆不为 $l$)，<strong>剩余油漆的向量为 $\mathbf b$</strong> 的着色方案总数，则有初值 $f_{\mathbf 0, l} = 1$，考虑转移：</p>
+<p>考虑使用一种 $c_i = m$ 的油漆，这样的油漆有 $b_m$ 种，但是如果 $l = m + 1$，说明上次使用了 $c_i = m + 1$ 的油漆 $j$，故 (现在的) $c_j = m$。而在 $b_m$ 种油漆中，$j$ 是不能使用的，因此在这种情况下，合法的方案数只有 $b_m - 1$。</p>
+<p>选定油漆 $i$ 后，油漆 $i$ 的个数 ($c_i$) 就变成了 $m-1$，也就是说，$c_i = m-1$ 的油漆多了一个，而 $c_i = m$ 的油漆少了一个。因此令 $b'_m = b_m - 1, b'_{m-1} = b_{m-1} + 1$，$l' = m$，则只需从 $f_{\mathbf {b'}, l'}$ 中转移，再乘油漆数 ($b_m$ 或 $b_m - 1$)，最后相加即可。</p>
+<p>具体的转移方程这里就不再写了 <del>(实在太长)</del>，详见代码，可以用<strong>记忆化搜索</strong>优化。总时间复杂度为 $O \left( 6 \cdot k^5 \right)$ (比较松的上界)。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_comment">// #define N 16</span>
+<span class="sh_preproc">#define</span> K <span class="sh_number">6</span>
+<span class="sh_preproc">#define</span> NK <span class="sh_number">1109771</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> <span class="sh_type">long</span> <span class="sh_type">long</span> ll<span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_usertype">ll</span><span class="sh_normal"> </span>mod <span class="sh_symbol">=</span> <span class="sh_number">1000000007</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> t<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> b<span class="sh_symbol">[</span>K<span class="sh_symbol">];</span>
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span>f<span class="sh_symbol">[</span>NK<span class="sh_symbol">][</span>K<span class="sh_symbol">];</span>
+
+<span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_function">dp</span><span class="sh_symbol">(</span><span class="sh_type">int</span> a1<span class="sh_symbol">,</span> <span class="sh_type">int</span> a2<span class="sh_symbol">,</span> <span class="sh_type">int</span> a3<span class="sh_symbol">,</span> <span class="sh_type">int</span> a4<span class="sh_symbol">,</span> <span class="sh_type">int</span> a5<span class="sh_symbol">,</span> <span class="sh_type">int</span> la<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> tt <span class="sh_symbol">=</span> <span class="sh_symbol">((((</span>a1 <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">4</span> <span class="sh_symbol">|</span> a2<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">4</span> <span class="sh_symbol">|</span> a3<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">4</span> <span class="sh_symbol">|</span> a4<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">4</span> <span class="sh_symbol">|</span> a5<span class="sh_symbol">);</span>
+    <span class="sh_usertype">ll</span><span class="sh_normal"> </span><span class="sh_symbol">&amp;</span>res <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>tt<span class="sh_symbol">][</span>la<span class="sh_symbol">];</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(~</span>res<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> res<span class="sh_symbol">;</span>
+    res  <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>a1 <span class="sh_symbol">?</span> <span class="sh_symbol">(</span>a1 <span class="sh_symbol">-</span> <span class="sh_symbol">(</span>la <span class="sh_symbol">==</span> <span class="sh_number">2</span><span class="sh_symbol">))</span> <span class="sh_symbol">*</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span>a1 <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a2<span class="sh_symbol">,</span>     a3<span class="sh_symbol">,</span>     a4<span class="sh_symbol">,</span>     a5<span class="sh_symbol">,</span>     <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+    res <span class="sh_symbol">+=</span> <span class="sh_symbol">(</span>a2 <span class="sh_symbol">?</span> <span class="sh_symbol">(</span>a2 <span class="sh_symbol">-</span> <span class="sh_symbol">(</span>la <span class="sh_symbol">==</span> <span class="sh_number">3</span><span class="sh_symbol">))</span> <span class="sh_symbol">*</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span>a1 <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a2 <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a3<span class="sh_symbol">,</span>     a4<span class="sh_symbol">,</span>     a5<span class="sh_symbol">,</span>     <span class="sh_number">2</span><span class="sh_symbol">)</span> <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+    res <span class="sh_symbol">+=</span> <span class="sh_symbol">(</span>a3 <span class="sh_symbol">?</span> <span class="sh_symbol">(</span>a3 <span class="sh_symbol">-</span> <span class="sh_symbol">(</span>la <span class="sh_symbol">==</span> <span class="sh_number">4</span><span class="sh_symbol">))</span> <span class="sh_symbol">*</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span>a1<span class="sh_symbol">,</span>     a2 <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a3 <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a4<span class="sh_symbol">,</span>     a5<span class="sh_symbol">,</span>     <span class="sh_number">3</span><span class="sh_symbol">)</span> <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+    res <span class="sh_symbol">+=</span> <span class="sh_symbol">(</span>a4 <span class="sh_symbol">?</span> <span class="sh_symbol">(</span>a4 <span class="sh_symbol">-</span> <span class="sh_symbol">(</span>la <span class="sh_symbol">==</span> <span class="sh_number">5</span><span class="sh_symbol">))</span> <span class="sh_symbol">*</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span>a1<span class="sh_symbol">,</span>     a2<span class="sh_symbol">,</span>     a3 <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a4 <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a5<span class="sh_symbol">,</span>     <span class="sh_number">4</span><span class="sh_symbol">)</span> <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+    res <span class="sh_symbol">+=</span> <span class="sh_symbol">(</span>a5 <span class="sh_symbol">?</span>  a5              <span class="sh_symbol">*</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span>a1<span class="sh_symbol">,</span>     a2<span class="sh_symbol">,</span>     a3<span class="sh_symbol">,</span>     a4 <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a5 <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">5</span><span class="sh_symbol">)</span> <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> res <span class="sh_symbol">%=</span> mod<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+    f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">5</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">4</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">3</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">2</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">][</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>n<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>t<span class="sh_symbol">);</span> <span class="sh_symbol">++</span>b<span class="sh_symbol">[</span>t<span class="sh_symbol">];</span><span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%lld</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> <span class="sh_function">dp</span><span class="sh_symbol">(</span>b<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">],</span> b<span class="sh_symbol">[</span><span class="sh_number">2</span><span class="sh_symbol">],</span> b<span class="sh_symbol">[</span><span class="sh_number">3</span><span class="sh_symbol">],</span> b<span class="sh_symbol">[</span><span class="sh_number">4</span><span class="sh_symbol">],</span> b<span class="sh_symbol">[</span><span class="sh_number">5</span><span class="sh_symbol">],</span> <span class="sh_number">0</span><span class="sh_symbol">));</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>虽然说开个 $6$ 维数组 ($\mathbf b$ 向量 $5$ 维，$l$ 一维) 也是可以的，但是寻址会比较慢 (引用大法好)，其实 $\mathbf b$ 的 $5$ 维可以状压到一维来处理。</p>
+
