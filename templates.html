@@ -1,89 +1,80 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<!-- version 2.0 -->
 		<meta charset="utf-8">
 		<link type="text/css" rel="stylesheet" href="additional_files/bootstrap.simplify.min.css">
 		<link type="text/css" rel="stylesheet" href="additional_files/sh_typical.min.css">
 		<link type="text/css" rel="stylesheet" href="additional_files/pgmain.min.css">
 		<title>OI 中转站 - 模板</title>
+		<script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
 		<script type="text/javascript" src="additional_files/basic.min.js"></script>
 		<script type="text/javascript" src="additional_files/file.min.js"></script>
 		<script type="text/javascript">
 			// document loaded
-			window.onload = function () {
-				init();
-
-				var dt = function() {dispTime.innerHTML = getTime();};
-				dt(); setInterval(dt, 250);
-
-				if(localStorage.getItem('marquee') === 'on'){
-					intro.style.display = '';
-					intro.start();
-				}
-
-				LoadTemplates(templates);
-			}
-			// big list change
-			function bigChange(){
-				var V = tclass.value, n = B.length, i = 0, j = 0, s = "", E0;
-				var E0, E1;
-				E0 = document.createElement('option');
-				E0.value = 'unsel';
-				E0.innerHTML = '选择模板';
-				sclass.innerHTML = '';
-				sclass.appendChild(E0);
-				for(i = 0; i < n; ++i){
-					if(j = B[i].search(/[^a-z]/), j < 0) continue;
-					s = B[i].substr(0, j);
-					if(V === s){
-						E0 = document.createElement('option');
-						E0.value = B[i];
-						E0.innerHTML = C[i];
-						sclass.appendChild(E0);
+			$(document).ready(function (){
+				updTime(); setInterval(updTime, 250);
+				if(getStorage('marquee') === 'on') $("#intro").show().get(0).start();
+				
+				LoadTemplates();
+				
+				// adjust marquee
+				$('#btnMarquee').click(function (){
+					var t = $('#intro');
+					if(t.is(':hidden')) {t.show().get(0).start(); setStorage('marquee', 'on');}
+					else {t.hide(); setStorage('marquee', 'off');}
+				});
+				
+				// big list change
+				$('#tclass').click(function (){
+					var V = this.value, i, j, t = $('#sclass');
+					t.empty().append($('<option />').val('unsel').html('选择模板'));
+					for(i = 0; i < tmpArr.length; ++i){
+						if(j = tmpArr[i].search(/[^a-z]/), j < 0) continue;
+						if(V === tmpArr[i].substr(0, j))
+							t.append($('<option />').val(tmpArr[i]).html(titleArr[i]));
+					}
+				});
+				
+				// thin list change
+				$('#sclass').click(function () {if(this.value !== 'unsel') location.href = '#' + this.value;});
+				
+				var going = -1;
+				// scrolling
+				$(window).scroll(function () {
+					var $top = $('#back-to-top');
+					if($(window).scrollTop() >= 1000)
+						$top.slideDown('slow');
+					else{
+						if(going === -1)
+							$top.slideUp('slow');
+						else if(!$top.is(':hidden') && $top.queue().length === 0)
+							$top.animate({'opacity': 'hide', 'bottom': '75%'}, 'slow', function () {$top.css('bottom', '');});
+					}
+				});
+				
+				// go to Top
+				function gotoTop(){
+					var pos = $(window).scrollTop(), newPos;
+					if(pos > 0){
+						newPos = (pos > 1000 ? parseInt(pos * 0.8) : Math.max(pos - 200, 0));
+						$(window).scrollTop(newPos);
+						going = (newPos > 0 ? setTimeout(gotoTop, 25) : -1);
+						//console.log(going);
 					}
 				}
-			}
-			// thin list change
-			function thinChange(){
-				if(sclass.value !== 'unsel'){
-					location.href = '#' + sclass.value;
-					sclass.selectedIndex = 0;
-				}
-			}
-			// adjust marquee
-			function MarqAdj(){
-				if(intro.style.display == 'none'){
-					intro.style.display = '';
-					intro.start();
-					localStorage.setItem('marquee', 'on');
-				}else{
-					intro.style.display = 'none';
-					localStorage.setItem('marquee', 'off');
-				}
-			}
-			// scrolling
-			window.onscroll = function(){
-				var pos = getScrollTop();
-				document.getElementById("back-to-top").style.display = (pos >= 1000 ? '' : 'none');
-			}
-			function gotoTop(){
-				var pos = getScrollTop(), nwpos;
-				if(pos > 0){
-					nwpos = (pos > 1000 ? parseInt(pos * 0.8) : Math.max(pos - 200, 0));
-					scrollTo(0, nwpos);
-					if(nwpos > 0 && getScrollTop() === nwpos)
-						setTimeout("gotoTop()", 25);	
-				}
-			}
+				
+				$('#back-to-top').click(gotoTop);
+			});
 		</script>
 	</head>
 	<body class="main-body">
 		<div class="title" style="height: 160px">
 			<h2>OI 中转站 - 模板</h2>
-			<p id="dispTime">当前时间：2017-7-34 17:07:34</p>
+			<p id="dispTime">当前时间: 2017-7-34 17:07:34</p>
 		</div>
 		<div class="dmarquee" style="height: 25px">
-			<button class="button" id="btnMarquee" onclick="MarqAdj()" style="float: left">开启/关闭字幕</button>
+			<button class="button" id="btnMarquee" style="float: left">开启/关闭字幕</button>
 			<div style="overflow: hidden">
 				<marquee id="intro" scrollamount="1334" style="display: none;">注：(字幕修改，版本 1.2)</marquee>
 			</div>
@@ -98,7 +89,7 @@
 					<div id="templates">
 						<div class="cen">
 							<span>分类：</span>
-							<select class="selbox" id="tclass" onchange="bigChange()">
+							<select class="selbox" id="tclass">
 								<option value="unsel">选择分类</option>
 								<option value="nt">数论(nt)</option>
 								<option value="str">字符串(str)</option>
@@ -109,7 +100,7 @@
 								<option value="cg">计算几何(cg)</option>
 							</select>
 							<span>&emsp;&emsp;具体：</span>
-							<select class="selbox" id="sclass" onchange="thinChange()">
+							<select class="selbox" id="sclass">
 								<option value="unsel">选择模板</option>
 							</select>
 						</div>
@@ -117,13 +108,10 @@
 				</fieldset>
 			</div>
 		</div>
-		<div id="back-to-top" onclick="gotoTop()" style="display: none">
+		<div id="back-to-top" style="display: none">
 			<img src="additional_files/rocket.png" alt="scx 的小火箭" style="width: 100%" />
 			<p class="hint">scx&thinsp;的小火箭</p>
 		</div>
-		<script type="text/javascript">
-			if(console)
-				console.log("scx: 这下可找到你了！哈哈哈~");
-		</script>
+		<script type="text/javascript">if(console) console.log("scx: 这下可找到你了！哈哈哈~");</script>
 	</body>
 </html>

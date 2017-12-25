@@ -1,0 +1,72 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>在一颗树上，你和 scx 轮流染色。你先手，染黄色。scx 后手，染绿色。染完后，所有和绿色相邻的黄色节点都变色为绿色。如果还有黄色节点，那么你赢了。</p>
+<p>给定一颗树，求你是否能赢 (假设你和 scx 都采取最优策略)。</p>
+
+<h3>输入格式</h3>
+<p>输入按照以下格式给出：</p>
+<pre>n m
+a<sub>1</sub> b<sub>1</sub>
+a<sub>2</sub> b<sub>2</sub>
+……
+a<sub>n-1</sub> b<sub>n-1</sub></pre>
+<p>其中数据满足 $n \leq 10^5; 1 \leq a_i, b_i \leq n$，且<em>保证是一棵树</em>。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个字符串，<code>First</code> 代表你能赢，<code>Second</code> 代表你不能赢。</p>
+
+<h3>题解</h3>
+<p><del>博弈论神题……</del></p>
+<p>先考虑一条链的情况，玩一玩即可发现当<strong>链长为奇数时先手胜，链长为偶数时后手胜</strong>。</p>
+<p>那么考虑一棵树的情况。假如一个节点 $v$ 有若干个子树，且每个子树是一条链 (见下图)。那么如果有两条链都能满足先手胜 (奇数)，则可以以如下方式取胜：</p>
+<img class="center-block" src="uploads/26.png" alt="若干个子树">
+<p>将点 $v$ 染黄色，然后后手随便染一个，然后我们在若干条链中找一条<strong>没有染过绿色</strong>的点，在这条链上跟她玩，显然是可以取胜的 (因为节点 $v$ 是黄色的，不会影响链中第一个点)。</p>
+<p>类似地，如果这些子树不一定是链，且至少有两个子树能满足先手胜，则 (递归地) 按照上述方法依然可取胜。</p>
+<p>如果这些子树<strong>恰好有一个是先手胜</strong>，那么如果你选了 $v$，她可以选那棵子树的根，否则她选择 $v$，然后就剩下若干个 P 状态 (必败态)，于是<del>脑补</del> SG 函数<del>那套理论</del>，可以得到你是输的。</p>
+<p>如果这些子树<strong>没有一个是先手胜</strong>，那么你先选择子树的根 $c_i$，她必须选择 $c_i$ 的使先手胜的那个子树 (否则你直接去那个子树跟她玩就必胜)，那么你把子树选光后，她还没来得及把 $v$ 染绿，于是你把 $v$ 染黄<del>就 AK 了</del>。</p>
+<p>注意的是，如果有两个子树能满足先手胜，那么直接 <code>exit()</code> 输出先手胜，不用进行递归。否则将树遍历一遍，然后跑个不像 DP 不像 SG 的玩意儿就可以在 $O(n)$ 时间内得到答案。<del>(话说只有一组数据感觉分比较好骗)</del></p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">100034</span>
+<span class="sh_preproc">#define</span> M <span class="sh_number">256101</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> e<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> to<span class="sh_symbol">[</span>M<span class="sh_symbol">],</span> first<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> next<span class="sh_symbol">[</span>M<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span><span class="sh_type">int</span> u<span class="sh_symbol">,</span> <span class="sh_type">int</span> v<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    to<span class="sh_symbol">[++</span>e<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> v<span class="sh_symbol">;</span> next<span class="sh_symbol">[</span>e<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> e<span class="sh_symbol">;</span>
+    to<span class="sh_symbol">[++</span>e<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> u<span class="sh_symbol">;</span> next<span class="sh_symbol">[</span>e<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> e<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> px<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> y<span class="sh_symbol">,</span> scx <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>y <span class="sh_symbol">=</span> to<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_symbol">!=</span> px<span class="sh_symbol">)</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">((</span>scx <span class="sh_symbol">+=</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>y<span class="sh_symbol">,</span> x<span class="sh_symbol">))</span> <span class="sh_symbol">&gt;=</span> <span class="sh_number">2</span><span class="sh_symbol">)</span>
+                <span class="sh_keyword">return</span> <span class="sh_number">2</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> <span class="sh_symbol">!</span>scx<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">);</span>
+        <span class="sh_function">addedge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">puts</span><span class="sh_symbol">(</span><span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">)</span> <span class="sh_symbol">?</span> <span class="sh_string">"First"</span> <span class="sh_symbol">:</span> <span class="sh_string">"Second"</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>感觉一点都不好想，可能博弈论 SG 函数那套理论还要加强啊……</p>
+

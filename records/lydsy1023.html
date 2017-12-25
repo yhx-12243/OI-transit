@@ -1,0 +1,112 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>如果某个无向连通图的任意一条边至多只出现在一条简单回路 (simple cycle) 里，我们就称这张图为仙人掌图 (cactus)。所谓简单回路就是指在图上不重复经过任何一个<strong>顶点</strong>的回路。</p>
+<img class="center-block" src="http://www.lydsy.com/JudgeOnline/images/1023/1.jpg" alt="什么是仙人掌">
+<p>举例来说，上面的第一个例子是一张仙人掌图，而第二个不是——注意到它有三条简单回路：$4 \to 3 \to 2 \to 1 \to 6 \to 5 \to 4$、$7 \to 8 \to 9 \to 10 \to 2 \to 3 \to 7$ 以及 $4 \to 3 \to 7 \to 8 \to 9 \to 10 \to 2 \to 1 \to 6 \to 5 \to 4$，而 $(2, 3)$ 同时出现在前两个的简单回路里。另外，第三张图也不是仙人掌图，因为它并不是连通图。</p>
+<p style="color: red">显然，仙人掌图上的每条边，或者是这张仙人掌图的桥 (bridge)，或者在且仅在一个简单回路里，两者必居其一。</p>
+<p>定义在图上两点之间的距离为这两点之间最短路径的距离。定义一个图的直径为这张图相距最远的两个点的距离。</p>
+<p>现在我们假定仙人掌图的每条边的权值都是 $1$，你的任务是求出给定的仙人掌图的直径。</p>
+
+<h3>输入格式</h3>
+<p>第一行包括两个整数 $n, m$ ($1 \leq n \leq 50000, 0 \leq m \leq 10000$)。其中 $n$ 代表顶点个数，我们约定图中的顶点将从 $1$ 到 $n$ 编号。</p>
+<p>接下来一共有 $m$ 行，代表 $m$ 条路径。每行的开始有一个整数 $k$ ($2 \leq k \leq 1000$)，代表在这条路径上的顶点个数。接下来是 $k$ 个 $1$ 到 $n$ 之间的整数，分别对应了一个顶点，相邻的顶点表示存在一条连接这两个顶点的边。</p>
+<p>一条路径上可能通过一个顶点好几次，但是我们保证所有的边都会出现在某条路径上，而且不会重复出现在两条路径上，或者在一条路径上出现两次。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，这个数表示仙人掌图的直径长度。</p>
+
+<h3>题解</h3>
+<p>正如红字说的一样，仙人掌中的边只有两种身份：一种是<strong>桥边</strong>，一种是<strong>环内边</strong>。因此，仙人掌有非常强的树的感觉，只是有些点以<strong>环的形式</strong>来呈现 (就如<em>基环树</em>只有一个环一样)。</p>
+<p>因此对仙人掌的题，都可以跑 <strong>Tarjan 桥边</strong>的算法把<strong>桥边</strong>和<strong>环内边</strong>分割开来。</p>
+<p>而 Tarjan 的本质就是 dfs，因此，任意一棵仙人掌都有它的 <strong>dfs 树</strong>，且非树边一定是<strong>后向边</strong> (back edge，可以回忆一下<strong>前向边</strong>、<strong>后向边</strong>和<strong>横叉边</strong>的定义)。</p>
+<p>并且对于每个<strong>环</strong> $C$，总有一个顶点是最先被访问到的，我们把它叫做<strong>这个环的根</strong> $r(C)$。</p>
+<p>考虑 dfs 点 $u$ 时，如果对于子节点 $v$，有 $id[u] &lt; low[v]$，那么 $(u, v)$ 是桥。如果 $v$ 已经被访问过 (且 $v$ 不是 dfs 树中 $u$ 的父节点)，说明遇到了环。这种情况对于一个环 $C$ 会出现两次，一次是从 $r(C)$ 到 $C$ 的<strong>末节点</strong>，另一次是 $C$ 的末节点到 $r(C)$。</p>
+<p>为了避免重复，我们需要增加一个条件，$id[u] &lt; id[v]$，即 $u$ 的 dfs 序小于 $v$ 的 dfs 序，此时一定是前者，即 $r(C)$ 到环的末节点。我们只需不断遍历 $v$ (在 dfs 树中) 的父节点，直到 $u$ ($= r(C)$)，我们就可以得到这个环的<strong>所有节点</strong>。</p>
+<p>由于仙人掌的直径可不像树的直径暴力 dfs 两遍就做完了，因此需要 DP。记 $f_i$ 为 (在 dfs 树中) 以 $i$ 为根的<strong>子仙人掌</strong>中的点到 $i$ 的最长路径，则对于一个点 $u$，若它的子节点中有若干条是桥边 $(u, v_1), (u, v_2), \cdots, (u, v_k)$，则有 $$ f_u \gets \max_{1 \leq i \leq k} f_{v_i} + 1 $$</p>
+<p>接下来考虑环。由于一个环是一个<strong>整体</strong>，每个点的地位都是<strong>平等的</strong>。因此我们可以选择一个 "环长 (zh&#462;ng)" 来记录有关这个环的所有信息，其它点就不用自己更新 (把信息交给 "环长")。那么那个 "环长" 是谁呢？显然选那个环的根 $r(C)$。</p>
+<p>那么对于 $u$，如果它是环 $C$ 的根，那么刚才讲过，在 dfs 时会遇到 $id[u] &lt; id[v]$ 的情况，于是我们就找到了环。通过不断遍历 dfs 树中的父节点，可以得到环上的所有点，记为 $u, c_1, c_2, \cdots, c_k$。显然，它们之间的距离可以通过<strong>环长</strong>和它们在 dfs 树中的<strong>深度</strong>得到，这里就不赘述了，记 $a, b$ 的距离为 $\mathrm{dist} (a, b)$。</p>
+<p>那么 $f_u$ 就清楚了，我们枚举环中的一个点 $c_i$，并取 $c_i$ 的最长路径 ($f_{c_i}$)，那么我们只需让它再 (走短边) 走向点 $u$，那么就可以更新 $f_u$ 了，即 $$ f_u \gets \max_{1 \leq i \leq k} \left( f_{c_i} + \mathrm{dist} (u, c_i) \right) $$</p>
+<p>到这里，我们就可以成功更新所有的 $f_i$。但是！题目要求的是<strong>全局</strong>最长链，并不一定是以某个点为根的最长路径。</p>
+<p>当然，再最后通过 $f_i$ 求答案也是可以的，但是在更新的时候求答案会更好。</p>
+<P>考虑从桥边 $(u, v)$ 更新。此时，更新之前的 $f_u$ 应该是以 $u$ 为起点的最长路径 (长度)，于是，可以<strong>通过 $f_u + f_v + 1$ 来更新答案</strong>。</p>
+<p>考虑对一个环 $C = (u, c_1, c_2, \cdots, c_k)$，环长为 $len = k + 1$。假设 $f_u$ 尚未更新，那么对任意两个点 $c_i, c_j$，答案就为 $f_{c_i} + \mathrm{dist} (c_i, c_j) + f_{c_j}$，显然这是 $O(len^2)$ 的，如果环大一点就 GG 了。</p>
+<p>考虑这个值就是对任一个点，向左向右各枚举 $\left \lfloor \dfrac {len} 2 \right \rfloor$ 个点，然后计算答案。那么其实我们可以固定方向 (即只向左枚举 $\left \lfloor \dfrac {len} 2 \right \rfloor$ 个点，因为向右的会在另一个点中枚举到)，又因为环不好搞，于是我们可以将环复制一半拼到后面。这样就只需对于每个 $f_{c_i}$ 求出 $\max\limits_{i - \lfloor len/2 \rfloor \leq j \leq i} \left( f_{c_i} + (i-j) + f_{c_j} \right) = \max\limits_{i - \lfloor len/2 \rfloor \leq j \leq i} \left( (f_{c_i} + i) + (f_{c_j} - j) \right)$，于是可以通过<strong>单调队列</strong>维护 $f_{c_j} - j$ 即可。</p>
+<img class="center-block" src="uploads/28.png" alt="转移方程 - 单调队列">
+<p>故时间复杂度为 $O(len)$，总时间复杂度 $O(n)$ (仙人掌图的边数与点数同阶)。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">51221</span>
+<span class="sh_preproc">#define</span> M <span class="sh_number">256101</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> V<span class="sh_symbol">,</span> E<span class="sh_symbol">,</span> pathes<span class="sh_symbol">,</span> ans<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> to<span class="sh_symbol">[</span>M<span class="sh_symbol">],</span> first<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> next<span class="sh_symbol">[</span>M<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> cnt<span class="sh_symbol">,</span> id<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> low<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> p<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> dep<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> cyc<span class="sh_symbol">[</span>N <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">],</span> que<span class="sh_symbol">[</span>N <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">up</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&lt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span><span class="sh_type">int</span> u<span class="sh_symbol">,</span> <span class="sh_type">int</span> v<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    to<span class="sh_symbol">[++</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> v<span class="sh_symbol">;</span> next<span class="sh_symbol">[</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> E<span class="sh_symbol">;</span>
+    to<span class="sh_symbol">[++</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> u<span class="sh_symbol">;</span> next<span class="sh_symbol">[</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> E<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">cycle</span><span class="sh_symbol">(</span><span class="sh_type">int</span> beg<span class="sh_symbol">,</span> <span class="sh_type">int</span> end<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> len <span class="sh_symbol">=</span> dep<span class="sh_symbol">[</span>end<span class="sh_symbol">]</span> <span class="sh_symbol">-</span> dep<span class="sh_symbol">[</span>beg<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> hen <span class="sh_symbol">=</span> len <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> i <span class="sh_symbol">=</span> len<span class="sh_symbol">,</span> x<span class="sh_symbol">,</span> h <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> t <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>x <span class="sh_symbol">=</span> end<span class="sh_symbol">;</span> x <span class="sh_symbol">!=</span> beg<span class="sh_symbol">;</span> x <span class="sh_symbol">=</span> p<span class="sh_symbol">[</span>x<span class="sh_symbol">])</span> cyc<span class="sh_symbol">[--</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span> cyc<span class="sh_symbol">[--</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span>
+    <span class="sh_function">memcpy</span><span class="sh_symbol">(</span>cyc <span class="sh_symbol">+</span> len<span class="sh_symbol">,</span> cyc<span class="sh_symbol">,</span> hen <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">2</span><span class="sh_symbol">);</span>
+    que<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> len <span class="sh_symbol">+</span> hen<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> h <span class="sh_symbol">&lt;</span> t <span class="sh_symbol">&amp;&amp;</span> que<span class="sh_symbol">[</span>h<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> i <span class="sh_symbol">-</span> hen<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>h<span class="sh_symbol">);</span>
+        <span class="sh_function">up</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>cyc<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">+</span> f<span class="sh_symbol">[</span>cyc<span class="sh_symbol">[</span>que<span class="sh_symbol">[</span>h<span class="sh_symbol">]]]</span> <span class="sh_symbol">+</span> i <span class="sh_symbol">-</span> que<span class="sh_symbol">[</span>h<span class="sh_symbol">]);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> h <span class="sh_symbol">&lt;</span> t <span class="sh_symbol">&amp;&amp;</span> f<span class="sh_symbol">[</span>cyc<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">-</span> i <span class="sh_symbol">&gt;=</span> f<span class="sh_symbol">[</span>cyc<span class="sh_symbol">[</span>que<span class="sh_symbol">[</span>t <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]]]</span> <span class="sh_symbol">-</span> que<span class="sh_symbol">[</span>t <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">];</span> <span class="sh_symbol">--</span>t<span class="sh_symbol">);</span>
+        que<span class="sh_symbol">[</span>t<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> len<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">up</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>x<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>cyc<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">+</span> <span class="sh_function">min</span><span class="sh_symbol">(</span>i<span class="sh_symbol">,</span> len <span class="sh_symbol">-</span> i<span class="sh_symbol">));</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> y<span class="sh_symbol">;</span>
+    id<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> low<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">++</span>cnt<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>id<span class="sh_symbol">[</span>y <span class="sh_symbol">=</span> to<span class="sh_symbol">[</span>i<span class="sh_symbol">]])</span><span class="sh_cbracket">{</span>
+            p<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span> dep<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> dep<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+            <span class="sh_function">dfs</span><span class="sh_symbol">(</span>y<span class="sh_symbol">);</span> <span class="sh_function">down</span><span class="sh_symbol">(</span>low<span class="sh_symbol">[</span>x<span class="sh_symbol">],</span> low<span class="sh_symbol">[</span>y<span class="sh_symbol">]);</span>        
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>id<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> low<span class="sh_symbol">[</span>y<span class="sh_symbol">])</span><span class="sh_cbracket">{</span> <span class="sh_comment">// bridge</span>
+                <span class="sh_function">up</span><span class="sh_symbol">(</span>ans<span class="sh_symbol">,</span> f<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> f<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+                <span class="sh_function">up</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>x<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+            <span class="sh_cbracket">}</span>
+        <span class="sh_cbracket">}</span><span class="sh_keyword">else</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>y <span class="sh_symbol">!=</span> p<span class="sh_symbol">[</span>x<span class="sh_symbol">])</span>
+            <span class="sh_function">down</span><span class="sh_symbol">(</span>low<span class="sh_symbol">[</span>x<span class="sh_symbol">],</span> id<span class="sh_symbol">[</span>y<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>p<span class="sh_symbol">[</span>y <span class="sh_symbol">=</span> to<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">!=</span> x <span class="sh_symbol">&amp;&amp;</span> id<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> id<span class="sh_symbol">[</span>y<span class="sh_symbol">])</span> <span class="sh_comment">// cycle of cactus !</span>
+            <span class="sh_function">cycle</span><span class="sh_symbol">(</span>x<span class="sh_symbol">,</span> y<span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>V<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>pathes<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> pathes<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>pathes<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>cnt<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">);</span> <span class="sh_symbol">--</span>cnt<span class="sh_symbol">;</span> u <span class="sh_symbol">=</span> v<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">);</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>
+    dep<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> p<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> cnt <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> ans<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><del>仙人掌的题其实并没有想象中那么可怕</del>，只要搞清楚它和树的相似之处，只是增加一个环的处理，就能解决了。</p>
+<p><strong>坑1：</strong>注意单调队列的写法，以免多 (少) 删除元素。</p>
+

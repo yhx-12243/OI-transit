@@ -1,0 +1,235 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>最近，scx 迷上了一款好玩的小游戏：antbuster。</p>
+<p>游戏规则非常简单：在一张地图上，左上角是蚂蚁窝，右下角是蛋糕，蚂蚁会源源不断地从窝里爬出来，试图把蛋糕搬回蚂蚁窝。而你的任务，就是用原始资金以及杀蚂蚁获得的奖金造防御塔，杀掉这些试图跟你抢蛋糕的蚂蚁~</p>
+<p>为了拿到尽可能高的分数，scx 设计了很多种造塔的方案，但在尝试了其中的一小部分后，scx 发现，这个游戏实在是太费时间了。为了节省时间，scx 决定写个程序，对于每一种方案，模拟游戏进程，根据效果来判断方案的优劣。</p>
+<p>根据自己在游戏中积累的一些经验，以及上网搜到的一些参数，scx 猜了蚂蚁爬行的算法，并且假设游戏中的蚂蚁也是按这个规则选择路线：</p>
+<ol>
+<li><p>每一秒钟开始的时候，蚂蚁都在平面中的某个整点上。如果蚂蚁没有扛着蛋糕，它会在该点留下 $2$ 单位的信息素，否则它会留下 $5$ 单位的信息素。然后蚂蚁会在正北、正南、正东、正西四个方向中选择一个爬过去。</p></li>
+<li><p>选择方向的规则是：首先，爬完一个单位长度后到达的那个点上，不能有其他蚂蚁<span style="color: red">或防御塔</span>，并且那个点不能是蚂蚁上一秒所在的点 (除非上一个时刻蚂蚁就被卡住，且这个时刻它仍无法动)，当然，蚂蚁也不会爬出地图的边界 (我们定义这些点为<strong>不可达点</strong>)。</p>
+<p>如果此时有多个选择，蚂蚁会选择<span style="color: red">信息素最多</span>的那个点爬过去。</p></li>
+<li><p>如果此时仍有多种选择，蚂蚁先面向正东，如果正东不是<span style="color: red">可选择的</span>某个方向，它会顺时针转 $90^\circ$，再次判断，如果还不是，再转 $90^\circ$……直到找到可以去的方向。</p></li>
+<li><p>如果将每只蚂蚁在洞口出现的时间作为它的活动时间的第 $1$ 秒，那么每当这只蚂蚁的活动时间秒数为 $5$ 的倍数的时候，它先按规则 1 ~ 3 确定一个方向，面对该方向后逆时针转 $90^\circ$。</p>
+<p>若它沿当前方向会走到一个<span style="color: red">不可达点</span>，它会不停地每次逆时针转 $90^\circ$，直到它面对着一个<span style="color: red">可达的点</span>，这样定下的方向才是蚂蚁最终要爬去的方向。</p></li>
+<li><p>如果蚂蚁的四周都是不可达点，那么蚂蚁在这一秒内会选择停留在当前点。下一秒判断移动方向时，它上一秒所在点为其当前停留的点。</p></li>
+<li><p>你可以认为蚂蚁在选定方向后，瞬间移动到它的目标点，这一秒钟剩下的时间里，它就停留在目标点。</p></li>
+<li><p>蚂蚁按出生的顺序移动，出生得比较早的蚂蚁先移动。</p></li>
+</ol>
+<p>然后，是一些有关地图的信息：</p>
+<ol>
+<li><p>每一秒 (末)，地图所有点上的信息素会损失 $1$ 单位，如果那个点上有信息素的话。<p></li>
+<li><p>地图上某些地方是炮台。炮台的坐标在输入中给出。</p></li>
+<li><p>地图的长、宽在输入中给出，对于 $n \times m$ 的地图，它的左上角坐标为 $(0, 0)$，右下角坐标为 $(n, m)$。蚂蚁洞的位置为 $(0, 0)$，蛋糕的位置为 $(n, m)$。</p></li>
+<li><p>你可以把蚂蚁看做一个<span style="color: red">直径</span>为 $1$ 单位的圆，圆心位于蚂蚁所在的整点。</p></li>
+<li><p>游戏开始时，地图上没有蚂蚁，每个点上的信息素含量均为 $0$。</p></li>
+</ol>
+<p>一些有关炮塔的信息：</p>
+<ol>
+<li><p>炮塔被放置在地图上的整点处。</p></li>
+<li><p>为了简单一些，我们认为这些炮塔都是激光塔。激光塔的射速是 $1$ 次/秒，它的攻击伤害为 $d$/次，攻击范围为 $r$。你可以认为每秒蚂蚁移动完毕后，塔才开始攻击。并且，只有当代表蚂蚁的圆的圆心与塔的直线距离不超过 $r$ 时，塔才算打得到那只蚂蚁。</p>
+<li><p>如果一只蚂蚁扛着蛋糕，那么它会成为 <code>target</code>，也就是说，任何打得到它的塔的炮口都会对准它。</p>
+<p>如果蛋糕好好地呆在原位，那么每个塔都会挑离它最近的蚂蚁进行攻击，如果有多只蚂蚁，它会选出生较早的一只。</p>
+<li><p>激光塔有个比较奇怪的特性：它在选定了打击目标后，只要目标在其射程内，塔到目标蚂蚁圆心的连线上的所有蚂蚁 (这里 "被打到" 的判定变成了表示激光的线段与表示蚂蚁的圆有公共点) 都会被打到并损 $d$ 格血，但激光<span style="color: red">不会穿透</span>它的打击目标打到后面的蚂蚁。</p></li>
+<li><p>尽管在真实游戏中，塔是可以升级的，但在这里我们认为塔的布局和等级就此定了下来，不再变动。</p></li>
+</ol>
+<p>再介绍一下蚂蚁窝：</p>
+<ol>
+<li><p>如果地图上的蚂蚁不足 $6$ 只，并且<span style="color: red">洞口没有蚂蚁</span>，那么窝中每秒会爬出一只蚂蚁，直到地图上的蚂蚁数为 $6$ 只。</p></li>
+<li><p>刚出生的蚂蚁站在洞口。</p></li>
+<li><p>每只蚂蚁有一个级别，级别决定了蚂蚁的血量，级别为 $k$ 的蚂蚁的血量为 $\left \lfloor 4 \times 1.1^k \right \rfloor$。</p>
+<p>每被塔打一次，蚂蚁的血减少 $d$。注意，血量为 $0$ 的蚂蚁仍能精力充沛地四处乱爬，只有一只蚂蚁的血被打成负数时，它才算挂了。</p></li>
+<li>蚂蚁的级别是这样算的：前 $6$ 只出生的蚂蚁是 $1$ 级，第 $7 \sim 12$ 只是 $2$ 级，依此类推。</li></p>
+</ol>
+<p>最后给出关于蛋糕的介绍：</p>
+<ol>
+<li><p>简单起见，你可以认为此时只剩最后一块蛋糕了。如果有蚂蚁走到蛋糕的位置，并且此时蛋糕没有被扛走，那么这只蚂蚁就扛上了蛋糕。蚂蚁被打死后蛋糕归位。</p></li>
+<li><p>如果一只扛着蛋糕的蚂蚁走到蚂蚁窝的位置，我们就认为蚂蚁成功抢到了蛋糕，游戏结束。</p></li>
+<li><p>蚂蚁扛上蛋糕时，血量会增加 $\left \lfloor \dfrac {该蚂蚁出生时血量} 2 \right \rfloor$，但不会超过上限。</p></li>
+</ol>
+<p>整理一下 $1$ 秒钟内发生的事件：</p>
+<p>$1$ 秒的最初，如果地图上蚂蚁数不足 $6$，一只蚂蚁就会在洞口出生。接着，蚂蚁们在自己所在点留下一些信息素后，考虑移动。先出生的蚂蚁先移动。</p>
+<p>移动完毕后，如果有蚂蚁在蛋糕的位置上并且蛋糕没被拿走，它把蛋糕扛上，血量增加，并在这时被所有塔设成 <code>target</code>。然后所有塔同时开始攻击。</p>
+<p>如果攻击结束后那只扛着蛋糕的蚂蚁挂了，蛋糕瞬间归位。攻击结束后，如果发现<span style="color: red">扛蛋糕的蚂蚁没死</span>并在窝的位置，就认为蚂蚁抢到了蛋糕。游戏也在此时结束。</p>
+<p>最后，地图上所有点的信息素损失 $1$ 单位。所有蚂蚁的年龄加 $1$。漫长的 $1$ 秒到此结束。</p>
+
+<h3>输入格式</h3>
+<p>输入的第一行包含 $2$ 个用空格隔开的正整数 $n, m$ ($n, m \leq 8$)，分别表示了地图的长和宽。</p>
+<p>第二行包含三个用空格隔开的整数 $s, d, r$ ($s \leq 20$)，依次表示炮塔的个数、单次攻击伤害以及攻击范围。</p>
+<p>接下来 $s$ 行，每行为两个用空格隔开的整数 $x, y$，描述了一个炮塔的位置。当然，蚂蚁窝的洞口以及蛋糕所在的位置上一定没有炮塔。</p>
+<p>最后一行是一个正整数 $t$ ($t \leq 2 \times 10^5$)，表示我们模拟游戏的前 $t$ 秒钟。</p>
+
+<h3>输出格式</h3>
+<p>如果在第 $t$ 秒或之前蚂蚁抢到了蛋糕，输出一行 <code>Game over after x seconds</code>，其中 $x$ 为游戏结束的时间，否则输出 <code>The game is going on</code>。</p>
+<p>如果游戏在 $t$ 秒或之前结束，输出游戏结束时所有蚂蚁的信息，否则输出 $t$ 秒后所有蚂蚁的信息。格式如下：</p>
+<p>第一行是一个整数 $s$，表示此时活着的蚂蚁的总数。</p>
+<p>接下来 $s$ 行，每行 $5$ 个整数，依次表示一只蚂蚁的年龄 (单位为秒)、等级、当前血量，以及在地图上的位置 $(a, b)$。输出按蚂蚁的年龄递减排序。</p>
+
+<h3>题解</h3>
+<p>由于 $n, m \leq 8$，因此只需按照题目所说的模拟即可，可以参照题目描述中的最后几行 "整理一下 $1$ 秒钟内发生的事件："，按这里面顺序模拟下来。</p>
+<p>对于炮塔这块，涉及到小小的计算几何，即，如果没有 <code>target</code>，那么每个炮塔只需选择最近的蚂蚁攻击即可。否则 (如果打得到的话)，它与 <code>target</code> 会形成一条<strong>线段</strong>，任何与这条线段的距离 $&lt; \dfrac 12$ 的蚂蚁都会被打到。</p>
+<p>注意是与线段的距离而不是与它所在直线的距离，又由于格子单位长度 $&gt; \dfrac 12$，因此只需在离直线距离不超过 $\dfrac 12$ 的前提下增加一个<strong>矩形判定</strong> (是否在矩形框中) 即可，判定到直线的距离可以用<strong>点到直线的距离公式</strong>或 (三角形) <strong>面积法</strong>。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">34</span>
+<span class="sh_preproc">#define</span> R <span class="sh_number">10</span>
+<span class="sh_preproc">#define</span> C <span class="sh_number">10</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">const</span> <span class="sh_type">int</span> dx<span class="sh_symbol">[</span><span class="sh_number">4</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_cbracket">{</span><span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_cbracket">}</span><span class="sh_symbol">,</span> dy<span class="sh_symbol">[</span><span class="sh_number">4</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_cbracket">{</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">class</span><span class="sh_normal"> </span><span class="sh_classname">tower</span> <span class="sh_cbracket">{</span><span class="sh_keyword">public</span><span class="sh_symbol">:</span>
+    <span class="sh_type">int</span> x<span class="sh_symbol">,</span> y<span class="sh_symbol">;</span>
+    tower <span class="sh_symbol">*</span> <span class="sh_function">read</span><span class="sh_symbol">();</span>
+    <span class="sh_type">void</span> <span class="sh_function">attack</span><span class="sh_symbol">();</span>
+<span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_keyword">class</span><span class="sh_normal"> </span><span class="sh_classname">ant</span> <span class="sh_cbracket">{</span><span class="sh_keyword">public</span><span class="sh_symbol">:</span>
+    <span class="sh_type">int</span> x<span class="sh_symbol">,</span> y<span class="sh_symbol">,</span> la<span class="sh_symbol">,</span> age<span class="sh_symbol">,</span> level<span class="sh_symbol">,</span> blood<span class="sh_symbol">,</span> maxblood<span class="sh_symbol">;</span>
+    <span class="sh_type">bool</span> cake<span class="sh_symbol">;</span>
+    <span class="sh_type">void</span> <span class="sh_function">addInfo</span><span class="sh_symbol">();</span>
+    <span class="sh_type">void</span> <span class="sh_function">move</span><span class="sh_symbol">();</span>
+    <span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">print</span><span class="sh_symbol">()</span> <span class="sh_cbracket">{</span><span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d %d %d %d %d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> age<span class="sh_symbol">,</span> level<span class="sh_symbol">,</span> blood<span class="sh_symbol">,</span> x<span class="sh_symbol">,</span> y<span class="sh_symbol">);</span><span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>a<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">bool</span> dangerous<span class="sh_symbol">,</span> twforbid<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> r<span class="sh_symbol">,</span> c<span class="sh_symbol">,</span> n<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> damage<span class="sh_symbol">,</span> radius<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> curTime<span class="sh_symbol">,</span> totTime<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> info<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> curAnt<span class="sh_symbol">,</span> totAnt<span class="sh_symbol">,</span> target<span class="sh_symbol">;</span>
+<span class="sh_usertype">tower</span><span class="sh_normal"> </span>tw<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">up</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&lt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+tower <span class="sh_symbol">*</span> tower<span class="sh_symbol">::</span><span class="sh_function">read</span><span class="sh_symbol">()</span> <span class="sh_cbracket">{</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>y<span class="sh_symbol">);</span> twforbid<span class="sh_symbol">[</span>x<span class="sh_symbol">][</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span> <span class="sh_keyword">return</span> <span class="sh_keyword">this</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">bool</span> <span class="sh_function">forbid</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>x <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span> <span class="sh_symbol">||</span> x <span class="sh_symbol">&gt;</span> r <span class="sh_symbol">||</span> y <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span> <span class="sh_symbol">||</span> y <span class="sh_symbol">&gt;</span> c <span class="sh_symbol">||</span> twforbid<span class="sh_symbol">[</span>x<span class="sh_symbol">][</span>y<span class="sh_symbol">])</span> <span class="sh_keyword">return</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_type">int</span> i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>x <span class="sh_symbol">==</span> x <span class="sh_symbol">&amp;&amp;</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>y <span class="sh_symbol">==</span> y<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">bool</span> <span class="sh_function">newAnt</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>curAnt <span class="sh_symbol">&gt;=</span> <span class="sh_number">6</span><span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> l<span class="sh_symbol">,</span> b<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(!(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>x <span class="sh_symbol">||</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>y<span class="sh_symbol">))</span> <span class="sh_keyword">return</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span>
+    l <span class="sh_symbol">=</span> totAnt <span class="sh_symbol">/</span> <span class="sh_number">6</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    b <span class="sh_symbol">=</span> <span class="sh_symbol">(</span><span class="sh_type">int</span><span class="sh_symbol">)(</span><span class="sh_number">4.0</span> <span class="sh_symbol">*</span> <span class="sh_function">pow</span><span class="sh_symbol">(</span><span class="sh_number">1.1</span><span class="sh_symbol">,</span> l<span class="sh_symbol">));</span>
+    a<span class="sh_symbol">[</span>curAnt<span class="sh_symbol">].</span>x <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>curAnt<span class="sh_symbol">].</span>y <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>curAnt<span class="sh_symbol">].</span>age <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    a<span class="sh_symbol">[</span>curAnt<span class="sh_symbol">].</span>la <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+    a<span class="sh_symbol">[</span>curAnt<span class="sh_symbol">].</span>level <span class="sh_symbol">=</span> l<span class="sh_symbol">;</span>
+    a<span class="sh_symbol">[</span>curAnt<span class="sh_symbol">].</span>blood <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>curAnt<span class="sh_symbol">].</span>maxblood <span class="sh_symbol">=</span> b<span class="sh_symbol">;</span>
+    a<span class="sh_symbol">[</span>curAnt<span class="sh_symbol">].</span>cake <span class="sh_symbol">=</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span>
+    <span class="sh_symbol">++</span>curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>totAnt<span class="sh_symbol">;</span>
+    <span class="sh_keyword">return</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">kill</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>x<span class="sh_symbol">].</span>cake<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>dangerous <span class="sh_symbol">=</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span> target <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>curAnt<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">];</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>x <span class="sh_symbol">&lt;</span> target<span class="sh_symbol">)</span> <span class="sh_symbol">--</span>target<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> ant<span class="sh_symbol">::</span><span class="sh_function">addInfo</span><span class="sh_symbol">()</span> <span class="sh_cbracket">{</span>info<span class="sh_symbol">[</span>x<span class="sh_symbol">][</span>y<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> cake <span class="sh_symbol">?</span> <span class="sh_number">5</span> <span class="sh_symbol">:</span> <span class="sh_number">2</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> ant<span class="sh_symbol">::</span><span class="sh_function">move</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> nx<span class="sh_symbol">,</span> ny<span class="sh_symbol">,</span> choice <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> infov <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">4</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        nx <span class="sh_symbol">=</span> x <span class="sh_symbol">+</span> dx<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> ny <span class="sh_symbol">=</span> y <span class="sh_symbol">+</span> dy<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span><span class="sh_function">forbid</span><span class="sh_symbol">(</span>nx<span class="sh_symbol">,</span> ny<span class="sh_symbol">))</span> <span class="sh_keyword">continue</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>info<span class="sh_symbol">[</span>nx<span class="sh_symbol">][</span>ny<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;</span> infov <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">(</span>i <span class="sh_symbol">^</span> la <span class="sh_symbol">^</span> <span class="sh_number">2</span><span class="sh_symbol">))</span> <span class="sh_cbracket">{</span>choice <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> infov <span class="sh_symbol">=</span> info<span class="sh_symbol">[</span>nx<span class="sh_symbol">][</span>ny<span class="sh_symbol">];</span><span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>choice <span class="sh_symbol">==</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>la <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span> <span class="sh_keyword">return</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>age <span class="sh_symbol">%</span> <span class="sh_number">5</span> <span class="sh_symbol">==</span> <span class="sh_number">4</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        infov <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>choice <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">&amp;</span> <span class="sh_number">3</span><span class="sh_symbol">;</span> <span class="sh_symbol">;</span> <span class="sh_symbol">--</span>i <span class="sh_symbol">&amp;=</span> <span class="sh_number">3</span><span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            nx <span class="sh_symbol">=</span> x <span class="sh_symbol">+</span> dx<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> ny <span class="sh_symbol">=</span> y <span class="sh_symbol">+</span> dy<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(!</span><span class="sh_function">forbid</span><span class="sh_symbol">(</span>nx<span class="sh_symbol">,</span> ny<span class="sh_symbol">)</span> <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">(</span>i <span class="sh_symbol">^</span> la <span class="sh_symbol">^</span> <span class="sh_number">2</span><span class="sh_symbol">))</span> <span class="sh_cbracket">{</span>choice <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> infov <span class="sh_symbol">=</span> info<span class="sh_symbol">[</span>nx<span class="sh_symbol">][</span>ny<span class="sh_symbol">];</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">==</span> choice<span class="sh_symbol">)</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    x <span class="sh_symbol">+=</span> dx<span class="sh_symbol">[</span>choice<span class="sh_symbol">];</span> y <span class="sh_symbol">+=</span> dy<span class="sh_symbol">[</span>choice<span class="sh_symbol">];</span> la <span class="sh_symbol">=</span> choice<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> tower<span class="sh_symbol">::</span><span class="sh_function">attack</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> dx<span class="sh_symbol">,</span> dy<span class="sh_symbol">,</span> D <span class="sh_symbol">=</span> INT_MAX<span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(~</span>target<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        dx <span class="sh_symbol">=</span> x <span class="sh_symbol">-</span> a<span class="sh_symbol">[</span>target<span class="sh_symbol">].</span>x<span class="sh_symbol">;</span> dy <span class="sh_symbol">=</span> y <span class="sh_symbol">-</span> a<span class="sh_symbol">[</span>target<span class="sh_symbol">].</span>y<span class="sh_symbol">;</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>D <span class="sh_symbol">=</span> dx <span class="sh_symbol">*</span> dx <span class="sh_symbol">+</span> dy <span class="sh_symbol">*</span> dy<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;=</span> radius <span class="sh_symbol">*</span> radius<span class="sh_symbol">)</span><span class="sh_cbracket">{</span> <span class="sh_comment">// shootable</span>
+            <span class="sh_type">int</span> x1 <span class="sh_symbol">=</span> x<span class="sh_symbol">,</span> y1 <span class="sh_symbol">=</span> y<span class="sh_symbol">,</span> x2 <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>target<span class="sh_symbol">].</span>x<span class="sh_symbol">,</span> y2 <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>target<span class="sh_symbol">].</span>y<span class="sh_symbol">,</span> Area2<span class="sh_symbol">;</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>x1 <span class="sh_symbol">&gt;</span> x2<span class="sh_symbol">)</span> <span class="sh_function">swap</span><span class="sh_symbol">(</span>x1<span class="sh_symbol">,</span> x2<span class="sh_symbol">);</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>y1 <span class="sh_symbol">&gt;</span> y2<span class="sh_symbol">)</span> <span class="sh_function">swap</span><span class="sh_symbol">(</span>y1<span class="sh_symbol">,</span> y2<span class="sh_symbol">);</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(</span>x1 <span class="sh_symbol">&lt;=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>x <span class="sh_symbol">&amp;&amp;</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>x <span class="sh_symbol">&lt;=</span> x2 <span class="sh_symbol">&amp;&amp;</span> y1 <span class="sh_symbol">&lt;=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>y <span class="sh_symbol">&amp;&amp;</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>y <span class="sh_symbol">&lt;=</span> y2<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                    Area2 <span class="sh_symbol">=</span> x <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>target<span class="sh_symbol">].</span>y <span class="sh_symbol">-</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>y<span class="sh_symbol">)</span> <span class="sh_symbol">+</span> a<span class="sh_symbol">[</span>target<span class="sh_symbol">].</span>x <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>y <span class="sh_symbol">-</span> y<span class="sh_symbol">)</span> <span class="sh_symbol">+</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>x <span class="sh_symbol">*</span> <span class="sh_symbol">(</span>y <span class="sh_symbol">-</span> a<span class="sh_symbol">[</span>target<span class="sh_symbol">].</span>y<span class="sh_symbol">);</span>
+                    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>D <span class="sh_symbol">&gt;=</span> Area2 <span class="sh_symbol">*</span> Area2 <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">2</span><span class="sh_symbol">)</span>
+                        a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>blood <span class="sh_symbol">-=</span> damage<span class="sh_symbol">;</span>
+                <span class="sh_cbracket">}</span>
+            <span class="sh_keyword">return</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_type">int</span> d<span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>curAnt<span class="sh_symbol">)</span> <span class="sh_keyword">return</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        dx <span class="sh_symbol">=</span> x <span class="sh_symbol">-</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>x<span class="sh_symbol">;</span> dy <span class="sh_symbol">=</span> y <span class="sh_symbol">-</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>y<span class="sh_symbol">;</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>d <span class="sh_symbol">=</span> dx <span class="sh_symbol">*</span> dx <span class="sh_symbol">+</span> dy <span class="sh_symbol">*</span> dy<span class="sh_symbol">)</span> <span class="sh_symbol">&lt;</span> D<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>j <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span> D <span class="sh_symbol">=</span> d<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>D <span class="sh_symbol">&lt;=</span> radius <span class="sh_symbol">*</span> radius<span class="sh_symbol">)</span> a<span class="sh_symbol">[</span>j<span class="sh_symbol">].</span>blood <span class="sh_symbol">-=</span> damage<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d%d%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>r<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>c<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>damage<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>radius<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> tw<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">read</span><span class="sh_symbol">();</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>totTime<span class="sh_symbol">);</span> target <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>curTime <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> curTime <span class="sh_symbol">&lt;=</span> totTime<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>curTime<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">newAnt</span><span class="sh_symbol">();</span> <span class="sh_comment">// create new ant</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">addInfo</span><span class="sh_symbol">();</span> <span class="sh_comment">// add pheromone</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">move</span><span class="sh_symbol">();</span> <span class="sh_comment">// ant move</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>dangerous<span class="sh_symbol">)</span> <span class="sh_comment">// try to get cake</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>x <span class="sh_symbol">==</span> r <span class="sh_symbol">&amp;&amp;</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>y <span class="sh_symbol">==</span> c<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                    dangerous <span class="sh_symbol">=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>cake <span class="sh_symbol">=</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span> target <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+                    <span class="sh_function">down</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>blood <span class="sh_symbol">+=</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>maxblood <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>maxblood<span class="sh_symbol">);</span>
+                    <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+                <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> tw<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">attack</span><span class="sh_symbol">();</span> <span class="sh_comment">// attack</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_keyword">if</span><span class="sh_symbol">(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>blood <span class="sh_symbol">&lt;</span> <span class="sh_number">0</span><span class="sh_symbol">)</span> <span class="sh_function">kill</span><span class="sh_symbol">(</span>i<span class="sh_symbol">--);</span> <span class="sh_comment">// kill the dead ant</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>dangerous<span class="sh_symbol">)</span><span class="sh_cbracket">{</span> <span class="sh_comment">// check if game is over</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+                <span class="sh_keyword">if</span><span class="sh_symbol">(!(</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>x <span class="sh_symbol">||</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>y<span class="sh_symbol">)</span> <span class="sh_symbol">&amp;&amp;</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>cake<span class="sh_symbol">)</span> <span class="sh_comment">// game over</span>
+                    <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">)</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_symbol">++</span>a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span>age<span class="sh_symbol">;</span> <span class="sh_comment">// endings</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> r<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>    
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&lt;=</span> c<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+                <span class="sh_function">up</span><span class="sh_symbol">(--</span>info<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">],</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>curTime <span class="sh_symbol">&gt;</span> totTime<span class="sh_symbol">)</span> <span class="sh_function">puts</span><span class="sh_symbol">(</span><span class="sh_string">"The game is going on"</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">else</span> <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"Game over after %d seconds</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> curTime<span class="sh_symbol">);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> curAnt<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> curAnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">].</span><span class="sh_function">print</span><span class="sh_symbol">();</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>不知道你们有没有发现，我<del>非常良心地</del>把题目中一些 <del>(对我来说的)</del> 易错点都标<span style="color: red">红</span>了，这道题大大小小的坑还真是多，调了我一个半小时……(好久没做代码难度 $&gt; 10$ 的题啦)</p>
+<p><strong>坑1：</strong>蚂蚁<strong>不能爬到防御塔所在格子</strong>，可以用 <code>map[]</code> 数组记录判定。</p>
+<p><strong>坑2：</strong>蚂蚁在选择方向 (移动) 的时候，初始的<strong>顺时针判定</strong>是先选出<strong>信息素最多</strong>的一个 (或多个) 点，然后从那里的点选择。但是在 $5$ 的倍数中的<strong>逆时针判定</strong>只需要<strong>是否可达</strong>，不需要涉及信息素。</p>
+<p><strong>坑3：</strong>判定距离的时候，不需要用 <code>double</code>。记面积的 $2$ 倍为 $S$，塔与 <code>target</code> 距离的平方为 $D$，那么 $\dfrac S {\sqrt D} \leq 0.5$ 等价于 $D \geq 4S^2$，由于数据规模较小，<code>int</code> 就足够了。</p>
+<p><strong>坑4：</strong>在删除蚂蚁的时候，(如果像我一样用数组记录)，要记得把后面的蚂蚁 (对应的数组) 挪过来 (即俗话说的补空位)，注意<strong>如果后面有 <code>target</code>，也要把它挪过来，即 <code>--target;</code></strong>。</p>
+<p><strong>坑5：</strong>如果在删除蚂蚁的时候顺着循环，记得删除完以后下标减 $1$，因为可能下一个还要删除 (倒着循环就可以避免这种情况)。</p>
+

@@ -1,0 +1,96 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>在一个 $5 \times 5$ 的棋盘上有 $12$ 个白色的骑士和 $12$ 个黑色的骑士，且有一个空位。在任何时候一个骑士都能按照骑士的走法 (它可以走到和它横坐标相差为 $1$，纵坐标相差为 $2$ 或者横坐标相差为 $2$，纵坐标相差为 $1$ 的格子) 移动到空位上。</p>
+<p>给定一个初始的棋盘，怎样才能经过移动变成如下目标棋盘：</p>
+<img class="center-block" src="http://www.lydsy.com/JudgeOnline/upload/201303/aa.jpg" alt="目标棋盘">
+<p>为了体现出<em>骑士精神</em>，他们必须以最少的步数完成任务。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $T$ ($T \leq 10$)，表示一共有 $T$ 组数据。</p>
+<p>接下来有 $T$ 个 $5 \times 5$ 的矩阵，$\texttt 0$ 表示白色骑士，$\texttt 1$ 表示黑色骑士，$\texttt *$ 表示空位。两组数据之间没有空行。</p>
+
+<h3>输出格式</h3>
+<p>对于每组数据都输出一行。如果能在 $15$ 步以内 (包括 $15$ 步) 到达目标状态，则输出步数，否则输出 $-1$。</p>
+
+<h3>题解</h3>
+<p>由于棋盘规模不是特别大，因此尝试使用搜索。但是如果直接搜的话，状态数最多可以达到 $\dbinom {25} {12} \times 13 \approx 6.76 \times 10^7$，加上枚举状态的常数，基本是过不去的。</p>
+<p>注意到搜索深度不超过 $15$，于是可以考虑<strong>迭代加深搜索</strong> (或者 <abbr title="Iterative Deepening A*, 启发式迭代加深">IDA*</abbr> 搜索)，即枚举搜索的<em>最大深度</em>，如果找到解，则输出。</p>
+<p>记两种局面的<strong>区别值</strong>为<em>除空位外</em>，满足 "两个棋盘的骑士颜色不同" 的位置的总数 $\mathrm{diff} (A, B)$。显然，如果要把 $A$ 移动到 $B$，所需的操作次数 (如果可行) 一定 $\geq \mathrm{diff} (A, B)$。</p>
+<p>于是可以限定深度从 $\mathrm{diff(init, terminal)}$ 到 $15$，并且对于每种状态 $\mathrm{now}$，计算出 $\mathrm{diff(now, terminal)}$，如果当前深度 $d$ 加上剩余的<strong>至少操作次数</strong> $\mathrm{diff(now, terminal)}$ 大于限定深度，则剪枝。</p>
+<p>具体实现的时候，对于一个状态，找到它的<strong>空位</strong>，枚举周围 $8$ 个方向，计算状态，可以用二进制 $2^{25}$ 来优化常数，类似<a href="lydsy1054.html" target="_blank">这道题</a>。</p>
+<p>当然，计算 $\mathrm{diff(now, terminal)}$ 的时候，不需要暴力 $O(25)$ 计算，因为 $\mathrm{diff}$ 的定义是<strong>忽略空位</strong>的，因此对于一个<strong>骑士</strong>的移动 $v \to u$ (亦即<strong>空位</strong>的移动 $u \to v$) 只需比较那个骑士的颜色同 $\mathrm{terminal}$ 的 $v$ 位置以及 $u$ 位置是否一样即可。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> <span class="sh_usertype">k</span><span class="sh_normal"> </span>first <span class="sh_comment">// knight</span>
+<span class="sh_preproc">#define</span> <span class="sh_usertype">s</span><span class="sh_normal"> </span>second <span class="sh_comment">// space</span>
+<span class="sh_preproc">#define</span> now scx
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">typedef</span> pair <span class="sh_symbol">&lt;</span><span class="sh_type">int</span><span class="sh_symbol">,</span> <span class="sh_type">int</span><span class="sh_symbol">&gt;</span> state<span class="sh_symbol">;</span>
+
+<span class="sh_keyword">const</span> <span class="sh_usertype">state</span><span class="sh_normal"> </span>terminal <span class="sh_symbol">=</span> <span class="sh_function">state</span><span class="sh_symbol">(</span><span class="sh_number">0x00863df</span><span class="sh_symbol">,</span> <span class="sh_number">12</span><span class="sh_symbol">);</span>
+<span class="sh_keyword">const</span> <span class="sh_type">int</span> tr<span class="sh_symbol">[</span><span class="sh_number">8</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_cbracket">{</span><span class="sh_symbol">-</span><span class="sh_number">11</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">9</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">7</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">3</span><span class="sh_symbol">,</span> <span class="sh_number">3</span><span class="sh_symbol">,</span> <span class="sh_number">7</span><span class="sh_symbol">,</span> <span class="sh_number">9</span><span class="sh_symbol">,</span> <span class="sh_number">11</span><span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+<span class="sh_keyword">const</span> <span class="sh_type">int</span> td<span class="sh_symbol">[</span><span class="sh_number">8</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_cbracket">{</span><span class="sh_symbol">-</span><span class="sh_number">2</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">2</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">2</span><span class="sh_symbol">,</span> <span class="sh_number">2</span><span class="sh_cbracket">}</span><span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> dep<span class="sh_symbol">;</span>
+
+<span class="sh_usertype">state</span><span class="sh_normal"> </span>init<span class="sh_symbol">;</span>
+
+<span class="sh_type">bool</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_type">int</span> d<span class="sh_symbol">,</span> <span class="sh_type">int</span> la<span class="sh_symbol">,</span> <span class="sh_usertype">state</span><span class="sh_normal"> </span>now<span class="sh_symbol">,</span> <span class="sh_type">int</span> dif<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> u <span class="sh_symbol">=</span> now<span class="sh_symbol">.</span>s<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> p<span class="sh_symbol">,</span> q<span class="sh_symbol">,</span> r<span class="sh_symbol">,</span> nxt<span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>d <span class="sh_symbol">+</span> dif <span class="sh_symbol">&gt;</span> dep<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>now <span class="sh_symbol">==</span> terminal<span class="sh_symbol">)</span> <span class="sh_keyword">return</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">8</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>i <span class="sh_symbol">^</span> la<span class="sh_symbol">)</span> <span class="sh_symbol">!=</span> <span class="sh_number">7</span> <span class="sh_symbol">&amp;&amp;</span> <span class="sh_number">0</span> <span class="sh_symbol">&lt;=</span> <span class="sh_symbol">(</span>v <span class="sh_symbol">=</span> u <span class="sh_symbol">+</span> tr<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_symbol">&amp;&amp;</span> v <span class="sh_symbol">&lt;</span> <span class="sh_number">25</span> <span class="sh_symbol">&amp;&amp;</span> v <span class="sh_symbol">/</span> <span class="sh_number">5</span> <span class="sh_symbol">-</span> u <span class="sh_symbol">/</span> <span class="sh_number">5</span> <span class="sh_symbol">==</span> td<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span><span class="sh_cbracket">{</span> <span class="sh_comment">// valid</span>
+            p <span class="sh_symbol">=</span> v <span class="sh_symbol">!=</span> terminal<span class="sh_symbol">.</span>s <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">((</span>now<span class="sh_symbol">.</span>k <span class="sh_symbol">^</span> terminal<span class="sh_symbol">.</span>k<span class="sh_symbol">)</span> <span class="sh_symbol">&gt;&gt;</span> v <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">);</span> <span class="sh_comment">// old pos differ</span>
+            q <span class="sh_symbol">=</span> u <span class="sh_symbol">!=</span> terminal<span class="sh_symbol">.</span>s <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">((</span>now<span class="sh_symbol">.</span>k <span class="sh_symbol">&gt;&gt;</span> v <span class="sh_symbol">^</span> terminal<span class="sh_symbol">.</span>k <span class="sh_symbol">&gt;&gt;</span> u<span class="sh_symbol">)</span> <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">);</span> <span class="sh_comment">// new pos differ</span>
+            r <span class="sh_symbol">=</span> <span class="sh_symbol">(!</span>p <span class="sh_symbol">&amp;&amp;</span> q<span class="sh_symbol">)</span> <span class="sh_symbol">-</span> <span class="sh_symbol">(</span>p <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">!</span>q<span class="sh_symbol">);</span>
+            nxt <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>now<span class="sh_symbol">.</span>k <span class="sh_symbol">&gt;&gt;</span> v <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span> <span class="sh_symbol">?</span> now<span class="sh_symbol">.</span>k <span class="sh_symbol">^</span> <span class="sh_symbol">(</span><span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> u <span class="sh_symbol">|</span> <span class="sh_number">1</span> <span class="sh_symbol">&lt;&lt;</span> v<span class="sh_symbol">)</span> <span class="sh_symbol">:</span> now<span class="sh_symbol">.</span>k<span class="sh_symbol">);</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span><span class="sh_function">dfs</span><span class="sh_symbol">(</span>d <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> <span class="sh_function">state</span><span class="sh_symbol">(</span>nxt<span class="sh_symbol">,</span> v<span class="sh_symbol">),</span> dif <span class="sh_symbol">+</span> r<span class="sh_symbol">))</span> <span class="sh_keyword">return</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">work</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> md <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> D <span class="sh_symbol">=</span> init<span class="sh_symbol">.</span>k <span class="sh_symbol">^</span> terminal<span class="sh_symbol">.</span>k<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">25</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>i <span class="sh_symbol">!=</span> init<span class="sh_symbol">.</span>s <span class="sh_symbol">&amp;&amp;</span> i <span class="sh_symbol">!=</span> terminal<span class="sh_symbol">.</span>s <span class="sh_symbol">&amp;&amp;</span> <span class="sh_symbol">(</span>D <span class="sh_symbol">&gt;&gt;</span> i <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">))</span> <span class="sh_symbol">++</span>md<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>dep <span class="sh_symbol">=</span> md<span class="sh_symbol">;</span> dep <span class="sh_symbol">&lt;=</span> <span class="sh_number">15</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>dep<span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span><span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">,</span> init<span class="sh_symbol">,</span> md<span class="sh_symbol">))</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> dep<span class="sh_symbol">);</span> <span class="sh_keyword">break</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>dep <span class="sh_symbol">&gt;</span> <span class="sh_number">15</span><span class="sh_symbol">)</span> <span class="sh_function">puts</span><span class="sh_symbol">(</span><span class="sh_string">"-1"</span><span class="sh_symbol">);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">read</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+    <span class="sh_type">char</span> s<span class="sh_symbol">[</span><span class="sh_number">34</span><span class="sh_symbol">],</span> <span class="sh_symbol">*</span>ss <span class="sh_symbol">=</span> s <span class="sh_symbol">+</span> <span class="sh_number">10</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> <span class="sh_number">4</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> s<span class="sh_symbol">);</span> ss<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>j <span class="sh_symbol">=</span> <span class="sh_number">4</span><span class="sh_symbol">;</span> j <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">--</span>j<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            ss<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> ss<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">1</span> <span class="sh_symbol">|</span> <span class="sh_symbol">(</span>s<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">&amp;</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>s<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> <span class="sh_number">42</span><span class="sh_symbol">)</span> init<span class="sh_symbol">.</span>s <span class="sh_symbol">=</span> i <span class="sh_symbol">*</span> <span class="sh_number">5</span> <span class="sh_symbol">+</span> j<span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+    init<span class="sh_symbol">.</span>k <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">4</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> <span class="sh_symbol">--</span>i<span class="sh_symbol">)</span>
+        init<span class="sh_symbol">.</span>k <span class="sh_symbol">=</span> init<span class="sh_symbol">.</span>k <span class="sh_symbol">&lt;&lt;</span> <span class="sh_number">5</span> <span class="sh_symbol">|</span> ss<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> T<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span><span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>T<span class="sh_symbol">);</span> T<span class="sh_symbol">;</span> <span class="sh_symbol">--</span>T<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_function">read</span><span class="sh_symbol">();</span> <span class="sh_function">work</span><span class="sh_symbol">();</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>如果选取不同的 $\mathrm{diff}$ 函数，转移规则可能是不一样的 (注意不要 $O(25)$ 暴力)，但有时候操作次数可能 $&lt; \mathrm{diff}(A, B)$，比如包括空位的不同位置的总数。</p>
+

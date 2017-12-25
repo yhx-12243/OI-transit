@@ -1,0 +1,78 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 开办了一家电话公司。她雇用了 $n$ 个职员，给了每个职员一部手机。每个职员的手机里都存储有一些同事的电话号码。</p>
+<p>由于 scx 的公司规模不断扩大，旧的办公楼已经显得十分狭窄，scx 决定将公司迁至一些新的办公楼。</p>
+<p>scx 希望职员被安置在尽量多的办公楼当中，这样对于每个职员来说都会有一个相对更好的工作环境。</p>
+<p>但是，为了联系方便起见，如果两个职员被安置在两个不同的办公楼之内，他们必须拥有彼此的电话号码。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个整数 $n, m$ ($2 \leq n \leq 10^5, 1 \leq m \leq 2 \times 10^6$)。职员被依次编号为 $1, 2, \cdots, n$。</p>
+<p>接下来的 $m$ 行，每行包含两个正整数 $a, b$ ($1 \leq a, b \leq n$)，表示职员 $a$ 和 $b$ 拥有彼此的电话号码。</p>
+
+<h3>输出格式</h3>
+<p>输出两行。第一行包含一个数 $S$，表示 scx 最多可以将职员安置进的办公楼数。</p>
+<p>第二行包含 $S$ 个<strong>从小到大排列</strong>的数，每个数后面接一个空格，表示每个办公楼里安排的职员数。</p>
+
+<h3>题解</h3>
+<p>由于如果两个职员在不同的办公楼内，他们就必须拥有彼此的电话号码。因此，我们可以将这种关系看成一张<strong>图</strong>，那么就相当于它们之间连边。即两个点在不同楼内 &#8658; 它们之间有边。</p>
+<p>于是考虑它的<strong>补图</strong> $\bar G$，那么考虑刚才命题的逆否命题：即它们之间有边 &#8658; 两个点在同一办公楼内。又由于办公楼的数目尽可能的多，那么自然就是让一个<strong>连通分量</strong>对应一个办公楼喽。</p>
+<p>于是原题就是要求一张图的<strong>补图</strong>的连通块个数，确切地说，是求一张<strong>稀疏图</strong>的补图的连通块个数。显然并查集和 bfs 是不行的，因为边数是 $O(n^2)$ 的，因此需要想办法降低复杂度。</p>
+<p>在使用 bfs 的时候，可以发现，对于第一个点，我们 bfs 出了和它在同一连通分量中的许多点。由于原图是<strong>稀疏图</strong>，那么它的补图就是非常稠密的图 (接近完全图的图)，因此不在连通分量的点毕竟也是少数。那么我们在那些点继续 bfs，难免会更新到很多无用的点。</p>
+<p>如果在 bfs 扩展的时候，<strong>避免更新已经访问过的点</strong>，即每次都更新没有访问的点。由于每 bfs 一次就确定了一个 (极大) 连通分量，因此后面的 bfs 就不需要管前面已经获得的连通分量。而且，在更新一个连通分量的时候，也无需考虑已经在本连通分量中的点。</p>
+<p>这个可以通过链表和并查集来实现，大体思路就是维护某个点<strong>后面的第一个未访问的点</strong>。最后把每个连通分量的大小<strong>排序后</strong>输出即可，因为一次 bfs 就得到了一个大小。由于原图是稀疏图，所以时间复杂度为期望 $O(n)$。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">100034</span>
+<span class="sh_preproc">#define</span> M <span class="sh_number">4012249</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> V<span class="sh_symbol">,</span> E<span class="sh_symbol">,</span> Es<span class="sh_symbol">,</span> stamp<span class="sh_symbol">,</span> cur<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> to<span class="sh_symbol">[</span>M<span class="sh_symbol">],</span> first<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> next<span class="sh_symbol">[</span>M<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> que<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> used<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> p<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> weight<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">int</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_keyword">return</span> p<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> x <span class="sh_symbol">?</span> x <span class="sh_symbol">:</span> <span class="sh_symbol">(</span>p<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span>p<span class="sh_symbol">[</span>x<span class="sh_symbol">]));</span><span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span><span class="sh_type">int</span> u<span class="sh_symbol">,</span> <span class="sh_type">int</span> v<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    to<span class="sh_symbol">[++</span>Es<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> v<span class="sh_symbol">;</span> next<span class="sh_symbol">[</span>Es<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> Es<span class="sh_symbol">;</span>
+    to<span class="sh_symbol">[++</span>Es<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> u<span class="sh_symbol">;</span> next<span class="sh_symbol">[</span>Es<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> Es<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">bfs</span><span class="sh_symbol">(</span><span class="sh_type">int</span> si<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> h<span class="sh_symbol">,</span> t <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> x<span class="sh_symbol">;</span> weight<span class="sh_symbol">[++</span>cur<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    que<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> si<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>h <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> h <span class="sh_symbol">&lt;</span> t<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>h<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        x <span class="sh_symbol">=</span> que<span class="sh_symbol">[</span>h<span class="sh_symbol">];</span> <span class="sh_symbol">++</span>stamp<span class="sh_symbol">;</span> p<span class="sh_symbol">[</span>x<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span>x <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> used<span class="sh_symbol">[</span>to<span class="sh_symbol">[</span>i<span class="sh_symbol">]]</span> <span class="sh_symbol">=</span> stamp<span class="sh_symbol">;</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">);</span> i <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(++</span>i<span class="sh_symbol">))</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>used<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">!=</span> stamp<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+                <span class="sh_symbol">++</span>weight<span class="sh_symbol">[</span>cur<span class="sh_symbol">];</span> p<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">);</span> que<span class="sh_symbol">[</span>t<span class="sh_symbol">++]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+            <span class="sh_cbracket">}</span>
+    <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>V<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>E<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> E<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">);</span>
+        <span class="sh_function">addedge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> V <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> p<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> i<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> V<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> <span class="sh_function">ancestor</span><span class="sh_symbol">(++</span>i<span class="sh_symbol">))</span> <span class="sh_function">bfs</span><span class="sh_symbol">(</span>i<span class="sh_symbol">);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> cur<span class="sh_symbol">);</span>
+    <span class="sh_function">sort</span><span class="sh_symbol">(</span>weight <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> weight <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>cur <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">));</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> cur<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d "</span><span class="sh_symbol">,</span> weight<span class="sh_symbol">[</span>i<span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_function">putchar</span><span class="sh_symbol">(</span><span class="sh_number">10</span><span class="sh_symbol">),</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span></code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意这里的并查集并不是来维护连通性的，只是用来去重 (减少重复搜索) 的。</p>
+

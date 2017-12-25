@@ -1,5 +1,6 @@
 var
-	curLocation, curPage, totPage, curROrder, Rows;
+	curLocation, curPage, totPage, curROrder,
+	Rows, tmpArr, titleArr, xhr;
 
 const
 	RECORDS_PER_PAGE = 50,
@@ -26,7 +27,7 @@ const
 		};
 	
 	win.xhr = new XMLHttpRequest(),
-	win.xs = new XMLSerializer();
+	//win.xs = new XMLSerializer();
 	win.getStorage = localStorage.getItem.bind(localStorage);
 	win.setStorage = localStorage.setItem.bind(localStorage);
 
@@ -47,17 +48,6 @@ const
 		var reg = new RegExp('[?&]' + key + '=([^&]*)(&|$)'),
 		r = win.location.search.match(reg);
 		return r ? unescape(r[1]) : defult;
-	}
-
-	win.getScrollTop = function (){
-		var pos = 0, pos1 = win.document.documentElement.scrollTop, pos2 = win.document.body.scrollTop;
-		if(pos1 !== und) pos += pos1;
-		if(pos2 !== und) pos += pos2;
-		if(pos1 === und && pos2 === und){
-			if(win.scrollY !== und) return win.scrollY;
-			else alert('你正在使用过时的浏览器，OI-transit 暂不支持。请升级浏览器以获得更好的体验！');
-		}
-		return pos;
 	}
 
 	win.getDisplay = function (s) {return DisplayDict.hasOwnProperty(s) ? DisplayDict[s] : s;}

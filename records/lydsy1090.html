@@ -1,0 +1,76 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>折叠的定义如下：</p>
+<ol>
+<li>一个字符串可以看成它自身的折叠。记作 $S \to S$。</li>
+<li>$X(S)$ 是 $X$ ($X &gt; 1$) 个 $S$ 连接在一起的串的折叠。记作 $X(S) \to SSSS \cdots S$ ($X$ 个 $S$)。</li>
+<li>如果 $A \to A', B \to B'$，则 $AB \to A'B'$。</li>
+</ol>
+<p>例如，因为 $3(\texttt A) \to \texttt {AAA}, 2(\texttt B) \to \texttt {BB}$，所以 $3(\texttt A) \texttt C 2(\texttt B) \to \texttt {AAACBB}$，而 $2(3(\texttt A) \texttt C) 2(\texttt B) \to \texttt {AAACAAACBB}$。</p>
+<p>给一个字符串，求它的最短折叠。例如 $\texttt {AAAAAAAAAABABABCCD}$ 的最短折叠为 $9(\texttt A) 3(\texttt {AB}) \texttt{CCD}$。</p>
+
+<h3>输入格式</h3>
+<p>仅一行，即字符串 $S$，长度保证不超过 $100$。</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，即最短的折叠长度。</p>
+
+<h3>题解</h3>
+<p>区间 DP，记 $f_{i, j}$ 表示子串 $s[i..j]$ 的最短的折叠长度，则 $f_{i, i} = 1$，所求即 $f_{1, n}$。</p>
+<p>考虑转移，首先是第 3 种定义，转移比较简单：$$ f_{i, j} \downarrow \min_{i \leq k &lt; j} \{ f_{i, k} + f_{k+1, j} \} $$</p>
+<p>接下来就是第 2 种定义的转移，当然，子串 $s[i..j]$ 要满足第 2 种定义的条件。如果子串 $s[i..j]$ 由 $X$ 个长度为 $k$ 的相同的串构成 ($X &gt; 1$)，则有 $$ f_{i, j} \downarrow f_{i, i+k-1} + \left \lfloor \lg X \right \rfloor + 3 $$ (注意数字也是占长度的)</p>
+<p>关键就是如何找出匹配的 $X$ 和 $k$。令 $d = j-i+1$ 为该子串的长度，则 $d = X \cdot k$，因此 $k \leq \left \lfloor \dfrac d2 \right \rfloor$，且这个长度为 $k$ 的串是它的一个<strong>周期</strong>。</p>
+<p>由 <strong>border 定理</strong>，一个串有一个长度为 $k$ 的周期 &#8660; 它有一个长度为 $d - k$ 的 border。于是，我们可以跑 $n$ 遍 KMP 算法 (或暴力 Hash) 预处理出每个子串的最长 border，即最小周期 $k_0$。</p>
+<p>那么，它的每个长度 $\leq \left \lfloor \dfrac d2 \right \rfloor$ 的周期都是 $k_0$ 的倍数。枚举 $k_0$ 的倍数，即得它的周期。由于它需要完整的 $X$ 个串，故还需要 $k \mid d$，然后更新即可。</p>
+<p>时间复杂度 $O(n^3)$，注意代码中的 $f_{i, j}$ 表示的是<strong>开区间</strong>，和上面不同。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">136</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">char</span> str<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> cost<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> d<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">,</span> k<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> cyc<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> f<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">],</span> border<span class="sh_symbol">[</span>N<span class="sh_symbol">][</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">void</span> <span class="sh_function">down</span><span class="sh_symbol">(</span><span class="sh_type">int</span> <span class="sh_symbol">&amp;</span>x<span class="sh_symbol">,</span> <span class="sh_keyword">const</span> <span class="sh_type">int</span> y<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>x <span class="sh_symbol">&gt;</span> y <span class="sh_symbol">?</span> x <span class="sh_symbol">=</span> y <span class="sh_symbol">:</span> <span class="sh_number">0</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">KMP</span><span class="sh_symbol">(</span><span class="sh_type">int</span> beg<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> j <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_symbol">*</span>f <span class="sh_symbol">=</span> border<span class="sh_symbol">[</span>beg<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> beg<span class="sh_symbol">;</span> <span class="sh_type">char</span> <span class="sh_symbol">*</span>s <span class="sh_symbol">=</span> str <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>beg <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">);</span>
+    f<span class="sh_symbol">[</span><span class="sh_number">0</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">-</span><span class="sh_number">1</span><span class="sh_symbol">;</span> f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n <span class="sh_symbol">-</span> beg<span class="sh_symbol">;</span> f<span class="sh_symbol">[++</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_symbol">++</span>j<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> j <span class="sh_symbol">&gt;=</span> <span class="sh_number">0</span> <span class="sh_symbol">&amp;&amp;</span> s<span class="sh_symbol">[</span>j<span class="sh_symbol">]</span> <span class="sh_symbol">!=</span> s<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> j <span class="sh_symbol">=</span> f<span class="sh_symbol">[</span>j<span class="sh_symbol">]);</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%s"</span><span class="sh_symbol">,</span> str<span class="sh_symbol">);</span> n <span class="sh_symbol">=</span> <span class="sh_function">strlen</span><span class="sh_symbol">(</span>str<span class="sh_symbol">);</span>
+    <span class="sh_function">memset</span><span class="sh_symbol">(</span>f<span class="sh_symbol">,</span> <span class="sh_number">63</span><span class="sh_symbol">,</span> <span class="sh_keyword">sizeof</span> f<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">10</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> cost<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">3</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> i <span class="sh_symbol">&lt;</span> <span class="sh_number">100</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> cost<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">4</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> i <span class="sh_symbol">&lt;</span> N<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> cost<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">5</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span><span class="sh_function">KMP</span><span class="sh_symbol">(</span>i<span class="sh_symbol">);</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>d <span class="sh_symbol">=</span> <span class="sh_number">2</span><span class="sh_symbol">;</span> d <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>d<span class="sh_symbol">)</span>
+        <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n <span class="sh_symbol">-</span> d <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            j <span class="sh_symbol">=</span> i <span class="sh_symbol">+</span> d<span class="sh_symbol">;</span>
+            <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> i <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> j<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>k<span class="sh_symbol">)</span>
+                <span class="sh_function">down</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>k<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> f<span class="sh_symbol">[</span>k<span class="sh_symbol">][</span>j<span class="sh_symbol">]);</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">((</span>cyc <span class="sh_symbol">=</span> d <span class="sh_symbol">-</span> border<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">])</span> <span class="sh_symbol">&lt;=</span> border<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">])</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>k <span class="sh_symbol">=</span> cyc<span class="sh_symbol">;</span> k <span class="sh_symbol">&lt;</span> d<span class="sh_symbol">;</span> k <span class="sh_symbol">+=</span> cyc<span class="sh_symbol">)</span>
+                    <span class="sh_keyword">if</span><span class="sh_symbol">(!(</span>d <span class="sh_symbol">%</span> k<span class="sh_symbol">))</span>
+                        <span class="sh_function">down</span><span class="sh_symbol">(</span>f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>j<span class="sh_symbol">],</span> f<span class="sh_symbol">[</span>i<span class="sh_symbol">][</span>i <span class="sh_symbol">+</span> k<span class="sh_symbol">]</span> <span class="sh_symbol">+</span> cost<span class="sh_symbol">[</span>d <span class="sh_symbol">/</span> k<span class="sh_symbol">]);</span>
+        <span class="sh_cbracket">}</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> f<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">][</span>n <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">]);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意枚举周期的时候是 $k_0$ 的倍数 (<code>k += cyc</code>) 且 $k \mid d$ <del>(当时写成了 <code>++k</code> 就挂的很惨……)</del></p>
+

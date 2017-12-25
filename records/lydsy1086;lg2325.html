@@ -1,0 +1,80 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>"余" 人国的国王想重新编制他的国家。他想把他的国家划分成若干个省，每个省都由他们王室联邦的一个成员来管理。</p>
+<p>他的国家有 $n$ 个城市，编号为 $1, 2, \cdots, n$。一些城市之间有道路相连，任意两个不同的城市之间有且仅有一条直接或间接的道路。</p>
+<p>为了防止管理太过分散，每个省至少要有 $B$ 个城市，为了能有效的管理，每个省最多只有 $3B$ 个城市。</p>
+<p>每个省必须有一个省会，这个省会可以位于省内，也可以在该省外。但是该省的任意一个城市到达省会所经过的道路上的城市 (除了最后一个城市，即该省省会) 都必须属于该省。</p>
+<p>一个城市可以作为多个省的省会。聪明的你快帮帮这个国王吧！</p>
+
+<h3>输入格式</h3>
+<p>第一行包含两个正整数 $n, B$ ($B \leq n \leq 1000$)。</p>
+<p>接下来 $n-1$ 行，每行描述一条边，包含两个正整数，即这条边连接的两个城市的编号。</p>
+
+<h3>输出格式</h3>
+<p>如果无法满足国王的要求，输出 $0$。否则第一行输出整数 $K$，表示你给出的划分方案中省的个数，编号为 $1, 2, \cdots, K$。</p>
+<p>第二行输出 $n$ 个数，第 $i$ 个数表示编号为 $i$ 的城市属于的省的编号。</p>
+<p>第三行输出 $K$ 个数，表示这 $K$ 个省的省会的城市编号，如果有多种方案，你可以输出任意一种。</p>
+
+<h3>题解</h3>
+<p>这道题的意义就是所谓的<strong>树分块</strong>。</p>
+<p>序列上的分块人人都会，只需确定块的大小 $B$ (一般取 $\sqrt n$)，然后每 $B$ 个分一块，一共 $\left \lceil \dfrac nB \right \rceil$ 块。当然，还有高级的数据结构<strong>块状链表</strong>可以动态改变块的大小，但始终是 $\Theta (B)$ 的。</p>
+<p>那怎么完成<strong>树上的分块</strong>呢？题目中给的 $B$ 就是块的大小，即要求满足每块的大小都是 $\Theta(B)$ 的，且是<strong>几乎连通</strong>的 (于是你不能按照 dfs 序分块，否则可能会出现很远的点处在同一块)。</p>
+<p>考虑一个节点 $v$，如果以它为根的子树大小 $\leq B$，那么就不把它分成一块，需要合并。如果够了，就从左往右，如果左数若干个子树的大小之和达到了 $B$，那么就把这些子树并成一块，且根为 $v$。</p>
+<p>容易得到，每块的大小都 $\leq 2B$ (因为每个未分块的子树的大小都 $\leq B$，否则内部完成分块，最后大小依然 $\leq B$)，那么最后 $\leq B$ 个节点怎么办？扔进最后一个块即可 (由于是往回走)，反正大小还是 $\leq 3B$。<p>
+<p>具体实现的时候，可以利用<strong>倒栈</strong>，对于一个节点 $u$，我们在搜索完毕的时候将它压入栈。那么在考虑节点 $v$ 时，如果栈中<strong>在以 $v$ 为根的子树内</strong>的点数一旦 $\geq B$，把它们弹出作为一个块。最后如果栈中有剩余，直接扔进最后一个块。</p>
+<p>时间复杂度 $O(n)$ <del>(然而并没有什么卵用)</del>。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">1034</span>
+<span class="sh_preproc">#define</span> M <span class="sh_number">2034</span>
+<span class="sh_preproc">#define</span> next scx1
+<span class="sh_preproc">#define</span> stack scx2
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">int</span> block<span class="sh_symbol">,</span> n<span class="sh_symbol">,</span> E<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> u<span class="sh_symbol">,</span> v<span class="sh_symbol">,</span> i<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> to<span class="sh_symbol">[</span>M<span class="sh_symbol">],</span> first<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> next<span class="sh_symbol">[</span>M<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> cnt <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> bel<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> root<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+<span class="sh_type">int</span> stc <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> stack<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">void</span> <span class="sh_function">addedge</span><span class="sh_symbol">(</span><span class="sh_type">int</span> u<span class="sh_symbol">,</span> <span class="sh_type">int</span> v<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    to<span class="sh_symbol">[++</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> v<span class="sh_symbol">;</span> next<span class="sh_symbol">[</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>u<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> E<span class="sh_symbol">;</span>
+    to<span class="sh_symbol">[++</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> u<span class="sh_symbol">;</span> next<span class="sh_symbol">[</span>E<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">];</span> first<span class="sh_symbol">[</span>v<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> E<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">void</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">,</span> <span class="sh_type">int</span> px<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> y<span class="sh_symbol">,</span> bot <span class="sh_symbol">=</span> stc<span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> first<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> i<span class="sh_symbol">;</span> i <span class="sh_symbol">=</span> next<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">((</span>y <span class="sh_symbol">=</span> to<span class="sh_symbol">[</span>i<span class="sh_symbol">])</span> <span class="sh_symbol">!=</span> px<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+            <span class="sh_function">dfs</span><span class="sh_symbol">(</span>y<span class="sh_symbol">,</span> x<span class="sh_symbol">);</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>stc <span class="sh_symbol">-</span> bot <span class="sh_symbol">&gt;=</span> block<span class="sh_symbol">)</span>
+                <span class="sh_keyword">for</span><span class="sh_symbol">(</span>root<span class="sh_symbol">[++</span>cnt<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span> stc <span class="sh_symbol">&gt;</span> bot<span class="sh_symbol">;</span> bel<span class="sh_symbol">[</span>stack<span class="sh_symbol">[</span>stc<span class="sh_symbol">--]]</span> <span class="sh_symbol">=</span> cnt<span class="sh_symbol">);</span>
+        <span class="sh_cbracket">}</span>
+    stack<span class="sh_symbol">[++</span>stc<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> x<span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>block<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+        <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>u<span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>v<span class="sh_symbol">);</span>
+        <span class="sh_function">addedge</span><span class="sh_symbol">(</span>u<span class="sh_symbol">,</span> v<span class="sh_symbol">);</span>
+    <span class="sh_cbracket">}</span>
+    <span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(;</span> stc<span class="sh_symbol">;</span> bel<span class="sh_symbol">[</span>stack<span class="sh_symbol">[</span>stc<span class="sh_symbol">--]]</span> <span class="sh_symbol">=</span> cnt<span class="sh_symbol">);</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> cnt<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%c"</span><span class="sh_symbol">,</span> bel<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> i <span class="sh_symbol">==</span> n <span class="sh_symbol">?</span> <span class="sh_number">10</span> <span class="sh_symbol">:</span> <span class="sh_number">32</span><span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> cnt<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d%c"</span><span class="sh_symbol">,</span> root<span class="sh_symbol">[</span>i<span class="sh_symbol">],</span> i <span class="sh_symbol">==</span> cnt <span class="sh_symbol">?</span> <span class="sh_number">10</span> <span class="sh_symbol">:</span> <span class="sh_number">32</span><span class="sh_symbol">);</span> 
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p>不要忘记最后把剩余的点放入最后一个块中！</p>
+

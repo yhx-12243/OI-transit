@@ -1,0 +1,74 @@
+<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+<h3>题目描述</h3>
+<p>scx 打算建立一个栅栏将她的牧场给围起来，因此她需要一些特定规格的木材。于是 scx 到木材店购买木材。可是木材店老板说他这里只剩下少部分大规格的木板了。不过 scx 可以购买这些木板，然后切割成她所需要的规格。</p>
+<p>而且 scx 有一把神奇的锯子，用它来锯木板，不会产生任何损失，也就是说长度为 $10$ 的木板可以切成长度为 $8$ 和 $2$ 的两个木板。</p>
+<p>你的任务：给你 scx 所需要的木板的规格，还有木材店老板能够给出的木材的规格，求 scx 最多能够得到多少她所需要的木板。</p>
+
+<h3>输入格式</h3>
+<p>第一行包含一个正整数 $m$ ($m \leq 50$)，表示木材店老板可以提供多少块木材。</p>
+<p>紧跟着 $m$ 行为老板提供的每一块木板的长度。</p>
+<p>接下来一行 (即第 $m+2$ 行) 包含一个正整数 $n$ ($n \leq 1000$)，表示 scx 需要多少木材。</p>
+<p>接下来 $n$ 行表示她所需要的每一块木板的长度。</p>
+<p>木材的规格小于 $32767$。(ps: 对于店老板提供的和 scx 需要的每块木板，你只能使用一次)</p>
+
+<h3>输出格式</h3>
+<p>输出一行一个整数，为 scx 最多能够得到的符合条件的木板的个数。</p>
+
+<h3>题解</h3>
+<p>感觉这题跟<a href="https://www.luogu.org/problemnew/show/1120" target="_blank">小木棍</a>好像的样子……</p>
+<p>那么就考虑一下搜索了。瞟一眼发现 $n \leq 1000$，不像是搜索的规模，那么该怎么处理呢？</p>
+<p>对于一个固定的 $x$ (符合条件的木板的个数)，可以发现，显然取 (所需的 $n$ 块木板中)<strong>最短的 $x$ 块木板</strong>是最有希望的，因为如果你能取到某 $x$ 块木板，我们可以<strong>按顺序</strong>将这 $x$ 块木板缩减为最短的 $x$ 块木板，从而它们 (最短的 $x$ 块) 也能取到，反之则不一定。</p>
+<p>因此可以想到使用二分答案，二分符合条件的木板的个数 $x$，取最短的 $x$ 块木板 dfs。记这 $x$ 块木板的长度为 $a_1, a_2, \cdots, a_x$。那么可以感觉到，在需要的木板中，应该<strong>先满足比较长的木板 $a_1$</strong>。</p>
+<p>于是按照 $a_1, a_2, \cdots$ 的顺序枚举它们是从哪块木板中切来的，当然，如果 $a_i = a_{i+1}$，为了避免重复，直接从上次的位置继续搜下去，你会发现，这还会 TLE。</p>
+<p>考虑特别紧 (即几乎所有的木板都用到的) 的情况。如果一块木板切完后剩下的长度 $&lt; a_x$，则它<strong>不能切出任何一块</strong> (所需的) 木板，即它被浪费了。可以看出，浪费的木板不能太多，易知浪费的总长应不能多于<strong>木材店中所有木板的总长</strong>与<strong>所需要的 $x$ 块木板的总长</strong>的差，记作 $limit$。</p>
+<p>可知，如果当前浪费的木板的总长度 $&gt; limit$，就直接剪枝即可，这样剪枝后就可以过去了。</p>
+
+<h3>代码</h3>
+
+<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp"><span class="sh_preproc">#include</span> <span class="sh_string">&lt;bits/stdc++.h&gt;</span>
+<span class="sh_preproc">#define</span> N <span class="sh_number">1034</span>
+<span class="sh_preproc">#define</span> MO <span class="sh_number">68</span>
+<span class="sh_keyword">using</span> <span class="sh_keyword">namespace</span> std<span class="sh_symbol">;</span>
+
+<span class="sh_type">bool</span> succeed<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> n<span class="sh_symbol">,</span> m<span class="sh_symbol">,</span> s<span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> j<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> L<span class="sh_symbol">,</span> R<span class="sh_symbol">,</span> M<span class="sh_symbol">,</span> limit<span class="sh_symbol">;</span>
+<span class="sh_type">int</span> a<span class="sh_symbol">[</span>N<span class="sh_symbol">],</span> o<span class="sh_symbol">[</span>MO<span class="sh_symbol">],</span> sa<span class="sh_symbol">[</span>N<span class="sh_symbol">];</span>
+
+<span class="sh_type">void</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span><span class="sh_type">int</span> d<span class="sh_symbol">,</span> <span class="sh_type">int</span> la<span class="sh_symbol">,</span> <span class="sh_type">int</span> waste<span class="sh_symbol">)</span><span class="sh_cbracket">{</span>
+    <span class="sh_type">int</span> i<span class="sh_symbol">,</span> W<span class="sh_symbol">;</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(!</span>d<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>succeed <span class="sh_symbol">=</span> <span class="sh_keyword">true</span><span class="sh_symbol">;</span> <span class="sh_keyword">return</span><span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+    <span class="sh_keyword">if</span><span class="sh_symbol">(</span>waste <span class="sh_symbol">&gt;</span> limit<span class="sh_symbol">)</span> <span class="sh_keyword">return</span><span class="sh_symbol">;</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> la<span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span>
+        <span class="sh_keyword">if</span><span class="sh_symbol">(</span>o<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&gt;=</span> a<span class="sh_symbol">[</span>d<span class="sh_symbol">])</span><span class="sh_cbracket">{</span>
+            o<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">-=</span> a<span class="sh_symbol">[</span>d<span class="sh_symbol">];</span>
+            W <span class="sh_symbol">=</span> <span class="sh_symbol">(</span>o<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">&lt;</span> a<span class="sh_symbol">[</span><span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">?</span> waste <span class="sh_symbol">+</span> o<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">:</span> waste<span class="sh_symbol">);</span>
+            a<span class="sh_symbol">[</span>d<span class="sh_symbol">]</span> <span class="sh_symbol">==</span> a<span class="sh_symbol">[</span>d <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">?</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>d <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> i<span class="sh_symbol">,</span> W<span class="sh_symbol">)</span> <span class="sh_symbol">:</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>d <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> W<span class="sh_symbol">);</span>
+            o<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">+=</span> a<span class="sh_symbol">[</span>d<span class="sh_symbol">];</span>
+            <span class="sh_keyword">if</span><span class="sh_symbol">(</span>succeed<span class="sh_symbol">)</span> <span class="sh_keyword">return</span><span class="sh_symbol">;</span>
+        <span class="sh_cbracket">}</span>
+<span class="sh_cbracket">}</span>
+
+<span class="sh_keyword">inline</span> <span class="sh_type">bool</span> <span class="sh_function">test</span><span class="sh_symbol">(</span><span class="sh_type">int</span> x<span class="sh_symbol">)</span> <span class="sh_cbracket">{</span>succeed <span class="sh_symbol">=</span> <span class="sh_keyword">false</span><span class="sh_symbol">;</span> limit <span class="sh_symbol">=</span> s <span class="sh_symbol">-</span> sa<span class="sh_symbol">[</span>x<span class="sh_symbol">];</span> <span class="sh_function">dfs</span><span class="sh_symbol">(</span>x<span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> <span class="sh_number">0</span><span class="sh_symbol">);</span> <span class="sh_keyword">return</span> succeed<span class="sh_symbol">;</span><span class="sh_cbracket">}</span>
+
+<span class="sh_type">int</span> <span class="sh_function">main</span><span class="sh_symbol">()</span><span class="sh_cbracket">{</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>m<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;</span> m<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> o <span class="sh_symbol">+</span> i<span class="sh_symbol">),</span> s <span class="sh_symbol">+=</span> o<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span> <span class="sh_function">sort</span><span class="sh_symbol">(</span>o<span class="sh_symbol">,</span> o <span class="sh_symbol">+</span> m<span class="sh_symbol">);</span>
+    <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> <span class="sh_symbol">&amp;</span>n<span class="sh_symbol">);</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> <span class="sh_function">scanf</span><span class="sh_symbol">(</span><span class="sh_string">"%d"</span><span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> i<span class="sh_symbol">);</span> <span class="sh_function">sort</span><span class="sh_symbol">(</span>a <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">,</span> a <span class="sh_symbol">+</span> <span class="sh_symbol">(</span>n <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">));</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>i <span class="sh_symbol">=</span> <span class="sh_number">1</span><span class="sh_symbol">;</span> i <span class="sh_symbol">&lt;=</span> n<span class="sh_symbol">;</span> <span class="sh_symbol">++</span>i<span class="sh_symbol">)</span> sa<span class="sh_symbol">[</span>i<span class="sh_symbol">]</span> <span class="sh_symbol">=</span> sa<span class="sh_symbol">[</span>i <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">]</span> <span class="sh_symbol">+</span> a<span class="sh_symbol">[</span>i<span class="sh_symbol">];</span>
+    <span class="sh_keyword">for</span><span class="sh_symbol">(</span>L <span class="sh_symbol">=</span> <span class="sh_number">0</span><span class="sh_symbol">,</span> R <span class="sh_symbol">=</span> n<span class="sh_symbol">;</span> L <span class="sh_symbol">&lt;</span> R<span class="sh_symbol">;</span> <span class="sh_symbol">)</span>
+        <span class="sh_function">test</span><span class="sh_symbol">(</span>M <span class="sh_symbol">=</span> L <span class="sh_symbol">+</span> R <span class="sh_symbol">+</span> <span class="sh_number">1</span> <span class="sh_symbol">&gt;&gt;</span> <span class="sh_number">1</span><span class="sh_symbol">)</span> <span class="sh_symbol">?</span> L <span class="sh_symbol">=</span> M <span class="sh_symbol">:</span> R <span class="sh_symbol">=</span> M <span class="sh_symbol">-</span> <span class="sh_number">1</span><span class="sh_symbol">;</span>
+    <span class="sh_function">printf</span><span class="sh_symbol">(</span><span class="sh_string">"%d</span><span class="sh_specialchar">\n</span><span class="sh_string">"</span><span class="sh_symbol">,</span> R<span class="sh_symbol">);</span>
+    <span class="sh_keyword">return</span> <span class="sh_number">0</span><span class="sh_symbol">;</span>
+<span class="sh_cbracket">}</span>
+
+</code></pre></div>
+
+<h3>坑</h3>
+<p><strong>坑1：</strong>注意要在 $a_i$ 排序后才能求前缀和数组。</p>
+
