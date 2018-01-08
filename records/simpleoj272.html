@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[SimpleOJ272]锻炼</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>实际上最近小 A 胖了。由于最近锻炼的缺乏他变胖了好多好多。</p>
+		<p>越是他决定去跑步，不然太胖的话是没有妹子喜欢的。</p>
+		<p>设计路线是个苦差事，实际上一条合适的路线对减肥是有事半功倍的效果的。</p>
+		<p>我们将小 A 要跑的地方抽象成一个 $M \times N$ 的矩阵，其中有一些点是建筑物，一些点是空地。</p>
+		<p>小 A 只能<strong>八连通</strong>的在空地上跑步，建筑物是<strong>四连通</strong>的一个联通块。</p>
+		<p>小 A 希望可以绕着这个建筑物跑一圈，简单来说就是小 A 的跑步的路线，把所有的建筑物都包在了里面。包在里面的含义是，建筑物无法以<strong>四连通</strong>的方法和外界取得联系。</p>
+		<p>现在告诉你小 A 的起点，同时也是小 A 结束跑步的地方。你需要告诉小 A 他最短需要跑多少距离。移动一次距离算 $1$。保证存在可行路线。
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $M, N$ ($M, N \leq 50$)。</p>
+		<p>接下来是一个 $M \times N$ 的矩阵，其中 <code>.</code> 是空地，<code>X</code> 是建筑物，<code>*</code> 是小 A 的起点和终点。
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最小的移动距离。</p>
+
+		<h3>题解</h3>
+		<p>看一眼题目和样例后感觉有点像个凸包……？</p>
+		<p>对建筑物的每一个点，在点集中加入四个点 (它的上、下、左、右)，再加上起点 $S$。如果最终起点 $S$ 在凸包边界上，那么答案就是<strong>凸包的周长</strong>。</p>
+		<p>但是如果 $S$ 在凸包内部？这看起来不太好搞 (因为鬼知道它是怎么走到凸包上的，比如下面的数据：)</p>
+		<pre>9 18
+..................
+.XXXXXXXXXXXXX....
+.X.....X.....X....
+.X.....X.....X....
+.X..X..X..X..X..X.
+.X..X.....X.....X.
+.X.*X.....X.....X.
+.XXXXXXXXXXXXXXXX.
+..................</pre>
+		<p>如果这道题用凸包做，那么它的复杂度就是 $O(NM)$，那么为什么 $N, M$ 只到 $50$？</p>
+		<p>这时可以考虑<strong>枚举</strong>所有的跑步路线。</p>
+		<p>对于每个特定的跑步路线，我们可以在 $O(NM)$ 的时间内判断是否可行 (直接从建筑物开始 <code>dfs()</code>)。</p>
+		<p>那么如果枚举的复杂度比较优秀话，就可以过掉了。</p>
+		<p>究竟怎么枚举呢？由于需要枚举环，那么自然可以想到<strong>双向 bfs</strong>。</p>
+		<p>如果在某个时刻，bfs 到一个<strong>已经搜索过的</strong>节点，那么我们就找到了一个环，直接暴力判断即可。</p>
+		<p>这样就减少了大量的冗余搜索 (明显不可能的答案)，因为枚举的间复杂度依然是 $O(NM)$，故总时间复杂度 $O(N^2 M^2)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 68
+#define Z 12034
+#define INF 0x3f3f3f3f
+#define fill scx
+using namespace std;
+
+const int dx[8] = {-1, -1, -1, 0, 1, 1, 1, 0};
+const int dy[8] = {1, 0, -1, -1, -1, 0, 1, 1};
+
+struct vec2{
+	int x, y;
+	vec2 (int x0 = 0, int y0 = 0): x(x0), y(y0) {}
+};
+
+vec2 building, start, que[Z], last[N][N];
+vec2 u, v, I;
+
+int r, c, h, t, ans;
+int forbid[N][N];
+int dist[N][N];
+int fill[N][N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+void dfs(vec2 P){
+	vec2 Q;
+	for(int i = 1; i &lt; 8; i += 2){
+		Q = vec2(P.x + dx[i], P.y + dy[i]);
+		if(1 &lt;= Q.x &amp;&amp; Q.x &lt;= r &amp;&amp; 1 &lt;= Q.y &amp;&amp; Q.y &lt;= c &amp;&amp; !fill[Q.x][Q.y]){
+			fill[Q.x][Q.y] = 1; dfs(Q);
+		}
+	}
+}
+
+int main(){
+	int i, j; char buf[N];
+	memset(forbid, 1, sizeof forbid);
+	scanf("%d%d", &amp;r, &amp;c);
+	for(i = 1; i &lt;= r; ++i)
+		for(scanf("%s", buf + 1), j = 1; j &lt;= c; ++j){
+			if(buf[j] == 42) start = vec2(i, j);
+			else if(buf[j] == 88) building = vec2(i, j);
+			else forbid[i][j] = 0;
+		}
+	t = 1; que[0] = start; last[start.x][start.y] = vec2(-1, -1);
+	memset(dist, 63, sizeof dist);
+	dist[start.x][start.y] = 0; ans = INT_MAX;
+	for(h = 0; h &lt; t; ++h)
+		for(u = que[h], i = 0; i &lt; 8; ++i){
+			v = vec2(u.x + dx[i], u.y + dy[i]);
+			if(!forbid[v.x][v.y]){
+				if(dist[v.x][v.y] &gt;= INF){
+					dist[v.x][v.y] = dist[u.x][u.y] + 1;
+					last[v.x][v.y] = u;
+					que[t++] = v;
+				}else{
+					memset(fill, 0, sizeof fill);
+					for(I = u; ~I.x; I = last[I.x][I.y]) fill[I.x][I.y] = -1;
+					for(I = v; ~I.x; I = last[I.x][I.y]) fill[I.x][I.y] = -1;
+					dfs(building);
+					for(j = 1; j &lt;= c; ++j)
+						if(fill[1][j] == 1 || fill[r][j] == 1) break;
+					if(j &lt;= c) continue;
+					for(j = 1; j &lt;= r; ++j)
+						if(fill[j][1] == 1 || fill[j][c] == 1) break;
+					if(j &lt;= r) continue;
+					down(ans, dist[u.x][u.y] + dist[v.x][v.y] + 1);
+				}
+			}
+		}
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意建筑物 (dfs) 是<strong>四连通</strong>扩展，如果碰到边界就说明没有包含。而枚举路径 (bfs) 是<strong>八连通</strong>扩展，并且不能超出边界。</p>
+	</body>
+</html>

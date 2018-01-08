@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2243][lg2486][SDOI2011]染色</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵有 $n$ 个节点的无根树和 $m$ 个操作，操作有两类：</p>
+		<ol>
+		<li>将节点 $a$ 到节点 $b$ 路径上所有点都染成颜色 $c$；</li>
+		<li>询问节点 $a$ 到节点 $b$ 路径上的颜色段数量 (连续相同颜色被认为是同一段)，如 $\texttt{112221}$ 由 $3$ 段组成：$\texttt{11}$、$\texttt{222}$ 和 $\texttt{1}$。</li>
+		</ol>
+		<p>请你写一个程序依次完成这 $m$ 个操作。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 10^5$)，分别表示节点数和操作数</p>
+		<p>第二行包含 $n$ 个正整数 $c_1, c_2, \cdots, c_n$ ($c_i \leq 10^9$)，表示 $n$ 个节点的初始颜色。</p>
+		<p>下面 $n-1$ 行每行包含两个整数 $x$ 和 $y$，表示 $x$ 和 $y$ 之间有一条无向边。</p>
+		<p>下面 $m$ 行每行描述一个操作：</p>
+		<p><code>C a b c</code>表示这是一个染色操作，把节点 $a$ 到节点 $b$ 路径上所有点 (包括 $a$ 和 $b$) 都染成颜色 $c$；</p>
+		<p><code>Q a b</code>表示这是一个询问操作，询问节点 $a$ 到节点 $b$ (包括 $a$ 和 $b$) 路径上的颜色段数量。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个询问操作，输出一行答案。</p>
+
+		<h3>题解</h3>
+		<p>树上的动态问题，当然考虑使用树链剖分啦！</p>
+		<p>于是我们只需考虑<strong>链上怎么做</strong>，树上的无非就是都一个树剖的 $O(\log n)$ 而已。</p>
+		<p>由于是区间问题，因此可以使用线段树。我们可以在线段树的节点上记录该区间的颜色段的总数，那么节点合并的时候只需将它们相加即可。不过可能左边节点的右端颜色可能和右边节点的左端颜色相同，这种情况需要 $- 1$。因此我们还需要记录该节点的左端颜色和右端颜色。</p>
+		<p>由于是<strong>区间修改</strong>，因此需要打标记 (该区间修改成了什么颜色)。</p>
+		<p>最后将所有询问的小区间<strong>按顺序</strong>合并记得链上的答案。</p>
+		<p>树上的也是类似的，不过需要注意合并的顺序 (即最后到两点的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 时合并两侧的链时，根据两点深度调整合并方向)。建议合并的过程写一个专门的 <code>merge()</code> 函数。</p>
+		
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+#define E 256101
+using namespace std;
+
+char op;
+int n, q, Es;
+int u, v, i;
+int col[N], Col[N];
+int to[E], first[N], next[E];
+int p[N], dep[N], size[N];
+int cnt = 0, o[N], prf[N], top[N];
+
+/******** Segment Tree ********/
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+struct node{
+	int lw, rw, cv, tag;
+	node (int c = 0): lw(c), rw(c), cv(1), tag(0) {}
+}x[N &lt;&lt; 4];
+
+inline node merge(const node l, const node r){
+	node ret; ret.lw = l.lw; ret.rw = r.rw;
+	ret.cv = l.cv + r.cv - (l.rw == r.lw);
+	return ret;
+}
+
+void build(int id, int L, int R){
+	if(L == R) {x[id] = node(Col[L]); return;}
+	segc; build(lc, L, M); build(rc, M + 1, R);
+	x[id] = merge(x[lc], x[rc]);
+}
+
+inline void push_down(int id, int lc, int rc){
+	x[lc].tag = x[lc].lw = x[lc].rw = x[id].tag;
+	x[rc].tag = x[rc].lw = x[rc].rw = x[id].tag;
+	x[lc].cv = x[rc].cv = 1; x[id].tag = 0;
+}
+
+void adj(int id, int L, int R, int ql, int qr, int v){
+	if(ql &lt;= L &amp;&amp; R &lt;= qr) {x[id].tag = x[id].lw = x[id].rw = v; x[id].cv = 1; return;}
+	segc; if(x[id].tag) push_down(id, lc, rc);
+	if(ql &lt;= M) adj(lc, L, M, ql, min(qr, M), v);
+	if(qr &gt; M) adj(rc, M + 1, R, max(ql, M + 1), qr, v);
+	x[id] = merge(x[lc], x[rc]);
+}
+
+node range(int id, int L, int R, int ql, int qr){
+	if(ql &lt;= L &amp;&amp; R &lt;= qr) return x[id];
+	segc; if(x[id].tag) push_down(id, lc, rc); node ret;
+	if(ql &lt;= M){
+		ret = range(lc, L, M, ql, min(qr, M));
+		if(qr &gt; M) ret = merge(ret, range(rc, M + 1, R, max(ql, M + 1), qr));
+	}else if(qr &gt; M)
+		ret = range(rc, M + 1, R, max(ql, M + 1), qr);
+	return ret;
+}
+
+/******** Heavy-light Decomposition ********/
+inline void addedge(int u, int v){
+	to[++Es] = v; next[Es] = first[u]; first[u] = Es;
+	to[++Es] = u; next[Es] = first[v]; first[v] = Es;
+}
+
+void dfs_wt(int x){
+	int i, y, z = 0;
+	size[x] = 1;
+	for(i = first[x]; i; i = next[i])
+		if((y = to[i]) != p[x]){
+			p[y] = x;
+			dep[y] = dep[x] + 1;
+			dfs_wt(y);
+			size[y] &gt; size[z] ? z = y : 0;
+			size[x] += size[y];
+		}
+	prf[x] = z;
+}
+
+void dfs_hld(int x, int r){
+	int i, y;
+	o[x] = ++cnt; top[x] = r;
+	if(!prf[x]) return;
+	dfs_hld(prf[x], r);
+	for(i = first[x]; i; i = next[i])
+		if(!top[y = to[i]])
+			dfs_hld(y, y);
+}
+
+void modify(int u, int v, int w){
+	int x = top[u], y = top[v];
+	for(; x != y; u = p[x], x = top[u]){
+		if(dep[x] &lt; dep[y]) {swap(u, v); swap(x, y);}
+		adj(1, 1, n, o[x], o[u], w);
+	}
+	if(dep[u] &gt; dep[v]) swap(u, v);
+	adj(1, 1, n, o[u], o[v], w);
+}
+
+int solve(int u, int v){
+	int x = top[u], y = top[v]; node U(-1), V(-1); U.cv = V.cv = 0;
+	for(; x != y; )
+		if(dep[x] &lt; dep[y]){
+			V = merge(range(1, 1, n, o[y], o[v]), V);
+			v = p[y]; y = top[v];
+		}else{
+			U = merge(range(1, 1, n, o[x], o[u]), U);
+			u = p[x]; x = top[u];
+		}
+	if(dep[u] &gt; dep[v]){
+		swap(V.lw, V.rw);
+		V = merge(V, range(1, 1, n, o[v], o[u]));
+		V = merge(V, U);
+		return V.cv;
+	}else{
+		swap(U.lw, U.rw);
+		U = merge(U, range(1, 1, n, o[u], o[v]));
+		U = merge(U, V);
+		return U.cv;
+	}
+}
+
+int main(){
+	scanf("%d%d", &amp;n, &amp;q);
+	for(i = 1; i &lt;= n; ++i) scanf("%d", col + i);
+	for(i = 1; i &lt; n; ++i){
+		scanf("%d%d", &amp;u, &amp;v);
+		addedge(u, v);
+	}
+	dfs_wt(1); dfs_hld(1, 1);
+	for(i = 1; i &lt;= n; ++i) Col[o[i]] = col[i];
+	build(1, 1, n);
+	for(; q; --q)
+		switch(scanf("%1s%d%d", &amp;op, &amp;u, &amp;v), op){
+			case 67:
+				scanf("%d", col);
+				modify(u, v, *col);
+				break;
+			case 81:
+				printf("%d\n", solve(u, v));
+				break;
+		}
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>坑1：注意 (树链剖分) 合并时要根据 $u$ 和 $v$ 的深度选择合并哪个节点，且这个合并的过程可以借助线段树的结构体 <code>node</code> 和合并函数 <code>merge()</code>。</p>
+	</body>
+</html>

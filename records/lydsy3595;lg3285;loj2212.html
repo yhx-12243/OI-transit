@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3595][lg3285][loj2212][SCOI2014]方伯伯的 OJ</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>方伯伯正在做他的 OJ。现在他在处理 OJ 上的用户排名问题。</p>
+		<p>OJ 上注册了 $n$ 个用户，编号为 $1 \sim n$，一开始他们按照编号排名。方伯伯会按照心情对这些用户做以下四种操作，修改用户的排名和编号：</p>
+		<ol>
+		<li>操作格式为<code>1 x y</code>，意味着将编号为 $x$ 的用户编号改为 $y$，而排名不变，执行完该操作后需要输出该用户在排名中的位置，数据保证 $x$ 必然出现在排名中，同时 $y$ 是一个当前不在排名中的编号。</li>
+		<li>操作格式为<code>2 x</code>，意味着将编号为 $x$ 的用户的排名提升到第一位，执行完该操作后需要输出执行该操作前编号为 $x$ 用户的排名。</li>
+		<li>操作格式为<code>3 x</code>，意味着将编号为 $x$ 的用户的排名降到最后一位，执行完该操作后需要输出执行该操作前编号为 $x$ 用户的排名。</li>
+		<li>操作格式为<code>4 k</code>，意味着查询当前排名为 $k$ 的用户编号，执行完该操作后需要输出当前操作用户的编号。</li>
+		</ol>
+		<p>但同时为了防止别人监听自己的工作，方伯伯对他的操作进行了加密，即将四种操作的格式分别改为了：
+		<pre>1 x+a y+a
+2 x+a
+3 x+a
+4 k+a</pre>
+		<p>其中 $a$ 为上一次操作得到的输出，一开始 $a = 0$。</p>
+		<p>例如：上一次操作得到的输出是 <code>5</code>，<p>这一次操作的输入为：<code>1 13 15</code>，<p>因为这个输入是经过加密后的，所以你应该处理的操作是 <code>1 8 10</code>。</p>
+		<p>现在你截获了方伯伯的所有操作，希望你能给出结果。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个用空格分隔的正整数 $n$ 和 $m$ ($n \leq 10^8, m \leq 10^5$)，表示初始用户数和操作数。</p>
+		<P>此后有 $m$ 行，每行是一个询问，询问格式如上所示。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 行。每行包含一个整数，其中第 $i$ 行的整数表示第 $i$ 个操作的输出。</p>
+
+		<h3>题解</h3>
+		<p>瞟一眼发现，这不是平衡树裸题吗？仔细一看，$n$ 的范围是 $10^8$，空间根本开不动。</p>
+		<p><del>然后开始 YY</del>，离散化后平衡树？分改过的和没改过的分别平衡树？不过看到 $m \leq 10^5$，可以看出<strong>几乎所有</strong>的用户都是<strong>没有改变的</strong>，因此我们将没有改变的、改到前面的、改到后面的分别用平衡树维护，再合起来。</p>
+		<p>即，建立三棵平衡树 $first, normal, last$，一开始所有的数都在 $normal$ 中，如果进行了第 2 种操作，就把它移入 $first$，同理第 3 种操作的移入 $last$。可以发现，$first$ 和 $last$ 的大小是不超过 $m$ 的。</p>
+		<p>那么查 $k$ 大就简单了。先根据 $first$ 和 $last$ 的大小判定它应该在哪个集合中，然后对内部使用 <code>kth()</code> 即可。查排名也是类似的操作 (先找出它在哪个集合中，然后使用 <code>rank()</code>)。</p>
+		<p>在实际实现中，平衡树可以改成 (动态开点的) 权值线段树，实现起来较为方便。</p>
+		<p>接下来是用户编号的问题。对于每个节点，我们可以使用一个 <code>map &lt;int, pair &lt;int, int&gt; &gt;</code>，其中 $u \mapsto (v, w)$ 表示当前为 $u$ 的用户在集合 $v$ 中，且对应的下标为 $w$，那么改编号的时候只需令 $map[y] = map[x]$ 即可。</p>
+		<p>当然，还有一种查编号操作，这也不难处理。对于 $normal$ 中的元素，用另一个 <code>map &lt;int ,int&gt;</code> 存储初始编号 (下标) 为 $u$ 的用户的最终编号；对于 $first, last$ 中的元素，直接用数组存储下标对应的最终编号。</p>
+		<p>那么 $normal$ 中元素太多怎么办？如果用平衡树，可以记录<strong>不在 $normal$ 中</strong>的元素，如果是权值线段树，那么只需令空子树的权值等于该子树表示的区间大小即可。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+#define rank scx
+using namespace std;
+
+struct Pr {int whi, id; Pr (int which = 0, int id0 = 0): whi(which), id(id0) {} };
+struct node {int v, lc, rc;} st[N &lt;&lt; 7];
+typedef pair &lt;int, Pr&gt; pip;
+typedef map &lt;int, Pr&gt; mip;
+typedef pair &lt;int, int&gt; pr;
+typedef map &lt;int, int&gt; Map;
+const int ST_MAX = 100000007;
+
+int n, q, ans, cnt = 3;
+int normal_root = 1, first_root = 2, last_root = 3;
+int bicnt = 0, bi[N];
+mip K; Map S;
+
+inline int Default(int L, int R, int _default = 0){
+	return _default &lt; L ? 0 : (_default &gt;= R ? R - L + 1 : _default - L + 1);
+}
+
+int adj(int id, int L, int R, int h, int v, int _default = 0){
+	if(!id) id = ++cnt;
+	if(L == R) {st[id].v = v; return id;}
+	int M = (L + R - 1) &gt;&gt; 1;
+	h &lt;= M ? st[id].lc = adj(st[id].lc, L, M, h, v, _default) : (st[id].rc = adj(st[id].rc, M + 1, R, h, v, _default));
+	if(st[id].lc &amp;&amp; st[id].rc) st[id].v = st[id].lc[st].v + st[id].rc[st].v;
+	else if(st[id].lc) st[id].v = st[id].lc[st].v + Default(M + 1, R, _default);
+	else if(st[id].rc) st[id].v = Default(L, M, _default) + st[id].rc[st].v;
+	else st[id].v = Default(L, R, _default);
+	return id;
+}
+
+int kth(int id, int L, int R, int k, int _default = 0){
+	int M, gs;
+	for(; L &lt; R; ){
+		M = (L + R - 1) &gt;&gt; 1;
+		gs = st[id].lc ? st[id].lc[st].v : Default(L, M, _default);
+		if(k &lt;= gs) {id = st[id].lc; R = M;}
+		else {k -= gs; id = st[id].rc; L = M + 1;}
+	}
+	return L;
+}
+
+int rank(int id, int L, int R, int h, int _default = 0){
+	int M, ret = 0;
+	for(; L &lt; R; ){
+		M = (L + R - 1) &gt;&gt; 1;
+		if(h &lt;= M) {id = st[id].lc; R = M;}
+		else{
+			ret += st[id].lc ? st[id].lc[st].v : Default(L, M, _default);
+			id = st[id].rc; L = M + 1;
+		}
+	}
+	return ++ret;
+}
+
+int rank(int x){
+	mip::iterator it = K.find(x);
+	if(it == K.end()){
+		K.insert(pip(x, Pr(1, x)));
+		S.insert(pr(x, x));
+		return st[first_root].v + rank(normal_root, 1, ST_MAX, x, n);
+	}
+	int c = it-&gt;second.id;
+	switch(it-&gt;second.whi){
+		case 1: return st[first_root].v + rank(normal_root, 1, ST_MAX, c, n);
+		case 2: return st[first_root].v + 1 - rank(first_root, 1, ST_MAX, c);
+		case 3: return n - st[last_root].v + rank(last_root, 1, ST_MAX, c);
+	}
+	return 0x4f38f609;
+}
+
+int main(){
+	int op, u, v; mip::iterator it; Map::iterator jt;
+	scanf("%d%d", &amp;n, &amp;q);
+	for(; q; --q)
+		switch(scanf("%d", &amp;op), op){
+			case 1: {
+				scanf("%d%d", &amp;u, &amp;v); u -= ans; v -= ans;
+				printf("%d\n", ans = rank(u));
+				it = K.find(u);
+				K.insert(pip(v, it-&gt;second));
+				switch(it-&gt;second.whi){
+					case 1: S[it-&gt;second.id] = v; break;
+					case 2: case 3: bi[it-&gt;second.id] = v; break;
+				}	
+				K.erase(it);
+				break;
+			}
+			case 2: {
+				scanf("%d", &amp;v); v -= ans;
+				printf("%d\n", ans = rank(v));
+				it = K.find(v);
+				u = it-&gt;second.id;
+				switch(it-&gt;second.whi){
+					case 1: adj(normal_root, 1, ST_MAX, u, 0, n); break;
+					case 2: adj(first_root, 1, ST_MAX, u, 0); break;
+					case 3: adj(last_root, 1, ST_MAX, u, 0); break;
+				}
+				it-&gt;second = Pr(2, ++bicnt); bi[bicnt] = v;
+				adj(first_root, 1, ST_MAX, bicnt, 1);
+				break;
+			}
+			case 3: {
+				scanf("%d", &amp;v); v -= ans;
+				printf("%d\n", ans = rank(v));
+				it = K.find(v);
+				u = it-&gt;second.id;
+				switch(it-&gt;second.whi){
+					case 1: adj(normal_root, 1, ST_MAX, u, 0, n); break;
+					case 2: adj(first_root, 1, ST_MAX, u, 0); break;
+					case 3: adj(last_root, 1, ST_MAX, u, 0); break;
+				}
+				it-&gt;second = Pr(3, ++bicnt); bi[bicnt] = v;
+				adj(last_root, 1, ST_MAX, bicnt, 1);
+				break;
+			}
+			case 4:{
+				scanf("%d", &amp;v); v -= ans;
+				if(v &lt;= st[first_root].v) ans = bi[kth(first_root, 1, ST_MAX, st[first_root].v + 1 - v)];
+				else if(v &gt; n - st[last_root].v) ans = bi[kth(last_root, 1, ST_MAX, v + st[last_root].v - n)];
+				else{
+					ans = kth(normal_root, 1, ST_MAX, v - st[first_root].v, n);
+					ans = ((jt = S.find(ans)) == S.end() ? ans : jt-&gt;second);
+				}
+				printf("%d\n", ans);
+				break;
+			}
+		}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于 $normal$ 中的元素只会进行<em>修改编号</em>操作，一经移出就不会再移回来，因此可以直接用它们的<strong>原编号</strong>作为下标；而 $first$ 和 $last$ 中的元素内外部都会移来移去，故不能使用原下标，可以使用时间戳 (timestamp) 作为下标。</p>
+		<p><strong>坑2：</strong>在使用线段树时，要注意空节点的处理：对于 $first$ 和 $last$，空子树的权值为 $0$，对于 $normal$，空子树的权值为对应区间的大小 (当然要注意是在 $1 \sim n$ 范围内)。</p>
+	</body>
+</html>

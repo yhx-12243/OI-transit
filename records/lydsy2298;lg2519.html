@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2298][lg2519][HAOI2011]Problem A</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>一次考试共有 $n$ 个人参加，第 $i$ 个人说：“有 $a_i$ 个人分数比我高，$b_i$ 个人分数比我低。”问最少有几个人没有说真话 (可能有相同的分数)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个整数 $n$ ($n \leq 10^5$)，表示参加考试的人的个数。</p>
+		<p>接下来 $n$ 行，每行两个整数，第 $i+1$ 行的两个整数分别代表 $a_i, b_i$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最少有几个人说谎。</p>
+
+		<h3>题解</h3>
+		<p>先将条件转化一下。对于第 $i$ 个人，因为 $a_i$ 个比他高，$b_i$ 个人比他低。这个条件可以转化成排序后分数为与他相等的区间是 $[a_i + 1, n - b_i]$ (即他是并列第 $a_i + 1$ 名，且到 $n - b_i$ 名时分数都相同)。</p>
+		<p>因此记 $l_i = a_i + 1, r_i = n - b_i$。因此如果有 $l_i &gt; r_i$，那么他说的一定是假的。</p>
+		<p>考虑一对固定的 $l, r$。如果有超过 $r - l + 1$ 个 $i$ 满足 $l_i = l, r_i = r$，就那么这里真话<strong>至多只有</strong> $r - l + 1$ 条 (否则人比分数都要多)。</p>
+		<p>由于一个人表述的是一个<strong>极大区间</strong>的分数相同，因此最后真话的区间一定是<strong>互不相交</strong>的。我们可以对每个区间 $[l, r]$ 赋予一个权值 $w$，表示有多少个 $i$ 满足 $l_i = l, r_i = r$ (当然，$w$ 要对 $r - l + 1$ 取 $\min$)。最后我们要选取若干个互不相交的区间并使权值和最大，这显然是排序后再 DP 了 (二分 DP)。</p>
+		<p>最后的答案就是用 $n$ 减去最大的权值和。时间复杂度 $O(n \log n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+using namespace std;
+
+struct pr{
+	int l, r, w;
+	pr (int l0 = 0, int r0 = 0, int w0 = 0): l(l0), r(r0), w(w0) {}
+	inline bool operator &lt; (const pr &amp;B) const {return l &lt; B.l || l == B.l &amp;&amp; r &lt; B.r;}
+	inline bool operator == (const pr &amp;B) const {return l == B.l &amp;&amp; r == B.r;}
+};
+
+int n, m, k, i, j;
+int ai, bi, f[N];
+pr a[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline bool cmp(const pr A, const pr B) {return A.r &lt; B.r || A.r == B.r &amp;&amp; A.l &lt; B.l;}
+
+int main(){
+	scanf("%d", &amp;n);
+	for(i = 1; i &lt;= n; ++i){
+		scanf("%d%d", &amp;ai, &amp;bi);
+		a[i] = pr(ai + 1, n - bi);
+	}
+	sort(a + 1, a + (n + 1)); a[0] = pr(-1, -1);
+	for(i = 1; i &lt;= n; ++i) if(a[i].l &lt;= a[i].r) a[++m] = a[i];
+	for(i = 1; i &lt;= m; ++i) a[i] == a[i - 1] ? ++a[k].w : (a[++k] = a[i], a[k].w = 1);
+	sort(a + 1, a + (k + 1), cmp);
+	f[1] = a[1].w;
+	for(i = 2; i &lt;= k; ++i){
+		down(a[i].w, a[i].r - a[i].l + 1);
+		j = lower_bound(a + 1, a + i, pr(-1, a[i].l), cmp) - a - 1;
+		up(f[i] = f[i - 1], f[j] + a[i].w);
+	}
+	printf("%d\n", n - f[k]);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>记得权值 $w$ 要对 $r - l + 1$ 取 $\min$，因为长度为 $r - l + 1$ 的分数段至多有 $r - l + 1$ 个人。</p>
+	</body>
+</html>

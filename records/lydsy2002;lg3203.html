@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2002][lg3203][HNOI2010]弹飞绵羊</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>某天，scx 发明了一种超级弹力装置，为了在她的绵羊朋友面前显摆，她邀请小绵羊一起玩个游戏。</p>
+		<p>游戏一开始，scx 在地上沿着一条直线摆上 $n$ 个装置，每个装置设定初始弹力系数 $k_i$，当绵羊达到第 $i$ 个装置时，它会往后弹 $k_i$ 步，达到第 $i + k_i$ 个装置，若不存在第 $i + k_i$ 个装置，则绵羊被弹飞。</p>
+		<p>绵羊想知道当它从第 $i$ 个装置起步时，被弹几次后会被弹飞。为了使得游戏更有趣，scx 可以修改某个弹力装置的弹力系数，任何时候弹力系数均为正整数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 2 \times 10^5$)，表示地上有 $n$ 个装置，装置的编号从 $0$ 到 $n-1$。</p>
+		<p>接下来一行有 $n$ 个正整数，依次为那 $n$ 个装置的初始弹力系数。</p>
+		<p>第三行有一个正整数 $m$ ($m \leq 10^5$)，表示操作的次数。</p>
+		<p>接下来 $m$ 行，每行至少有两个数 $i, j$，若 $i = 1$，你要输出从 $j$ 出发被弹几次后被弹飞，若 $i = 2$ 则还会再输入一个正整数 $k$，表示第 $j$ 个弹力装置的系数被修改成 $k$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个 $i = 1$ 的情况，你都要输出一个需要的步数，占一行。</p>
+
+		<h3>题解</h3>
+		<p>由于每个点至多与一个它右侧的 (编号比它打的) 节点相连，非常像<em>树</em>的感觉，因此可以建立一个虚拟节点 $v$，如果一个点会被弹飞，那么就与点 $v$ 相连，这样所有点就形成了一棵树。</p>
+		<p>因为要修改弹力系数，所以它是一棵动态树，可以使用 Link-Cut Tree 维护 (记得先删边再加边)。</p>
+		<p>至于从 $i$ 开始询问几次后被弹飞，就相当于询问 $i$ 到 $v$ 的距离是多少，那么直接 <code>split()</code> 后直接询问辅助树 (splay) 的大小即可，时间复杂度 $O \left( (n+m) \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 256101
+using namespace std;
+
+int n, q, op, i;
+int nxt[N];
+
+namespace LCT{
+	#define pa p[nd]
+
+	struct node {int sz, rev, c[2], p;} nd[N];
+
+	inline int dir(int x) {return !x[nd].p ? -1 : x == x[nd].pa.c[0] ? 0 : x == x[nd].pa.c[1] ? 1 : -1;}
+
+	void reverse(int x) {swap(x[nd].c[0], x[nd].c[1]); x[nd].rev ^= 1;}
+
+	void push_down(int x) {if(x[nd].rev) {reverse(x[nd].c[0]); reverse(x[nd].c[1]); x[nd].rev = 0;} }
+
+	void pull_down(int x) {if(~dir(x)) pull_down(x[nd].p); push_down(x);}
+
+	inline void update(int x) {nd[x].sz = nd[x].c[0][nd].sz + nd[x].c[1][nd].sz + 1;}
+
+	void rotate(int x){
+		int y = x[nd].p, d = !dir(x);
+		nd[y[nd].c[!d] = x[nd].c[d]].p = y;
+		x[nd].p = y[nd].p;
+		if(~dir(y)) y[nd].pa.c[dir(y)] = x;
+		nd[x[nd].c[d] = y].p = x;
+		update(y);
+	}
+
+	void splay(int x){
+		for(pull_down(x); ~dir(x); rotate(x))
+			if(~dir(x[nd].p)) rotate(dir(x) ^ dir(x[nd].p) ? x : x[nd].p);
+		update(x);
+	}
+
+	void access(int x) {for(int y = 0; x; y = x, x = x[nd].p){
+		splay(x); x[nd].c[1] = y; update(x);}}
+
+	void make_root(int x) {access(x); splay(x); reverse(x);}
+
+	int find_root(int x) {access(x); splay(x); for(; x[nd].c[0]; x = x[nd].c[0]); return x;}
+
+	void link(int x, int y) {make_root(x); x[nd].p = y;}
+
+	void split(int x, int y) {make_root(x); access(y); splay(y);}
+
+	void cut(int x, int y) {split(x, y); x[nd].p = y[nd].c[0] = 0; update(y);}
+}
+
+int main(){
+	scanf("%d", &amp;n);
+	for(i = 1; i &lt;= n; ++i){
+		scanf("%d", nxt + i); nxt[i] += i;
+		LCT::link(i, nxt[i] &gt; n ? n + 1 : nxt[i]);
+	}
+	for(scanf("%d", &amp;q); q; --q)
+		if(scanf("%d%d", &amp;op, &amp;i), ++i, op == 1){
+			LCT::split(n + 1, i);
+			printf("%d\n", LCT::nd[i].sz - 1);
+		}else{
+			LCT::cut(i, nxt[i] &gt; n ? n + 1 : nxt[i]);
+			scanf("%d", nxt + i); nxt[i] += i;
+			LCT::link(i, nxt[i] &gt; n ? n + 1: nxt[i]);
+		}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>题目中装置是从 $0$ 开始编号的，处理时需要特别注意。</p>
+	</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg3377]【模板】左偏树（可并堆）</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>一开始有 $n$ 个小根堆，每个堆包含且仅包含一个数。接下来需要支持两种操作：</p>
+		<p>操作 1：<code>1 x y</code>将第 $x$ 个数和第 $y$ 个数所在的小根堆合并 (若第 $x$ 或第 $y$ 个数已经被删除或第 $x$ 和第 $y$ 个数在用一个堆内，则无视此操作)</p>
+		<p>操作 2：<code>2 x</code>输出第 $x$ 个数所在的堆最小数，并将其删除 (若第 $x$ 个数已经被删除，则输出 $-1$ 并无视删除操作)</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$，分别表示一开始小根堆的个数和接下来操作的个数。</p>
+		<p>第二行包含 $n$ 个正整数，其中第 $i$ 个正整数表示第 $i$ 个小根堆初始时包含且仅包含的数。</p>
+		<p>接下来 $m$ 行每行 $2$ 或 $3$ 个正整数，表示一条操作，格式见题目描述。</p>
+
+		<h3>输出格式</h3>
+		<p>输出包含若干行整数，分别依次对应每一个操作 2 所得的结果。</p>
+
+		<h3>题解</h3>
+		<p><del>(就是不写左偏树，怎么着？)</del></p>
+		<p>说实话我觉得左偏树也没什么用，毕竟很少有什么 "可持久化堆" 这种玩意儿，因此有个斜堆就够了 (虽然代码就差个两三行把)，我估计没什么人会专门出题卡斜堆吧？</p>
+		<p>斜堆这玩意儿，在<a href="lydsy1078;lg2475.html" target="_blank">这道题</a>中已初步介绍过，接下来讲一下<strong>合并</strong>的过程。</p>
+		<p>说合并之前，先讲一讲个人对斜堆插入的理解。我觉得斜堆的插入操作或许这样定义会更自然：先递归地插入到右子树中，插入完毕后再交换两棵子树。不过最终的效果和那道题里面定义的斜堆的效果是等价的。</p>
+		<p>其实，插入是合并的一个特例 (一个堆和单元素堆合并)，删除最小数也是合并的一个特例 (删除根后合并左右子树)，因此合并操作对一个堆来说是至关重要的。</p>
+		<p>考虑要合并的两棵树。如果<strong>至少有一棵树</strong>是空的，那么直接取另一棵树即可。否则，取<strong>根节点较小的</strong>那棵树的根的<strong>右子树</strong>，与另一棵子树 (递归地) 进行合并，合并完以后，<strong>交换两棵子树</strong>。可以看出，当其中一个堆为单元素堆时，这个过程和插入的过程是一致的。</p>
+		<p>经证明，斜堆的合并的时间复杂度是<strong>均摊</strong> $O(\log n)$。(而左偏树是单次 $O(\log n)$，不过堆基本不用可持久化)</p>
+		<p>接下来考虑原题，原题基本就是一个斜堆，不过需要维护一个并查集来得到第 $x$ 个数所在堆的根，还有是否删除的标记。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+using namespace std;
+
+typedef pair &lt;int, int&gt; pr;
+
+struct node{
+	int p, lc, rc; pr v;
+}nd[N];
+
+int n, q;
+int u, v;
+
+int p[N], del[N];
+
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+// skew heap
+int join(int x, int y){
+	if(!(x &amp;&amp; y)) return x | y; // one is empty
+	if(nd[x].v &gt; nd[y].v) swap(x, y);
+	nd[x].rc = join(nd[x].rc, y);
+	swap(nd[x].lc, nd[x].rc);
+	return x;
+}
+
+int main(){
+	int i, op;
+	scanf("%d%d", &amp;n, &amp;q);
+	for(i = 1; i &lt;= n; ++i) {scanf("%d", &amp;nd[i].v.first); nd[i].v.second = p[i] = i;}
+	for(; q; --q)
+		if(scanf("%d", &amp;op), op == 1){
+			scanf("%d%d", &amp;u, &amp;v);
+			if(del[u] || del[v]) continue;
+			if((u = ancestor(u)) == (v = ancestor(v))) continue;
+			i = join(u, v);
+			p[u] = p[v] = i;
+		}else{
+			scanf("%d", &amp;v);
+			if(del[v]) {puts("-1"); continue;}
+			v = ancestor(v); del[v] = 1;
+			printf("%d\n", nd[v].v.first);
+			i = join(nd[v].lc, nd[v].rc);
+			p[v] = p[i] = i;
+		}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意删除最小数时，根 $r$ 就不存在了，那么在并查集中要将 $r$ 的父节点改成新的根 $r'$，又为了避免死循环，要 (在并查集中) 将 $r'$ 的父节点设成 $r$。</p>
+	</body>
+</html>

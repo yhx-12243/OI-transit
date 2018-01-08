@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg3765]总统选举</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>秋之国共有 $n$ 个人，分别编号为 $1, 2, \cdots, n$，一开始每个人都投了一票，范围 $1 \sim n$，表示支持对应编号的人当总统。</p>
+		<p>共有 $m$ 次预选，每次选取编号 $[l_i, r_i]$ 内的选民展开小规模预选，在该区间内获得超过区间大小一半的票的人获胜，如果没有人获胜，则由 scx 钦定一位候选者获得此次预选的胜利 (获胜者可以不在该区间内)。</p>
+		<p>每次预选的结果需要公布出来，并且每次会有 $k_i$ 个人决定将票改投向该次预选的获胜者。全部预选结束后，公布最后成为总统的候选人。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 5 \times 10^5$)，表示秋之国人数和预选次数。</p>
+		<p>第二行包含 $n$ 个整数，分别表示编号 $1 \sim n$ 的选民投的票。</p>
+		<p>接下来 $m$ 行，每行先有 $4$ 个整数，分别表示 $l_i, r_i, s_i, k_i$，$s_i$ 表示若此次预选无人胜选，视作编号为 $s_i$ 的人获得胜利，接下来 $k_i$ 个整数，分别表示决定改投的选民，保证 $\sum k_i \leq 10^6$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m+1$ 行，前 $m$ 行表示各次预选的结果，最后一行表示最后成为总统的候选人，若最后仍无人胜选，输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>可以看出，这是一道和<strong>绝对众数</strong>有关系的问题。纯的绝对众数问题可以在 $O(n)$ 时间内利用<strong>加减相消法</strong>解决 (即记当前的绝对众数为 $v$，按顺序扫一遍，如果碰到 $v$ 则权值 $w \gets w+1$，否则 $w \gets w-1$，$w$ 变成 $0$ 后重新设置众数 $v$，<strong>如果原序列存在绝对众数</strong>，那么它就是最后的 $v$)。</p>
+		<p>然而这道题是支持修改 (改投) 的，不过这也并不难，可以使用线段树，因为如果两个区间的<strong>可能众数</strong> $v$ 和<strong>权值</strong> $w$ 都已知的话，是可以轻松合并的 (按照刚才的方法，具体实现见代码)。</p>
+		<p>不过这是在<strong>绝对众数存在</strong>的前提下，然而题目并没有说绝对众数一定存在，因此我们需要判断绝对众数是否存在。这可以考虑使用 ($n$ 个) 平衡树维护每个数出现的位置。</p>
+		<p>比如在区间 $[l, r]$ 内，<strong>可能的</strong>绝对众数为 $v$，那么我们只需验证 $v$ 对应的平衡树中 $[l, r]$ 中的数是否超过 $D$ 个即可，其中 $D = \left \lfloor \dfrac {R-L+1} 2 \right \rfloor$。</p>
+		<p>时间复杂度 $O(n \log n)$，<del>Splay 常数可能较大，改成单旋貌似跑得更快</del>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 512202
+using namespace std;
+
+int n, q, k;
+int i, l, r, u, v;
+int buf[N], cnt;
+
+namespace ST{
+	#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+	struct node {int v, t; node (int v0 = 0, int t0 = 0): v(v0), t(t0) {} } x[N &lt;&lt; 3];
+
+	node merge(const node l, const node r){
+		if(l.v == r.v) return node(l.v, l.t + r.t);
+		if(!(l.v &amp;&amp; r.v)) return l.v ? l : r;
+		if(l.t == r.t) return node();
+		return l.t &gt; r.t ? node(l.v, l.t - r.t) : node(r.v, r.t - l.t);
+	}
+
+	int adj(int id, int L, int R, int h, int v){
+		int ret;
+		if(L == R) {ret = x[id].v; x[id] = node(v, 1); return ret;}
+		segc; ret = (h &lt;= M ? adj(lc, L, M, h, v) : adj(rc, M + 1, R, h, v));
+		x[id] = merge(x[lc], x[rc]);
+		return ret;
+	}
+
+	void range(int id,  int L, int R, int ql, int qr){
+		if(ql &lt;= L &amp;&amp; R &lt;= qr) {x[id].v ? buf[++cnt] = x[id].v : 0; return;}
+		segc;
+		if(ql &lt;= M) range(lc, L, M, ql, min(qr, M));
+		if(qr &gt; M) range(rc, M + 1, R, max(ql, M + 1), qr);
+	}
+}
+
+namespace Splay{
+	#define pa p[nd]
+	struct node {int sz, p, c[2];} nd[N];
+	int root[N], cnt = 0;
+
+	inline int dir(int x) {return x == nd[x].pa.c[1];}
+
+	inline void update(int x) {nd[x].sz = nd[x].c[0][nd].sz + nd[x].c[1][nd].sz + 1;}
+
+	void rotate(int x){
+		int y = nd[x].p, d = !dir(x);
+		nd[nd[y].c[!d] = nd[x].c[d]].p = y;
+		nd[x].p = nd[y].p;
+		nd[y].pa.c[dir(y)] = x;
+		nd[nd[x].c[d] = y].p = x;
+		update(y);
+	}
+
+	void splay(int x, int g = 0){
+		for(; nd[x].p != g; rotate(x));
+			if(nd[x].pa.p != g) rotate(dir(x) ^ dir(nd[x].p) ? x : nd[x].p);
+		update(x);
+	}
+
+	void insert(int &amp;rt, int x){
+		if(!rt) {rt = x; nd[x].p = nd[x].c[0] = nd[x].c[1] = 0; nd[x].sz = 1; return;}
+		int y = 0, d = 0;
+		for(y = rt; d = x &gt; y, nd[y].c[d]; y = nd[y].c[d]);
+		nd[y].c[d] = x; nd[x].p = y; nd[x].c[0] = nd[x].c[1] = 0; nd[x].sz = 1;
+		splay(x); rt = x;
+	}
+
+	void erase(int &amp;rt, int x){
+		splay(x);
+		if(nd[x].c[0] &amp;&amp; nd[x].c[1]){
+			int y;
+			for(y = nd[x].c[1]; nd[y].c[0]; y = nd[y].c[0]);
+			splay(y, x);
+			nd[nd[y].c[0] = nd[x].c[0]].p = y;
+			nd[y].p = 0; rt = y; update(y);
+		}else{
+			int d = !!nd[x].c[1];
+			nd[x].c[d][nd].p = 0;
+			rt = nd[x].c[d];
+		}
+	}	
+
+	int rank(int &amp;rt, int x){
+		if(!rt || !x) return 0;
+		int y, r = 0, l = rt;
+		for(y = rt; y; l = y, y = nd[y].c[x &gt; y]){
+			if(x &gt;= y) r += nd[y].c[0][nd].sz + 1;
+			if(x == y) {splay(x); rt = x; return r;}
+		}
+		splay(l); rt = l;
+		return r;
+	}
+}
+
+bool test(int l, int r, int w){
+	using namespace Splay;
+	int half = (r - l + 1) &gt;&gt; 1;
+	return rank(root[w], r) - rank(root[w], l - 1) &gt; half;
+}
+
+int main(){
+	scanf("%d%d", &amp;n, &amp;q);
+	for(i = 1; i &lt;= n; ++i){
+		scanf("%d", &amp;v);
+		ST::adj(1, 1, n, i, v);
+		Splay::insert(Splay::root[v], i);
+	}
+	for(; q; --q){
+		scanf("%d%d%d", &amp;l, &amp;r, &amp;v); cnt = 0;
+		ST::range(1, 1, n, l, r);
+		for(i = 1; i &lt;= cnt; ++i)
+			if(test(l, r, buf[i])) {v = buf[i]; break;}
+		printf("%d\n", v);
+		for(scanf("%d", &amp;k); k; --k){
+			scanf("%d", &amp;i);
+			u = ST::adj(1, 1, n, i, v);
+			Splay::erase(Splay::root[u], i);
+			Splay::insert(Splay::root[v], i);
+		}
+	}
+	cnt = 0;
+	ST::range(1, 1, n, 1, n);
+	printf("%d\n", cnt &amp;&amp; test(1, n, buf[1]) ? buf[1] : -1);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 Splay 每次操作完成后都要讲对应点 <code>splay()</code> 到根，否则 (均摊 $O(\log n)$) 复杂度就不靠谱了。</p>
+	</body>
+</html>

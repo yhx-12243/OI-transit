@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2938][lg2444][POI2000]病毒</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>二进制病毒审查委员会最近发现了如下的规律：某些确定的二进制串是病毒的代码。如果某段代码中不存在任何一段病毒代码，那么我们就称这段代码是安全的。现在委员会已经找出了所有的病毒代码段，试问，是否存在一个无限长的安全的二进制代码。<p>
+		<p>示例：如果 $\{\texttt{011}, \texttt{11}, \texttt{00000}\}$ 为病毒代码段，那么一个可能的无限长安全代码就是 $\texttt{010101} \cdots$。如果 $\{\texttt{01}, \texttt{11}, \texttt{000000}\}$ 为病毒代码段，那么就不存在一个无限长的安全代码。</p>
+		<p>任务：请写一个程序，</p>
+		<ol>
+		<li>读入病毒代码；</li>
+		<li>判断是否存在一个无限长的安全代码；</li>
+		<li>将结果输出。</li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包括一个整数 $n$ ($n \leq 2000$)，表示病毒代码段的数目。</p>
+		<p>以下的 $n$ 行每一行都包括一个非空的 $\texttt{01}$ 字符串——就是一个病毒代码段。所有病毒代码段的总长度不超过 $30000$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个单词：</p>
+		<p><code>TAK</code>——假如存在这样的代码；</code></p>
+		<p><code>NIE</codE>——如果不存在。</p>
+
+		<h3>题解</h3>
+		<p>由于所谓的的 "安全代码" 不能包含任意一个属于 "病毒代码段" 中的子串，这个过程可以看作是<strong>匹配</strong>的过程，而且还是<strong>多模匹配</strong>，因此很自然地想到使用 Aho-Corasick 自动机。</p>
+		<p>将所有的 "病毒代码段" 中的串建立 AC 自动机后，我们的 "安全代码" 在 AC 自动机上匹配的时候就不能碰到 "目标节点"，又由于它是无限长的，因此它<strong>只能在自动机 (对应的 Trie 图) 上绕环</strong>。</p>
+		<p>于是就可以通过 dfs 来进行判环操作。每次向 "非目标节点" 走，如果走到一个在栈中的节点就判定有环 (<code>TAK</code>)，如果整棵树遍历完了都没发现环，那么就必能会走到 "目标节点" (<code>NIE</code>)。</p>
+		<p>当然，如果一个点被 dfs 到过，那么下次就不用再搜了 (因为包含它的可能的环都会在上次搜到)，即记一个 <code>used[]</code> 标记 (和 <code>in_stack[]</code> 标记不一样)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 34147
+using namespace std;
+
+namespace AC{
+	int cnt = 1;
+	int d[N][2], val[N], f[N], la[N];
+	int que[N], used[N], in_stack[N];
+
+	void append(char *s){
+		char *p = s; int t = 1, id;
+		for(; *p; ++p) {id = *p &amp; 1; t = (d[t][id] ? d[t][id] : (d[t][id] = ++cnt));}
+		val[t] = 1;
+	}
+
+	void build(){
+		int h, ta = 1, i, t, id;
+		que[0] = 1;
+		f[1] = 0;
+		for(h = 0; h &lt; ta; ++h)
+			for(i = que[h], id = 0; id &lt; 2; ++id){
+				t = (f[i] ? d[f[i]][id] : 1);
+				int &amp;u = d[i][id];
+				if(!u) {u = t; continue;}
+				f[u] = t; val[u] |= val[t]; que[ta++] = u;
+				la[u] = (val[t] ? t : la[t]);
+			}
+	}
+
+	bool dfs(int x){
+		int i;
+		used[x] = in_stack[x] = 1;
+		for(i = 0; i &lt; 2; ++i)
+			if(in_stack[d[x][i]]) return true;
+			else if(!(val[d[x][i]] || used[d[x][i]])){
+				if(dfs(d[x][i])) return true;
+			}
+		in_stack[x] = 0;
+		return false;
+	}
+}
+
+int n, i;
+char s[N];
+
+int main(){
+	scanf("%d", &amp;n);
+	for(i = 1; i &lt;= n; ++i) {scanf("%s", s); AC::append(s);}
+	AC::build();
+	puts(AC::dfs(1) ? "TAK" : "NIE");
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>还有一个坑，就是和<a href="lydsy1030.html" target="_blank">这道题</a>一样，如果一个 (目标) 串的子串也是 "目标串"，那么在该串前缀的节点中也要设置 <code>val[u] |= val[t]</code>。</p>
+	</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[vijos #5]集合对称差卷积</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定两个长度为 $n$ 的序列 $a_0, a_1, \cdots, a_{n-1}$ 和 $b_0, b_1, \cdots, b_{n-1}$，你需要求出一个序列 $c_0, c_1, \cdots, c_{n-1}$，其中 $c_k$ 满足：$c_k = \sum\limits_{i \oplus j = k} a_i b_j$。其中 $\oplus$ 表示按位异或。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行一个整数 $n$ ($n \leq 10^6$)，表示序列长度。</p>
+		<p>第二行 $n$ 个整数 $a_0, a_1, \cdots, a_{n-1}$，表示第一个序列。</p>
+		<p>第三行 $n$ 个整数 $b_0, b_1, \cdots, b_{n-1}$，表示第二个序列。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行 $n$ 个整数，表示你得到的序列。</p>
+
+		<h3>题解</h3>
+		<p>感觉和上一题差不多？只是这次把 "并" (或) 改成了 "对称差" (异或)。</p>
+		<p>显然刚才那样的容斥就行不通了。</p>
+		<p>注意到一个恒等式：$$ \sum_i (-1)^{|i \cap j|} = [j = \varnothing] \cdot 2^m $$</p>
+		<p>证明很简单，如果 $j = 0$，那么每项的值都为 $(-1)^0 = 1$，否则对 $j$ 中任意元素 $\alpha$，$i$ 中都可以有包含 $\alpha$ 的和不含 $\alpha$ 的，两两抵消，又由于</p>
+		<p>$$ c_k = \sum_{i \oplus j = k} a_i b_j = \sum_{i, j} [i \oplus j \oplus k = \varnothing] a_i b_j = \frac 1 {2^m} \sum_{i, j, l} (-1)^{ \left| (i \oplus j \oplus k) \cap l \right| } a_i b_j $$
+		<p>又因为 $|i \oplus j| = |i| + |j| - 2|i \cap j| \equiv |i| + |j| \pmod 2$，因此有</p>
+		<p>$$ \frac 1 {2^m} \sum_{i, j, l} (-1)^{ \left| (i \oplus j \oplus k) \cap l \right| } a_i b_j = \frac 1 {2^m} \sum_i \sum_j \sum_l (-1)^{|i \cap l|} (-1)^{|j \cap l|} (-1)^{|k \cap l|} a_i b_j
+= \frac 1 {2^m} \sum_l \left( (-1)^{|k \cap l|} \left( \sum_i (-1)^{|i \cap l|} a_i \right) \left( \sum_j (-1)^{|j \cap l|} b_j \right) \right) $$</p>
+		<p>定义变换 $A_l = \sum\limits_i (-1)^{|i \cap l|} a_i$，$B_l$ 同理，则</p>
+		<p>$$ c_k = \frac 1 {2^m} \sum_l \left( (-1)^{|k \cap l|} A_l B_l \right) $$</p>
+		<p>同样类似地定义 $C_l$。那么 $A_l, B_l, C_l$ 有没有 "点值" 性质呢？我们先从它的逆变换谈起，即如何从 $P_l$ 推得 $p_l$。</p>
+		<p>考虑式子 $\sum\limits_i (-1)^{|i \cap l|} P_i$，那么应该有</p>
+		<p>$$ p'_l = \sum_i (-1)^{|i \cap l|} P_i = \sum_i \left( (-1)^{|i \cap l|} \sum_j (-1)^{|j \cap i|} p_j \right)
+= \sum_j p_j \sum_i (-1)^{|j \cap i| + |i \cap l|} = \sum_j p_j \sum_i (-1)^{|(j \oplus l) \cap i|} = \sum_j p_j \cdot [j \oplus l = \varnothing] \cdot 2^m = 2^m p_l $$</p>
+		<p>也就是说，它的逆变换是它本身，只需最后除以 $2^m$ 即可。</p>
+		<p>那么可以轻松得到 $A_l, B_l, C_l$ 确实有 "点值" 性质 (严格证明即设 $C'_l = A_l B_l$，然后证 $C'_l = C_l$)，接下来考虑如何进行 "快速变换"。</p>
+		<p>其实这个和 FFT 还是比较像的，即使用 "分治法"。两个元素的变换非常简单，直接令 $P_0 \gets p_0 + p_1, P_1 \gets p_0 - p_1$，那四个元素的变换呢？可以两个两个变好以后合并起来，即 $P_0 \gets P_0 + P_2$ ($p_0 + p_1 + p_2 + p_3$)，$P_2 \gets P_0 - P_2$ ($p_0 + p_1 - p_2 - p_3$)，和 $P_3 \gets P_1 - P_3$ ($p_0 - p_1 - p_2 + p_3$)。</p>
+		<p>因此，类似地，我们可以枚举每个元素，然后把不包含它的 $i$，对应的 $P_i$ 与把 $i$ 加上后的集合对应的 $P'_i$，执行操作 $P_i \gets P_i + P'_i, P'_i \gets P_i - P'_i$ (注意是同时赋值，而不是先后赋值)。</p>
+		<p>由于它的逆变换是它本身，因此我们再做一次变换后除以 $2^m$，就得到了最终的 $c_i$，时间复杂度 $O(2^m m) = O(n \log n)$，它也有一个<del>优美的</del>名字，叫做<strong>快速 Walsh 变换</strong> (FWT)，<del>理解可能稍微比容斥难一点</del>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1109771
+#define lg2(x) (31 - __builtin_clz(x))
+using namespace std;
+
+typedef long long ll;
+
+int n, len, i;
+
+ll a[N], b[N], c[N];
+
+void FWT(ll *f){ // Fast Walsh Transform
+	int i, j; ll r;
+	for(i = 0; i &lt; len; ++i)
+		for(j = 0; j &lt; 1 &lt;&lt; len; ++j)
+			if(!(j &gt;&gt; i &amp; 1)){
+				r = f[j | 1 &lt;&lt; i];
+				f[j | 1 &lt;&lt; i] = f[j] - r;
+				f[j] += r;
+			}
+}
+
+int main(){
+	scanf("%d", &amp;n);
+	len = lg2(n - 1) + 1;
+	for(i = 0; i &lt; n; ++i) scanf("%lld", a + i); FWT(a);
+	for(i = 0; i &lt; n; ++i) scanf("%lld", b + i); FWT(b);
+	for(i = 0; i &lt; 1 &lt;&lt; len; ++i) c[i] = a[i] * b[i];
+	FWT(c);
+	for(i = 0; i &lt; n; ++i) printf("%lld%c", c[i] &gt;&gt;= len, i == n - 1 ? 10 : 32);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>注意数组开到下一个 $2$ 的幂 ($2^{20}$)，其实熟练了可以发现，FFT, FMT, FWT 的本质思想都是差不多的，都是利用一种 "快速变换" <strong>将卷积转化为点积</strong>。</p>
+	</body>
+</html>

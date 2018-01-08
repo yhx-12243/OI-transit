@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[vijos #4]集合并卷积</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定两个长度为 $n$ 的序列 $a_0, a_1, \cdots, a_{n-1}$ 和 $b_0, b_1, \cdots, b_{n-1}$，你需要求出一个序列 $c_0, c_1, \cdots, c_{n-1}$，其中 $c_k$ 满足：$c_k = \sum\limits_{i \mid j = k} a_i b_j$。其中 $\mid$ 表示按位或。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行一个整数 $n$ ($n \leq 10^6$)，表示序列长度。</p>
+		<p>第二行 $n$ 个整数 $a_0, a_1, \cdots, a_{n-1}$，表示第一个序列。</p>
+		<p>第三行 $n$ 个整数 $b_0, b_1, \cdots, b_{n-1}$，表示第二个序列。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行 $n$ 个整数，表示你得到的序列。</p>
+
+		<h3>题解</h3>
+		<p>显然发现 $i \mid j = k$ 这个条件不怎么好处理，如果我们作一个集合的 "前缀和"，即令 $P_i = \sum\limits_{j \subseteq i} p_j$ (即 $i \;\&\; j = j$)，那么有</p>
+		<p>$$ C_k = \sum_{k_0 \subseteq k} c_i = \sum_{k_0 \subseteq k} \sum_{i \cup j = k_0} a_i b_j = \sum_{i \cup j \subseteq k} a_i b_j = \left( \sum_{i \subseteq k} a_i \right) \left( \sum_{j \subseteq k} b_j \right) = A_k \cdot B_k $$
+		<p>也就是说，它们的 "前缀和" 有着非常美妙的 "点值" 性质 (可以回忆一下 FFT)，于是可以在 $O(n)$ 时间内从 $A_i, B_j$ 得到 $C_k$。而暴力求 "前缀和" 复杂度是 $O \left( n ^ {\log_2 3} \right)$ 的，显然过不去，因此考虑通过 "快速变换" 从 $p_i$ 得到 $P_i$ 以及逆变换 <del>(和 FFT 好像啊)</del>。</p>
+		<p>究竟怎么变换呢？我们可以画一张图，图中每一行代表一个 $P_i$，这一行有哪些格子涂蓝，就代表它是哪些 $p_i$ 的和，如下图所示：</p>
+		<img class="center-block" src="uploads/4.gif" alt="FMT" />
+		<p>可以发现，每次，只要枚举每个元素 (与枚举元素的顺序无关)，然后把包含这个元素的 $i$，对应的 $P_i$ 加上把 $i$ 去掉后的集合对应的 $P_{i'}$。这样做 $O(\log n)$ 次操作后，即得到变换后的值。</p>
+		<p>那逆变换怎么办呢？如何从 $P_i$ 得到 $p_i$？可以发现我们能利用<strong>容斥原理</strong>，比如说对于 $6$，那么就有 $p_6 = P_6 - P_4 - P_2 + P_0$。将这个 $6$ 一般化，我们就有 $$ p_i = \sum_{j \subseteq i} (-1)^{|i| - |j|} P_i $$ </p>
+		<p>注意 $i, j$ 是集合 (所代表的数)。</p>
+		<p>这显然不能用定义取计算，还是要寻找 "快速逆变换"。机智的同学可能已经发现，将上面动画中的过程<strong>倒着做</strong>就可以了，即枚举每个元素，然后对于包含这个元素的 $i$ 所对应的 $P_i$ <strong>减去</strong> $P_{i'}$ 就可以达成目标。</p>
+		<p>综上，我们可以在 $O(n \log n)$ 的时间内完成 "集合并卷积"，它有一个<del>优美的</del>名字，叫做<strong>快速 Möbius 变换</strong> (FMT)，比暴力好多了 <del>(其实本质就是个容斥)</del>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1109771
+#define lg2(x) (31 - __builtin_clz(x))
+using namespace std;
+
+typedef long long ll;
+
+int n, len, i;
+
+ll a[N], b[N], c[N];
+
+void FMT(ll *f){ // Fast Mobius Transform
+	int i, j;
+	for(i = 0; i &lt; len; ++i)
+		for(j = 0; j &lt; 1 &lt;&lt; len; ++j)
+			if(!(j &gt;&gt; i &amp; 1))
+				f[j | 1 &lt;&lt; i] += f[j];
+}
+
+void IFMT(ll *f){ // just an IE-principle
+	int i, j;
+	for(i = 0; i &lt; len; ++i)
+		for(j = 0; j &lt; 1 &lt;&lt; len; ++j)
+			if(!(j &gt;&gt; i &amp; 1))
+				f[j | 1 &lt;&lt; i] -= f[j];
+
+}
+
+int main(){
+	scanf("%d", &amp;n);
+	len = lg2(n - 1) + 1;
+	for(i = 0; i &lt; n; ++i) scanf("%lld", a + i); FMT(a);
+	for(i = 0; i &lt; n; ++i) scanf("%lld", b + i); FMT(b);
+	for(i = 0; i &lt; 1 &lt;&lt; len; ++i) c[i] = a[i] * b[i];
+	IFMT(c);
+	for(i = 0; i &lt; n; ++i) printf("%lld%c", c[i], i == n - 1 ? 10 : 32);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>其实这个卷积像<strong>多项式乘法</strong>一样，也可以使用<strong>分治法</strong>完成，不过并不必暴力快多少。(可以参考上面的动画自己取实现以下)</p>
+		<p><strong>坑1：</strong>注意变换时要保证 $n$ 是 $2$ 的幂，否则可能无法完全转换 (尤其是在下一题 "集合对称差卷积" 中)，可以像 FFT 一样在后面补 $0$ (让元素个数) 凑成 $2$ 的幂。</p>
+	</body>
+</html>
