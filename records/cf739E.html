@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces739E]Gosha is hunting</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>scx 有 $a$ 个<strong>普通球</strong>和 $b$ 个<strong>高级球</strong>，她的目标是捕捉尽可能多的<strong>神奇宝贝</strong>。一共有 $n$ 个神奇宝贝，分别编号为 $1, 2, \cdots, n$。scx 知道如果她对第 $i$ 个神奇宝贝使用<strong>普通球</strong>则有 $p_i$ 的概率捕捉到，如果对第 $i$ 个神奇宝贝使用<strong>高级球</strong>则有 $u_i$ 的概率捕捉到。</p>
+		<p>对于每个神奇宝贝，她至多只能使用一个某种类型的球 (不过可以两种球同时使用，此时捕捉成功概率为 $p_i + u_i - p_i u_i$)。scx 想要知道，如果她使用最优解，她捕捉到的神奇宝贝的数量的期望值是多少。换句话说，即她能捕捉的神奇宝贝的数量的期望的<strong>最大可能值</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, a, b$ ($2 \leq n \leq 2000; a, b \leq n$)，分别表示神奇宝贝的总数量与 scx 拥有的普通球和高级球的数目。</p>
+		<p>第二行包含 $n$ 个实数 $p_1, p_2, \cdots, p_n$ ($0 \leq p_i \leq 1$)，其中 $p_i$ 表示 scx 对第 $i$ 个神奇宝贝使用普通球后捕捉到它的概率。</p>
+		<p>第三行包含 $n$ 个实数 $u_1, u_2, \cdots, u_n$ ($0 \leq u_i \leq 1$)，其中 $u_i$ 表示 scx 对第 $i$ 个神奇宝贝使用高级球后捕捉到它的概率。</p>
+		<p>保证数据中给出的实数精确到小数点后三位。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示 scx 能捕捉到的神奇宝贝数的期望的最大可能值。你的答案被判定为正确，当且仅当你输出的答案与标准答案的绝对误差或相对误差不超过 $10^{-4}$。</p>
+
+		<h3>题解</h3>
+		<p>先考虑最暴力的 DP。记 $f_{i, j, k}$ 表示对于前 $i$ 个神奇宝贝，使用了 $j$ 个普通球和 $k$ 个高级球，所得期望的最大值。那么转移很简单，直接枚举下一个神奇宝贝用哪些球去捕捉即可，时间复杂度 $O(n^3)$，跑的比较慢 (慢一点的 OJ 就过不去啦)。</p>
+		<p>显然这个算法不是我们要的正解。那能不能压缩掉一维呢？可以的。假如说，高级球的数量没有限制，那么这道题就是一个经典的二维 DP 了，直接令 $f_{i, j}$ 表示对前 $i$ 个神奇宝贝使用了 $j$ 个普通球的期望的最大值，关于高级球顺便转移掉就可以了。但是高级球没有这么多怎么办呢？</p>
+		<p>这时，我们可以对高级球的使用建立一个 "门槛"，即设定一个 $k$ 值，当且仅当 $u_i \geq k$ 时才允许转移，且转移的值是 $u_i - k$。这样一来，假设说我们用了 $c$ 个高级球 (DP 时顺便得到)，最后得到的答案加上 $k \cdot c$ 即可。这样，就可以有效控制使用的高级球的数量，且 $k$ 越大时，能使用的高级球数量越少。</p>
+		<p>显然 $k$ 又不能太大，否则就不能使用高级球了。因此，我们可以<strong>二分</strong> $k$ 值，直到最终用的高级球数量 $c = b$，此时高级球已经用得尽可能的多了。那么最终的答案再加上 $k \cdot b$ 就是期望的最大值。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 2034
+using namespace std;
+
+const double eps = 1e-8;
+
+int n, A, B;
+double a[N], b[N], ab[N];
+double L, M, R;
+double f[N][N];
+int g[N][N];
+
+inline void up(double &amp;x, const double y, int &amp;X, const int Y) {x &lt; y ? (x = y, X = Y) : 0;}
+
+bool test(double k){
+	int i, j;
+	memset(f, 0, sizeof f); memset(g, 0, sizeof g);
+	for(i = 1; i &lt;= n; ++i)
+		for(j = 0; j &lt;= A; ++j){
+			up(f[i][j], f[i - 1][j], g[i][j], g[i - 1][j]); // use nothing
+			up(f[i][j], f[i - 1][j] + b[i] - k, g[i][j], g[i - 1][j] + 1); // use ball B
+			if(!j) continue;
+			up(f[i][j], f[i - 1][j - 1] + a[i], g[i][j], g[i - 1][j - 1]); // use ball A
+			up(f[i][j], f[i - 1][j - 1] + ab[i] - k, g[i][j], g[i - 1][j - 1] + 1); // use ball A &amp; B
+		}
+	return g[n][A] &lt; B;
+}
+
+int main(){
+	int i;
+	scanf("%d%d%d", &amp;n, &amp;A, &amp;B);
+	for(i = 1; i &lt;= n; ++i) scanf("%lf", a + i);
+	for(i = 1; i &lt;= n; ++i) scanf("%lf", b + i);
+	for(i = 1; i &lt;= n; ++i) ab[i] = 1.0 - (1.0 - a[i]) * (1.0 - b[i]);
+	for(L = 0.0, R = 1.0; R - L &gt; eps; )
+		test(M = (L + R) * 0.5) ? R = M : (L = M);
+	printf("%.8lg\n", f[n][A] + R * (double)B);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>DP 转移时只有 $j &gt; 0$ 时才能通过<strong>普通球</strong>转移。</p>
+		<p><strong>坑2：</strong>判定一个状态是否合法，应该是 $g_{n, a} &lt; b$，而不是 $g_{n, a} \leq b$，否则可能会使用 $b+1$ 个高级球。</p>
+	</body>
+</html>

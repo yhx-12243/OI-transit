@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces494D]Birthday</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个顶点的带边权的树，以点 $1$ 为根。定义 $d(u, v)$ 为 $u$ 到 $v$ 的简单路径上所有边的权值之和。特别地，我们有 $d(u, u) = 0$。接着对节点 $v$ 定义集合 $S(v)$，表示所有满足 $d(1, u) = d(1, v) + d(v, u)$ 的点 $u$ 的集合。函数 $f(u, v)$ 由下式定义：</p>
+		<p>$$ f(u, v) = \sum_{x \in S(v)} d(u, x)^2 - \sum_{x \notin S(v)} d(u, x)^2 $$</p>
+		<p>你的任务就是对于 $q$ 对 $u, v$ 计算出 $f(u, v)$ 的值。由于答案可能过大，请模 $10^9 + 7$ 输出。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^5$)，表示树中节点的个数。</p>
+		<p>接下来的 $n-1$ 行，每行包含三个正整数 $a_i, b_i, c_i$ ($1 \leq a_i, b_i \leq n; c_i \leq 10^9$)，表示 $a_i$ 和 $b_i$ 之间有一条权值为 $c_i$ 的边。</p>
+		<p>下一行有一个正整数 $q$，表示询问的个数。</p>
+		<p>接下来 $q$ 行，每行包含两个正整数 $u_i, v_i$ ($1 \leq u_i, v_i \leq n$)，表示你需要求出 $f(u_i, v_i)$ 的值。</p>
+		<p>保证给出的图是树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行一个整数，第 $i$ 行的整数表示 $f(u_i, v_i)$ 模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>首先<del>显然</del>可以看出 $S(v)$ 表示以 $v$ 为根的子树中所有点组成的集合。</p>
+		<p>由于所求是平方和，根据一般思(tao)路，将其展开后 DP。</p>
+		<p>记 $f_u^{(k)}$ 分别表示以 $u$ 为根的子树中，所有点到 $u$ 的距离的 $k$ 次方和 ($k = 0, 1, 2$，约定 $0^0 = 1$)，即 $$ f_u^{(k)} = \sum_{x \in S(u)} d(u, x)^k $$</p>
+		<p>我们考虑通过 DP 求得 $f_u^{(k)}$。当枚举到 $x$ 的一个子节点 $y$ 时，$f_x^{(0)}$ 可以进行 $$ f_x^{(0)} \gets f_x^{(0)} + f_y^{(0)} $$</p>
+		<p>(其实 $f_u^{(0)}$ 就表示以 $u$ 为根的子树大小)，接下来考虑 $f_x^{(1)}$，考虑 $S(y)$ 中的节点转移到 $S(x)$，(记 $w = d(x, y)$) 则它们所有点 (到 $x$) 的距离会增加 $w$，因此有 $$ f_x^{(1)} \gets f_x^{(1)} + f_y^{(1)} + w \cdot f_y^{(0)} $$</p>
+		<p>$f_x^{(2)}$ 也是类似的。考虑 $S(y)$ 中的节点 $u$ 转移到 $S(x)$ 时，距离增加 $w$，因此距离的平方和就会从 $d(u, y)^2$ 变成 $d(u, x)^2 = \left( d(u, y) + d(y, x) \right)^2 = d(u, y)^2 + 2 d(u, y) w + w^2$，求个 $\sum$ 就是 $$ f_x^{(2)} \gets f_x^{(2)} + f_y^{(2)} + 2 w \cdot f_y^{(1)} + w^2 \cdot f_y^{(0)} $$</p>
+		<p>(题外话：这样下去，所有 $k$ 次方和都可以递推，公式为 $f_x^{(k)} \gets f_x^{(k)} + \sum\limits_{i=0}^k \dbinom ki w^{k-i} f_y^{(i)}$)</p>
+		<p>由于原式需要对所有的点进行求和 (可以看成所有点的和的减去部分和的两倍)，因此我们再定义一个 $g_u^{(k)}$ 表示<strong>原树</strong>中所有点到 $u$ 的距离的 $k$ 次方和 ($k = 0, 1, 2$)，即 $$ g_u^{(k)} = \sum_{x=1}^n d(u, x)^k $$</p>
+		<p>那么显然对所有的 $x$，有 $g_x^{(0)} = n$。那么对于 $k = 1, 2$ 这个 $g_x^{(k)}$ 该如何转移呢？</p>
+		<p>我们可以<strong>倒着转移</strong> (就像<a href="cf827D.html" target="_blank">上一道题</a>一样倒着倍增)，首先对于根 $1$，显然有 $g_1^{(k)} = f_1^{(k)}$，那么对于其它的点 $y$，记它的父节点为 $x$ (已知)，考虑求出 $g_y^{(1)}$ 和 $g_y^{(2)}$。</p>
+		<p>显然，边 $(x, y)$ 将原树分成了两个连通块，一个是 $S(y)$，一个是它的补集 $\overline {S(y)}$，那么将这两段和分开考虑。对于 $u \in S(y)$，则有 $d(u, y) = d(u, x) - w$，而对于 $u \in \overline {S(y)}$，有 $d(u, y) = d(u, x) + w$，因此</p>
+		<p>$$ \sum_{u=1}^n d(u, y) = \sum_{u \in S(y)} d(u, y) + \sum_{u \in \overline {S(y)}} d(u, y) = \sum_{u \in S(y)} \left( d(u, x) - w \right) + \sum_{u \in \overline {S(y)}} \left( d(u, x) + w \right) = \sum_{u=1}^n d(u, x) - w \left| S(y) \right| + w \left| \overline {S(y)} \right| $$</p>
+		<p>故 $$ g_y^{(1)} = \sum_{u=1}^n d(u, y) = \sum_{u=1}^n d(u, x) + w (n - 2 \left| S(y) \right|) = g_x^{(1)} + w \left( g_x^{(0)} - 2 f_y^{(0)} \right) $$</p>
+		<p>对于 $g_y^{(2)}$，也是类似地处理：</p>
+		<p>$$ \sum_{u=1}^n d(u, y)^2 = \sum_{u \in S(y)} d(u, y)^2 + \sum_{u \notin S(y)} d(u, y)^2 = \sum_{u \in S(y)} \left( d(u, x) - w \right)^2 + \sum_{u \notin S(y)} \left( d(u, x) + w \right)^2
+= \sum_{u=1}^n d(u, x)^2 + 2w (- \sum_{u \in S(y)} d(u, x) + \sum_{u \notin S(y)} d(u, x)) + w^2 n $$</p>
+		<p>故 $$ g_y^{(2)} = \sum_{u=1}^n d(u, y)^2 = \sum_{u=1}^n d(u, x)^2 + 2w (\sum_{u=1}^n d(u, x) - 2 \sum_{u \in S(y)} d(u, x) ) + w^2 n = g_x^{(2)} + 2w \left( g_x^{(1)} - 2 (f_y^{(1)} + w f_y^{(0)}) \right) + w^2 g_x^{(0)}
+= g_x^{(2)} + 2w \left (g_x^{(1)} - 2 f_y^{(1)} \right) + w^2 \left( g_x^{(0)} - 4 f_y^{(0)} \right) $$</p>
+		<p>于是我们就得到了所有点的 $g_x^{(k)}$，接下来考虑计算答案。</p>
+		<p>对于一组询问 $(u, v)$，由于涉及到 $v$ 的子树，因此我们按照 $u$ 是否在 $v$ 的子树中分为两类：</p>
+		<ol>
+		<li><p>$u$ 不在 $v$ 的子树中 (即 $v$ 不是 $u$ 的祖先，那么它们的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 一定不是 $v$)，那么</p>
+		<p>$$ f(u, v) = \sum_{x \in S(v)} d(u, x)^2 - \sum_{x \notin S(v)} d(u, x)^2 = \sum_{x \in S(v)} d(u, x)^2 - \left( \sum_{x=1}^n d(u, x)^2 - \sum_{x \in S(v)} d(u, x)^2 \right) = 2 \sum_{x \in S(v)} d(u, x)^2 - \sum_{x=1}^n d(u, x)^2 = 2 \sum_{x \in S(v)} d(u, x)^2 - g_u^{(2)} $$</p>
+		<p>由于 $x$ 在 $v$ 的子树中且 $u$ 不在 $v$ 的子树中，故 $d(u, x) = d(u, v) + d(v, x)$，记 $D = d(u, v)$，有</p>
+		<p>$$ f(u, v) = 2 \sum_{x \in S(v)} d(u, x)^2 - g_u^{(2)} = 2 \sum_{x \in S(v)} \left( d(u, v) + d(v, x) \right)^2 - g_u^{(2)} = 2 \left( D^2 \cdot f_v^{(0)} + 2 D \cdot f_v^{(1)} + f_v^{(2)} \right) - g_u^{(2)} $$
+		<li>$u$ 在 $v$ 的子树中 (即 $v$ 是 $u$ 的祖先，那么它们的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 一定是 $v$)，那么</p>
+		<p>$$ f(u, v) = \sum_{x \in S(v)} d(u, x)^2 - \sum_{x \notin S(v)} d(u, x)^2 = \left( \sum_{x=1}^n d(u, x)^2 - \sum_{x \notin S(v)} d(u, x)^2 \right) - \sum_{x \notin S(v)} d(u, x)^2 = \sum_{x=1}^n d(u, x)^2 - 2 \sum_{x \notin S(v)} d(u, x)^2 = g_u^{(2)} - 2 \sum_{x \notin S(v)} d(u, x)^2 $$</p>
+		<p>由于 $u$ 在 $v$ 的子树中且 $x$ 不在 $v$ 的子树中，因此还是有 $d(u, x) = d(u, v) + d(v, x)$，记 $D = d(u, v)$，有</p>
+		<p>$$ f(u, v) = g_u^{(2)} - 2 \sum_{x \notin S(v)} d(u, x)^2 = g_u^{(2)} - 2 \sum_{x \notin S(v)} \left( d(u, v) + d(v, x) \right)^2 = g_u^{(2)} - 2 \left( D^2 \cdot \left( g_v^{(0)} - f_v^{(0)} \right) + 2 D \cdot \left( g_v^{(1)} - f_v^{(1)} \right) + \left( g_v^{(2)} - f_v^{(2)} \right) \right) $$</p>
+		</ol>
+		<p>因此，我们已经成功把所有的问题分成两类 (可以根据 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 分类，然后顺便求出 $D$)，并在线 $O(1)$ 解决。总时间复杂度 $O(n \log n + q)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+#define M 256101
+#define LN 18
+#define lg2(x) (31 - __builtin_clz(x))
+using namespace std;
+
+typedef long long ll;
+const ll mod = 1000000007;
+
+struct edge{
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0): u(u0), v(v0), w(w0) {}
+}e[M];
+
+int n, q, E;
+int first[N], next[M];
+int p[N], dep[N], f0[N], g0[N];
+ll deep[N], f1[N], f2[N], g1[N], g2[N];
+int cnt = 0, id[N], st[LN][M], *o = *st;
+
+inline void add(int &amp;x, const int y) {(x += y) &gt;= mod ? x -= mod : 0;}
+inline void add(ll &amp;x, const ll y) {(x += y) &gt;= mod ? x -= mod : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int dmin(const int x, const int y) {return dep[x] &lt; dep[y] ? x : y;}
+inline void addedge(int u, int v, int w){
+	e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+	e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+}
+
+void build_sparse_table(){
+	int *f, *g = o, i, j, k = cnt;
+	for(j = 0; 1 &lt;&lt; j + 1 &lt;= cnt; ++j){
+		f = g; g = st[j + 1]; k -= 1 &lt;&lt; j;
+		for(i = 0; i &lt; k; ++i)
+			g[i] = dmin(f[i], f[i + (1 &lt;&lt; j)]);
+	}
+}
+
+inline int LCA(int x, int y){
+	int L = min(id[x], id[y]), R = (id[x] ^ id[y] ^ L) + 1, D = R - L, c = lg2(D);
+	return dmin(st[c][L], st[c][R - (1 &lt;&lt; c)]);
+}
+
+void dfs_basis(int x){
+	int i, y;
+	f0[x] = 1; f1[x] = f2[x] = 0;
+	id[x] = cnt; o[cnt++] = x;
+	for(i = first[x]; i; i = next[i])
+		if((y = e[i].v) != p[x]){
+			p[y] = x; dep[y] = dep[x] + 1;
+			deep[y] = deep[x] + e[i].w;
+			dfs_basis(y);
+			add(f0[x], f0[y]);
+			add(f1[x], (f1[y] + (ll)f0[y] * e[i].w) % mod); 
+			add(f2[x], (f2[y] + ((f1[y] &lt;&lt; 1) + (ll)f0[y] * e[i].w) % mod * e[i].w) % mod);
+			/*
+			f0[x] = f0[x] + f0[y]
+			f1[x] = f1[x] + f1[y] + w f0[y]
+			f2[x] = f2[x] + f2[y] + 2 w f1[y] + w^2 f0[y]
+			*/
+			assert(0 &lt;= f0[x] &amp;&amp; f0[x] &lt; mod);
+			assert(0 &lt;= f1[x] &amp;&amp; f1[x] &lt; mod);
+			assert(0 &lt;= f2[x] &amp;&amp; f2[x] &lt; mod);
+			o[cnt++] = x;
+		}
+
+}
+
+void dfs_calc(int x){
+	int i, y; ll t;
+	for(i = first[x]; i; i = next[i])
+		if((y = e[i].v) != p[x]){
+			g0[y] = g0[x];
+			t = ((ll)g0[x] - ((ll)f0[y] &lt;&lt; 1)) * e[i].w % mod;
+			add(g1[y] = g1[x], t &lt; 0 ? t + mod : t);
+			t = ((g1[y] - (f1[y] &lt;&lt; 1) &lt;&lt; 1) - (ll)g0[x] * e[i].w) % mod * e[i].w % mod;
+			add(g2[y] = g2[x], t &lt; 0 ? t + mod : t);
+			/*
+			g0[y] = g0[x]
+			g1[y] = g1[x] + w (g0[x] - 2 f0[y])
+			g2[y] = g2[x] + 2 w (g1[x] - 2 f1[y]) + w^2 (g0[x] - 4 f0[y])
+			      = g2[x] + 2 w (g1[y] - 2 f1[y]) - w^2 g0[x]
+			*/
+			assert(g0[y] == n);
+			assert(0 &lt;= g1[y] &amp;&amp; g1[y] &lt; mod);
+			assert(0 &lt;= g2[y] &amp;&amp; g2[y] &lt; mod);
+			dfs_calc(y);
+		}
+}
+
+int main(){
+	int u, v, w, l, i; ll D, R, c0, c1, c2;
+	scanf("%d", &amp;n);
+	for(i = 1; i &lt; n; ++i){
+		scanf("%d%d%d", &amp;u, &amp;v, &amp;w);
+		addedge(u, v, w);
+	}
+	dfs_basis(1);
+	build_sparse_table();
+	g0[1] = f0[1]; g1[1] = f1[1]; g2[1] = f2[1];
+	dfs_calc(1);
+	for(scanf("%d", &amp;q); q; --q){
+		scanf("%d%d", &amp;u, &amp;v);
+		l = LCA(u, v);
+		D = (deep[u] + deep[v] - (deep[l] &lt;&lt; 1)) % mod;
+		if(l == v){
+			c0 = g0[v] - f0[v]; c1 = g1[v] - f1[v]; c2 = g2[v] - f2[v];
+			R = (c0 * D + (c1 &lt;&lt; 1)) % mod * D + c2;
+			// R = D^2 c0[v] + 2 D c1[v] + c2[v]
+			R = (g2[u] - (R &lt;&lt; 1)) % mod;
+			// R = (g2[u] - R) - R
+		}else{
+			R = (f0[v] * D + (f1[v] &lt;&lt; 1)) % mod * D + f2[v];
+			// R = D^2 f0[v] + 2 D f1[v] + f2[v]
+			R = ((R &lt;&lt; 1) - g2[u]) % mod;
+			// R = R - (g2[u] - R)
+		}
+		R &lt; 0 ? R += mod : 0;
+		printf("%d\n", (int)R);
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于各种乘法运算比较多，因此记得及时取模以免溢出。</p>
+		<p><strong>坑2：</strong><abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 算法中的 <abbr title="Sparse Table, 稀疏表">ST</abbr> 表记得开两倍空间。</p>
+	</body>
+</html>

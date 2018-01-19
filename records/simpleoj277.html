@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[SimpleOJ277]森林</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>scx 的奶奶家有一块 $n \times m$ 的土地，勤劳的奶奶把它种成了一片森林。本来每个位置都均匀地种了一棵树，但是 $k$ 棵树因为建筑需要被砍掉了。</p>
+		<p>scx 最近得到一把飞索，飞索需要树才能荡起来。她想要知道她斜穿森林有多少种不同的方案，具体来讲，就是在每一行选取一棵树而且后一行选取的树总比前一行靠右的方案数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, m, k$ ($1 \leq n \leq m \leq 10^9, k \leq 2000$)。</p>
+		<p>第 $2$ 至 $k+1$ 行，每行两个整数 $x_i, y_i$，表示被砍掉的树的坐标。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示方案数 (对 $10^6 + 3$ 取模)。</p>
+
+		<h3>题解</h3>
+		<p>先考虑 $k = 0$ 时的情况，那就是在 $n$ 行中，每行选取一个数，即 $a_1, a_2, \cdots, a_n$。满足条件的方案数即为满足 $1 \leq a_1 &lt; a_2 &lt; \cdots &lt; a_n \leq m$ 的方案数。由组合数的定义可知，共有 $\dbinom m n$ 种方案，由于模数不是很大，可以使用 Lucas 定理计算二项式系数。</p>
+		<p>那 $k &gt; 0$ 时呢？首先，可以想到一个最暴力的 DP，即记 $f_{i, j}$ 表示走到第 $i$ 行第 $i+j$ 列的方案数，那么如果 $(i, i+j)$ 是被砍掉的树，则 $f_{i, j} = 0$，否则 $f_{i, j} = \sum\limits_{k=0}^j f_{i-1, k}$。显然这个的时空复杂度是 $O(nm)$ 的，显然跑不动。</p>
+		<p>这是根据套路，注意到 $k \leq 2000$，我们可以<strong>改变 DP 记录的内容</strong>，像<a href="lydsy5046.html" target="_blank">这道题</a>一样，即以 $k$ 为一维 DP。</p>
+		<p>那么将所有的被砍掉的树 (以后简称 "树") 排序后 (双关键字排序)，记 $f_i$ 表示走到第 $i$ 棵 "树"，且之前不经过任何 "树" 的路径条数，那么，$f_i$ 可以这样计算得到：</p>
+		<p>首先，不考虑后面的限制，则一共有 $\dbinom {y_i - 1} {x_i - 1}$ 条路径，那重复的呢？考虑任何一条经过 "树" 的路径，总有一棵 "树" 是最先碰到的。那么，我们可以枚举最先碰到的 "树" $j$ (位置为 $(x_j, y_j)$)，由于之前没有碰到过任何 "树"，则方案数为 $f_j$。之后随便怎么走都行，稍微计算一下可得方案数为 $\dbinom {y_i - y_j - 1} {x_i - x_j - 1}$，因此转移方程为：</p>
+		<p>$$ f_i = \binom {y_i - 1} {x_i - 1} - \sum_{\quad 1 \leq j &lt; i \\ x_j &lt; x_i, y_j &lt; y_i} f_j \cdot \binom {y_i - y_j - 1} {x_i - x_j - 1} $$</p>
+		<p>最后总方案数怎么办？很简单，可以加一个 "虚拟的树" (编号为 $k+1$)，坐标为 $(n+1, m+1)$，最终答案就是走到 "虚拟的树" 的路径条数，即 $f_{k+1}$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 10000034
+#define K 2034
+using namespace std;
+
+typedef long long ll;
+const ll mod = 1000003;
+
+struct pr{
+	int x, y;
+	pr (int x0 = 0, int y0 = 0): x(x0), y(y0) {}
+	pr * read() {scanf("%d%d", &amp;x, &amp;y); return this;}
+	inline bool operator &lt; (const pr &amp;B) const {return x &lt; B.x || (x == B.x &amp;&amp; y &lt; B.y);}
+}p[K];
+
+int r, c, n;
+ll f[K];
+ll fact[mod], finv[mod];
+
+ll inv(ll x) {return x == 1 ? 1 : (mod - mod / x) * inv(mod % x) % mod;}
+
+void init_fact(){
+	int i;
+	for(fact[0] = 1, i = 1; i &lt; mod; ++i) fact[i] = fact[i - 1] * i % mod;
+	finv[mod - 1] = inv(fact[mod - 1]); // I know it is 1,000,002, isn't it ?
+	for(i = mod - 1; i; --i) finv[i - 1] = finv[i] * i % mod;
+}
+
+inline ll little_C(int n, int m) {return n &gt;= m ? fact[n] * finv[m] % mod * finv[n - m] % mod : 0;} // n, m &lt; mod
+
+inline ll C(int n, int m) {return little_C(n / mod, m / mod) * little_C(n % mod, m % mod) % mod;} // n, m &lt; mod^2
+
+int main(){
+	int i, j;
+	scanf("%d%d%d", &amp;r, &amp;c, &amp;n);
+	if(r &gt; c) return putchar(48), putchar(10), 0; // no solution
+	init_fact();
+	for(i = 0; i &lt; n; ++i) p[i].read();
+	sort(p, p + n); p[n] = pr(r + 1, c + 1);
+	for(i = 0; i &lt;= n; ++i){
+		f[i] = C(p[i].y - 1, p[i].x - 1);
+		for(j = 0; j &lt; i; ++j)
+			if(p[j].x &lt; p[i].x &amp;&amp; p[j].y &lt; p[i].y){
+				f[i] -= f[j] * C(p[i].y - p[j].y - 1, p[i].x - p[j].x - 1);
+				(f[i] %= mod) &lt; 0 ? f[i] += mod : 0;
+			}
+	}
+	printf("%lld\n", f[n]);
+//	srand(time(NULL) + (unsigned long long)new char);
+//	if(rand() == 0x4f38f609) puts("orzscx");
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在 DP 时记得及时取模，不要忘记取模后输出一个很大的数！</p>
+	</body>
+</html>

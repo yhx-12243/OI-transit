@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces421D]Bug in Code</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>最近，在 "低聚果糖" 代码公司发现了一个严重的 bug！"低聚果糖" 公司的负责人 scx 想找到罪魁祸首并惩罚他。为了这个，她组合了一场会议，主题是：谁写出了 bug？会议上一共有 $n$ 个程序员，其中每个人都说：“我知道，一定是 $x$ 或 $y$ 之一！”</p>
+		<p>scx 决定选择两名嫌疑人并请到他的办公室。自然地，她需要考虑这 $n$ 个人的观点。她想要选择这样两个人 $u, v$，满足 $n$ 个人的<strong>至少 $p$ 个人</strong><em>同意</em>。一个人<em>同意</em>指的是，他认为 (是嫌犯) 的两个人中，至少有一个是 $u$ 或 $v$。scx 想知道，一共有多少种方案选择两名嫌疑人？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, p$ ($3 \leq n \leq 3 \times 10^5, 0 \leq p \leq n$)，表示 "低聚果糖" 公司中程序员的数量和需要<em>同意</em>的人的最小数目。</p>
+		<p>接下来的 $n$ 行，每行包含两个整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq n$，$x_i, y_i, i$ 互不相同)，表示第 $i$ 个程序员认为的嫌犯编号。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示选择两名嫌疑人的总方案数。注意，选择的两个人是无序的，即 $(1, 2)$ 和 $(2, 1)$ 被看作是同一种方案。</p>
+
+		<h3>题解</h3>
+		<p>考虑建图。如果第 $i$ 个人认为 $x, y$ 为嫌犯，则连 (无向) 边 $(x, y)$。那么我们需要找到无序对 $(u, v)$ 使得<strong>有至少 $p$ 条边</strong>与它们相关联。</p>
+		<p>记顶点 $v$ 的度为 $d(v)$，则对于一般的 $(u, v)$，我们只需要满足 $d(u) + d(v) \geq p$ 即可。但是可能满足这些边计算重复了。</p>
+		<p>不过我们发现，这是满足原条件的一个<strong>必要条件</strong>。即我们只会算多不会算少。</p>
+		<p>对于算多的 $(u, v)$，那么它应该满足 $d(u) + d(v) \geq p$，且实际与它们关联的边不到 $p$ 条。于是 $(u, v)$ 必通过边直接相连。记 $(u, v)$ 是 $k$ 重边 (即有 $k$ 条边连接 $u$ 和 $v$)，则算重复的边应该就是这 $k$ 条，因此根据<strong>容斥原理</strong>，实际与 $(u, v)$ 关联的边数应该是 $d(u) + d(v) - k$，它应该满足 $d(u) + d(v) - k \geq p$。</p>
+		<p>由于这样特殊的 $(u, v)$ 只有 $n$ 对 (边数就是 $n$)，因此可以考虑枚举 $u$，排个序二分一下得到满足 $d(v) \geq p - d(u)$ 的 $v$ 的个数 (注意到右边为常数哦)。当然，题目还要求 $u \neq v$，特殊处理一下即可。接下来，考虑枚举 $u$ 的邻接点 $v \in N(u)$，预处理出每条边 $(u, v)$ 的边权 $k$ (即重数)，如果发现 $d(u) + d(v) - k &lt; p \leq d(u) + d(v)$，则将答案 $- 1$。</p>
+		<p>具体实现可以使用邻接表 <del>(据说这玩意儿叫链式前向星？)</del> 实现或直接暴力用 <code>map &lt;int, int&gt;</code> (邻接矩阵) 实现。最后由于题目要求的是无序对，把答案除以 $2$ 即可。总时间复杂度 $O(n \log n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 341468
+#define M 682936
+using namespace std;
+
+typedef long long ll;
+
+struct edge{
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0): u(u0), v(v0), w(1) {}
+	bool operator &lt; (const edge &amp;B) const {return u &lt; B.u || (u == B.u &amp;&amp; v &lt; B.v);}
+	bool operator == (const edge &amp;B) const {return u == B.u &amp;&amp; v == B.v;}
+}e[M];
+
+int n, p, E, Es = 0;
+int u, v, w, r, i;
+int first[N], next[M];
+int deg[N], ord[N];
+ll ans;
+
+inline bool cmp(const int x, const int y) {return deg[x] &gt; deg[y];}
+inline void addedge(int id) {next[id] = first[e[id].u]; first[e[id].u] = id;}
+
+int main(){
+	scanf("%d%d", &amp;n, &amp;p);
+	for(i = 1; i &lt;= n; ++i){
+		scanf("%d%d", &amp;u, &amp;v);
+		e[(i &lt;&lt; 1) - 1] = edge(u, v);
+		e[i &lt;&lt; 1] = edge(v, u);
+		++deg[u]; ++deg[v]; ord[i] = i;
+	}
+	sort(ord + 1, ord + (n + 1), cmp);
+	sort(e + 1, e + (n &lt;&lt; 1 | 1));
+	for(i = 1; i &lt;= n &lt;&lt; 1; ++i) e[i] == e[i - 1] ? ++e[E].w : (e[++E] = e[i]);
+	for(i = 1; i &lt;= E; ++i) addedge(i);
+	for(u = 1; u &lt;= n; ++u){
+		*deg = p - deg[u];
+		r = upper_bound(ord + 1, ord + (n + 1), 0, cmp) - (ord + 1);
+		r -= deg[u] &lt;&lt; 1 &gt;= p;
+		for(i = first[u]; i; i = next[i]){
+			v = e[i].v;
+			r -= (deg[u] + deg[v] &gt;= p &amp;&amp; deg[u] + deg[v] - e[i].w &lt; p);
+		}
+		ans += r;
+	}
+	printf("%lld\n", ans &gt;&gt; 1);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意一开始需要合并重边 (变成权值)，可以排个序然后直接去重。</p>
+	</body>
+</html>

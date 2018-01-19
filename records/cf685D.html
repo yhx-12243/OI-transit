@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces685D]Kay and Eternity</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个无穷大的 (正方形) 网格，其中有 $n$ 个 (正方形) 冰块，其中每个冰块占领网格中的一个<strong>单位正方形</strong>区域。</p>
+		<p>scx 有一个 $k \times k$ 正方形，且这个正方形能放在网格上，且边与坐标轴平行，顶点与网格图中的某个顶点重合。</p>
+		<p>scx 想要知道，对于每个 $x \in [1, n]$，有多少种放置正方形的方法，使得它<strong>恰好</strong>覆盖 $x$ 个冰块。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($n \leq 10^5, k \leq 300$)，分别表示冰块的个数和正方形的边长。</p>
+		<p>接下来的 $n$ 行，每行包含两个整数 $x_i, y_i$ ($|x_i|, |y_i| \leq 10^9$)，表示第 $i$ 个冰块的坐标。保证没有两个冰块的坐标是相同的。
+
+		<h3>输出格式</h3>
+		<p>输出一行 $n$ 个整数，分别表示覆盖 $1, 2, \cdots, n$ 个冰块的边长为 $k$ 的正方形的个数。</p>
+
+		<h3>题解</h3>
+		<p>由于是覆盖的计算几何问题，因此可以使用<strong>扫描线</strong>。</p>
+		<p>将 $x$ 坐标离散化，然后在 $y$ 轴方向上使用扫描线。考虑到一个正方形由某个点唯一确定，因此我们不放枚举它的右上角。</p>
+		<p>将每个点看成两条询问线，一条令该线段的覆盖数 $apr \gets apr + 1$，另一段则 $apr \gets apr - 1$，那么，由于相邻两条扫描线之间的正方形都是同类型的，会对答案为 $apr$ 的正方形就会增加 $(y_i - y_j) \cdot (x_i - x_j)$，最后相加即可。</p>
+		<p>时间复杂度 $O(n \log n + nk)$。</p>
+		
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 256101
+using namespace std;
+
+typedef long long ll;
+typedef pair &lt;int, int&gt; pr;
+
+struct seg{
+	int l, r, y, w;
+	seg (int l0 = 0, int r0 = 0, int y0 = 0, int w0 = 0): l(l0), r(r0), y(y0), w(w0) {}
+	bool operator &lt; (const seg &amp;B) const {return y &lt; B.y;}
+};
+
+pr D[N];
+int F[N];
+seg op[N &lt;&lt; 1];
+int cnt = 0;
+int n, k, z;
+int y[N];
+int apr[N], last[N];
+ll ans[N];
+
+int Discretize(int n){
+	int i, cnt = 0;
+	sort(D, D + n);
+	for(i = 0; i &lt; n; ++i)
+		if(i &amp;&amp; D[i].first == D[i - 1].first)
+			F[D[i].second] = cnt - 1;
+		else{
+			F[D[i].second] = cnt;
+			D[cnt++] = D[i];
+		}
+	return cnt;
+}
+
+int main(){
+	int i, u, v, w, h;
+	scanf("%d%d", &amp;n, &amp;k);
+	for(i = 0; i &lt; n; ++i){
+		scanf("%d%d", &amp;v, y + i);
+		D[i] = pr(v, i);
+		D[n + i] = pr(v + k, n + i);
+	}
+	z = Discretize(n &lt;&lt; 1);
+	for(i = 0; i &lt; n; ++i){
+		u = F[i]; v = F[n + i];
+		op[cnt++] = seg(u, v, y[i], 1);
+		op[cnt++] = seg(u, v, y[i] + k, -1);
+	}
+	sort(op, op + cnt);
+	for(i = 0; i &lt; cnt; ++i){
+		for(v = op[i].l; v &lt; op[i].r; ++v){
+			w = D[v + 1].first - D[v].first;
+			h = op[i].y - last[v];
+			ans[apr[v]] += (ll)w * h;
+			apr[v] += op[i].w;
+			last[v] = op[i].y;
+		}
+	}
+	for(i = 1; i &lt;= n; ++i) printf("%lld%c", ans[i], i == n ? 10 : 32);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>同样地，离散化后需要注意区间的开闭性，即端点是否要更新。</p>
+	</body>
+</html>

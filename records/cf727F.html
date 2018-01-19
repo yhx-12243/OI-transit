@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces727F]Polycarp's problems</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 道题目，每道题目有一个质量 $a_i$ (可正可负)，题目按照一定顺序排列。scx 作为出题人，由于不想让参赛者认为是毒瘤题，因此决定删减一些题目。</p>
+		<p>不妨设一个参赛者的初始心情为 $q$，他会<strong>按照顺序</strong>阅读这些题目。每读一道题目，他的心情会随着题目的质量改变。意思是说，如果他读了一道质量为 $b$ 的题目，他的心情就会增加 $b$ (即心情为 $q, q+a_1, q+a_1+a_2, \cdots$)。
+		<p>如果在读了某些题目后，参赛者的心情变为了负数，则他会<strong>立即停止</strong>阅读且认为这个题库是<strong>毒瘤题</strong>。</p>
+		<p>scx 想知道，为了不让参赛者认为是毒瘤题 (即要使他们的心情时刻保持非负)，最少需要 (在题库中) 移除多少道题目 (其余题目的顺序保持不变)。由于 scx 不知道参赛者的初始心情，但她有 $m$ 次猜测 "参赛者的初始心情 $q = b_i$"。</p>
+		<p>对于她的每次猜测，找到满足条件的移除题目数的最小值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 750, m \leq 2 \times 10^5$)，表示题库中题目的数量和 scx 猜测初始心情的次数。</p>
+		<p>第二行包含 $n$ 个整数 $a_1, a_2, \cdots, a_n$ ($|a_i| \leq 10^9$)，表示题目的质量。</p>
+		<p>第三行包含 $m$ 个非负整数 $b_1, b_2, \cdots, b_m$ ($b_i \leq 10^{15}$)，表示 scx 对参赛者的初始心情的猜测。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 行，每行一个整数 $s_i$，表示当 $q = b_i$ 时删除题目的最小值。</p>
+
+		<h3>题解</h3>
+		<p>容易看出，这个问题对于自变量 $q$ 是单调的，即随着 $b_i$ 的递增，要删除的题目数量一定是单调递减的。</p>
+		<p>因此可以考虑二分答案，得到删掉 $M$ 道题目后，心情值 $q$ 是否会变为负数。</p>
+		<p>这个删题目的过程可以贪心，即删掉质量最低的 $M$ 道题目即可。时间复杂度为 $O(n m \log n)$，基本过不去 <del>(Codeforces 的评测机可以去冲一下)</del>。</p>
+		<p>考虑如何优化。由于这个自变量 $q$ 的范围 (定义域) 太大了 ($10^{15}$)，而删除的题目数量 (值域) 一定在 $0$ 到 $n$ 之间，又因为它具有单调性，因此可以考虑求它的反函数——即给定删掉 $M$ 道题目，初始心情值最低可以为多少。</p>
+		<p>因此可以尝试 DP，令 $f_{i, j}$ 表示 $i$ 后面的题目中，留下 $j$ 道题目，所需的最低的初始心情值。因此转移的时候直接枚举 $a_{i+1}$ 题目是否使用，即</p>
+		<p>$$ f_{i, j} = \min \left\{ f_{i+1, j}, \max \{0, f_{i+1, j-1} - a_{i+1}\} \right\} $$</p>
+		<p>最后 $f_{0, M}$ 就代表<strong>留下 $M$ 道题目</strong>，初始心情的最小值。</p>
+		<p>那么对于给定的心情值 $q$，只需找到最大的 $M$ 使得 $f_{0, M} \leq q$，于是答案就是 $n - M$。</p>
+		<p>时间复杂度 $O(n^2 + m \log n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 782
+using namespace std;
+
+typedef long long ll;
+
+int n, q, b, i, j;
+int a[N];
+ll f[N][N], r;
+
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+
+int main(){
+	scanf("%d%d", &amp;n, &amp;q);
+	for(i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	memset(f, 63, sizeof f);
+	f[n][0] = 0;
+	for(i = n - 1; i &gt;= 0; --i)
+		for(j = 0; j &lt;= n - i; ++j){
+			f[i][j] = f[i + 1][j];
+			j ? down(f[i][j], max(0ll, f[i + 1][j - 1] - a[i + 1])) : void(0);
+		}
+	for(; q; --q){
+		scanf("%lld", &amp;r);
+		i = upper_bound(*f, *f + (n + 1), r) - *f;
+		printf("%d\n", n - i + 1);
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意二分时的边界取等条件，还有转移时不要忘记与 $0$ 取 $\max$。</p>
+	</body>
+</html>

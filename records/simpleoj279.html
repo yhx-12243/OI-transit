@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[SimpleOJ279]暴雪</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>最近几天由于暴雪，暴雪公司的服务器集体瘫痪，所以他准备向腾讯借用服务器。由于腾讯服务器压力本来就比较大，所以他只能在有限的时间内借相对应的服务器。</p>
+		<p>在这几天中有 $n$ 台服务器可以使用，每台服务器只能借用 $[l_i, r_i]$ 天。每台服务器的租用费为 $W_i$ 元。为了表示友好，腾讯给每台服务器发放了一个优惠码 $A_i$。</p>
+		<p>如果暴雪的租用服务器的集合为 $S$，那么总的租用费用为 $\dfrac {\sum \limits_{i \in S} W_i} {\sum \limits_{i \in S} A_i}$。</p>
+		<p>节省的暴雪想知道他租用哪几台服务器可以坚持度过这段时间，且使费用最省。</p>
+		<p style="color: red">ps: 每台服务器租用后可以选择不用，无论使用多少天都只算一个 $W_i$ 与 $A_i$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, t$ ($n, t \leq 10^5$)，表示腾讯可以租用 $n$ 台服务器，暴雪需要租用 $t$ 天的服务器。</p>
+		<p>接下来 $n$ 行，每行输入 $l_i, r_i, W_i, A_i$，表示第 $i$ 台可租用服务器的使用时间段为 $[l_i, r_i]$，租用价格为 $W_i$，优惠码为 $A_i$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示满足条件最少的租用费用。保留三位小数。</p>
+
+		<h3>题解</h3>
+		<p>注意到题目中是一个关于<strong>比值</strong>的问题，因此显然先一波二分转化成线性的问题。</p>
+		<p>即，给定 $n$ 个带权的区间 (权值是 $w_i = W_i - s A_i$，可能为负)，要求选择权值和尽可能小的一些区间，使得它们的并能覆盖整个区间 $[0, t]$，询问这个权值和的最小值是否能 $\leq 0$。</p>
+		<p>这可以使用 DP。由于最小值要 $\leq 0$，故总有<strong>非正项</strong>存在，故可以一开始把所有的非正项存储起来，再对正项进行 DP，如果负项的绝对值和大于等于正项之和，则说明有解。</p>
+		<p>记 $f_i$ 表示区间 $[1, i]$ 内正项的花费之和 (我们要最小化它！)，边界值为 $f_0 = 0$。如果遇到一个负权区间 $[l, r]$，那么直接令 $f_r \gets \max\limits_{j \geq l-1} f_j$；如何是个正权区间，那么令 $f_r \gets \left( \max\limits_{j \leq l-1} f_j \right) + w$，其中 $w$ 是该区间权值。</p>
+		<p>最后计算负项之和 $pre$ 与 $f_t$ 的代数和，判断它 $\leq 0$ 即可。由于涉及到区间取 $\max$，可以用线段树或奇奇怪怪地树状数组维护，总时间复杂度 $O \left( n \log t \left| \log eps \right| \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+using namespace std;
+
+const double eps = 2e-6;
+
+struct server{
+	int l, r, W, A;
+	server (int l0 = 0, int r0 = 0, int W0 = 0, int A0 = 0): l(l0), r(r0), W(W0), A(A0) {}
+	server * read() {scanf("%d%d%d%d", &amp;l, &amp;r, &amp;W, &amp;A); return this;}
+	bool operator &lt; (const server &amp;B) const {return l &lt; B.l || (l == B.l &amp;&amp; r &lt; B.r);}
+}a[N];
+
+int n, t;
+double L, R, M;
+double f[N];
+int que[N], ord[N];
+
+double st[N &lt;&lt; 2];
+
+inline void down(double &amp;x, const double y) {x &gt; y ? x = y : 0;}
+
+void adj(int id, int L, int R, int h, double v){
+	if(L == R) {down(st[id], v); return;}
+	segc;
+	h &lt;= M ? adj(lc, L, M, h, v) : adj(rc, M + 1, R, h, v);
+	st[id] = min(st[lc], st[rc]);
+}
+
+double range(int id, int L, int R, int ql, int qr){
+	if(ql &lt;= L &amp;&amp; R &lt;= qr) return st[id];
+	segc; double s = INFINITY;
+	if(ql &lt;= M) down(s, range(lc, L, M, ql, min(qr, M)));
+	if(qr &gt; M) down(s, range(rc, M + 1, R, max(ql, M + 1), qr));
+	return s;
+}
+
+bool test(double x){
+	int i; double rw, la, neg = 0.0, pos;
+	for(i = 1; i &lt;= n; ++i){
+		rw = (double)a[i].W - (double)a[i].A * x;
+		if(rw &lt;= 0.0) neg += rw;
+	}
+	memset(st, 127, sizeof st);
+	adj(1, 0, t, 0, 0.0);
+	for(i = 1; i &lt;= n; ++i){
+		rw = (double)a[i].W - (double)a[i].A * x;
+		la = range(1, 0, t, a[i].l - 1, t);
+		rw &lt;= 0.0 ? adj(1, 0, t, a[i].r, la) : adj(1, 0, t, a[i].r, la + rw);
+	}
+	pos = range(1, 0, t, t, t);
+	return pos + neg &lt;= 0.0;
+}
+
+int main(){
+	int i;
+	scanf("%d%d", &amp;n, &amp;t);
+	for(i = 1; i &lt;= n; ++i) a[i].read();
+	sort(a + 1, a + (n + 1));
+	for(i = 1; i &lt;= n; ++i) ord[i] = i;
+	sort(ord + 1, ord + (n + 1));
+	for(L = 0, R = 1000; R - L &gt; eps; )
+		test(M = (L + R) * 0.5) ? R = M : (L = M);
+	printf("%.3lf\n", R);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>不要忘记初始化，即令 $f_0 = 0$，其它 $f$ 为 $+ \infty$。</p>
+	</body>
+</html>

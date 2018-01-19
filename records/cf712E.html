@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces712E]Memory and Casinos</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个赌场，排成一行。如果 scx 在第 $i$ 个赌场玩一局，则有 $p_i$ 的概率获胜并移动到第 $i+1$ 个赌场 (当然，如果在第 $n$ 个赌场就退出了)，当然也有 $1 - p_i$ 的概率输掉并移动到第 $i-1$ 个赌场 (当然，如果在第 $1$ 个赌场那么也退出了)。</p>
+		<p>我们称 scx <em>控制</em>赌场 $i \ldots j$，当且仅当她满足下列三个条件：</p>
+		<ol>
+		<li>她从赌场 $i$ 开始。</li>
+		<li>她从未在赌场 $i$ 输过。</li>
+		<li>她以 "在赌场 $j$ 获胜" 结束。</li>
+		</ol>
+		<p>注意到 scx 能可以走到赌场 $i$ 再走到赌场 $j$，照样能完成任务。</p>
+		<p>现在 scx 有一些询问，为下列形式之一：</p>
+		<ol>
+		<li><code>1 <em>i</em> <em>a</em> <em>b</em></code>令 $p_i \gets \dfrac ab$。</li>
+		<li><code>2 <em>l</em> <em>r</em></code>输出 scx <em>控制</em>赌场 $l \ldots r$ 的概率，即输出她初始在 $l$ 且第一次通过 "在赌场 $r$ 获胜" 离开区间 $[l, r]$ 的概率。</li>
+		</ol>
+		<p>保证<strong>在任意时刻</strong>，$p$ 为一个<strong>非严格递增序列</strong>，即 $p_i \leq p_{i+1}$ 对于 $1 \leq i &lt; n$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($n, q \leq 10^5$)，分别表示赌场的个数和询问的个数。</p>
+		<p>接下来的 $n$ 行，每行包含两个正整数 $a_i, b_i$ ($a_i \leq b_i \leq 10^9$)，其中 $p_i = \dfrac {a_i} {b_i}$ 表示在第 $i$ 个赌场获胜的概率。</p>
+		<p>接下来的 $q$ 行，每行描述一条操作，格式如上。保证至少有一个 2 操作。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个 2 操作，输出一行一个实数，表示 scx <em>控制</em>赌场 $l \ldots r$ 的概率，你的答案被判定为正确，当且仅当你的输出与标准答案的绝对误差不超过 $10^{-4}$。</p>
+
+		<h3>题解</h3>
+		<p>考虑使用线段树维护。在区间 $[i, j]$ 中记录两个信息：①<em>控制</em>赌场的概率 $p_L$。即初始在 $l$，然后赢 $r$ 的概率；②边界获胜概率 $p_R$。即初始在 $r$，并且不在 $l$ 输，最后赢 $r$ 的概率。</p>
+		<p>那么答案自然就是对应的概率 $p_l$。关键是如何合并两个区间 $[l, m]$ 和 $[m+1, r]$。记左边区间的两个概率分别为 $L_1$ 和 $R_1$，右边区间的两个概率分别为 $L_2$ 和 $R_2$。</p>
+		<p>考虑新的概率 $L$。首先要从 $l$ 跑出 $m$，概率为 $L_1$；然后到了 $m+1$，如果它直接 (以 $L_2$ 的概率) 跑出了 $r$，那么就赢了；否则它以 $1-L_2$ 的概率跑到了 $m$，然后下一轮必须以概率 $R_1$ 跑出 $m$；然后又到了 $m+1$……总概率即为</p>
+		<p>$$ L_1 L_2 + L_1 (1-L_2) R_1 L_2 + L_1 \left[ (1-L_2) R_1 \right]^2 L_2 + \cdots = \frac {L_1 L_2} {1 - (1-L_2) R_1} $$</p>
+		<p>然后考虑概率 $R$。首先有 $R_2$ 的概率直接获胜；否则 ($1-R_2$ 的概率) 跑到了 $m$，因此必须以 $R_1$ 的概率跑出 $m$，然后到 $m+1$ 后以 $L_2$ 概率跑出 $r$……总概率即为</p>
+		<p>$$ R_2 + (1-R_2) R_1 L_2 + (1-R_2) R_1 (1-L_2) R_1 L_2 + \cdots = R_2 + \frac {(1-R_2) R_1 L_2} {1 - (1-L_2) R_1} $$</p>
+		<p>记 $D = 1 - (1-L_2) R_1 = 1 - R_1 + L_2 R_1$，则 $L = \dfrac {L_1 L_2} D, R = R_2 + \dfrac {(1-R_2) R_1 L_2} D$，当然，如果 $D = 0$ 的话，则特殊地有 $L = 0, R = R_2$。</p>
+		<p>最后单点修改和区间询问都不难处理，时间复杂度 $O(n + q \log n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+using namespace std;
+
+const double eps = 1e-7;
+
+struct node{
+	double l, r;
+	node (double lr = 0.0, double rr = 0.0): l(lr), r(rr) {}
+}st[N &lt;&lt; 2];
+
+int n, q;
+
+double readDouble(){
+	int a, b;
+	scanf("%d%d", &amp;a, &amp;b);
+	return (double)a / (double)b;
+}
+
+node merge(const node l, const node r){
+	node ret;
+	double D = 1.0 - (1.0 - r.l) * l.r;
+	if(D &lt; eps){
+		ret.l = 0.0; ret.r = r.r;
+	}else{
+		ret.l = l.l * r.l / D;
+		ret.r = r.r + l.r * r.l * (1.0 - r.r) / D;
+	}
+	return ret;
+}
+
+void build(int id, int L, int R){
+	if(L == R) {double p = readDouble(); st[id] = node(p, p); return;}
+	segc; build(lc, L, M); build(rc, M + 1, R);
+	st[id] = merge(st[lc], st[rc]);
+}
+
+void adj(int id, int L, int R, int h, double v){
+	if(L == R) {st[id] = node(v, v); return;}
+	segc; h &lt;= M ? adj(lc, L, M, h, v): adj(rc, M + 1, R, h, v);
+	st[id] = merge(st[lc], st[rc]);
+}
+
+node range(int id, int L, int R, int ql, int qr){
+	if(ql &lt;= L &amp;&amp; R &lt;= qr) return st[id];
+	segc; node ret;
+	if(ql &lt;= M){
+		ret = range(lc, L, M, ql, min(qr, M));
+		if(qr &gt; M) ret = merge(ret, range(rc, M + 1, R, max(ql, M + 1), qr));
+	}else if(qr &gt; M)
+		ret = range(rc, M + 1, R, max(ql, M + 1), qr);
+	return ret;
+}
+
+int main(){
+	int op, u, v; double p;
+	scanf("%d%d", &amp;n, &amp;q);
+	build(1, 1, n);
+	for(; q; --q)
+		if(scanf("%d", &amp;op), op == 1){
+			scanf("%d", &amp;v); p = readDouble();
+			adj(1, 1, n, v, p);
+		}else{
+			scanf("%d%d", &amp;u, &amp;v);
+			p = range(1, 1, n, u, v).l;
+			printf("%.10lf\n", p);
+		}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>注意一下 $D = 0$ 时的特判，还有线段树节点合并时对空节点的处理。</p>
+	</body>
+</html>

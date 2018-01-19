@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces610E]Alphabet Permutations</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个长度为 $n$，只包含前 $k$ 个小写字母的字符串 $s$。</p>
+		<p>定义 $q$ 的 $c-$循环串 $q$，如果它包含 $c$ 个相同的部分 $q$。比如，字符串 $\texttt {acbacbacbacb}$ 是一个 $\text{acb}$ 的 $4-$循环串。</p>
+		<p>定义串 $a$ 包含串 $b$，如果 $a$ 可以通过删除若干个字符后得到 $b$。</p>
+		<p>令 $p$ 是前 $k$ 个小写字母的一个<strong>排列</strong>。定义 $d(p)$ 为最小的正整数，使得 $p$ 的 $d(p)-$循环串包含串 $s$。</p>
+		<p>对字符串 $s$，有下列两种操作：</p>
+		<ol>
+		<li>将下标从 $l_i$ 到 $r_i$ 中的所有字符都改为字符 $c_i$。</li>
+		<li>对于给定的前 $k$ 个小写字母的排列 $p$，求出 $d(p)$ 的值。</li>
+		</ol>
+		<p>所有操作将按照输入给出的顺序依次执行。你的任务就是确定所有第二种操作的 $d(p)$ 值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, k$ ($n \leq 2 \times 10^5, m \leq 20000, k \leq 10$)，分别表示 $s$ 的长度，操作的个数和字符集的大小。</p>
+		<p>第二行为字符串 $s$ 本身。</p>
+		<p>接下来的 $m$ 行，每行描述一条操作：</p>
+		<ol>
+		<li><code>1 <em>l<sub>i</sub></em> <em>r<sub>i</sub></em> <em>c<sub>i</sub></em></code>表示将下标从 $l_i$ 到 $r_i$ 中的所有字符都改为字符 $c_i$ ($1 \leq l_i \leq r_i \leq n$，$c_i$ 为前 $k$ 个小写字母之一)。</li>
+		<li><code>2 <em>p</em></code>其中 $p$ 为前 $k$ 个小写字母的排列，请求出它的 $d(p)$ 值。</li>
+		</ol>
+
+		<h3>输出格式</h3>
+		<p>对于每个第二种操作，输出一行一个整数，表示对应的 $d(p)$ 值。</p>
+
+		<h3>题解</h3>
+		<p>考虑 $d$ 函数，可以考虑贪心地匹配过去，如果不能匹配则增加一个循环。可以看出，答案就等于 $1 +$ 增加循环的次数。可以发现，这只跟 $s$ 的相邻两个字符的排列。</p>
+		<p>定义 $s$ 中相邻两个字符 $s_i s_{i+1}$ 的<strong>排列</strong>，如果它们在排列 $p$ 中 $s_i$ 先出现，则称这个排列 $s_i s_{i+1}$ 为<strong>同序</strong>，否则为<strong>逆序</strong>。可以看出，每次增加循环都是在<strong>逆序</strong>时发生，因此答案就等于 $s$ 对 $p$ 而言<strong>逆序</strong>的个数 $+ 1$。</p>
+		<p>由于增加了修改操作，因此可以考虑用线段树维护。由于 $s_i s_{i+1}$ 的排列至多只有 $k^2$ 种，因此线段树节点可以记录区间中每种排列的个数。合并时把两端的结果直接相加即可，不过要注意左节点末和右节点初也拼成了一个排列，需要额外添加 (故还需要维护第一个字符和最后一个字符的值)；区间赋值的时候就更简单了，因为只会出现一种排列，重置即可，注意打标记。</p>
+		<p>询问时直接枚举 $p$ 的<strong>逆序</strong>，统计出一共出现的次数再 $+ 1$，当然用 $n$ 取减<strong>同序</strong>的个数可能会更方便。</p>
+		<p>时间复杂度为 $O \left( (n + m \log n) k^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 256101
+#define K 10
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+using namespace std;
+
+struct node{
+	int c[K][K]; char l, r, tag;
+	node (char p = 0): l(p), r(p), tag(0) {memset(c, 0, sizeof c);}
+}st[N &lt;&lt; 2];
+
+int n, q, k;
+int op, l, r;
+char s[N];
+
+node merge(const node l, const node r){
+	int i, j;
+	node ret; ret.l = l.l; ret.r = r.r;
+	for(i = 0; i &lt; k; ++i)
+		for(j = 0; j &lt; k; ++j)
+			ret.c[i][j] = l.c[i][j] + r.c[i][j];
+	++ret.c[l.r - 'a'][r.l - 'a'];
+	return ret;
+}
+
+void build(int id, int L, int R){
+	if(L == R) {st[id] = node(s[L]); return;}
+	segc; build(lc, L, M); build(rc, M + 1, R);
+	st[id] = merge(st[lc], st[rc]);
+}
+
+void push_down(int id, int lc, int rc, int lw, int rw){
+	char v = st[id].tag;
+	st[lc] = node(v); st[lc].tag = v; st[lc].c[v - 'a'][v - 'a'] = lw;
+	st[rc] = node(v); st[rc].tag = v; st[rc].c[v - 'a'][v - 'a'] = rw;\
+	st[id].tag = 0;
+}
+
+void adj(int id, int L, int R, int ql, int qr, char v){
+	if(ql &lt;= L &amp;&amp; R &lt;= qr){
+		st[id] = node(v); st[id].tag = v;
+		st[id].c[v - 'a'][v - 'a'] = R - L;
+		return;
+	}
+	segc;
+	if(st[id].tag) push_down(id, lc, rc, M - L, R - M - 1);
+	if(ql &lt;= M) adj(lc, L, M, ql, min(qr, M), v);
+	if(qr &gt; M) adj(rc, M + 1, R, max(ql, M + 1), qr, v);
+	st[id] = merge(st[lc], st[rc]);
+}
+
+int main(){
+	int i, j, ans;
+	scanf("%d%d%d%s", &amp;n, &amp;q, &amp;k, s + 1);
+	build(1, 1, n);
+	for(; q; --q)
+		if(scanf("%d", &amp;op), op == 1){
+			scanf("%d%d%1s", &amp;l, &amp;r, s);
+			adj(1, 1, n, l, r, *s);
+		}else{
+			scanf("%s", s);
+			node &amp;w = st[1]; ans = 0;
+			for(i = 0; i &lt; k - 1; ++i)
+				for(j = i + 1; j &lt; k; ++j)
+					ans += w.c[s[i] - 'a'][s[j] - 'a'];
+			printf("%d\n", n - ans);
+		}
+	return 0;
+}
+ </code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>不要忘记线段树的构造过程，还有合并时还要加上中间拼接时的排列。</p>
+	</body>
+</html>

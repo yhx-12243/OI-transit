@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces846E]Chemistry in Berland</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>scx 是 Berland 大学化学系的研究生。她需要进行一个复杂的实验来撰写她的论文，但是 Berland 的实验室并没有包含这个实验所需要的所有材料。</p>
+		<p>幸运的是，化学法则允许物质之间的转化 (不过 Berland 的化学与我们的不同)，但是物质转化的规则有点奇怪。</p>
+		<p>Berland 化学家知道 $n$ 种材料，按照某种顺序编号为 $1, 2, \cdots, n$。每种材料都可以与其它一种材料互相转化。正式地，对任意 $2 \leq i \leq n$，都存在两个正整数 $x_i, k_i$ 表示一种合理的转化：$k_i \, \mathrm{kg}$ 的材料 $x_i$ 可以转化成 $1 \, \mathrm{kg}$ 的材料 $i$，而 $1 \, \mathrm{kg}$ 的材料 $i$ 只能变成 $1 \, \mathrm{kg}$ 的材料 $x_i$。</p>
+		<p>由于 Berland 的化学系统比较奇怪，因此转化只允许<strong>整数质量的材料</strong>。</p>
+		<p>对每个 $1 \leq i \leq n$，scx 知道她的实验中需要 $a_i \, \mathrm{kg}$ 的材料 $i$，且实验室中只有 $b_i \, \mathrm{kg}$。她想知道，是否存在一种转化方案，使得最终实验能够顺利进行？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^5$)，表示 Berland 化学家发现的材料的数量。</p>
+		<p>第二行包含 $n$ 个正整数 $b_1, b_2, \cdots, b_n$ ($b_i \leq 10^{12}$)，表示 Berland 实验室的供应。</p>
+		<p>第三行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($a_i \leq 10^{12}$)，表示实验所需 (各种物质的) 的质量。</p>
+		<p>接下来的 $n-1$ 行，每行包含两个正整数，其中第 $i$ 行的整数 $x_{i+1}, k_{i+1}$ ($1 \leq x_{i+1} \leq i, k_{i+1} \leq 10^9$) 表示物质 $i+1$ 可以与物质 $x_{i+1}$ 相互转化，且转化系数为 $k_{i+1}$ ($k_i$ 的含义见题目描述)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 <code>YES</code> 如果实验可以进行，否则输出 <code>NO</code>。</p>
+
+		<h3>题解</h3>
+		<p>由于给出的转化关系是树 ($x_i &lt; i$)，因此可以考虑使用树形 DP。</p>
+		<p>记 $f_i$ 表示将以 $i$ 为根的子树处理完毕后，材料 $i$ 能<strong>多余</strong>多少 (如果是负数表示还差 $|f_i|$)。那么对于叶节点 $l$ 显然有 $f_l = b_l - a_l$。</p>
+		<p>考虑转移。设节点 $j$ 是 $i$ 的一个子节点，则如果 $f_j \geq 0$ (有剩下)，那么多余的显然贪心地给 $i$ 节点用了 (不用白不用嘛~)，因此只需要 $f_i \gets f_i + f_j$。</p>
+		<p>如果 $f_j &lt; 0$ (不够了)，那么只能把 $i$ 节点的材料给 $j$ 了，根据转化系数，有 $f_i \gets f_i + k_j f_j$。</p>
+		<p>最终如果根节点的 $f_1 \geq 0$，那么说明有解，否则即为无解。</p>
+		<p>这样最终可能会爆 <code>long long</code>，不过这没关系，由于 $f_i$ 增加的速度远比减少的速度慢，因此如果 $f_i$ 非常小 (比如小于 $-10^{18}$) 的时候，就基本没解了，因此，可以把后面的 $f_i$ 全部设为 $- \infty$，或者直接输出 <code>NO</code>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+#define M 256101
+using namespace std;
+
+typedef long long ll;
+const ll INF = 0x188434861e654c51ll;
+
+int n, i;
+int p[N], fc[N], nc[N];
+ll a[N], b[N], k[N];
+ll f[N], limit[N];
+
+inline void link(int x, int px) {nc[x] = fc[px]; fc[px] = x;}
+
+void dfs(int x){
+	int y;
+	f[x] = b[x] - a[x];
+	for(y = fc[x]; y; y = nc[y]){
+		dfs(y);
+		if(f[y] &gt;= 0) f[x] += f[y];
+		else f[y] &lt;= -limit[y] ? f[x] = -INF : (f[x] += f[y] * k[y]);
+		f[x] &lt; -INF ? f[x] = -INF : 0;
+	}
+}
+
+int main(){
+	scanf("%d", &amp;n);
+	for(i = 1; i &lt;= n; ++i) scanf("%lld", b + i);
+	for(i = 1; i &lt;= n; ++i) scanf("%lld", a + i);
+	for(i = 2; i &lt;= n; ++i){
+		scanf("%d%lld", p + i, k + i);
+		link(i, p[i]); limit[i] = INF / k[i];
+	}
+	dfs(1);
+	puts(f[1] &gt;= 0 ? "YES" : "NO");
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意对 <code>INF</code> 的处理，可以记 <code>limit[i] = INF / k[i]</code> 后再比较，避免乘法后爆 <code>long long</code>。</p>
+	</body>
+</html>

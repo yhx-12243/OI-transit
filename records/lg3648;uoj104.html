@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg3648][uoj104][APIO2014]Split the sequence</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你正在玩一个关于长度为 $n$ 的非负整数序列的游戏。这个游戏中你需要把序列分成 $k+1$ 个非空的块。为了得到 $k+1$ 块，你需要重复下面的操作 $k$ 次：</p>
+		<ol>
+		<li>选择一个有超过一个元素的块 (初始时你只有一块，即整个序列)。</li>
+		<li>选择两个相邻元素把这个块从中间分开，得到两个非空的块。</li>
+		</ol>
+		<p>每次操作后你将获得那两个新产生的块的元素和的乘积的分数。你想要最大化最后的总得分。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($2 \leq n \leq 10^5, k \leq \min \{n-1, 200\}$)。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_1, a_2, \dots, a_n$ $(0 \leq a_i \leq 10^4)$，表示前文所述的序列。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出你能获得的最大总得分。</p>
+		<p>第二行输出 $k$ 个介于 $1$ 到 $n - 1$ 之间的整数，表示为了使得总得分最大，你每次操作中分开两个块的位置。第 $i$ 个整数 $s_i$ 表示第 $i$ 次操作将在 $s_i$ 和 $s_{i + 1}$ 之间把块分开。</p>
+		<p>如果有多种方案使得总得分最大，输出任意一种方案即可。</p>
+
+		<h3>题解</h3>
+		<p>稍微思考一下，可以发现，最后的总得分只和<strong>切的位置</strong>有关，和<strong>切的先后顺序</strong>无关。证明比较容易，我们只需证明这个和具有 "交换律"：</p>
+		<p>设有 $A, B, C$ 三段，则先切 $A-B$ 再切 $B-C$ 的得分为 $A(B+C) + BC$；先切 $B-C$ 再切 $A-B$ 的得分为 $(A+B)C + AB$，可以看出，这两个和是相等的。</p>
+		<p>于是切割的方案就成了一个 (无序) 集合，可以考虑使用 DP。记 $f_{i, j}$ 表示该序列的长度为 $i$ 的前缀中，切了 $i$ 刀，所能获得的最大得分，这样就有转移</p>
+		<p>$$ f_{i, j} = \max_{1 \leq k &lt; j} \left( f_{i-1, k} + (s_j - s_k) s_k \right) $$</p>
+		<p>其中 $s_i$ 为前缀和 $\sum\limits_{j=1}^i a_j$。这时，我们发现这个 DP 的复杂度是 $O(n^2 k)$ 的，显然不可接受，我们考虑如何优化这个 DP。</p>
+		<p>看一眼这个式子，有点像斜率方程的感觉。因此，尝试进行一波斜率优化。</p>
+		<p>考虑 $0 \leq k &lt; l &lt; j$，于是 $s_k &lt; s_l$，假设 $l$ 的决策比 $k$ 更优，即 $f_{i-1, k} + s_j s_k - s_k^2 &lt; f_{i-1, l} + s_j s_l - s_l^2$，化简即得</p>
+		<p>$$ (s_l^2 - f_{i-1, l}) - (s_k^2 - f_{i-1, k}) &lt; s_j (s_l - s_k) $$</p>
+		<p>令点 $p_j = (x_j, y_j) = (s_j, s_j^2 - f_{i-1, j})$，从而上式即 $\dfrac {y_l - y_k} {x_l - s_k} &lt; s_j$，可以使用单调队列在 $O(nk)$ 时间内解决。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+#define y(_) (s[_] * s[_] - f[(i ^ 1) &amp; 1][_])
+#define x(_) (s[_])
+using namespace std;
+
+typedef long long ll;
+
+int n, k, i, j, l;
+ll s[N], z;
+ll f[2][N];
+int h, t, que[N];
+int last[201][N];
+
+inline bool test1(int j, int z){
+	int now = que[z], next = que[z + 1];
+	return y(next) - y(now) &lt;= s[j] * (x(next) - x(now));
+}
+
+inline bool test2(int j, int z){
+	int now = que[z - 1], prev = que[z - 2];
+	return (y(j) - y(now)) * (x(now) - x(prev)) &lt;= (x(j) - x(now)) * (y(now) - y(prev));
+}
+
+int main(){
+	scanf("%d%d", &amp;n, &amp;k);
+	for(i = 1; i &lt;= n; ++i){
+		scanf("%lld", &amp;z); s[i] = s[i - 1] + z;
+	}
+	for(i = 1; i &lt;= k; ++i){
+		h = 0; t = 1;
+		f[i &amp; 1][0] = que[0] = 0;
+		for(j = 1; j &lt;= n; ++j){
+			for(; h &lt; t - 1 &amp;&amp; test1(j, h); ++h);
+			last[i][j] = l = que[h];
+			f[i &amp; 1][j] = f[(i ^ 1) &amp; 1][l] + (s[j] - s[l]) * s[l];
+			for(; h + 1 &lt; t &amp;&amp; test2(j, t); --t);
+			que[t++] = j;
+		}
+	}
+	printf("%lld\n", f[k &amp; 1][j = n]);
+	for(i = k; i; --i) printf("%d%c", j = last[i][j], i == 1 ? 10 : 32);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于这题要记录状态，因此要开一个数组代表这个状态 $(i, j)$ 是从哪个状态转移过来的。最后以任意顺序输出均可 (因为顺序不影响得分)。</p>
+		<p><strong>坑2：</strong>DP 时尽量使用<strong>滚动数组</strong>，否则空间可能会不够。</p>
+	</body>
+</html>

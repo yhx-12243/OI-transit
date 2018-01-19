@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2427][lg2515][HAOI2010]软件安装</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>现在我们的手头有 $N$ 个软件，对于一个软件 $i$，它要占用 $W_i$ 的磁盘空间，它的价值为 $V_i$。我们希望从中选择一些软件安装到一台磁盘容量为 $M$ 的计算机上，使得这些软件的价值尽可能大 (即 $V_i$ 的和最大)。</p>
+		<p>但是现在有个问题：软件之间存在依赖关系，即软件 $i$ 只有在安装了软件 $j$ (包括软件 $j$ 的直接或间接依赖) 的情况下才能正确工作 (软件 $i$ 依赖软件 $j$)。幸运的是，一个软件最多依赖另外一个软件。如果一个软件不能正常工作，那么它能够发挥的作用为 $0$。</p>
+		<p>我们现在知道了软件之间的依赖关系：软件 $i$ 依赖软件 $D_i$。现在请你设计出一种方案，安装价值尽量大的软件。一个软件只能被安装一次，如果一个软件没有依赖则 $D_i = 0$，这时只要这个软件安装了，它就能正常工作。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行：$N, M$ ($0 \leq N \leq 100, 0 \leq M \leq 500$)。</p>
+		<p>第二行：$W_1, W_2, \cdots, W_i, \cdots, W_n$ ($0 \leq W_i \leq M$)。</p>
+		<p>第三行：$V_1, V_2, \cdots, V_i, \cdots, V_n$ ($0 \leq V_i \leq 1000$)。</p>
+		<p>第四行：$D_1, D_2, \cdots, D_i, \cdots, D_n$ ($0 \leq D_i \leq N, D_i \neq i$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，代表最大价值。</p>
+
+		<h3>题解</h3>
+		<p>看一眼这个有点像树形结构。不过这并不是标准的树形结构，因为可能出现环。因此，可以先进行一波 (Tarjan) 缩点后，得到一个有向无环图，由于每个连通块的边数不超过点数，因此最终得到的是一个 (有向) 森林。</p>
+		<p>对于森林的话，加一个 (虚拟) 根节点，把所有入度为 $0$ 的点与根节点相连，这样就形成了一棵树。</p>
+		<p>由于一个强连通分量中的点要么都取，要么都不取，因此可以把它看成一个新的点 (空间为 $W_i$，价值为 $V_i$)，并且其它的点形成的是一个树的关系，即只有一个点的父节点 (祖先) 选定后，它才可以被选。</p>
+		<p>考虑进行树形 DP。记 $f_{i, j}$ 表示以 $i$ 为根的子树中，有 $j$ 的空间，所能获得的最大价值。那么显然要求 $j \geq W_i$，否则 $f_{i, j} = 0$。转移的时候也很简单，对于 $i$ 的子节点 $c$，可以枚举分配给 $c$ 的空间 $k$，剩下 $j - k$ 的空间给 $i$ 和已经枚举的子节点，那么就有 $$ f_{i, j} \uparrow f_{i, j-k} + f_{c, k} $$</p>
+		<p>其中虚拟节点 $v$ 的 $W_v$ 和 $V_v$ 均为 $0$，最终的答案即为 $f_{v, M}$，时间复杂度 $O(NM)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 136
+#define M 510
+using namespace std;
+
+struct edge{
+	int u, v;
+	edge (int u0 = 0, int v0 = 0): u(u0), v(v0) {}
+}e[M];
+
+int n, vol, Es;
+int w[N], v[N], p[N];
+int E = 0, first[N], next[M];
+int cnt = 0, id[N], low[M];
+int stc = 0, sta[N], in_stack[N];
+int scc = 0, bel[N], top[N];
+int W[N], V[N], deg[N];
+int f[N][M];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline void addedge(int u, int v) {e[++E] = edge(u, v); next[E] = first[u]; first[u] = E;}
+
+void tarjan(int x){
+	int i, y;
+	id[x] = low[x] = ++cnt; in_stack[x] = 1; sta[stc++] = x;
+	for(i = first[x]; i; i = next[i])
+		if(!id[y = e[i].v]){
+			tarjan(y); down(low[x], low[y]);
+		}else if(in_stack[y])
+			down(low[x], id[y]);
+	if(id[x] == low[x])
+		for(top[++scc] = x, y = 0; y != x; ){
+			y = sta[--stc]; in_stack[y] = 0; bel[y] = scc;
+			W[scc] += w[y]; V[scc] += v[y];
+		}
+}
+
+void dfs(int x){
+	int i, j, k, y;
+	for(j = W[x]; j &lt;= vol; ++j) f[x][j] = V[x];
+	for(i = first[x]; i; i = next[i]){
+		dfs(y = e[i].v);
+		for(j = vol; j &gt;= W[x]; --j)
+			for(k = 0; k + W[x] &lt;= j; ++k)
+				up(f[x][j], f[x][j - k] + f[y][k]);
+	}
+}
+
+int main(){
+	int i;
+	scanf("%d%d", &amp;n, &amp;vol);
+	for(i = 1; i &lt;= n; ++i) scanf("%d", w + i);
+	for(i = 1; i &lt;= n; ++i) scanf("%d", v + i);
+	for(i = 1; i &lt;= n; ++i){
+		scanf("%d", p + i);
+		if(p[i]) addedge(p[i], i);
+	}
+	for(i = 1; i &lt;= n; ++i) if(!id[i]) tarjan(i);
+	Es = E; E = 0; memset(first, 0, sizeof first);
+	for(i = 1; i &lt;= Es; ++i)
+		if((e[i].u = bel[e[i].u]) != (e[i].v = bel[e[i].v])){
+			addedge(e[i].u, e[i].v); ++deg[e[i].v];
+		}
+	for(i = 1; i &lt;= scc; ++i) if(!deg[i]) addedge(scc + 1, i);
+	dfs(scc + 1);
+	printf("%d\n", f[scc + 1][vol]);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在背包 DP 转移的过程中，如果省略子树那一维的话 (通常都会省略)，则要注意一下枚举顺序，以免造成重复枚举，比如这里的 $j$ (容量) 就应该降序枚举。</p>
+	</body>
+</html>

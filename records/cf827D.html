@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces827D]Best Edge Weight</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张含有 $n$ 个点，$m$ 条边的带权无向简单图，对于边 $e_i = (u, v)$，我们定义它的<em>极限权值</em>，为我们能给它的最大权值，使得它能在 (新图的) 所有的最小生成树上。(如果我们不改变其它边的权值)</p>
+		<p>你的任务就是求出所有边的<em>极限权值</em>，你需要对于每条边<strong>独立地</strong>计算，意思是说不会有两条边<strong>同时</strong>改变权值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个整数 $n, m$ ($2 \leq n \leq 2 \times 10^5, n-1 \leq m \leq 2 \times 10^5$)，分别表示图的点数和边数。</p>
+		<p>接下来的 $m$ 行，每行包含三个正整数 $u, v, c$ ($1 \leq u, v \leq n; u \neq v; c \leq 10^9$)，表示有一条权值为 $c$ 的边连接顶点 $u$ 和 $v$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 个整数，表示每条边的<em>极限权值</em>，边的顺序按照输入的顺序给出。如果一条边的权值无论为多少都会在最小生成树上，输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>首先是 $-1$ 的判定。由于它无论怎么搞一定是最小生成树中的边，那么只有它是桥了 <del>(不过这好像并没有什么用)</del>。</p>
+		<p>考虑它的一个最小生成树，因此原图的边就分成了两类——在 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中的，和不在 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中的。</p>
+		<p>对于不在 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中的边，它为什么不在 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中呢？<del>(由于 Prim 算法不好分析性质)</del>，我们从 Kruskal 的角度看问题。可以看出，当边按照权值排序后，等到想连接它，即边 $(u, v)$ 的时候，$u$ 和 $v$ <strong>已经连通</strong>，故只能放弃这条边。</p>
+		<p>那么，我们需要<strong>减小</strong>它的权值，那么减小多少呢？考虑连接 $u, v$ 的路径 $u \to v_1 \to v_2 \to \cdots \to v_l \to v$ 这些边中权值最大的边 (自然也是最后加入的边) $e = (v_i, v_j)$，如果边 $(u, v)$ 的权值<strong>严格小于</strong>边 $e$ 的权值，则它就会比边 $e$ 先加入 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr>。因此，它的<em>极限权值</em>就是路径 $u \to v$ 中权值最大的边的权值。</p>
+		<p>(scx: 那对于在 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中的边呢？)</p>
+		<p>这个处理稍微复杂一点。首先，它的权值一定是要<strong>尽可能增大</strong>，那能有多大呢？不能被其它边抢去。依然考虑某个不在 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中的边 $(u, v)$ 以及路径 $u \to v_1 \to \cdots \to v_l \to v$，你这回要做的不是减小 $(u, v)$ 的权值，而是<strong>增大 $e = (v_i, v_j)$ 的权值</strong>。</p>
+		<p>可以看出，一旦边 $e$ 的权值增加到和 $(u, v)$ 相同，那么这条边就可以<strong>换成</strong> $(u, v)$，因此，它的权值必须<strong>严格小于</strong> $(u, v)$ 的权值。</p>
+		<p>那么，显然有多对 $(u, v)$ 约束着边 $e$ 的权值。那么具体是哪些 $(u, v)$ 对呢？</p>
+		<ol>
+		<li>首先，它们是一条不在 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中的边。</li>
+		<li>其次，$u$ 到 $v$ 的路径中包含边 $e$。</li>
+		</ol>
+		<p>第二个条件也可以理解成，由于边 $e$ 把 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 分成两个连通块，则 $u, v$ 一定分布在两个连通块中各一个。</p>
+		<p>显然，对于 $e$ 去枚举 $(u, v)$ 是<del>很颓废的</del> ($O(m^2)$ 复杂度！)，那么我们考虑对于 $(u, v)$ 取枚举它影响了哪些 $e$。可以看出，被 $(u, v)$ 影响的 $e$ 很简单，即路径 $u \to v$ 上的所有边。</p>
+		<p>因此，我们可以对这条边上的 $e$ 的<em>极限权值</em>都与 $(u, v)$ 的权值取个 $\min$，这样一来，最后边上的<em>极限权值</em>再 $- 1$ 就是我们想要的了。</p>
+		<p>接下来讲一下如何实现。第一部分是两点间询问权值最大的边的权值，可以用树链剖分或树上倍增解决；第二部分是若干次链上修改 (取 $\min$) 最后所有点单点询问，树链剖分当然还是 OK 滴，不过这可以<strong>逆着</strong>用倍增处理。总时间复杂度 $O(n \log n)$ <del>(不知道那群大佬是怎么用并查集搞的)</del>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 256101
+#define M 426835
+#define LN 18
+#define INF 0x3e3e3e3e
+using namespace std;
+
+struct edge{
+	int u, v, w, id; bool mst;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0, int id0 = 0): u(u0), v(v0), w(w0), id(id0), mst(false) {}
+	edge * read(int id0) {scanf("%d%d%d", &amp;u, &amp;v, &amp;w); id = id0; return this;}
+	bool operator &lt; (const edge &amp;B) const {return w &lt; B.w;}
+}e[M];
+
+int V, E;
+int first[N], next[M];
+int p[N], dep[N], ans[N];
+int P[LN + 1][N], *pa = *P;
+int W[LN + 1][N], *we = *W;
+int C[LN + 1][N], *cx = *C;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+inline bool test(int x, int y, bool un = false){
+	if((x = ancestor(x)) == (y = ancestor(y))) return true;
+	if(un) p[x] = y; return false;
+}
+inline void addedge(int id){
+	next[id] = first[e[id].u]; first[e[id].u] = id; e[id].mst = true; id += E;
+	next[id] = first[e[id].u]; first[e[id].u] = id; e[id].mst = true;
+}
+
+void Kruskal(){
+	int i, Es = 0;
+	for(i = 1; i &lt;= V; ++i) p[i] = i;
+	sort(e + 1, e + (E + 1));
+	for(i = 1; i &lt;= E; ++i) e[E + i] = edge(e[i].v, e[i].u, e[i].w, e[i].id);
+	for(i = 1; i &lt;= E; ++i)
+		if(!test(e[i].u, e[i].v, true)){
+			addedge(i);
+			if(++Es &gt;= V - 1) return;
+		}
+}
+
+void dfs(int x){
+	int i, y;
+	for(i = 0; i &lt; LN &amp;&amp; P[i][x]; ++i){
+		P[i + 1][x] = P[i][P[i][x]];
+		W[i + 1][x] = max(W[i][x], W[i][P[i][x]]);
+	}
+	for(i = first[x]; i; i = next[i])
+		if(e[i].mst &amp;&amp; (y = e[i].v) != pa[x]){
+			pa[y] = x; we[y] = e[i].w;
+			dep[y] = dep[x] + 1; dfs(y);
+		}
+}
+
+int query(int x, int y){
+	int i, w = 0;
+	if(dep[x] &lt; dep[y]) swap(x, y);
+	for(i = LN; i &gt;= 0; --i)
+		if(dep[x] - (1 &lt;&lt; i) &gt;= dep[y]){
+			up(w, W[i][x]); x = P[i][x];
+		}
+	if(x == y) return w;
+	for(i = LN; i &gt;= 0; --i)
+		if(P[i][x] != P[i][y]){
+			up(w, W[i][x]); x = P[i][x];
+			up(w, W[i][y]); y = P[i][y];
+		}
+	up(w, we[x]); up(w, we[y]);
+	return w;
+}
+
+void adj(int x, int y, int v){
+	int i;
+	if(dep[x] &lt; dep[y]) swap(x, y);
+	for(i = LN; i &gt;= 0; --i)
+		if(dep[x] - (1 &lt;&lt; i) &gt;= dep[y]){
+			down(C[i][x], v); x = P[i][x];
+		}
+	if(x == y) return;
+	for(i = LN; i &gt;= 0; --i)
+		if(P[i][x] != P[i][y]){
+			down(C[i][x], v); x = P[i][x];
+			down(C[i][y], v); y = P[i][y];
+		}
+	down(cx[x], v); down(cx[y], v);
+}
+
+int main(){
+	int i, j;
+	scanf("%d%d", &amp;V, &amp;E);
+	for(i = 1; i &lt;= E; ++i) e[i].read(i);
+	Kruskal();
+	dep[1] = 1; dfs(1);
+	memset(C, 63, sizeof C);
+	for(i = 1; i &lt;= E; ++i)
+		if(!e[i].mst){
+			ans[e[i].id] = query(e[i].u, e[i].v) - 1;
+			adj(e[i].u, e[i].v, e[i].w);
+		}
+	for(i = LN - 1; i &gt;= 0; --i)
+		for(j = 1; j &lt;= V; ++j){
+			down(C[i][j], C[i + 1][j]); down(C[i][P[i][j]], C[i + 1][j]);
+		}
+	for(i = 1; i &lt;= E; ++i)
+		if(e[i].mst){
+			j = (dep[e[i].u] &lt; dep[e[i].v] ? e[i].v : e[i].u);
+			ans[e[i].id] = cx[j] - 1;
+		}
+	for(i = 1; i &lt;= E; ++i)
+		printf("%d%c", ans[i] &gt;= INF ? -1 : ans[i], i == E ? 10 : 32);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在 dfs 的时候记得判断边是否在 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中，以免死循环！</p>
+		<p><strong>坑2：</strong>不要忘记最后<strong>逆着倍增</strong>时后要把大的 <code>down()</code> 到小的值中 (有点像线段树 <code>push_down()</code> 的感觉)，还有倍增的时候注意枚举顺序。</p>
+	</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces822E]Liar</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定两个字符串 $s, t$，长度分别为 $n, m$。你需要选择 $s$ 的若干个两两不相交的子串，然后将它们按照原先在 $s$ 中出现的顺序合并起来，希望得到 $t$。</p>
+		<p>令 $f(s, t)$ 表示要选择的 $s$ 的子串数目的最小值，以便它们的并是串 $t$。如果无法合理选择这样的子串，则 $f(s, t) = +\infty$。现在 scx 想知道，对于给定的 $s, t$，是否有 $f(s, t) \leq x$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^5$)，表示字符串 $s$ 的长度。</p>
+		<p>第二行为一个长度为 $n$ 的，只包含小写字母 $\texttt a \sim \texttt z$ 的字符串 $s$。</p>
+		<p>第三行包含一个正整数 $m$ ($m \leq n$)，表示字符串 $t$ 的长度。</p>
+		<p>第四行类似地包含一个长度为 $m$ 的字符串 $t$。</p>
+		<p>第五行包含一个正整数 $x$ ($x \leq 30$)，表示最大能分成的断数 (即上文不等式中的 $x$)。</p>
+
+		<h3>输出格式</h3>
+		<p>仅输出一行，包含一个字符串，输出 <code>YES</code> 如果 $f(s, t) \leq x$，否则输出 <code>NO</code>。</p>
+
+		<h3>题解</h3>
+		<p>其实题目的意思就是说将 $s$ 至多取出 $x$ 段能不能拼回 $t$，因此考虑使用 DP。记 $f_{i, j}$ 表示字符串 $s$ 的 $i$ 前缀 (前 $i$ 个字符) 中，取出<strong>至多</strong> $j$ 段，它能拼回 $t$ 的前缀的最大长度。那么初始状态下有 $f_{i, j} = 0$。</p>
+		<p>转移有两种，一种是忽略新的字符 $s_{i+1}$ (如果字符串从 $1$ 编号)，那么有 $f_{i+1, j} \uparrow f_{i, j}$，比较简单。</p>
+		<p>还有一种就是字符 $s_{i+1}$ 是选择的若干段之一。那么其实就有一个<strong>贪心</strong>的思想，比如说，如果 $s_{i+1}$ 和 $t_{j+1}$ 刚好匹配上了，那么它肯定是<strong>尽可能得向多的</strong>匹配，证明比较简单 (既然你后面能匹配，那么我前面先匹配掉也不影响)。</p>
+		<p>那么记 $s$ 以 $i+1$ 开始的后缀，与 $t$ 以 $f_{i, j}+1$ 开始的后缀的最长公共前缀 (的长度) $LCP(i, f_{i, j})$ 为 $l$，则有 $f_{i+l, j+1} \uparrow f_{i, j} + l$。</p>
+		<p>最后如果存在某个 $j$ 使得 $f_{n, j} = m$，那么就输出 <code>YES</code>，否则就是 <code>NO</code>。</p>
+		<p>至于怎么求 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr>，那是有<del>一万种</del>方法滴，可以二分 + Hash，可以写各种后缀数据结构等等。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+#define K 34
+using namespace std;
+
+typedef long long ll;
+const ll mod[3] = {900000011, 998244353, 1000000007};
+const ll bas[3] = {4493, 8111, 8527};
+
+int S, T, k;
+char s[N], t[N];
+ll pw[3][N], Ha_s[3][N], Ha_t[3][N];
+int f[N][K];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+void hash_pre(){
+	int j, i;
+	ll *hs, *ht, *p;
+	for(j = 0; j &lt; 3; ++j){
+		hs = Ha_s[j]; hs[0] = 0;
+		ht = Ha_t[j]; ht[0] = 0;
+		p = pw[j]; p[0] = 1;
+		for(i = 0; i &lt; N; ++i){
+			hs[i + 1] = (hs[i] * bas[j] + (s[i] - 'a')) % mod[j];
+			ht[i + 1] = (ht[i] * bas[j] + (t[i] - 'a')) % mod[j];
+			p[i + 1] = p[i] * bas[j] % mod[j];
+		}
+	}
+}
+
+inline ll getHash(ll (*Hash)[N], int id, int L, int R){ // str[L..R-1]
+	ll HA = (Hash[id][R] - Hash[id][L] * pw[id][R - L]) % mod[id];
+	return HA &lt; 0 ? HA + mod[id] : HA;
+}
+
+inline bool check(int s0, int t0, int len){
+	for(int j = 0; j &lt; 3; ++j)
+		if(getHash(Ha_s, j, s0, s0 + len) != getHash(Ha_t, j, t0, t0 + len))
+			return false;
+	return true;
+}
+
+int LCP(int s0, int t0){
+	if(s[s0] != t[t0]) return 0;
+	int L = 1, R = min(S - s0, T - t0), M;
+	if(check(s0, t0, R)) return R;
+	for(--R; L &lt; R; ) check(s0, t0, M = (L + R + 1) &gt;&gt; 1) ? L = M : R = M - 1;
+	return R;
+}
+
+int main(){
+	int i, j, len, lcp; bool ans = false;
+	scanf("%d%s%d%s%d", &amp;S, s, &amp;T, t, &amp;k);
+	hash_pre();
+	for(i = 0; i &lt; S; ++i)
+		for(j = 0; j &lt;= k; ++j){
+			up(f[i + 1][j], len = f[i][j]);
+			if(len &lt; T &amp;&amp; (lcp = LCP(i, len)))
+				up(f[i + lcp][j + 1], len + lcp);
+		}
+	for(j = 0; j &lt;= k; ++j) ans |= (f[S][j] == T);
+	puts(ans ? "YES" : "NO");
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意只有当 $f_{i, j} &lt; m$ 且 $LCP(i, f_{i, j}) &gt; 0$ 时，才有第二种转移，但第一种转移在<strong>任何时刻</strong> ($i &lt; n$) 时都可以进行。</p>
+		<p><strong>坑2：</strong>还有就是注意一下字符串的编号问题 (题解中是从 $1$ 编号，而代码中是从 $0$ 编号的)。</p>
+	</body>
+</html>

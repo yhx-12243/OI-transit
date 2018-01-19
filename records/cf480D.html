@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces480D]Parcels</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 件包裹，每个包裹是一个盒子，都有它自身的质量和载重 (即它上方能承受的最大质量)。scx 最近得到了一个新的包裹处理系统，这个系统以如下方式工作。初始时，有一个 (可以堆放盒子的) 平台，它的载重为 $S$，接下来，你能以如下的规则在平台上堆放盒子：</p>
+		<ol>
+		<li>如果平台时空的，你可以将盒子堆放在平台上，否则，你只能在新的盒子放在最高的盒子上面。</li>
+		<li>任何时刻，(平台上) 所有盒子的总质量不能超过 $S$ (即平台的载重)。</li>
+		<li>对任意一个盒子，任何时刻，在它上面的所有盒子的总质量不能超过这个盒子的载重。</li>
+		<li>并且你只能取走当前位于<strong>最上面</strong>的盒子 (即形成<strong>栈</strong>型结构)。</p>
+		</ol>
+		<p>系统接收到了这 $n$ 件包裹，已知第 $i$ 个包裹在时刻 $in_i$ 出现，它的质量和载重分别为 $w_i, s_i$，每个包裹都有它的价值，其中第 $i$ 个包裹的价值为 $v_i$。然而，为了获得 (赚得) 这 $v_i$ 的价值，这个系统要求它刚好在时刻 $out_i$ 被出售，否则将无法获得任何价值。于是，scx 可以选择<strong>跳过</strong>部分包裹 (即不接收这些包裹)，当然她也无法获得任何价值。</p>
+		<p>任何操作所花费的时间可以忽略不计，这意味着你可以在一个时刻做多件事情 (比如取走若干包裹，在对方若干包裹)。</p>
+		<p>注意一旦一个包裹被取走后，它就不会影响后续对包裹的操作。</p>
+		<p>由于这系统<del>非常</del>复杂，并且包裹数有很多，scx 想要知道如果她合理利用这个系统，她最多能得到多少钱。</p>
+		
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, S$ ($1 \leq 500, S \leq 1000$) ，表示包裹的个数和平台的载重。</p>
+		<p>接下来的 $n$ 行，每行包含 $5$ 个非负整数 $in_i, out_i, w_i, s_i, v_i$ ($0 \leq in_i &lt; out_i &lt; 2n; w_i, s_i \leq 1000; 1 \leq v_i \leq 10^6$)，保证不存在两个包裹的出现时间 ($in_i$) 和出售时间 ($out_i$) 均相同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 scx 能得到的价值的最大值。</p>
+
+		<h3>题解</h3>
+		<p>注意题目中已经提到它的货物是一个栈结构，因此如果两个包裹的存在时间有交集且不是互相包含，则它们<strong>至多</strong>只能选择一个包裹。</p>
+		<p>而这样，像一个栈中不停地加/删元素，这样对于任意两个 (选择的) 包裹，要么不想交，要么互相包含，这可以类比成一个<strong>树结构</strong>。</p>
+		<p>那如何较好的遍历这棵 "树" 吗？只需将所有的包裹按照<strong>右端点</strong>排序，那么如果点 $u$ 是点 $v$ 的子节点，则 $u$ 一定比 $v$ 先出现，因此可以考虑树形 DP。</p>
+		<p>记 $f_{i, j}$ 表示对于第 $i$ 个节点 (排序后第 $i$ 个包裹)，当前剩余的最大载重为 $j$，只处理以 $i$ 为根的子树中的包裹所得的最大利润。不过，由于原图可能是森林，因此，可以将这个 "平台" 看作总根节点与原森林中所有的树相连。</p>
+		<p>接下来考虑转移，由于我们是排过序的，因此在枚举 $i$ 时，$i$ 的所有子节点 (子节点 $u$ 需要满足 $in_i \leq in_u \leq out_u \leq out_i$) 的 DP 值均已得到 (这样就就巧妙地避免了递归，也是区间图 DP 的一般技巧)，那么就是一个简单的区间 DP。</p>
+		<p>记 $g_b$ ($in_i \leq b \leq out_i$) 表示到时刻 $b$ 为止的最大利润，则对某个 $i$ 的子节点 $u$，当 $b = out_u$ 时，可以如下更新</p>
+		<p>$$ g_b = g_{in_u} + f_{u, nj} $$</p>
+		<p>其中 $nj$ 就是还剩 $j$ 的载重时，放入货物 $i$ 后的最大载重，即 $nj = \min \{j - w_i, s_i\}$。</p>
+		<p>最后的 $f_{i, j}$ 就应该等于 $g_{out_i} + v_i$。答案即为总根节点，载重为 $S$ 的 DP 值，时间复杂度大概是 $O(n^3)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 510
+#define STR 1034
+#define T 1034
+using namespace std;
+
+struct parcel{
+	int i, o, w, s, v;
+	parcel (int in = 0, int out = 0, int weight = 0, int strength = 0, int value = 0):
+		i(in), o(out), w(weight), s(strength), v(value) {}
+	parcel * read() {scanf("%d%d%d%d%d", &amp;i, &amp;o, &amp;w, &amp;s, &amp;v); return this;}
+	bool operator &lt; (const parcel &amp;B) const {return o &lt; B.o || o == B.o &amp;&amp; i &gt; B.i;}
+}p[N];
+
+int n, S;
+int f[N][STR], g[T];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+int main(){
+	int i, j, k, lj, b;
+	scanf("%d%d", &amp;n, &amp;S);
+	p[0] = parcel(0, n &lt;&lt; 1 | 1, 0, S, 0);
+	for(i = 1; i &lt;= n; ++i) p[i].read();
+	sort(p, p + (n + 1));
+	for(i = 0; i &lt;= n; ++i){
+		for(j = p[i].w; j &lt;= S; ++j){
+			b = p[i].i;
+			lj = min(j - p[i].w, p[i].s);
+			g[b] = 0;
+			for(k = 0; k &lt; i; ++k){
+				if(p[i].i &lt;= p[k].i){ // in(i) &lt; in(k) &lt; out(k) &lt; out(i)
+					for(; b &lt; p[k].o; ++b) g[b + 1] = g[b];
+					up(g[b], g[p[k].i] + f[k][lj]);
+				}
+			}
+			f[i][j] = g[b] + p[i].v;
+		}
+	}
+	printf("%d\n", f[n][S]);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>开始时不要忘记加入总根节点并排序 (如果你写递归版本的树形 DP 当我没说)，排序时同样要注意按照<strong>第二关键字排序</strong>，即先按照 $out_i$ <strong>升序</strong>排序，相同时再按 $in_i$ <strong>降序</strong>排序 (不然就无法保证子节点均已访问)。</p>
+	</body>
+</html>
