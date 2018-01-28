@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces464D]World of Darkraft - 2</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>scx 在玩 "World of Dardraft - 2" 游戏，有 $k$ 种不同的装备，初始状态下所有的装备都是 $1$ 级的。</p>
+		<p>每当打败一个怪物，她就能获得一个新的装备，新的装备由如下规则生成：</p>
+		<ol>
+		<li>先从 $k$ 种装备中等概率随机选择一种装备，记作 $i$。</li>
+		<li>设当前类型为 $i$ 的装备的等级为 $t_i$，则会从 $[1, t_i + 1]$ 中等概率随机一个作为新的装备的等级。
+		</ol>
+		<p>scx 会从新的装备和原来 (对应类型) 的装备中选择一个级别更高的，将它装备上，并出售剩下的一个装备，等级为 $x$ 的装备的售价为 $x$ (个硬币)。</p>
+		<p>请帮助 scx 决定打败 $n$ 个怪物后获得的硬币数的期望。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, k$ ($n \leq 10^5, k \leq 100$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示打败 $n$ 个怪物后获得硬币数的期望。答案被认为正确当且仅当绝对或相对误差不超过 $10^{-9}$。</p>
+
+		<h3>题解</h3>
+		<p>注意到最终硬币的期望值对于每个装备是独立的，因此可以计算出单个装备的期望，最后再乘 $k$。</p>
+		<p>考虑进行期望 DP，记 $f_{i, j}$ 表示还需要得到 $i$ 个装备 (打败 $i$ 个怪物)，且当前装备等级为 $j$ 的情况下，(后面 $i$ 次) 得到硬币的期望。</p>
+		<p>初始状态为 $f_{0, j} = 0$。考虑 $f_{i, j}$ 的转移，根据第一步，由于掉出某一种装备的概率只有 $\dfrac 1k$，因此有 $\dfrac {k-1} k$ 的概率掉出其它装备，对这个装备不影响，因此乘上 $f_{i-1, j}$。</p>
+		<p>在这 $\dfrac 1k$ 的概率中，又有 $\dfrac 1 {j+1}$ 的概率产生 $j+1$ 级装备 (由于是分步操作，概率需要相乘)，因此把原来的 $j$ 卖了，权值对应为 $\dfrac 1 {k(j+1)} \left( f_{i-1, j+1} + j \right)$，当然还有 $\dfrac j {j+1}$ 的概率产生低级装备，也有对应的权值。故总转移方程为</p>
+		<p>$$ f_{i, j} = \frac {k-1} k f_{i-1, j} + \frac 1 {k(j+1)} \left( \sum_{t=1}^j \left( f_{i-1, j} + t \right) + \left( f_{i-1, j+1} + j+1 \right) \right) = \frac {\left( k (j+1) - 1 \right) f_{i-1, j} + f_{i-1, j+1} + \dfrac 12 j(j+3)} {k(j+1)} $$</p>
+		<p>最后答案为 $k \cdot f_{n, 1}$，总时间复杂度为 $O(n^2)$ (由于打 $i$ 次最多可能会升到 $i+1$ 级)，空间的话可以利用滚动数组或背包优化到 $O(n)$。</p>
+		<p>这时就要开始进行浮点优化了 <del>(参考期望 DP 题 <a href="http://10.49.27.23/problem?id=283" target="_blank">2048</a>)</del>。类似地，我们也<del>自信</del>它无法升到特别高等级的装备。但是我们应该把第二维设置为多少呢？</p>
+		<p>由几何分布，概率为 $p$ 的事件期望 $\dfrac 1p$ 次才能成功。那么对于一个特定的装备，从 $j$ 级升到 $j+1$ 级的概率为 $\dfrac 1 {k(j+1)}$，因此期望次数为 $k(j+1)$。那么从 $1$ 级升级到 $m$ 级的期望次数为 $2k + 3k + 4k + \cdots + mk \sim \dfrac 12 m^2 k$，因此有 $\dfrac 12 m^2 k &lt; n$，故期望的等级为 $\sqrt {\dfrac {2n} k}$，不超过 $500$。</p>
+		<p>经过更具体的实验，($k = 1$ 时) 得到打出 $1000$ 级以上的装备在 <code>double</code> 中已经存不下了 (为 $0$)，因此不会对答案产生影响。</p>
+		<p>因此可以限制第二维的更新范围，总时间复杂度 $O \left( n \sqrt n \right)$ (由于这个 $1000$ 与 $O \left( \sqrt n \right)$ 同阶)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1034
+using namespace std;
+
+int n, k, i, j;
+double A, B, C;
+double f[2][N];
+
+int main(){
+	scanf("%d%d", &amp;n, &amp;k);
+	for(i = 1; i &lt;= n; ++i)
+		for(j = 1; j &lt; N; ++j){
+			A = f[i &amp; 1 ^ 1][j] * (double)(k * (j + 1) - 1);
+			B = f[i &amp; 1 ^ 1][j + 1];
+			C = (double)(j * (j + 3) &gt;&gt; 1); // 1 + 2 + ... + j + j
+			f[i &amp; 1][j] = (A + B + C) / (double)(k * (j + 1));
+		}
+	printf("%.15lg\n", f[n &amp; 1][1] * k);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>空间不要开满，不然可能会不够用。</p>
+	</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces837F]Prefix Sums</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>考虑函数 $p(x)$，其中 $x$ 是含有 $m$ 个元素的数组 $x_1, \cdots, x_n$，它返回一个新的含有 $m$ 个元素的数组 $y_1, \cdots, y_m$，满足 $y_k = \sum\limits_{i=1}^k x_i$。</p>
+		<p>你有一个无限的数组序列 $A^0, A^1, A^2, \cdots$，其中 $A^0$ 由输入给出，且对于每个 $i \geq 1$，都有 $A^i = p \left( A^{i-1} \right)$。你还有一个正整数 $k$，你需要找到最小的 $i$，使得 $A^i$ 中存在 $\geq k$ 的项。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($2 \leq n \leq 2 \times 10^5, k \leq 10^{18}$)，其中 $n$ 表示数组 $A_0$ 的大小。</p>
+		<p>第二行包含 $n$ 个正整数 $a_0, a_1, \cdots, a_n$ ($a_i \leq 10^9$，表示原始的数组 $A_0$。</p>
+		<p>保证 $A_0$ 中至少有两个正数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示使得 $A^i$ 中存在 $\geq k$ 的项的最小 $i$。</p>
+
+		<h3>题解</h3>
+		<p>首先可以注意到，如果这个数组具有 "前导 $0$"，则这些 $0$ 显然是没有意义的 (因为求完前缀和后还是 $0$)。因此，接下来不妨假设 $a_i &gt; 0$ (因此 $n$ 也会适当调整)。</p>
+		<p>考虑 $n$ 比较大的情况。就拿最小的 $(1, 0, 0, \cdots)$ 来说吧，可以算得，求完 $k+1$ 次前缀和后，第 $n$ 项的值为 $\dbinom {n+k-1} k$，那么当 $k$ 增长时，这个值的增长是非常快的 (比如 $n = 20, k = 60$ 时已经达到了约 $8.84 \times 10^{17}$)，因此对于比较大的 $n$ (比如 $n \geq 20$)，可以采用直接暴力计算。</p>
+		<p>接下来考虑 $n$ 比较小的情况。由于这些数都是非负的，因此求完前缀和后，最大值一定是最后一个数。因此，如果答案为 $0$，直接特判掉 (即已经有 $a_i \geq k$)，否则就看最后一个数 $a_n$ 是否大于 $k$。</p>
+		<p>由于 $a_n$ 单调递增，因此可以二分求前缀和的次数，接下来就是判定性问题。由前缀和公式，求完 $k+1$ 次前缀和后的 $a_n$ 为 $$ \sum_{i=1}^n \binom {n+k-i} k a_i $$</p>
+		<p>由于 $\dbinom {n+k-i} k = \dbinom {n+k-i} {n-i}$，而 $n-i &lt; n &lt; 20$，因此可以考虑暴力计算。计算的时候注意采取一些技巧避免溢出，如果过大就直接置为 <code>INF</code> 就可以了。</p>
+		<p>最后来分析一波时间复杂度，对于二分计算，二分需要一个 $O(\log k)$，然后检验是 $O(n^2)$ 的，故复杂度为 $O(n^2 \log k)$；对于暴力部分的话，我们需要 $\dbinom {n+ans-1} {n-1} \approx \dfrac {(n+ans)^n} {n!} \geq k$，因此复杂度为 $O(ans \cdot n) = O \left( \left( \sqrt[n]{n! \cdot k} - n \right) n \right) = O \left( n^2 \left( \sqrt[n]{k} - 1 \right) \right)$，总之能过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 256101
+#define gcd __gcd
+using namespace std;
+
+typedef long long ll;
+const ll INF = 0x188434861e654c51ll;
+
+int n;
+ll __scx_t[N], *a = __scx_t, _a[N];
+ll k, L, R, M;
+
+inline void add(ll &amp;x, const ll y) {(x += y) &gt;= INF ? x = INF : 0;}
+
+int brute_force(){
+	int T, i;
+	for(T = 1; ; ++T){
+		for(i = 2; i &lt;= n; ++i) add(a[i], a[i - 1]);
+		if(a[n] &gt;= k) return printf("%d\n", T), 0;
+	}
+	return -1;
+}
+
+ll C(ll n, ll m){
+	if(m &lt;&lt; 1 &gt; n) m = n - m;
+	ll i, d, e, res = 1;
+	for(i = 1; i &lt;= m; ++i){
+		// res = res * (n - i + 1) / i;
+		d = gcd(res, i);
+		res /= d; e = (n - i + 1) * d / i;
+		res &lt;= INF / e ? res *= e : (res = INF);
+	}
+	return res;
+}
+
+bool test(ll T){
+	int i; ll coe, res = 0;
+	for(--T, i = 1; i &lt;= n; ++i)
+		if(a[i]) (coe = C(n - i + T, n - i)) &lt;= _a[i] ? add(res, a[i] * coe) : void(res = INF);
+	return res &gt;= k;
+}
+
+int main(){
+	int i;
+	scanf("%d%lld", &amp;n, &amp;k);
+	for(i = 1; i &lt;= n; ++i)
+		if(scanf("%lld", a + i), a[i] &gt;= k) return putchar(48), putchar(10), 0;
+	for(; !a[1]; ++a, --n);
+	if(n &gt;= 20) return brute_force();
+	for(i = 1; i &lt;= n; ++i) a[i] ? _a[i] = INF / a[i] : 0;
+	for(L = 1, R = k; L &lt; R; )
+		test(M = L + R &gt;&gt; 1) ? R = M : (L = M + 1);
+	printf("%lld\n", R);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>算组合数的部分注意避免乘法溢出。比如说计算 $r = a \cdot b / c$ 并已知 $r$ 是整数，可以令 $d = \gcd (a, c)$，那么 $r = \dfrac ad \cdot b / \dfrac cd$，由于 $r$ 是整数，因此 $\dfrac cd \mid \dfrac ad \cdot b$，又 $\gcd \left( \dfrac ad, \dfrac cd \right) = 1$，故 $\dfrac cd \mid b$，因此 $b / \dfrac cd$ 为整数，就转化为了整数乘整数判溢出。(当然用 <code>__int128</code> 或 <code>double</code> 也可以，<del>关键看 Codeforces 支不支持</del>)</p>
+	</body>
+</html>

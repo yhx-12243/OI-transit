@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces825G]Tree Queries</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵包含 $n$ 个节点的树 (从 $1$ 到 $n$ 编号)，初始所有节点都是白色的。你需要处理以下两种类型的 $n$ 个询问：</p>
+		<ol>
+		<li><code>1 <em>x</em></code>将节点 $x$ 的颜色变成黑色。保证第一个询问为这种类型。</li>
+		<li><code>2 <em>x</em></code>对于顶点 $x$，找到最小的下标 $y$，使得顶点 $y$ 在一条从 $x$ 到某个<strong>黑点</strong>的简单路径上。</li>
+		</ol>
+		<p>对于每个第 2 种类型的询问，输出对应的下标 $y$。</p>
+		<p>注意询问是<strong>强制在线</strong>的。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($3 \leq n, q \leq 10^6$)。</p>
+		<p>接下来的 $n-1$ 行，每行包含两个正整数 $x_i, y_i$ ($1 \leq x_i &lt; y_i \leq n$)，表示有一条边连接顶点 $x_i$ 和 顶点 $y_i$。</p>
+		<p>保证给出的图是一棵树。</p>
+		<p>接下来的 $q$ 行，每行包含两个整数 $t_i, z_i$ ($t_i \in \{1, 2\}, 1 \leq z_i \leq n$)，其中 $t_i$ 表示第 $i$ 个询问的类型，$z_i$ <strong>存储</strong>对应的 $x_i$，如果你上一次<strong>输出</strong>的答案为 $last$ (一开始为 $0$)，则 $x_i = (z_i + last) \bmod n + 1$。</p>
+		<p>保证第一个询问为类型 1 ($t_1 = 1$)，且至少有一个询问为类型 2。</p>
+	
+		<h3>输出格式</h3>
+		<p>对于每个类型 2 的询问，输出一行一个整数，表示最小的 $y$ 值。</p>
+
+		<h3>题解</h3>
+		<p>由于第一个询问为类型 1 (创建一个黑点)，因此我们可以把对应的点 ($x_1$) 作为原树的根。</p>
+		<p>之后对于每个修改操作 ($x$)，于是就增加了一条黑点到根的路径。我们可以预处理出每个点 $i$ 到根的路径中编号最小的点 $f_i$，因此如果选择了点 $x$，最终的答案一定选 $f_x$。</p>
+		<p>这样一来，对于点 $x$ 的询问，考虑它选的那个黑点。如果是根 $r$，那么答案一定是 $f_x$，否则如果是黑点 $y$，那么答案就是 $f_y$ (如果 $x$ 和 $y$ 的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 不是 $r$ 也没关系)，因此只需对这些 $f_y$ 求个 $\min$ (这个最小值可以边做边取)，最后再与 $f_x$ 取 $\min$ 即可。时间复杂度 $O(n + q)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1024404
+#define M 2048808
+using namespace std;
+
+int n, q, e, r;
+int u, v, i;
+int op, res, last;
+int to[M], first[N], next[M];
+int f[N];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline void addedge(int u, int v){
+	to[++e] = v; next[e] = first[u]; first[u] = e;
+	to[++e] = u; next[e] = first[v]; first[v] = e;
+}
+
+void dfs(int x, int px){
+	int i, y;
+	for(i = first[x]; i; i = next[i])
+		if((y = to[i]) != px){
+			f[y] = min(f[x], y);
+			dfs(y, x);
+		}
+}
+
+int main(){
+	scanf("%d%d", &amp;n, &amp;q);
+	for(i = 1; i &lt; n; ++i){
+		scanf("%d%d", &amp;u, &amp;v);
+		addedge(u, v);
+	}
+	scanf("%*d%d", &amp;r); res = ++(r %= n);
+	f[r] = r; dfs(r, 0);
+	for(last = 0; --q; )
+		if(scanf("%d%d", &amp;op, &amp;v), v = (v + last) % n + 1, op == 1) down(res, f[v]);
+		else printf("%d\n", last = min(res, f[v]));
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意强制在线的 Hash 函数 (不是无脑异或)，还有第一个询问 (根节点) 也是需要解密的哦！($\bmod n + 1$)</p>
+	</body>
+</html>

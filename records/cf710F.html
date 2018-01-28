@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces710F]String Set Queries</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个包含字符串的集合 $D$，你需要对它处理 $m$ 个询问，其中每个询问都是如下三种形式之一：</p>
+		<ol>
+		<li>添加一个字符串 $s$ 到集合 $D$ 中。保证操作之前 $s \notin D$。</li>
+		<li>删除集合 $D$ 中的字符串 $s$。保证操作之前 $s \in D$。</li>
+		<li>对于给定的字符串 $s$，询问 $D$ 中的字符串在 $s$ 中一共出现了几次。同一个字符串出现多次也算多次。</li>
+		</ol>
+		<p>题目使用一种神奇的方法 <del>(通讯型)</del> <strong>强制在线</strong>，即你不能把所有的输入都读进来。对于每个操作 3，你需要将答案输出然后 <code>fflush(stdout)</code> 或 <code>std::cout &lt;&lt; std::endl</code> 才能读取下一个操作。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $m$ ($m \leq 3 \times 10^5$)，表示询问的个数。</p>
+		<p>接下来的 $m$ 行，每行包含一个整数 $t$ ($t \in \{1, 2, 3\}$) 和非空字符串 $s$ ($\sum |s| \leq 3 \times 10^5$)，分别表示操作的类型和处理的字符串。所有字符串只包含小写英文字母 $\texttt a \sim \texttt z$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个操作 3，输出一行一个整数 $c$，表示 $D$ 中的字符串在 $s$ 中的出现次数。</p>
+
+		<h3>题解</h3>
+		<p>可以看出，这种询问就是 Aho-Corasick 自动机的形式。如果没有添加/删除操作，那么显然直接建一个 AC 自动机即可。</p>
+		<p>接下考虑只有添加的做法。由于 AC 自动机不支持建完之后加入，那么只能考虑暴力重建。</p>
+		<p>然而每次重建自动机是 $O \left( |\Sigma| \cdot \sum\limits_{i=1}^k |s_i| \right)$ 的，因此总复杂度为 $$ O \left( |\Sigma| \cdot \left[ |s_1| + (|s_1| + |s_2|) + (|s_1| + |s_2| + |s_3|) + \cdots + \left( |s_1| + |s_2| + |s_3| + \cdots + |s_k| \right) \right] \right) = O \left( |\Sigma| |s| k \right) $$</p>
+		<p>(注：考虑 $|s_1|$ 特别大的时候) 其中 $k$ 为加入字符串总数 $|D|$。显然这个复杂度不可接受，因此可以考虑每次在询问前建立一遍自动机，多次连续的询问使用同一个自动机，那么<strong>总运行时间</strong>就会适当的减小很多。</p>
+		<p>显然这不是标算。可以发现，运行时间的瓶颈在重建的次数，那么我们重建的次数能不能小一点呢？</p>
+		<p>考虑暴力，暴力就是每加入一个字符串后 KMP 掉，然后一个一个取匹配，时间复杂度为 $O(m \sum |s|)$ (前 $\dfrac m2$ 加入，后 $\dfrac m2$ 询问)，<del>看起来比 AC 自动机优秀 (雾)</del>。那么我们把这两个算法结合起来呢？</p>
+		<p>首先考虑分块。假如说限定每个 AC 自动机至多有 $\xi$ 个串，那么就需要 $\dfrac m \xi$ 个自动机，每个自动机的时间复杂度为 $O \left( |\Sigma| |s| \xi \right)$，因此总复杂度为 $O \left( |\Sigma| \cdot \sum |s| \cdot \xi \right)$，单次询问的复杂度为 $O \left( |s| \cdot \dfrac m \xi \right)$ (跑 $\dfrac m \xi$ 个自动机)，询问总复杂度为 $O \left( \sum |s| \cdot \dfrac m \xi \right)$。</p>
+		<p>故取 $\xi = O \left( \sqrt {\dfrac m {|\Sigma|}} \right)$ 时总复杂度越低，为 $O \left( \sum |s| \cdot \sqrt {|\Sigma| m} \right)$，<del>按照 Codeforces 的评测机速度</del>应该能过 (即根号复杂度)。</p>
+		<p>对于这种暴力重构的问题，还有一个更好的算法，它基于倍增思想：</p>
+		<p>考虑 $n$ 的二进制表示 $n = (a_k a_{k-1} \cdots a_0)_2$，因此我们可以将 $n$ 拆分成这样几个数的和：$2^k a_k, 2^{k-1} a_{k-1}, \cdots, 2^1 a_1, a_0$。容易发现，这里数的个数不超过 $\left \lceil \log n \right \rceil$ 个。</p>
+		<p>那么假如说我们有 $n$ 个串，因此我们也可以根据上面的拆分方法将它拆成若干个字符串集合的并，它们的大小分别为 $2^i a_i$ (故可能是空集)。然后对每个集中的字符串做一遍 Aho-Corasick 自动机 (或者询问前再跑)，因此单次询问的复杂度为 $O \left( |s| \cdot \log m \right)$。</p>
+		<p>考虑加入一个字符串，首先，我们可以将它放入一个新的集合中。那么一直放下去显然会违反前面的性质 (即集合大小为若干个不同的 $2$ 的幂)，既然这样，所以我们当然考虑将 Trie 合并。这时，可以参考一下 "2048 规则" (2048 规则指的是遇到相邻且相同的两个数直接合并，直到所有数都不相同) 将它合并成满足要求的情况。</p>
+		<p>现在来分析复杂度。简单找规律即可发现第 $i$ 次合并是将 $\left( i - \mathrm{lowbit}(i), i \right]$ 中的字符串合并。因此单独分析每个字符串 $|s_i|$，它被合并的次数编号集合应为 $\left\{ i_0 = i, i_1 = i_0 + \mathrm{lowbit}(i_0), i_2 = i_1 + \mathrm{lowbit}(i_1), \cdots \right\}$，至多 $O(\log m)$ 次。因此合并的复杂度为 $O \left( |\Sigma| \cdot \sum |s| \cdot \log m \right)$，故总时间复杂度亦为 $O \left( |\Sigma| \cdot \sum |s| \cdot \log m \right)$。</p>
+		<p>(scx: 那有删除操作怎么办呢？)</p>
+		<p>其实这并不难，注意到我们输出的答案 (即出现次数) 具有<strong>可减性</strong>，因此我们把所有删除的字符串当作在另一个集合 $D'$ 插入的字符串，再做一遍刚才的算法，得到<strong>被删除的</strong>答案，最终用原来的答案减去被删除的答案即得最终的答案。</p>
+		<p style="color: red">ps: 这道题也可以用字符串 Hash + Hash 表做，即枚举 ($D$ 中字符串的) 长度，然后判断 Hash 值是否相同，时间复杂度 $O \left( m \sqrt {\sum |s|} \right)$ (由于不同的长度至多 $O \left( \sqrt {\sum |s|} \right)$ 个)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 3414680
+#define LN 20
+using namespace std;
+
+typedef long long ll;
+
+namespace AC{
+	int cnt = 0;
+	int d[N][26], p[N], f[N], que[N];
+	int val[N], size[N]; ll sum[N];
+
+	// add a new string to trie
+	int append(int root, char *_str){
+		int t = (root ? root : (root = ++cnt)), id;
+		for(; *_str; ++_str){
+			id = *_str - 97;
+			p[d[t][id] ? d[t][id] : (d[t][id] = ++cnt)] = t;
+			t = d[t][id];
+		}
+		++val[t];
+		return root;
+	}
+
+	// dfs merge two tries
+	int dfs(int x, int u){
+		int id, y;
+		if(!u) u = ++cnt;
+		val[u] += val[x];
+		for(id = 0; id &lt; 26; ++id)
+			if((y = d[x][id]) &amp;&amp; p[y] == x){
+				int &amp;v = d[u][id];
+				v = dfs(y, v); p[v] = u;
+			}
+		return u;
+	}
+
+	// clear the Aho-Corasick tags
+	void clear(int x){
+		int id, y;
+		sum[x] = f[x] = 0;
+		for(id = 0; id &lt; 26; ++id)
+			if(y = d[x][id])
+				p[y] == x ? clear(y) : void(d[x][id] = 0);
+	}
+
+	// merge two tries to one trie (ensure root != 0)
+	void merge(int root, int root2){
+		clear(root);
+		size[root] += size[root2]; size[root2] = 0;
+		dfs(root2, root);
+	}
+
+	// build ac tags
+	void build(int root){
+		int h, ta = 1, i, t, id;
+		clear(root);
+		que[0] = root; f[root] = 0;
+		for(h = 0; h &lt; ta; ++h)
+			for(i = que[h], id = 0; id &lt; 26; ++id){
+				t = (f[i] ? d[f[i]][id] : root);
+				int &amp;u = d[i][id];
+				if(!u) {u = t; continue;}
+				f[u] = t; que[ta++] = u;
+				sum[u] = val[u] + sum[t];
+				//la[u] = (val[t] ? t : la[t]);
+			}
+	}
+
+	// match a string
+	ll match(int root, char *_str){
+		int t = root, id; ll ret = 0;
+		for(; *_str; ++_str){
+			id = *_str - 97;
+			t = (d[t][id] ? d[t][id] : root);
+			ret += sum[t];
+		}
+		return ret;
+	}
+}
+
+int rootA[LN], rootB[LN];
+bool acA[LN], acB[LN];
+char s[N];
+
+void insert(int *root, bool *ac){
+	int i;
+	for(i = 0; i &lt; LN; ++i)
+		if(AC::size[root[i]] &gt;= 1 &lt;&lt; i){
+			if(root[i + 1]) {AC::merge(root[i + 1], root[i]); ac[i + 1] = false;}
+			else {root[i + 1] = root[i]; ac[i + 1] = ac[i];}
+			root[i] = 0; ac[i] = false;
+		}
+		else{
+			if(root[i] &amp;&amp; ac[i]) {ac[i] = false; AC::clear(root[i]);}
+			root[i] = AC::append(root[i], s);
+			++AC::size[root[i]];
+			return;
+		}
+}
+
+ll query(int *root, bool *ac){
+	int i; ll ret = 0;
+	for(i = 0; i &lt; LN; ++i){
+		if(!root[i]) continue;
+		if(!ac[i]) {AC::build(root[i]); ac[i] = true;}
+		ret += AC::match(root[i], s);
+	}
+	return ret;
+}
+
+int main(){
+	int q, op;
+	ios::sync_with_stdio(false);
+	for(cin &gt;&gt; q; q; --q)
+		switch(cin &gt;&gt; op &gt;&gt; s, op){
+			case 1: insert(rootA, acA); break;
+			case 2: insert(rootB, acB); break;
+			case 3: cout &lt;&lt; query(rootA, acA) - query(rootB, acB) &lt;&lt; endl; break;
+		}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在添加字符串时把 Aho-Corasick 自动机所做的标记清除掉 (可以用 dfs 或 bfs)。</p>
+		<p><strong>坑2：</strong>需要额外记录一下一条转移边是 Trie 边还是 AC 自动机的边，以免搜索时死循环。</p>
+	</body>
+</html>

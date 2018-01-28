@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces601E]A Museum Robbery</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有若干个物品，每个物品有两个属性：质量 $w$ 和价值 $v$。现在有三种操作：</p>
+		<ol>
+		<li>加入一个质量为 $w$，价值为 $v$ 的物品。</li>
+		<li>删除 (之前已存在的) 某个物品。</li>
+		<li>询问当 $i = 1, 2, \cdots, k$ 时，一个容量 (即最大载重量) 为 $i$ 的背包所能装下的物品的总价值的最大值。(其中 $k$ 为常数)</li>
+		</ol>
+		<p>对于每个操作 3，请输出对应的答案。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($n \leq 5000, k \leq 1000$)，$n$ 表示初始的物品总数，$k$ 的意义见题目描述。</p>
+		<p>接下来的 $n$ 行，每行包含两个正整数 $v_i, w_i$ ($v_i \leq 10^6, w_i \leq 1000$)，表示第 $i$ 个物品的价值和质量。</p>
+		<p>紧接着一行包含一个正整数 $q$ ($q \leq 30000$)，表示操作的个数。</p>
+		<p>接下来的 $q$ 行，每行描述一个操作，以如下形式给出：</p>
+		<ol>
+		<li><code>1 <em>v</em> <em>w</em></code>($v \leq 10^6, w \leq 1000$) 表示加入了一个价值为 $v$，质量为 $w$ 的物品，<strong>该物品的编号为未出现过的最小编号</strong>。</p>
+		<li><code>2 <em>x</em></code>表示删除编号为 $x$ 的物品，保证编号为 $x$ 的物品存在且未被删除。</li>
+		<li><code>3</code>表示询问当 $i = 1, 2, \cdots, k$ 时的背包询问。</li>
+		</ol>
+		<p>保证操作 3 的个数不超过 $10000$。</p>
+
+		<h3>输出格式</h3>
+		<p>考虑到输出数的个数太多，我们将操作 3 以一种<strong>特殊的</strong>方式输出。</p>
+		<p>对于每个操作 3，记 $s(m)$ 表示当 $i = m$ 时的背包询问的结果，则输出一行一个整数 $$ \left( \sum_{i=1}^k s(i) \cdot p^{i-1} \right) \bmod q $$ 其中 $p = 10^7 + 19, q = 10^9 + 7$。</p>
+
+		<h3>题解</h3>
+		<p>首先能注意到如果在线做 (这个动态背包问题)，那么是非常难实现删元素的，那么这道题应该是离线处理。</p>
+		<p>离线处理有这么几种算法：首先莫队显然是没有希望的，陈丹琦分治嘛，可以搞搞。不过根据<a href="uoj198.html" target="_blank">这道题</a>的经验，继续尝试<strong>时间戳线段树</strong>。</p>
+		<p>完全类似地，对于每一个物品，我们求出它的存在时间 (这显然是一个区间)，然后将它加入线段树，它至多被分散成 $O(\log n)$ 个节点。</p>
+		<p>然后考虑询问，由于总时间 (即操作 3 的个数) 不超过 $10000$，因此考虑枚举每个叶节点，只需对它到根的路径上的所有节点中的物品，做一遍背包 DP 即可。</p>
+		<p>这样的时间复杂度是 $O(q^2)$ 的，不过可以看出，仍旧有很多物品经历了<strong>重复计算</strong>，因此还可以进一步优化。</p>
+		<p>考虑最后 <code>solve()</code> 时对整棵线段树 dfs，每 dfs 到一个点时，在该节点保存一下 DP 值。然后下一次 DP 时直接加入一个新的物品即可。这样的空间是 $O(k \log q)$ 的，不会爆掉。</p>
+		<p>最后输出其实就是个多项式，暴力和秦九韶算法都可以。总时间复杂度 $O(qk \log q)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 34147
+#define K 1034
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+using namespace std;
+
+typedef vector &lt;int&gt; vec;
+typedef long long ll;
+const ll base = 10000019, mod = 1000000007;
+
+struct exhibit{
+	int w, c, l, r;
+	exhibit (int w0 = 0, int c0 = 0, int l0 = 1, int r0 = -1): w(w0), c(c0), l(l0), r(r0) {}
+	exhibit * read(int l0 = 1) {scanf("%d%d", &amp;c, &amp;w); l = l0; return this;}
+}e[N];
+
+int n, q, t = 1, W;
+int op, i;
+ll __empty__[K];
+vec st[N &lt;&lt; 2];
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+void add(int id, int L, int R, int ql, int qr, int v){
+	if(ql &lt;= L &amp;&amp; R &lt;= qr) {st[id].push_back(v); return;}
+	segc;
+	if(ql &lt;= M) add(lc, L, M, ql, min(qr, M), v);
+	if(qr &gt; M) add(rc, M + 1, R, max(ql, M + 1), qr, v);
+}
+
+void solve(int id, int L, int R, ll *f){
+	int i, j, n = (int)st[id].size();
+	ll g[K]; memcpy(g, f, sizeof g);
+	for(i = 0; i &lt; n; ++i){
+		exhibit &amp;t = e[st[id][i]];
+		for(j = W; j &gt;= t.w; --j)
+			up(g[j], g[j - t.w] + t.c);
+	}
+	if(L == R){
+		ll res = 0;
+		for(i = W; i; --i) res = (res * base + g[i]) % mod;
+		printf("%d\n", (int)res); return;
+	}
+	segc; solve(lc, L, M, g); solve(rc, M + 1, R, g);
+}
+
+int main(){
+	scanf("%d%d", &amp;n, &amp;W);
+	for(i = 1; i &lt;= n; ++i) e[i].read();
+	for(scanf("%d", &amp;q); q; --q)
+		switch(scanf("%d", &amp;op), op){
+			case 1: e[++n].read(t); break;
+			case 2: scanf("%d", &amp;i); e[i].r = t - 1; break;
+			case 3: ++t; break;
+		}
+	--t;
+	for(i = 1; i &lt;= n; ++i)
+		if(e[i].l &lt;= (~e[i].r ? e[i].r : (e[i].r = t)))
+			add(1, 1, t, e[i].l, e[i].r, i);
+	solve(1, 1, t, __empty__);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意物品的总数是 $O(q)$ 的而不是 $O(n)$ 的，因此线段树别开小了。</p>
+	</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces915F]Imbalance Value of a Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵包含 $n$ 个节点的树，每个顶点 $i$ 有一个点权 $a_i$，定义 $I(x, y)$ 表示 $x$ 到 $y$ 的简单路径中所有点的点权的极差 (即 $a_i$ 的最大值减去 $a_i$ 的最小值)。</p>
+		<p>你的任务就是计算 $\sum\limits_{i=1}^n \sum\limits_{j=i}^n I(i, j)$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^6$)，表示树的顶点数量。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($a_i \leq 10^6$)，表示每个点的权值。</p>
+		<p>接下来的 $n-1$ 行，每行包含两个正整数 $x, y$ ($1 \leq x, y \leq n; x \neq y$)，表示 $x$ 和 $y$ 之间有一条边。保证这 $n-1$ 条边构成一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $\sum\limits_{i=1}^n \sum\limits_{j=i}^n I(i, j)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>记 $x$ 到 $y$ 的路径中所有点的点权的最大值为 $M(x, y)$，最小值为 $N(x, y)$，则所求即为 (反正 $I(x, x) = 0$) $$ \sum_{i=1}^n \sum_{j=i}^n \left( M(i, j) - N(i, j) \right) = \sum_{i=1}^n \sum_{j=i+1}^n M(i, j) - \sum_{i=1}^n \sum_{j=i+1}^n N(i, j) $$</p>
+		<p>可以发现，将每个点的权值 $a_i$ 变为它的相反数后 ($a'_i = -a_i$)，求得的 $M'(x, y)$ 即等于原来的最小值 $N(x, y)$。</p>
+		<p>因此就转化成了求最大值的问题。首先将它们转化成边权，即如果 $e = (u, v)$，则令该边的边权 $e.w = \max \{a_u, a_v\}$，则 $M(x, y)$ 也等于 $x$ 到 $y$ 路径中所有边的边权最大值。</p>
+		<p>考虑使用最小生成树的思想，将这些边按照边权排序后依次加入。假如说现在新加入一条边 $e = (u, v)$，由于原图是一棵树，则 (加边前) $u, v$ 不在同一个连通块中。</p>
+		<p>记它们所在的连通块为 $U, V$，那么对于 $\forall x \in U, y \in V$，$x$ 到 $y$ 的路径一定过 $e$，且路径中的所有边都已加入 (不然怎么会连通！)。而我们的加入顺序是按照边权从小到大加入的，因此 $e$ 一定是 $x$ 到 $y$ 路径中<strong>边权最大的</strong>边 (可能相同)，故 $M(x, y) = e.w$。</p>
+		<p>而这样的 $x$ 有 $|U|$ 种选择，$y$ 有 $|V|$ 种选择，故一共有 $|U| \cdot |V|$ 对无序点对，故对答案的总贡献为 $|U| \cdot |V| \cdot e.w$。</p>
+		<p>只需将 $n-1$ 条边都加入后，所得的值就是 $\sum\limits_{1 \leq i &lt; j \leq n} M(i, j)$。因为对于每个无序点对 $(x, y)$，由于开始是不连通的而最终连通了，肯定有一步加边，使它从不连通到了连通，因此它的答案在这次加边后被算上了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1024404
+using namespace std;
+
+typedef long long ll;
+
+struct edge{
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0): u(u0), v(v0), w(0) {}
+	edge * read() {scanf("%d%d", &amp;u, &amp;v); return this;}
+	inline bool operator &lt; (const edge &amp;B) const {return w &lt; B.w;}
+}e[N];
+
+int n;
+int w[N], p[N], sz[N];
+ll ans;
+
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+ll solve(){
+	int u, v, i; ll res = 0;
+	for(i = 1; i &lt;= n; ++i) {p[i] = i; sz[i] = 1;}
+	for(i = 1; i &lt; n; ++i) e[i].w = max(w[e[i].u], w[e[i].v]);
+	sort(e + 1, e + n);
+	for(i = 1; i &lt; n; ++i){
+		u = ancestor(e[i].u); v = ancestor(e[i].v);
+		res += (ll)e[i].w * sz[u] * sz[v];
+		if(sz[u] &gt; sz[v]) swap(u, v); p[u] = v; sz[v] += sz[u];
+	}
+	return res;
+}
+
+int main(){
+	int i;
+	scanf("%d", &amp;n);
+	for(i = 1; i &lt;= n; ++i) scanf("%d", w + i);
+	for(i = 1; i &lt; n; ++i) e[i].read();
+	ans += solve();
+	for(i = 1; i &lt;= n; ++i) w[i] = -w[i];
+	printf("%lld\n", ans + solve());
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>第二次计算 $N(x, y)$ 时注意把并查集清空。</p>
+		<p><strong>坑2：</strong>答案使用 <code>long long</code> 存储。</p>
+	</body>
+</html>
