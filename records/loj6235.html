@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6235]区间素数个数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n$，求 $1 \sim n$ 之间素数个数。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($2 \leq n \leq 10^{11}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示区间中素数的个数。</p>
+
+		<h3>题解</h3>
+		<p>根据<a href="spojDIVCNT3.html" target="_blank">上一题</a>的经验，一看这个数据范围就像使用洲阁筛的样子……</p>
+		<p>不过此处的积性函数 $f(n)$ 比较简单，当 $n$ 为素数时 $f(n) = 1$，否则 $f(n) = 0$，且满足洲阁筛的条件 ($f(p)$ 是关于 $p$ 的低阶多项式)。</p>
+		<p>并且筛 $f$ 的过程也可以省略，因为这些数里面只有 $\leq \sqrt n$ 的素数 $p$ 才能使 $f(p) = 1$，因此直接线性筛出 $\leq \sqrt n$ 的素数个数即可。</p>
+		<p>最后将两部分相加，再 $- 1$ (去掉多余的 $1$) 即可。具体的实现可以见代码或上面的链接。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 682936
+using namespace std;
+
+typedef long long ll;
+
+int pn, c[N], p[55300];
+int pc, cnt = 0;
+ll n, srn, i;
+ll ip[N], v[N], g[N];
+int last[N];
+
+void sieve(int n){
+	int i, j, v; pn = 0;
+	c[0] = c[1] = -1;
+	for(i = 2; i &lt;= n; ++i){
+		if(!c[i]) p[pn++] = i;
+		for(j = 0; j &lt; pn; ++j){
+			if((v = i * p[j]) &gt; n) break;
+			c[v] = p[j];
+			if(!(i % p[j])) break; 
+		}
+	}
+}
+
+inline int ID(ll x) {return x &lt;= srn ? x : cnt + 1 - n / x;}
+
+ll solve_G(){
+	int i, _j, _k; ll j, k;
+	for(_j = 1; _j &lt;= cnt; ++_j) {g[_j] = j = v[_j]; last[_j] = 0;}
+	for(i = 0; i &lt; pc; ++i)
+		for(_j = cnt; _j; --_j){
+			j = v[_j]; k = j / p[i];
+			if(k &lt; p[i]) break;
+			_k = ID(k);
+			g[_j] -= max(1ll, g[_k] - (i - last[_k]));
+			last[_j] = i + 1;
+		}
+}
+
+int main(){
+	sieve(N - 1);
+	for(i = 1; i &lt; N; ++i) ip[i] = ip[i - 1] + !c[i];
+	scanf("%lld", &amp;n);
+	if(n &lt; N) return printf("%lld\n", ip[n]), 0;
+	// solve
+	srn = (ll)sqrt(n);
+	pc = upper_bound(p, p + pn, (int)srn) - p;
+	for(i = n; i; i = n / (n / i + 1)) v[++cnt] = n / i;
+	solve_G();
+	printf("%lld\n", ip[srn] + g[cnt] - 1);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>筛 $g_{i, j}$ 的时候通常会有一项 $f(1)$，最后记得减掉。</p>
+		<p>顺便提一句，存储 $g_{i, j}$ 的状态时，可以不用 <code>map &lt;ll, int&gt;</code> 或 Hash 表，可以将这 $O(\sqrt n)$ 种商分成两段存在一个长度为 $O(\sqrt n)$ 的数组里。如果需要调用的话，写个函数 <code>ID(x)</code> 表示 $x$ 在对应数组中的下标，具体实现如下：<code>inline int ID(ll x) {return x <= srn ? x : cnt + 1 - n / x;}</code></p>
+	</body>
+</html>

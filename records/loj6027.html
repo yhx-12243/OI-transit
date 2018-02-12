@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6027]质数计数&#8544;</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>求满足 $1 &lt; p \leq n$ 且 $p$ 的二进制表示最后两位为 $\texttt{01}$ 的质数 $p$ 有多少个。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($1 \leq n \leq 3 \times 10^{10}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示答案。</p>
+
+		<h3>题解</h3>
+		<p>这题比<a href="loj6235.html" target="_blank">上一题</a>又增加了一个条件，即所求的素数为 $4k + 1$ 型。</p>
+		<p>我们考虑构造一个函数，使得 $4k + 1$ 型素数与 $4k + 3$ 型素数的函数值不同，但同类型素数的函数值相同。</p>
+		<p>这样的函数很好构造，比如 $$ f(p) = \begin{cases} 1 & p \equiv 1 \pmod 4 \\ 0 & p \equiv 3 \pmod 4 \end{cases}$$</p>
+		<p>不过这样的函数不是多项式，更一般地，不存在一个多项式满足条件，因为每种类型的素数都有无穷多个，非常数多项式只有有限个根。那怎么办呢？</p>
+		<p>我们思考一下，为什么要求对素数 $p$，$f(p)$ 是 $p$ 的低阶多项式？回忆<a href="spojDIVCNT3.html#multiplicative" target="_blank">洲阁筛的推导</a>，我们可以发现，这个多项式只不过会分成若干个<strong>完全积性函数</strong>，然后求和。</p>
+		<p>对了，它是<strong>低阶多项式</strong>的本质原因是<strong>它可以拆成常数个完全积性函数</strong>，然后分别求和。</p>
+		<p>我们考虑将上述的 $f(p)$ 拆成常数个完全积性函数，再求和。这能不能做到呢？能！</p>
+		<p style="color: red">(ps：以下 $f(n)$ 的定义域默认为素数集 $\mathbb P$，且容易推广到自然数集，不过非素数的函数值是无关紧要的，就相当于那篇题解中的 $\mathcal F(n)$)</p>
+		<p>定义 $g(p) = 1, h(p) = \begin{cases} 0 & 2 \mid p \\ 1 & p \equiv 1 \pmod 4 \\ -1 & p \equiv 3 \pmod 4 \end{cases}$，容易验证 $g$ 和 $h$ 都是完全积性函数。且对素数 $p$，就有 $f(p) = \dfrac 12 \left( g(p) + h(p) \right)$ ($f(2)$ 特判一下即可)。</p>
+		<p><del>(乱入一句：这样的 $g$ 和 $h$ 其实都叫做 Dirichlet 特征函数)</del></p>
+		<p>于是 (把它们当作 $\mathcal F(n)$ 后) 可以使用洲阁筛筛出 $\sum\limits_p g(p)$ 和 $\sum\limits_p h(p)$，然后相加除以 $2$ 再减 $1$ ($1$ 不是素数) 即得答案。</p>
+		<p>注意筛之前先预处理一下 $p \leq \sqrt n$ 时 $h(p)$ 的前缀和，因为筛的时候需要 $\leq \sqrt n$ 的区间的 $\sum\limits_p h(p)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 426835
+using namespace std;
+
+typedef long long ll;
+const int dd[4] = {0, 1, 0, -1};
+
+int pn, c[N], p[36000];
+int pc, cnt = 0;
+ll n, srn, ans;
+ll ip[N], iq[N], v[N];
+ll g[N], h[N];
+int last[N];
+
+void sieve(int n){
+	int i, j, v; pn = 0;
+	for(i = 2; i &lt;= n; ++i){
+		if(!c[i]) p[pn++] = i;
+		for(j = 0; j &lt; pn; ++j){
+			if((v = i * p[j]) &gt; n) break;
+			c[v] = p[j];
+			if(!(i % p[j])) break; 
+		}
+	}
+}
+
+inline int ID(ll x) {return x &lt;= srn ? x : cnt + 1 - n / x;}
+
+inline ll IQ(int id) {return id ? iq[p[id - 1]] : 0;}
+
+ll solve_G(){
+	int i, _j, _k; ll j, k;
+	for(_j = 1; _j &lt;= cnt; ++_j){
+		g[_j] = j = v[_j]; last[_j] = 0;
+		h[_j] = (j + 1 &amp; 3) &gt;&gt; 1;
+	}
+	for(i = 0; i &lt; pc; ++i)
+		for(_j = cnt; _j; --_j){
+			j = v[_j]; k = j / p[i];
+			if(k &lt; p[i]) break;
+			_k = ID(k);
+			g[_j] -= g[_k] - (i - last[_k]);
+			h[_j] -= dd[p[i] &amp; 3] * (h[_k] - (IQ(i) - IQ(last[_k])));
+			last[_j] = i + 1;
+		}
+}
+
+int main(){
+	ll i;
+	sieve(N - 1);
+	for(i = 3; i &lt; N; ++i)
+		if(!c[i]){
+			ip[i] = ip[i - 1] + 1;
+			iq[i] = iq[i - 1] + dd[i &amp; 3];
+		}else {ip[i] = ip[i - 1]; iq[i] = iq[i - 1];}
+	scanf("%lld", &amp;n);
+	if(n &lt; N) return printf("%lld\n", ip[n] + iq[n] &gt;&gt; 1), 0;
+	// solve
+	srn = (ll)sqrt(n); ans = ip[srn] + iq[srn] &gt;&gt; 1;
+	pc = upper_bound(p, p + pn, (int)srn) - p;
+	for(i = n; i; i = n / (n / i + 1)) v[++cnt] = n / i;
+	solve_G();
+	ans += g[cnt] + h[cnt] &gt;&gt; 1;
+	printf("%lld\n", --ans);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 DP 的时候不要忘记乘以 $f(p_i)$！(代码中为 <code>dd[p[i] &amp; 3]</code>)</p>
+	</body>
+</html>

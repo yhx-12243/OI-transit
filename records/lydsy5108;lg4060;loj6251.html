@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5108][lg4060][loj6251][Code+ 11 月赛]可做题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>qmqmqm 希望给 sublinekelzrip 出一道可做题。于是他想到了这么一道题目：给一个长度为 $n$ 的非负整数序列 $a_i$，你需要计算其异或前缀和 $b_i$，满足条件 $b_1 = a_1, b_i = b_{i-1} \oplus a_i$ ($i \geq 2$)。</p>
+		<p>但是由于数据生成器出现了问题，他生成的序列 $a_i$ 的长度特别长，并且由于内存空间不足，一部分 $a_i$ 已经丢失了，只剩余 $m$ 个位置的元素已知。现在 qmqmqm 找到你，希望你根据剩余的 $a_i$，计算出所有可能的 $a_i$ 序列对应的 $b_i$ 序列中 $\sum\limits_{i=1}^n b_i$ 的最小值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($1 \leq n \leq 10^9, m \leq \min \{n, 10^5\}$，分别表示原始序列 $a_i$ 的长度及剩余元素的个数。</p>
+		<p>之后 $m$ 行，每行包含两个非负整数 $i, a_i$ ($1 \leq i \leq n, a_i \leq 10^9$)，表示一个剩余元素的位置和数值。</p>
+		<p>保证输入中所有的 $i$ 互不相同。注意未知的 $a_i$ 可以超过已知 $a_i$ 的上界。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示可能的最小值。</p>
+
+		<h3>题解</h3>
+		<p>首先可以注意到，计算 $b_i$ 的和的时候，每一位的贡献是独立的。因此，我们只需分开考虑每一位的贡献 (即让每一位都变成最小值)，最后乘上权值相加即可。故我们只需考虑 $a_i \in \{0, 1\}$ 的情况。</p>
+		<p>考虑一段连续的已知 $a_i$，设它的两个端点是 $[l, r]$。由于 $a_{l-1}$ 是任意的，因此无论前面怎么样，$b_{l-1}$ 也是任意的，记为 $t$ ($t \in \{0, 1\}$)。</p>
+		<p>接下来，由于 $a_l$ 到 $a_r$ 均已知，因此 $b_l$ 到 $b_r$ 也能对应确定下来，不妨记里面有 $c_0$ 个 $t$ 和 $c_1$ 个 $!t$。由于我们需要让这 $r - l + 2$ 个数的总和最小，因此我们只需取 $c_0$ 和 $c_1$ 的较小值，就是最小的总和 (即 $c_0 \leq c_1$ 时取 $t = 1$，$c_0 &gt; c_1$ 时取 $t = 0$)。</p>
+		<p>若对于 $i$，$a_i$ 和 $a_{i+1}$ 都未知，因此 $b_i$ 和 $b_{i+1}$ 都是任意的，此时可以直接令 $b_i = 0$ (解出对应的 $a_i$) 即可。</p>
+		<p>当然需要注意的是，如果 $l = 1$，由于 $a_0$ 不在这个序列中，因此它只能等于 $0$。同理，对应的 $t$ (即 $b_0$) 也要等于 $0$，这个需要特判一下。</p>
+		<p>最后相加即可，时间复杂度 $O(m \log a_i)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+#define INF 0x3f3f3f3f
+using namespace std;
+
+typedef long long ll;
+typedef pair &lt;int, int&gt; pr;
+
+int n, m;
+ll ans = 0;
+pr v[N];
+
+int main(){
+	int b, i, j, t, c[2], res;
+	scanf("%d%d", &amp;n, &amp;m);
+	for(i = 0; i &lt; m; ++i) scanf("%d%d", &amp;v[i].first, &amp;v[i].second);
+	sort(v, v + m);
+	for(b = 0; b &lt; 30; ++b){
+		res = 0;
+		for(j = 0; (i = j) &lt; m; ){
+			c[0] = (v[i].first == 1 ? INF : 1);
+			c[1] = t = 0;
+			do {++c[t ^= v[j].second &gt;&gt; b &amp; 1]; ++j;} while(v[j - 1].first == v[j].first - 1);
+			res += min(c[0], c[1]);
+		}
+		ans += (ll)res &lt;&lt; b;
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意最后乘上对应权值的时候可能爆 <code>int</code>，记得转换成 <code>long long</code>！</p>
+	</body>
+</html>

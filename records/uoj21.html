@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj21]缩进优化</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 O 是一个热爱短代码的选手。在缩代码方面，他是一位身经百战的老手。世界各地的 OJ 上，很多题的最短解答排行榜都有他的身影。这令他感到十分愉悦。</p>
+		<p>最近，他突然发现，很多时候自己的程序明明看起来比别人的更短，实际代码量却更长。这令他感到很费解。经过一番研究，原来是因为他每一行的缩进都全是由空格组成的，大量的空格让代码量随之增大。</p>
+		<p>现在设小 O 有一份 $n$ 行的代码，第 $i$ 行有 $a_i$ 个空格作为缩进。</p>
+		<p>为解决这一问题，小 O 要给自己文本编辑器设定一个正整数的默认 <kbd>Tab</kbd> 宽度 $x$，然后对于每一行，编辑器从头至尾不断把连续 $x$ 个空格替换成一个 <kbd>Tab</kbd>，直到剩余空格数不足 $x$ 个。</p>
+		<p>最终缩进所占代码量为空格数与 <kbd>Tab</kbd> 数的和。请你帮小 O 选择一个合适的 $x$，使得缩进所占代码量最小。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^6$)，表示代码行数。</p>
+		<p>接下来 $n$ 行，第 $i$ 行包含一个正整数 $a_i$ ($a_i \leq 10^6$)，为初始时第 $i$ 行缩进的空格个数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示缩进所占代码量最小是多少。</p>
+		<p>C/C++ 输入输出 long long 时请用 <code>%lld</code>。C++ 可以直接使用 cin/cout 输入输出。</p>
+
+		<h3>题解</h3>
+		<p>设 <kbd>Tab</kbd> 宽度为 $x$，则对于有 $a$ 个空格的行，最终会缩成 $\left \lfloor \dfrac ax \right \rfloor + (a \bmod x)$ 个字符。</p>
+		<p>因此我们只需找一个 $x$ 使得下式 $$ \sum_{i=1}^n \left( \left \lfloor \dfrac {a_i} x \right \rfloor + (a_i \bmod x) \right) $$ 取得最小值。</p>
+		<p>由于这个和式中每项都由两部分组成，因此不好处理。注意到有 $\bmod$ 运算，可以考虑恒等式 $a = x \left \lfloor \dfrac ax \right \rfloor + (a \bmod x)$ <del>(好像就是模运算的定义)</del>，因此对于每个 $a_i$，我们考虑</p>
+		<p>$$ a_i - \left( \left \lfloor \frac {a_i} x \right \rfloor + (a_i \bmod x) \right) = (x - 1) \left \lfloor \frac {a_i} x \right \rfloor $$</p>
+		<p>而 $\sum\limits_{i=1}^n a_i$ 又是已知的。因此我们所要做的，就是<strong>最大化</strong>上面的式子。</p>
+		<p>记 $a_i$ 的最大值为 $M$ ($M \leq 10^6$) 考虑枚举每个 $x$，由于 $\left \lfloor \dfrac {a_i} x \right \rfloor$ 的取值不超过 $\left \lfloor \dfrac Mx \right \rfloor$，因此我们可以枚举 $\left \lfloor \dfrac {a_i} x \right \rfloor$ 的值 $j$，求出有多少个 $a_i$ 满足条件，即 $j \cdot x \leq a_i &lt; (j+1) \cdot x$。可以看出这显然可以用前缀和解决。</p>
+		<p>(scx: 这样复杂度是对的吗？)</p>
+		<p>当然啦。对于每个 $x$，枚举量为 $\dfrac Mx$，故总的时间复杂度即为 $M + \dfrac M2 + \dfrac M3 + \cdots + \dfrac MM = \sum\limits_{i=1}^M \dfrac Mi = O(M \log M)$，可以跑过去。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 2048808
+using namespace std;
+
+typedef long long ll;
+
+int n, M, i, j, g;
+int a[N], c[N];
+ll s, f[N];
+
+int main(){
+	scanf("%d", &amp;n);
+	for(i = 1; i &lt;= n; ++i){
+		scanf("%d", a + i); ++f[a[i]];
+		M = max(M, a[i]); s += a[i];
+	}
+	for(i = 0; i &lt; N - 1; ++i) c[i + 1] = c[i] + f[i];
+	for(i = 1; i &lt;= M; ++i){
+		f[i] = 0;
+		for(j = 0; i * j &lt;= M; ++j) f[i] += (c[i * (j + 1)] - c[i * j]) * j;
+		if((f[i] *= (i - 1)) &gt; f[g]) g = i;
+	}
+	printf("%lld\n", s - f[g]);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>记得数组要开两倍，如果像我一样是 <code>for</code> 到 $j + 1$ 的。</p>
+	</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg2305][uoj7][loj2249][NOI2014]购票</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>今年夏天，NOI 在 SZ 市迎来了她 30 周岁的生日。来自全国 $n$ 个城市的 OIer 们都会从各地出发，到 SZ 市参加这次盛会。</p>
+		<p>全国的城市构成了一棵以 SZ 市为根的有根树，每个城市与它的父亲用道路连接。为了方便起见，我们将全国的 $n$ 个城市用 $1$ 到 $n$ 的整数编号。其中 SZ 市的编号为 $1$。对于除 SZ 市之外的任意一个城市 $v$，我们给出了它在这棵树上的父亲城市 $f_v$ 以及到父亲城市道路的长度 $s_v$。</p>
+		<p>从城市 $v$ 前往SZ市的方法为：选择城市 $v$ 的一个祖先 $a$，支付购票的费用，乘坐交通工具到达 $a$。再选择城市 $a$ 的一个祖先 $b$，支付费用并到达 $b$。以此类推，直至到达 SZ 市。</p>
+		<p>对于任意一个城市 $v$，我们会给出一个交通工具的距离限制 $l_v$。对于城市 $v$ 的祖先 $a$，只有当它们之间所有道路的总长度不超过 $l_v$ 时，从城市 $v$ 才可以通过一次购票到达城市 $a$，否则不能通过一次购票到达。对于每个城市 $v$，我们还会给出两个非负整数 $p_v, q_v$ 作为票价参数。若城市 $v$ 到城市 $a$ 所有道路的总长度为 $d$，那么从城市 $v$ 到城市 $a$ 购买的票价为 $d \cdot p_v + q_v$。</p>
+		<p>每个城市的 OIer 都希望自己到达 SZ 市时，用于购票的总资金最少。你的任务就是，告诉每个城市的 OIer 他们所花的最少资金是多少。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, t$ ($n \leq 2 \times 10^5$)，分别表示城市的个数和数据类型。</p>
+		<p>输入文件的第 $2$ 到 $n$ 行，每行描述一个除 SZ 之外的城市。其中第 $v$ 行包含五个非负整数 $f_v, s_v, p_v, q_v, l_v$，分别表示城市 $v$ 的父亲城市，它到父亲城市道路的长度，票价的两个参数和距离限制。</p>
+		<p>对于所有测试数据，保证 $0 \leq p_v \leq 10^6, 0 \leq q_v \leq 10^{12}, 1 \leq f_v &lt; v$，且有 $0 &lt; s_v \leq l_v \leq 2 \times 10^{11}$，且任意城市到 SZ 市的总路程长度不超过 $2 \times 10^{11}$。</p>
+		<p>请注意：<strong>输入不包含编号为 $1$ 的 SZ 市，第 $2$ 行到第 $n$ 行分别描述的是城市 $2$ 到城市 $n$。</strong></p>
+
+		<h3>输出格式</h3>
+		<p>输出包含 $n-1$ 行，每行包含一个整数。其中第 $v$ 行表示从城市 $v+1$ 出发，到达 SZ 市最少的购票费用。</p>
+		<p>同样请注意：<strong>输出不包含编号为 $1$ 的 SZ 市。</strong></p>
+
+		<h3>题解</h3>
+		<p>同样容易想到转移方程：$$ f_i = \min_{j \in anc(i), D_i - D_j \leq l_i} \{ f_j + p_i (D_i - D_j) + q_i \} $$</p>
+		<p>其中 $D_i$ 表示 $l_i$ 的树上前缀和，即根节点 ($1$ 号点) 到点 $i$ 的距离。</p>
+		<p>不过这个转移是 $O(n^2)$ 的，显然过不去。<del>(你觉得 NOI 压轴题会出一道一眼题吗？想想都不可能)</del></p>
+		<p>于是尝试着优化 DP。由于树上难以讨论，那么<strong>先转移到链上</strong>考虑。</p>
+		<p>这式子看上去感觉可以进行斜率优化。于是考虑状态 $0 \leq j &lt; k &lt; i$，且 $k$ 的决策更优，则</p>
+		<p>$$ f_k + p_i (D_i - D_k) + q_i &lt; f_j + p_i (D_i - D_j) + q_i $$</p>
+		<p>化简即得 (注意对于一条链有 $D_j &lt; D_k$) $$ \frac {f_k - f_j} {D_k - D_j} &lt; p_i $$</p>
+		<p>一个<del>非常漂亮的</del>斜率方程。<del>于是你开始兴致勃勃地写单调队列/下凸包……</del>，然后你一转头，突然发现 $p_i$ 根本不是单调的……</p>
+		<P>因此正解是先把所有的点用单调栈跑一遍半平面交 (即下凸包)，然后对每个询问的目标斜率 (即 $P_i$) 在凸包上二分即得答案。</p>
+		<p>(scx: 那 $D_i - D_j \leq l_i$ 的条件怎么处理呢？)</p>
+		<p>点 $j$ 可以被点 $i$ 转移当且仅当 $D_i - D_j \leq l_i$ 即 $D_i - l_i \leq D_j$。</p>
+		<p>此时可以考虑 $D_i - l_i$ 从大到小排序，然后根据这个顺序依次将 $j$ 加入凸包。不过这里会有一个问题，如果 $j &gt; i$，那么 $f_j$ 是未确定的，这该怎么办呢？</p>
+		<p>此时可以使用<strong>陈丹琦分治</strong>的思想。即将整条链分成两半，左边右边分别解决，而<strong>陈丹琦分治</strong>与普通分治不同的一点是，<strong>它需要处理左边 (前面) 结果对右边 (后面) 的影响</strong>。本题中左边对右边影响，即右边的状态可以由左边转移得到。</p>
+		<p>此时，对于右边的状态，我们可以<strong>只考虑从左边转移</strong>。现在，将 $D_i - l_i$ 从大到小排序，依次加入 $D_j$，可以看到，此时的 $f_j$ 都是已确定的，因此放心大胆地转移吧。</p>
+		<p>于是链上的问题，在陈丹琦分治 (以下简称 CDQ 分治) 的帮助下已经在 $O \left( n \log^2 n \right)$ 的时间内解决了，接下来考虑树上的问题。</p>
+		<p>继续引用<a href="http://uoj.ac/blog/3248" target="_blank">某大佬的话</a>：</p>
+		<blockquote><p>总是有出题人喜欢把序列上用线段树解决的题目出到树上，让选手强行写个树链剖分或树分治或某种动态树数据结构。</p>
+		<p>这种行为已经很无趣了。</p></blockquote>
+		<p>于是我们就试着使用上面这些<strong>链转树</strong>算法。首先这道题写树链剖分显然是不现实的 (由于不是链和子树的询问)，而链上的问题已经使用了 <abbr title="陈丹琦分治">CDQ 分治</abbr>，因此为我们可以考虑树分治 (即静态点分治)。</p>
+		<p>当时的 <abbr title="陈丹琦分治">CDQ 分治</abbr>是将整个序列分成两段 $[l \ldots mid]$ 和 $[mid+1 \ldots r]$，树上同样也可以类似地做。</p>
+		<p>假设现在我们要解决一棵以 $r$ 为根的树上问题。不妨设该树的重心为 $C$。此时根据 <abbr title="陈丹琦分治">CDQ 分治</abbr>的思想，先在原树中把以 $C$ 为根的子树去掉 (但点 $C$ 不用去掉)，先分治前面的部分。然后对<strong>以 $C$ 为根的子树</strong>中的点进行类似地操作 (排序 + 动态加点 + 斜率优化，同样点 $C$ 不用操作)，然后<strong>递归解决</strong> $C$ 的所有子树。</p>
+		<p>这就是<sTrong>树上陈丹琦分治</strong>的思想。和一般的树分治 (静态点分治) 有所不同的是，它是<strong>先解决</strong>上面的这棵子树，再合并答案，最后分治下面的子树；而静态点分治做的是先处理答案再递归<strong>所有子树</strong> (包括上面的那棵)，即把原树看作了<strong>自由树</strong> (无根树)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 256101
+#define stack scx
+using namespace std;
+
+typedef long long ll;
+
+struct node{
+	int id; ll mindep;
+	node (int _id = 0, ll mindepth = 0): id(_id), mindep(mindepth) {}
+	inline bool operator &lt; (const node &amp;B) const {return mindep &gt; B.mindep;}
+}a[N];
+
+int n, cnt;
+int p[N], fc[N], nc[N];
+ll D[N], k[N], b[N], lim[N], f[N];
+int forbid[N], size[N];
+int stack[N], top;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+inline void link(int x, int px) {nc[x] = fc[px]; fc[px] = x;}
+inline bool check(int A, int B, int C){ // ensure D[A] &gt; D[B] &gt; D[C]
+	// (f[A] - f[B]) / (D[A] - D[B]) &gt;= (f[B] - f[C]) / (D[B] - D[C])
+	return (__int128)(f[A] - f[B]) * (D[B] - D[C]) &gt;= (__int128)(f[B] - f[C]) * (D[A] - D[B]);
+}
+
+namespace Centroid{
+	int V, Gm, G;
+	int get(int x){
+		int y, M = 0; size[x] = 1;
+		for(y = fc[x]; y; y = nc[y]) {get(y); up(M, size[y]); size[x] += size[y];}
+		up(M, V - size[x]);
+		if(M &lt;= Gm) {Gm = M; G = x;}
+		return G;
+	}
+}
+
+void dfs(int x){
+	a[cnt++] = node(x, D[x] - lim[x]);
+	for(int y = fc[x]; y; y = nc[y]) dfs(y);
+}
+
+void solve(int x, int Size){
+	if(Size == 1) return;
+	int y, i, j, v, cur, L, R, M;
+	Centroid::V = Size; Centroid::Gm = INT_MAX;
+	int G = Centroid::get(x), fc_G = fc[G]; fc[G] = 0;
+	// pre_solve
+	solve(x, Size - size[G] + 1); fc[G] = fc_G;
+	// solve
+	top = cnt = 0; dfs(G); // b[0] = G
+	sort(a + 1, a + cnt);
+	for(i = 1; i &lt; cnt &amp;&amp; a[i].mindep &gt; D[G]; ++i);
+	for(cur = G; i &lt; cnt; ++i){
+		for(j = a[i].id; D[cur] &gt;= D[x] &amp;&amp; D[cur] &gt;= a[i].mindep; cur = p[cur]){
+			// slope(cur, stack[top]) &gt;= slope(stack[top], stack[top - 1])
+			for(; top &gt; 1 &amp;&amp; check(cur, stack[top], stack[top - 1]); --top);
+			stack[++top] = cur;
+		}
+		for(L = 1, R = top; L &lt; R; ){
+			M = L + R &gt;&gt; 1;
+			// slope(stack[M], stack[M + 1]) &lt;= k[j] --&gt; go right --&gt; R = M
+			f[stack[M]] - f[stack[M + 1]] &lt;= k[j] * (D[stack[M]] - D[stack[M + 1]]) ?
+				R = M : (L = M + 1);
+		}
+		v = stack[L];
+		down(f[j], f[v] + k[j] * (D[j] - D[v]) + b[j]);
+	}
+	// next_solve
+	for(y = fc[G]; y; y = nc[y]) solve(y, size[y]);
+}
+
+int main(){
+	int i;
+	scanf("%d%*d", &amp;n);
+	for(i = 2; i &lt;= n; ++i){
+		scanf("%d%lld%lld%lld%lld", p + i, D + i, k + i, b + i, lim + i);
+		D[i] += D[p[i]]; link(i, p[i]);
+	}
+	memset(f, 63, sizeof f); f[1] = 0; D[0] = -1;
+	solve(1, n);
+	for(i = 2; i &lt;= n; ++i) printf("%lld\n", f[i]);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意陈丹琦分治的顺序！先分治左边，再处理影响，最后分治右边！一个也不能颠倒！</p>
+		<p><strong>坑2：</strong>在分治时记得当 <code>size = 1</code> 时直接 <code>return;</code> 掉。</p>
+		<p><strong>坑3：</strong>判断斜率时可能爆 <code>long long</code>，故使用 <code>__int128</code> 来存储 (或者使用 <code>double</code> 等浮点数)。<del>由于 lydsy 不支持 <code>__int128</code> (听说是 32 位机？)，所以我干脆不交了。</del></p>
+	</body>
+</html>

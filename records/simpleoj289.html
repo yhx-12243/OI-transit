@@ -29,6 +29,20 @@
 		<p>输出一行一个整数，表示所有答案的和。</p>
 
 		<h3>题解</h3>
+		<p>由于是树上的问题，于是先使用树链剖分转化成链上的问题。(引用<a href="http://uoj.ac/blog/3248" target="_blank">某大佬的话</a>，注意树中每条路径对应到 $O(\log n)$ 个区间)</p>
+		<blockquote><p>总是有出题人喜欢把序列上用线段树解决的题目出到树上，让选手强行写个树链剖分或树分治或某种动态树数据结构。</p>
+		<p>这种行为已经很无趣了。</p></blockquote>
+		<p>接下来考虑链上的问题怎么做。由于只需要求出所有询问的和，因此我们尝试离线 (估计在线也搞不出什么方法来)，统计<strong>每个位置上的</strong>橘子的贡献，最后再相加即可。</p>
+		<p>这样，这道题就非常类似于<a href="http://hihocoder.com/problemset/problem/1034" target="_blank">毁灭者问题</a>了。采用类似的离线思路，考虑链上每个位置，我们可以用一个 <code>set &lt;int&gt;</code> 维护它被询问的时间集合，再用一个 <code>multiset &lt;int&gt;</code> 或者 <code>map &lt;int, int&gt;</code>维护相邻两次采摘的时间差的集合。</p>
+		<p>由于询问数是 $O(m \log n)$ 的，因此端点数也是 $O(m \log n)$ 的。因此我们只需按照顺序处理每个位置上的时间集合，如果遇到端点了，就暴力加入/删除。</p>
+		<p>最后就是计算的问题了，对于位置 $i$ 上所有的询问时间差 (组成的集合 $M_i$)，对 $M_i$ 中所有 $&gt; \left \lfloor \dfrac {b_i} {a_i} \right \rfloor$ 的元素，采摘时的橘子数应该是 $b_i$。反之，若元素 $t \leq \left \lfloor \dfrac {b_i} {a_i} \right \rfloor$，对应的橘子数救你应该为 $t \cdot a_i$。</p>
+		<p>最后由于还要计算 $f(x)$，故总时间复杂度为 $O \left( (n + m) \log^2 n \cdot T_f(n) \right)$，其中 $T_f(n)$ 为计算 $f(x)$ 的时间复杂度。因此 $T_f(n)$ 显然不能太大，考虑如何求出这些值呢？</p>
+		<p>考虑要被计算 $f(x)$ 的值，它有两种，一种是 $b_i$，一种是 $t \cdot a_i$。首先考虑 $b_i$，由于它只有 $n$ 种，因此我们可以预处理出 $f(b_1), f(b_2), \cdots, f(b_n)$。</p>
+		<p>由于 $f(x) = \max\limits_{d^2 \mid x} d^2$，因此我们设 $x = M^2 y$，其中 $y$ 为 "平方松" (square-free) 的。显然 $M, y$ 中至少有一个不超过 $\sqrt[3]x$，考虑大于 $\sqrt[3]x$ 且整除 $x$ 的素数 $p$，它要么在 $M$ 中出现两次，要么在 $M$ 中不出现且在 $y$ 中出现一次或两次 (这里的两次指的是不同的两个素数)。因此我们可以将 $&lt; \sqrt[3]x$ 的素数预处理出来筛掉 (并计算这部分素数的贡献)，对于剩下的数，只需判断它是否为完全平方数即可 (或者是 $1$)。单次计算复杂度 $O \left( \sqrt[3]{b_i} \right)$。</p>
+		<p>对于 $t \cdot a_i$，由于 $t, a_i \leq 3 \times 10^5$，因此我们可以预先筛出或<del>各种</del>预处理出 $\leq 3 \times 10^5$ 的数对应的 $f(x)$ 值，然后使用如下结论：</p>
+		<p>若 $\gcd (a, b) = d$，则 $$ f(a b) = f \left( \dfrac a d \right) \cdot f \left( \dfrac b d \right) \cdot d^2 $$ 证明甚易。因此可以在 $O(1)$ 时间内计算。</p>
+		<p>总体而言，可以在较快的时间内求出对应的 $f(x)$ 值，最后相加即可。总时间复杂度 $O \left( n \sqrt[3]{b_i} + (n + m) \log^2 n \right)$。</p>
+		
 
 		<h3>代码</h3>
 
@@ -212,5 +226,7 @@ int main(){
 </pre></div>
 
 		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意题目中的约定，$f(0) = 0$！需要特判一下，因为 $a_i, b_i$ 是有可能等于 $0$ 的。</p>
+		<p><strong>坑2：</strong>在统计时间差集合 $M_i$ 时，尽量使用 <code>map &lt;int, int&gt;</code>，这样相同的就可以利用乘法加速，<del>比 <code>multiset &lt;int&gt;</code> 快到不知道哪里去了</del>。</p>
 	</body>
 </html>

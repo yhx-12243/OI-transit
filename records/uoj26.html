@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj26][IOI2014]Game</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>健佳是一个喜欢做游戏的小男生。当有人问问题时，他更喜欢通过玩游戏的方式作答，而不是直接回答。健佳碰到了他的朋友梅玉，跟她讲了台湾的航空网。在台湾有 $n$ 个城市 (编号为 $0, \cdots, n - 1$)，其中有些城市之间有航线。每个航线连接两个城市，并且是双向的。</p>
+		<p>梅玉问健佳，是否任意两个城市之间都可以坐飞机互达 (直接或间接)，健佳不想直接回答，而是要通过做游戏的方式来告诉她。梅玉可以问 "城市 $u$ 和 $v$ 之间有直接航线吗？"，健佳会立刻直接回答该问题。梅玉会询问每对城市恰好一次，因此总计会有 $r = \dbinom n2$ 个问题。</p>
+		<p>如果由前 $i$ ($i &lt; r$) 个问题的答案可以推断出整个航空网是否连通，也就是说，是否任意一对城市之间都可以坐飞机互达 (直接或间接)，梅玉就获胜。否则意味着她需要知道全部 $r$ 个回答，此时健佳获胜。</p>
+		<p>为了让游戏更好玩，他们俩同意，健佳可以不要管台湾的真实航空网，而是可以随着游戏的进展而编造航空网，也就是根据梅玉此前的提问来决定此后如何作答。你的任务是，通过决定健佳如何回答，来帮助他赢得游戏。</p>
+
+		<h3>任务</h3>
+		<p>请写出一个可以帮助健佳获胜的程序。注意，无论是梅玉还是健佳，都不知道对方的策略。梅玉可以以任意的顺序来询问城市对，而健佳必须在不清楚后面提问的前提下立刻给出回答。你需要实现下面的两个函数：</p>
+		<ul>
+		<li>initialize(n) —— 我们会先调用你的 initialize 函数。参数 $n$ 是城市数目，满足 $4 \leq n \leq 1500$。</li>
+		<li>hasEdge(u, v) —— 接着我们会调用 hasEdge 函数 $r = \dbinom n2$ 次。这些调用代表了梅玉的提问，顺序与她提问的次序相同。你必须回答在城市 $v$ 和 $u$ 之间是否有直接航线。具体而言，返回值 $1$ 表示有，$0$ 表示没有。</li>
+		</ul>
+
+		<h3>实现细节</h3>
+		<p>本题只支持 C/C++。</p>
+		<p>你只能提交一个源文件实现上述的函数，其命名与接口需遵循下面的要求。你还要在该文件中包含头文件game.h。</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">void initialize(int n);
+int hasEdge(int u, int v);</code></pre>
+
+		<h3>题解</h3>
+		<p>题目意思即，当她知道前 $r-1$ 个回答后，仍无法确定判断图的连通性。这意味着最后一个 (第 $r$ 个) 回答的真假 ($u_r, v_r$ 是否有边相连) 决定了整个图是否连通。那么肯定是当 $u_r, v_r$ 有边时连通，无边不连通，即 $(u_r, v_r)$ 是一个桥边。</p>
+		<p>由于最后一个回答对整个方案已经没有实质性的影响，因此我们总是假定最后一个问题的答案是<strong>真</strong> (有边相连)，即<strong>整张图是一个连通图</strong>，且 $(u_r, v_r)$ 是桥边。</p>
+		<p>怎么才能保证它是桥边呢？我们尝试着让桥边尽可能的多。什么图具有最多的桥边？仙人掌？当然是<strong>树</strong>啦。因此我们希望造出的图是一棵树。</p>
+		<p>由于树的边数只有 $n-1$，因此大多数问题的回答都是<strong>假</strong>，只有少量问题为真。<span style="color: red">(注意以下分析中点的编号为 $1 \sim n$)</span></p>
+		<p>随便取一个点 $n$，对它进行分析。梅玉会问 $n-1$ 个与点 $n$ 有关的信息。(显然不能都回答假，不然就不是树了) 我们可以选择在前 $n-2$ 次回答<strong>假</strong>，再最后一次回答<strong>真</strong>。那么，她只有再问完所有与 $n$ 有关的的问题后，才能确定点 $n$ 与其它点的连通性。</p>
+		<p>如果关于 $n$ 的最后一次询问就是第 $r$ 次，那么就成功构造了。否则的话，我们可以将点 $n$ 从原图中<strong>去除</strong>，且不影响答案 (因为在前 $r-1$ 次就知道点 $n$ 与其它点是连通的，因此可以不用考虑)。于是原题就转化为了点数为 $n-1$ 的子问题。对 $n-1$ 同样进行上述操作 (对梅玉问的 $n-2$ 个问题，只有最后一次回答真)，依次类推……</p>
+		<p>一直到 $n=2$ 时，最后只有一条边，这条边的真假就能确定图的连通性了。且容易证明，造出的图<strong>一定是一棵树</strong>。</p>
+		<p>综上所述，总的策略就是：对于每对询问 $(u, v)$ <strong>(其中 $u &lt; v$，否则交换过来)</strong>，<strong>如果这是关于点 $v$ 的第 $v-1$ 次询问</strong> (即最后一次询问)，就回答真，否则回答假。</p>
+		<p>时间复杂度：预处理 $O(0)$，单次询问 $O(1)$，代码极易实现。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "game.h"
+#include &lt;utility&gt;
+#define N 1600
+
+int deg[N];
+
+void initialize(int n) {}
+
+int hasEdge(int u, int v){
+	if(u &gt; v) std::swap(u, v);
+	return ++deg[v] == v;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong><code>"game.h"</code> 头文件注意是引号，交换变量的时候注意 <code>#include &lt;utility&gt;</code> (或者 <code>&lt;algorithm&gt;</code>)。</p>
+	</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj30][Codeforces487E]Tourists</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Cyberland 有 $n$ 座城市，编号从 $1$ 到 $n$，有 $m$ 条双向道路连接这些城市。第 $j$ 条路连接城市 $a_j$ 和 $b_j$。每天，都有成千上万的游客来到 Cyberland 游玩。</p>
+		<p>在每一个城市，都有纪念品售卖，第 $i$ 个城市售价为 $w_i$。这个售价有时会变动。</p>
+		<p>每一个游客的游览路径都有固定起始城市和终止城市，且不会经过重复的城市。</p>
+		<p>他们会在路径上的城市中，售价最低的那个城市购买纪念品。</p>
+		<p>你能求出每一个游客在所有合法的路径中能购买的最低售价是多少吗？</p>
+		<p>你要处理 $q$ 个操作：</p>
+		<ol>
+		<li><code>C a w</code>: 表示 $a$ 城市的纪念品售价变成 $w$。</li>
+		<li><code>A a b</code>: 表示有一个游客要从 $a$ 城市到 $b$ 城市，你要回答在所有他的旅行路径中最低售价的最低可能值。</li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含用一个空格隔开的三个正整数 $n, m, q$ ($n, m, q \leq 10^5$)。</p>
+		<p>接下来 $n$ 行，每行包含一个正整数 $w_i$ ($w_i \leq 10^9$)。</p>
+		<p>接下来 $m$ 行，每行包含用一个空格隔开的两个数 $a_j, b_j$ ($1 \leq a_j, b_j \leq n, a_j \neq b_j$)。</p>
+		<p><strong>数据保证没有两条道路连接同样一对城市，也没有一条道路两端是相同的城市。并且任意两个城市都可以相互到达。</strong></p>
+		<p>接下来 $q$ 行，每行是 <code>C a w</code> 或 <code>A a b</code> ，描述了一个操作。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每一个 <code>A</code> 类操作，输出一行表示对应的答案。</p>
+
+		<h3>题解</h3>
+		<p>注意到题目中连接两点 (起始城市和终止城市) 之间的是<strong>路径 (path)</strong>，所以可以考虑使用点双连通分量 + 缩点。</p>
+		<p>像强连通分量一样，一个点双连通分量中的点是可以任意到达的 (而不经过重复点)。因此对询问 $a, b$，我们记 $a, b$ 缩点后为 $A, B$，那么答案就是 "缩点后 $A$ 到 $B$ 的路径上的点" 所对应的原来的那些点的权值最小值。</p>
+		<p>是不是很绕？看个图就明白了。</p>
+		<img class="center-block" src="uploads/9.gif" alt="点双连通分量" />
+		<p>不过需要注意的是，按照<strong>边双连通分量</strong>缩点后的图就是一棵标准的树，而按照<strong>点双连通分量</strong>缩点后的图就不是一棵标准的数，因为有这么一些捣蛋鬼——<strong>割点</strong>。</p>
+		<p>可以看出，一个割点<strong>同时属于多个点双连通分量</strong>。因此如果询问点是割点的话，就不怎么好处理了。</p>
+		<p>比如上面图中的点 $a$，它只能走上面的双连通分量 (图中的 BCC1)，而不能走下面的双连通分量。但是如果询问的 $b$ 点在下方，那么我们选的点 (青色的点) 只能在下方而不能在上方 (BCC1)。</p>
+		<p>因此，在点双 (点双连通分量) 缩点中，需要对<strong>割点</strong>进行<strong>特殊处理</strong>。</p>
+		<p>我们可以采用如下策略：<del>像仙人掌的圆方树一样</del>，我们对于每个点双新建一个点 $b$。将该点双中所有的点与点 $b$ 相连，如下图所示。那么对于割点来说，它可能与多个点双对应的 $b$ 点相连。</p>
+		<img class="center-block" src="uploads/10.gif" alt="点双缩点" />
+		<p>于是我们就得到了一棵<strong>树</strong> <del>(对仙人掌来说，这就是与那个仙人掌一一对应的圆方树)</del>。这就是点双缩点的基本策略。<del>(其实我们并没有缩点，反而将点数翻了一倍)</del></p>
+		<p>记点双对应的 $b$ 点 (即上图中的粉色点) 的权值为<strong>与它相邻的点 (肯定都是红点) 的权值的最小值</strong>。此时，对任意一对询问点 $a, b$，在对应树上连接 $a, b$ 的路径中的点权的最小值，就是我们要的答案。</p>
+		<p>于是我们成功将原题转化为了一道树上查询点权最小值的题目，考虑到有修改，可以使用树链剖分 + 线段树解决 <del>(当然如果你写 LCT 我也不反对)</del>。</p>
+		<p>不过到这还没完。考虑到粉色点的点权不是独立的，而是<strong>联动的</strong> (即随着红色点点权的变化而变化)，因此修改一个红点，就会影响到粉色点的点权。那么如果这个红点是割点呢？如果原图是菊花图呢？那么修改的粉色点的个数将会达到 $O(n)$！显然不能接受。</p>
+		<p>因此我们只能<strong>修改粉色点权值的定义</strong>。我们考虑将这棵树转化为有根树，由于每条树边都是连接一个红色点和一个粉色点，因此每个粉色点有若干个红色子节点和一个红色父节点。我们让这个粉色点的权值定义为<strong>它的红色子节点的权值的最小值</strong>。这样每修改一个红色点，只需要更改的它的粉色父节点的值即可。</p>
+		<p>最后询问的时候，如果它们的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 是粉色节点 $b$，由于这个点 $b$ 已经不含它的红色父节点的信息了，因此我们还需要将答案与 $b$ 的红色父节点 $p(b)$ 的权值取 $\min$。</p>
+		<p>最后，对于每个粉色节点，需要维护一个<del>平衡树</del> <code>multiset &lt;int&gt;</code>，来维护它的红色子节点的权值的最小值 (好像用堆也可以？)，时间复杂度 $O \left( n \log^2 n \right)$ (别怕，树剖的 $\log^2 n$ 是虚的)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+typedef multiset &lt;int&gt; mset;
+
+const int N = 100034;
+
+int V, V2, E, q;
+int u, v;
+int w[N &lt;&lt; 1];
+mset s[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace ST{
+	#define segc int M = L + R - 1 &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+	const int N = ::N &lt;&lt; 3;
+	int x[N], pre[N];
+
+	void build(int id, int L, int R){
+		if(L == R) {x[id] = pre[L]; return;}
+		segc; build(lc, L, M); build(rc, M + 1, R);
+		x[id] = min(x[lc], x[rc]);
+	}
+
+	void adj(int id, int L, int R, int h, int v){
+		if(L == R) {x[id] = v; return;}
+		segc; h &lt;= M ? adj(lc, L, M, h, v) : adj(rc, M + 1, R, h, v);
+		x[id] = min(x[lc], x[rc]);
+	}
+
+	int range(int id, int L, int R, int ql, int qr){
+		if(ql &lt;= L &amp;&amp; R &lt;= qr) return x[id];
+		segc, s = INT_MAX;
+		if(ql &lt;= M) down(s, range(lc, L, M, ql, min(qr, M)));
+		if(qr &gt; M) down(s, range(rc, M + 1, R, max(ql, M + 1), qr));
+		return s;
+	}
+}
+
+namespace Tree{
+	const int N = ::N &lt;&lt; 1, M = N &lt;&lt; 1;
+	int V = 0, E, to[M], first[N], next[M];
+	int p[N], dep[N], size[N];
+	int id[N], prf[N], top[N];
+
+	inline void addedge(int u, int v){
+		to[++E] = v; next[E] = first[u]; first[u] = E;
+		to[++E] = u; next[E] = first[v]; first[v] = E;
+	}
+
+	void dfs_wt(int x){
+		int i, y, &amp;z = prf[x]; size[x] = 1;
+		for(i = first[x]; i; i = next[i])
+			if((y = to[i]) != p[x]){
+				p[y] = x; dep[y] = dep[x] + 1;
+				dfs_wt(y);
+				size[y] &gt; size[z] ? z = y : 0;
+				size[x] += size[y];
+			}
+	}
+
+	void dfs_hld(int x, int r){
+		int i, y;
+		id[x] = ++V; top[x] = r;
+		if(!prf[x]) return;
+		dfs_hld(prf[x], r);
+		for(i = first[x]; i; i = next[i])
+			if(!top[y = to[i]])
+				dfs_hld(y, y);
+	}
+
+	int solve(int u, int v){
+		int x = top[u], y = top[v], res = INT_MAX;
+		for(; x != y; u = p[x], x = top[u]){
+			if(dep[x] &lt; dep[y]) {swap(u, v); swap(x, y);}
+			down(res, ST::range(1, 1, V, id[x], id[u]));
+		}
+		if(dep[u] &gt; dep[v]) swap(u, v);
+		down(res, ST::range(1, 1, V, id[u], id[v]));
+		if(u &gt; ::V) down(res, w[p[u]]);
+		return res;
+	}
+}
+
+namespace Graph{
+	#define stack scx
+	const int N = ::N, M = N &lt;&lt; 1;
+	int V, E, to[M], first[N], next[M];
+	int cnt = 0, id[N], low[N];
+	int top = 0, stack[N];
+	int bcc_cnt = 0;
+
+	inline void addedge(int u, int v){
+		to[++E] = v; next[E] = first[u]; first[u] = E;
+		to[++E] = u; next[E] = first[v]; first[v] = E;
+	}
+
+	void dfs_vbcc(int x, int px){
+		int i, y, z;
+		id[x] = low[x] = ++cnt; stack[top++] = x;
+		for(i = first[x]; i; i = next[i])
+			if(!id[y = to[i]]){
+				dfs_vbcc(y, x);
+				down(low[x], low[y]);
+				if(id[x] &lt;= low[y])
+					for(Tree::addedge(++bcc_cnt + V, x), z = 0; z != y; )
+						Tree::addedge(bcc_cnt + V, z = stack[--top]);
+			}else if(y != px)
+				low[x] = min(low[x], id[y]);
+	}
+}
+
+inline void update(int x) {w[x + V] = *s[x].begin();}
+
+int main(){
+	int i, j;
+	scanf("%d%d%d", &amp;V, &amp;E, &amp;q);
+	for(i = 1; i &lt;= V; ++i) scanf("%d", w + i); Graph::V = V;
+	for(i = 1; i &lt;= E; ++i) {scanf("%d%d", &amp;u, &amp;v); Graph::addedge(u, v);}
+	Graph::dfs_vbcc(1, 0); V2 = Graph::bcc_cnt;
+	Tree::dfs_wt(1); Tree::dfs_hld(1, 1);
+	for(i = 1; i &lt;= V; ++i)
+		if(Tree::p[i] &gt; V) s[Tree::p[i] - V].insert(w[i]);
+	for(i = 1; i &lt;= V2; ++i) update(i);
+	for(i = 1; i &lt;= Tree::V; ++i) ST::pre[Tree::id[i]] = w[i];
+	ST::build(1, 1, Tree::V);
+	for(j = 0; q; --q)
+		if(scanf("%s%d%d", &amp;j, &amp;u, &amp;v), j == 67){
+			if(w[u] == v) continue;
+			if((i = Tree::p[u] - V) &gt; 0){
+				mset::iterator it = s[i].find(w[u]);
+				s[i].erase(it); s[i].insert(v); update(i);
+				ST::adj(1, 1, Tree::V, Tree::id[i + V], w[i + V]);
+			}
+			w[u] = v;
+			ST::adj(1, 1, Tree::V, Tree::id[u], v);
+		}else
+			printf("%d\n", Tree::solve(u, v));
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>此题需要注意各种数组的大小问题。注意<del>缩点</del>后的图的点数反而是 $2n$ 级别的，故权值数组也是 $2n$。由于树链剖分需要用线段树，因此线段树需要开到 $8n$。(当然，如果你不想算的话全部开 $8n$ 也没关系)</p>
+		<p><strong>坑2：</strong>这道题由于 <code>multiset &lt;int&gt;</code> 中维护的是<strong>子节点</strong>，因此写点双缩点时最好使用<strong>点入栈法</strong> (边入栈不是不可以，只是稍微有点麻烦而已)。</p>
+	</body>
+</html>

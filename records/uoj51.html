@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj51]元旦三侠的游戏</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在出发讨伐圣诞老人前，元旦三侠想起了在圣诞老人到来以前那个灿烂的下午。</p>
+		<p>这天，生蛋侠、圆蛋侠和零蛋侠正在玩游戏。零蛋侠每次会一拍脑袋给出三个整数 $a, b, n$，保证 $a \geq 2, b \geq 1, a^b \leq n$。</p>
+		<p>然后生蛋侠和圆蛋侠两人轮流进行操作，<strong>生蛋侠先手</strong>，每人每次可以选择将 $a$ 的值加上 $1$，或者将 $b$ 的值加上 $1$。但是任何人操作以后都不能违背 $a^b \leq n$ 这个条件，无法再进行操作的人就输掉了这一场游戏。</p>
+		<p>因为 $n$ 的值很大，生蛋侠和圆蛋侠愉快的玩了一个下午。最后，他们约定第二天再继续没有玩完的游戏。</p>
+		<p>但是第二天圣诞老人来了，降落时的冲击波摧毁了所有所有的一切。于是那个灿烂的下午终究是回不去，元旦三侠不禁头岑岑而泪潸潸了。</p>
+		<p>现在，生蛋侠只记得零蛋侠给他们的数字 $n$ 了，却不记得数字 $a$ 和数字 $b$ 了。他提出了 $m$ 对数字 $a$ 和数字 $b$，希望你能告诉他，对每一对数字 $a$ 和 $b$，假设双方都足够聪明，他是否一定能在这场游戏中获胜？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 10^9, m \leq 10^5$)。</p>
+		<p>接下来的 $m$ 行，每行两个正整数 $a, b$ ($a &gt 1, b \geq 1, a^b \leq n$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 行，如果对于这一对数字 $a$ 和 $b$，生蛋侠能赢得这场游戏，输出 <code>Yes</code>。否则输出 <code>No</code>。</p>
+
+		<h3>题解</h3>
+		<p><del>看起来像</del>一道博弈论的题目，这可以用动态规划解决。</p>
+		<p>记 $f_{i, j}$ 表示当前 $a = i, b = j$ 时先手是否必胜。然后就可以使用 DP 转移了，转移方程即 $f_{i, j} \,=\, !(f_{i, j+1} \,\&\, f_{i+1, j})$。</p>
+		<p>由于对于每个 $j$，必须满足 $i^j \leq n$，故这样的状态有 $\sqrt[j]n$ 个，因此总状态数为 $\sum\limits_{j=1}^{\lfloor \log n \rfloor} \sqrt [j] n $。</p>
+		<p>这个状态数当 $j = 1$ 时会特别大，不过其它部分都不大。因此我们尝试将 $j = 1$ 的部分压缩。</p>
+		<p>注意到对于 $a &gt; \sqrt n, b = 1$ 的状态，<strong>此时已经不能增加 $b$ 的值</strong>，因此唯一方案就是增加 $a$。故对这种方案，直接判断 $n$ 与 $i$ 的奇偶性即可。</p>
+		<p>故状态数可以去掉 $j = 1$ 的一维。总时间复杂度 $o \left( \sqrt n \log n \right)$ (注意是小 $o$)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int n, sn, q, i, j; long long k;
+char f[34147][32], result;
+
+int main(){
+	scanf("%d%d", &amp;n, &amp;q);
+	memset(f, 1, sizeof f);
+	sn = (int)sqrt(n); f[sn + 1][1] = (n ^ sn ^ 1) &amp; 1;
+	for(i = sn; i &gt;= 2; --i){
+		for(k = 1, j = 0; k &lt;= n; k *= i, ++j);
+		for(; --j; f[i][j] = !(f[i][j + 1] &amp;&amp; f[i + 1][j]));
+	}
+	for(; q; --q){
+		scanf("%d%d", &amp;i, &amp;j);
+		result = (i &gt; sn ? (n ^ i) &amp; 1 : f[i][j]);
+		puts(result ? "Yes" : "No");
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意边界条件，如果遇到不能操作的情况，应该为必败态 (P-position)，因此需要特判或者一开始 <code>memset(f, 1, sizeof f);</code>。</p>
+	</body>
+</html>

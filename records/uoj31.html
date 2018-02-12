@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj31]猪猪侠再战括号序列</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个由 $n$ 个左括号 "$\tt ($" 和 $n$ 个右括号 "$\tt )$" 组成的序列。每次操作时可以选定两个数 $l, r$，然后把第 $l$ 到第 $r$ 个括号的顺序翻转(括号的朝向保持不变)。例如将 "$\tt ()((()$" 翻转第 $3$ 到第 $7$ 个括号后的结果为 "$\tt ()()((($"。</p>
+		<p>我希望使用不超过 $n$ 次操作，将这个序列变为一个合法的括号序列。</p>
+		<p>众所周知，合法括号序列的定义如下：</p>
+		<ol>
+		<li><p>$\tt ()$ 是合法括号序列；</p></li>
+		<li><p>如果 $A$ 是合法括号序列，则 $\texttt( A \texttt)$ 是合法括号序列；</p></li>
+		<li><p>如果 $A, B$ 是合法括号序列，则 $AB$ 是合法括号序列。</p></li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>一行一个长度为 $2n$ ($n \leq 10^5$) 的非空字符串表示初始序列。保证字符串只包含左括号和右括号，且左右括号的个数均为 $n$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于给出的字符串，输出调整成合法的括号序列的方案。如果不存在这样的方案输出一行一个整数 $-1$。</p>
+		<p>否则，第一行一个整数 $m$ 表示要进行 $m$ 次翻转操作。</p>
+		<p>接下来 $m$ 行每行两个整数 $l, r$ 表示要翻转区间 $[l, r]$ 内的括号顺序。翻转操作会按你输出的顺序执行。</p>
+		<p>请保证 $m \leq n$ 以及 $1 \leq l \leq r \leq 2n$，否则会被判 $0$ 分。</p>
+		<p>如果有多组方案，输出任意一组即可。</p>
+
+		<h3>题解</h3>
+		<p><del>吐槽：这我怎么感觉这道题的 Special Judge 要用 Splay 啊？(感觉是个文艺平衡树啊)，我不知道 UOJ 中的 Special Judge 是怎么写的……</del></p>
+		<p>首先这种题显然不可能无解 (由于左括号和右括号的个数相等)，因此我们去形(bao)式(li)化的找到一组解 (就像数学的语言一样)。</p>
+		<p>由于题目中没有说操作个数 $m$ 的限制，<del>再加上自信 Special Judge 用的是 Splay</del>，于是我就可以给 $O(n)$ 个操作都没问题。</p>
+		<p>因此我们加强条件让目标序列变成 $\tt ((( \ldots ())) \ldots )$ (即 $n$ 个左括号后面接 $n$ 个右括号)。</p>
+		<p>这显然可以办到！我们有如下的<del>辣鸡</del>算法：</p>
+		<ol>
+		<li><p>先看第 $1$ 个括号，如果它是左括号，就不管它，如果它是右括号，在后面找一个左括号，不妨设其位置为 $j$，在则翻转 $[1, j]$。</p></li>
+		<li><p>类似地对第 $2, 3, \cdots$ 个括号进行处理。即第 $i$ ($1 \leq i \leq n$) 步处理第 $i$ 个括号，如果是左括号就不管它，否则就去后面找一个翻转。</p></li>
+		</ol>
+		<p>这样的操作显然是正确的。因为第 $i$ ($1 \leq i \leq n$) 步后前 $i$ 个括号都是 $\tt ($，故后面还有 $n - i$ 个 $\tt ($，可以在下一步中找到，且 $n$ 步之后一定形成我们所需要的目标序列。</p>
+		<p>可这样貌似你也要写个 Splay 啊，<del>这也太恶心了吧……</del></p>
+		<p>写个毛 Splay 啊！在第 $i$ 步，我们只要每次找到 $i$ 后面的最左边的 $\tt ($，与之翻转。不妨设其位置为 $j$，则第 $i$ 到 $j-1$ 个括号全是 $\tt )$，因此翻转 $[i, j]$ 就相当于<strong>交换第 $i$ 个括号与第 $j$ 个括号</strong>。</p>
+		<p>这下好办，直接暴力翻转就行了。并且容易看到，这个找到的 $\tt ($ 的位置 $j$ 是随着 $i$ 的递增而递增的。因此这个 $j$ 可以单调寻找，总复杂度 $O(n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 256101
+using namespace std;
+
+int n, i, j;
+char s[N];
+int cnt = 0, ansL[N], ansR[N];
+
+int main(){
+	scanf("%s", s); n = strlen(s) &gt;&gt; 1;
+	for(j = i = 0; i &lt; n; ++i)
+		if(s[i] == ')'){
+			for(j = max(j, i); j &lt; n &lt;&lt; 1 &amp;&amp; s[j] == ')'; ++j);
+			ansL[++cnt] = i; ansR[cnt] = j;
+			swap(s[i], s[j]);
+		}
+	printf("%d\n", cnt);
+	for(i = 1; i &lt;= cnt; ++i) printf("%d %d\n", ++ansL[i], ++ansR[i]);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意是 $n \leq 10^5$，故字符串的长度可以达到 $2 \times 10^5$，所以数组别开小了。</p>
+		<p><strong>坑2：</strong>注意第一次扫描前要 <code>j = max(j, i)</code>，因为有可能 "$\tt ($" 比较多使得 $i \geq j$。</p>
+	</body>
+</html>
