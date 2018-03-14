@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj13]跳蚤OS</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>跳蚤 OS 是跳蚤国自主研发的功能强大的操作系统。</p>
+		<p>跳蚤 OS 的文件系统与普通的文件系统类似，是个文件夹套文件夹的结构。文件系统根目录称为 "$\tt /$"。我们可以用文件路径来表明文件所在的位置，比如 "$\tt /flea/uoj$" 表示根目录下的 $\tt flea$ 文件夹下的 $\tt uoj$ 文件。</p>
+		<p>跳蚤 OS 的文件系统中。快捷方式是一种特殊的文件夹，点开该快捷方式相当于打开该快捷方式指向的文件夹。</p>
+		<p>比如，如果有一个快捷方式 "$\tt /etc/abc$"，该快捷方式指向 "$\tt /flea/def$" 这个文件夹，那么一旦访问 "$\tt /etc/abc$" 就相当于访问 "$\tt /flea/def$"。</p>
+		<p>这一天，跳蚤国王正在使用跳蚤 OS。初始时文件系统为空，只有根目录。他每次会进行如下操作：</p>
+		<ol>
+		<li>首先，随便写出两个文件路径 $s$ 和 $t$。</li>
+		<li>接着，如果位置 $t$ 处不存在文件，则在该处创建一个空文件夹。</li>
+		<li>最后，跳蚤国王<strong>保证 $s$ 这个位置没有文件</strong>，于是在 $s$ 处创建一个快捷方式指向 $t$。如果 $t$ 是个快捷方式，那么 $s$ 将指向 $t$ 所指向的文件夹。</li>
+		</ol>
+		<p>上文所说的 "创建" 在父级目录不存在的时候要一并创建其父级目录。比如，假设文件系统里只有 "$\tt /v$" 这个文件夹，那么现在我创建 "$\tt /v/flea/king/qaq$" 就会在文件系统中新增三个文件夹："$\tt /v/flea$"，"$\tt /v/flea/king$"，"$\tt /v/flea/king/qaq$"。</p>
+		<p>跳蚤国王进行了 $n$ 次这样的操作后，开始不断问他的助手伏特：现在我如果在 $p$ 这个路径处创建一个文件夹 (如果已存在则不创建)，那么这个文件夹的真实路径是什么？</p>
+		<p>于是伏特只好向你求助了，请你帮一帮他吧！</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 20000, m \leq 10$)，表示跳蚤国王进行了 $n$ 个操作，提了 $m$ 个问题。</p>
+		<p>接下来 $n$ 行，每行两个用空格隔开的字符串 $s, t$，表示跳蚤国王的一次操作。</p>
+		<p>接下来 $m$ 行，每行一个字符串 $p$ 表示跳蚤国王的一个询问。</p>
+		<p>保证所有的 $s, t, p$ 都是合法的文件路径。即，文件夹名一定是由<strong>小写英文字母</strong>组成的<strong>非空字符串</strong>，路径名一定形如 "$\tt /xxx/xxx/xxx/\cdots/xxx$" 这样子。保证当路径不为根目录 "$\tt /$" 时，路径不以 "$\tt /$" 结尾。保证所有路径的总长度不超过 $5 \times 10^5$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于跳蚤国王的每个询问输出真实路径。</p>
+
+		<h3>题解</h3>
+		<p>这道题可以发现暴力并不怎么好写，需要使用 <code>map &lt;string, string&gt;</code> 等结构导致复杂度过大。</p>
+		<p>不过你有没有发现，这个目录结构是一个标准的<strong>树形结构</strong>——目录树结构。因此我们尝试用树的算法来解决。</p>
+		<p>而题中的目录名又和字符串有关，自然就能想到使用 Trie 树 (字典树) 了。</p>
+		<p>创建快捷方式时，我们先把 $s, t$ 分别在 Trie 树上跳 (匹配) 到对应的节点 $S, T$，然后从 $S$ 到 $T$ 连一条转移边，即 <code>link[S] = T</code>，考虑到 $T$ 也可能是快捷方式，于是令 <code>link[S] = link[T]</code>。
+		<p>对于询问一个路径 $s$，我们还是可以把 $s$ 在 Trie 树上跳，注意时刻通过快捷方式转移，实现时可以每跳一步对 <code>t = link[d[t][id]]</code>，最后的节点所表示的路径就是答案。</p>
+		<p>当然别忘记初始时令 <code>link[i] = i</code>。</p>
+		<p>什么你说匹配时跳到空节点了？没关系，把最后一步所在的节点的路径输出，然后把 $s$ 的其余部分原样输出即可 (反正这里没有进行过任何操作)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 500034
+#define normalize(s) for(p = s; *p; ++p) *p == 47 ? *p = 96 : 0; p[-1] == 96 ? 0 : (*p = 96, p[1] = 0)
+using namespace std;
+
+int n, m;
+char s[N], t[N];
+int cnt = 1, d[N][27], link[N];
+int pa[N], da[N];
+
+int append(char *s){
+	char *p = s;
+	int t = 1, id;
+	for(; *p; ++p){
+		id = *p &amp; 31;
+		if(d[t][id]) t = link[d[t][id]];
+		else {d[t][id] = ++cnt; pa[cnt] = t; da[t = cnt] = id; link[t] = t;}
+	}
+	return t;
+}
+
+int query(char *&amp;s){
+	int t = 1, id;
+	for(; *s; ++s){
+		id = *s &amp; 31;
+		if(d[t][id]) t = link[d[t][id]];
+		else return t;
+	}
+	return t;
+}
+
+int main(){
+	char *p, *q; int g;
+	scanf("%d%d", &amp;n, &amp;m); link[1] = 1;
+	for(; n; --n){
+		scanf("%s%s", s, t); normalize(s); normalize(t);
+		link[append(s)] = link[append(t)];
+	}
+	for(; m; --m){
+		scanf("%s", s); normalize(s); p = s; q = t;
+		for(g = query(p); g != 1; g = pa[g]) *q++ = (da[g] ? da[g] | 96 : 47);
+		for(reverse(t, q); *p; ++p, ++q) *q = (*p == 96 ? 47 : *p);
+		(q == t + 1 ? *q : q[-1]) = 0; puts(t);
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>写 Trie 树时注意把父节点以及转移边的字符也记下来，这样输出时会方便一点，直接沿着父边往上跳即可，最后别忘记翻转整个字符串。</p>
+	</body>
+</html>

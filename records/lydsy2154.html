@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2154]Crash的数字表格</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>今天的数学课上，Crash 小朋友学习了最小公倍数 (Least Common Multiple)。</p>
+		<p>对于两个正整数 $a$ 和 $b$，$\mathrm{LCM}(a, b)$ 表示能同时被 $a$ 和 $b$ 整除的最小正整数。例如，$\mathrm{LCM}(6, 8) = 24$。</p>
+		<p>回到家后，Crash 还在想着课上学的东西，为了研究最小公倍数，他画了一张 $N \times M$ 的表格。每个格子里写了一个数字，其中第 $i$ 行第 $j$ 列的那个格子里写着数为 $\mathrm{LCM}(i, j)$。</p>
+		<p>一个 $4 \times 5$ 的表格如下：</p>
+		<table class="table table-bordered table-text-center table-vertical-middle">
+		<tr><td>$1$</td><td>$2$</td><td>$3$</td><td>$4$</td><td>$5$</td></tr>
+		<tr><td>$2$</td><td>$2$</td><td>$6$</td><td>$4$</td><td>$10$</td></tr>
+		<tr><td>$3$</td><td>$6$</td><td>$3$</td><td>$12$</td><td>$15$</td></tr>
+		<tr><td>$4$</td><td>$4$</td><td>$12$</td><td>$4$</td><td>$20$</td></tr>
+		</table>
+		<p>看着这个表格，Crash 想到了很多可以思考的问题。不过他最想解决的问题却是一个十分简单的问题：这个表格中所有数的和是多少。</p>
+		<p>当 $N$ 和 $M$ 很大时，Crash 就束手无策了，因此他找到了聪明的你用程序帮他解决这个问题。由于最终结果可能会很大，Crash 只想知道表格里所有数的和 $\bmod 20101009$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $N, M$ ($N, M \leq 10^7$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示表格中所有数的和 $\bmod 20101009$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>题目即求 $\sum\limits_{i=1}^n \sum\limits_{j=1}^m \mathrm{LCM}(i, j)$ 的值。</p>
+		<p>我们枚举 $d = \gcd(i, j)$，那么就可以作如下和式变换 (不妨设 $n &lt; m$)：</p>
+		<p>$$ \sum_{i=1}^n \sum_{j=1}^m \mathrm{LCM}(i, j) = \sum_{d=1}^n \sum_{i \leq n, j \leq m} [(i, j) = d] \frac {ij} d = \sum_{d=1}^n \sum_{a=1}^{\lfloor n/d \rfloor} \sum_{b=1}^{\lfloor m/d \rfloor} [a \perp b] abd $$</p>
+		<p id="trans">记 $f(n, m) = \sum\limits_{i=1}^n \sum\limits_{j=1}^m [i \perp j] ij$，则原式就等于 $\sum\limits_{d=1}^n d \cdot f \left( \left \lfloor \dfrac nd \right \rfloor, \left \lfloor \dfrac md \right \rfloor \right)$。</p>
+		<p>考虑 $f(n, m)$，可以使用 Möbius 反转变换，则有</p>
+		<p>$$ \sum_{i=1}^n \sum_{j=1}^m [i \perp j] ij = \sum_{i=1}^n \sum_{j=1}^m ij \left( \sum_{d|i, d|j} \mu(d) \right) = \sum_{d=1}^n \left( \mu(d) \left( \sum_{d|i, i \leq n} i \right) \left( \sum_{d|j, j \leq n} j \right) \right)
+= \sum_{d=1}^n \left( d^2 \mu(d) \left( \sum_{a=1}^{\lfloor n/d \rfloor} a \right) \left( \sum_{b=1}^{\lfloor m/d \rfloor} b \right) \right) = \sum_{d=1}^n d^2 \mu(d) g \left( \left \lfloor \frac nd \right \rfloor, \left \lfloor \frac md \right \rfloor \right) $$</p>
+		<p>其中 $g(n, m) = \left( \sum\limits_{i=1}^n i \right) \left( \sum\limits_{j=1}^n j \right) = \dbinom {n+1} 2 \dbinom {m+1} 2$。</p>
+		<p>注意到对于固定的 $n, m$，有序对 $\left( \left \lfloor \dfrac nd \right \rfloor, \left \lfloor \dfrac md \right \rfloor \right)$ 的数目至多只有 $2 \left( \sqrt n + \sqrt m \right)$ 对。因此我们预处理 $d^2 \mu(d)$ 的前缀和后，就可以在 $O \left( \sqrt n + \sqrt m \right)$ 的时间内求出一个特定的 $f(n, m)$。</p>
+		<p>接着考虑原式，类似地，对于题中的 $n, m$，不同的 $\left( \left \lfloor \dfrac nd \right \rfloor, \left \lfloor \dfrac md \right \rfloor \right)$ 的数目也不会超过 $2 \left( \sqrt n + \sqrt m \right)$，因此我们只需调用 $O \left( \sqrt n + \sqrt m \right)$ 次 $f(n, m)$ 后就可以求出答案 (当然，$F(d) = d$ 的前缀和也很好求)。</p>
+		<p>因此总复杂度 $O \left( \left( \sqrt n + \sqrt m \right)^2 \right) = O(n + m)$，轻松通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 10000034
+#define next(n, i) (n / (n / i + 1))
+using namespace std;
+
+typedef long long ll;
+const ll mod = 20101009;
+
+int n, m;
+int pn, mu[N], mu2[N], p[682936];
+ll smu2[N], ans = 0;
+
+void sieve(int n){
+	int i, j, v; pn = 0;
+	memset(mu, 1, sizeof mu);
+	mu[0] = mu[1] = 1;
+	for(i = 2; i &lt;= n; i++){
+		if(mu[i] &gt; 1) {p[pn++] = i; mu[i] = -1;}
+		for(j = 0; j &lt; pn; j++){
+			if((v = i * p[j]) &gt; n) break;
+			if(!(i % p[j])) {mu[v] = 0; break;}
+			else mu[v] = -mu[i];
+		}
+	}
+}
+
+ll g(int n, int m){
+	ll P = (ll)n * (n + 1) &gt;&gt; 1, Q = (ll)m * (m + 1) &gt;&gt; 1;
+	return (P % mod) * (Q % mod) % mod;
+}
+
+ll f(int n, int m){
+	int i, j; ll res = 0, t;
+	for(i = n; i &gt;= 1; i = j){
+		j = max(next(n, i), next(m, i));
+		t = (smu2[i] - smu2[j] + mod) % mod;
+		res = (res + t * g(n / i, m / i)) % mod;
+	}
+	return res;
+}
+
+int main(){
+	int i, j; ll t;
+	sieve(N - 1);
+	scanf("%d%d", &amp;n, &amp;m);
+	if(n &gt; m) swap(n, m);
+	for(i = 1; i &lt; N; ++i){
+		mu2[i] = (ll)mu[i] * i * i % mod;
+		mu2[i] &lt; 0 ? mu2[i] += mod : 0;
+		smu2[i] = smu2[i - 1] + mu2[i];
+	}
+	for(i = n; i &gt;= 1; i = j){
+		j = max(next(n, i), next(m, i));
+		t = (ll)(i + j + 1) * (i - j) &gt;&gt; 1;
+		ans = (ans + t * f(n / i, m / i)) % mod;
+	}
+	printf("%d\n", (int)ans);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意双变量分块的 <code>next(n, i)</code> 的写法，不要写错了。</p>
+		<p><strong>坑2：</strong>计算 $g(n, m)$ 的时候注意及时取模。</p>
+	</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6031][雅礼集训 2017D1]字符串</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>令 $s$ 与 $w$ 为两字符串，定义：</p>
+		<ol>
+		<li><p>$w[l, r]$ 表示字符串 $w$ 在区间 $[l, r]$ 中的子串 (下标从 $0$ 开始)；</p></li>
+		<li><p>$w$ 在 $s$ 中出现的频率定义为 $w$ 在 $s$ 中出现的次数；</p></li>
+		<li><p>$f(s, w, l, r)$ 表示 $w[l, r]$ 在 $s$ 中出现的频率。</p></li>
+		</ol>
+		<p>比如 $f(\texttt{ababa}, \texttt{aba}, 0, 2) = 2$。</p>
+		<p>现在给定串 $s$，$m$ 个区间 $[l_i, r_i]$ ($0 \leq i &lt; m$) 和长度 $k$，你要回答 $q$ 个询问，每个询问给你一个长度为 $k$ 的字符串 $w$ 和两个整数 $a, b$，求：
+		<p>$$ \sum_{i=a}^b f(s, w, l_i, r_i) $$</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个正整数 $n, m, q, k$ ($1 \leq n, m \leq 10^5; q \cdot k \leq 10^5$)，其中 $n$ 表示 $s$ 的长度。</p>
+		<p>第二行为一个长为 $n$ 的字符串 $s$。</p>
+		<p>接下来 $m$ 行，每行两个整数表示 $l_i, r_i$。</p>
+		<p>接下来 $q$ 行，每行一个字符串 $w$ 和两个整数 $a, b$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个询问输出一行，表示答案。</p>
+
+		<h3>题解</h3>
+		<p>注意到 $qk \leq 10^5$，也就是说如果 $k$ 比较大，那么询问比较少，如果 $k$ 比较小，那么询问比较多。这引导我们使用一些权衡的阈值算法，比如根号算法等。</p>
+		<p>先考虑 $k$ 比较小的情况，显然不能从 $a$ 到 $b$ 一个一个区间 (子串) 做。要注意到，由于 $0 \leq a \leq b &lt; k$，因此本质不同的区间 (子串) 只有 $O(k^2)$ 个，因此我们可以枚举<strong>每个区间 (子串)</strong> $[l, r]$ 在原串中出现的次数，然后统计 $a$ 到 $b$ 中有多少个区间为 $[l, r]$。</p>
+		<p>不同的子串在同一个串 $s$ 中出现的次数，显然使用<strong>后缀自动机</strong>解决。因此建立出 $s$ 的后缀自动机后，将子串跑一遍即可。由于我们要 $w$ <strong>所有的子串</strong>，因此可以<strong>枚举左端点</strong>跑后缀自动机。</p>
+		<p>在建立自动机的时候顺便 dfs 一波把 right 集合的大小 (亦即该点的出现次数) 也及记录下来，分析一下时间复杂度，对于一个串，后缀自动机要跑 $k^2$ 遍，乘上二分统计的 $\log m$，故总时间复杂度为 $O \left( q k^2 \log m \right)$。</p>
+		<p>当 $k$ 比较大时，$k^2$ 因子就很恐怖了，因此必须换算法。注意到询问次数并不多，因此我们可以从 $a$ 到 $b$ 一个一个区间做。于是问题就转化成了 (相对地) 固定 $w$，多次询问 $w$ 的一个子串的出现的次数。</p>
+		<p>不妨假设它的子串 $y$ 是 $w$ 的一个后缀。考虑串 $y$ 取后缀自动机上跑，跑到了节点 $\mathrm{trans}(y)$。那么 $w$ 也对应地跑，<strong>最终的 $\mathrm{trans}(w)$ (在 fail 树/前缀树上) 则一定是 $\mathrm{trans}(y)$ 的子树中的节点</strong> (当然包括本身。这是后缀自动机的一个性质，可以这样理解：因为 $y$ 是 $w$ 的后缀，而 $y$ 可以到节点 $\mathrm{trans}(y)$ 上，因此 $w$ 所到的节点，它的后缀就是 $y$ 所到的节点)。</p>
+		<p>由于 $\mathrm{trans}(y)$ 为 $\mathrm{trans}(w)$ 的祖先节点，因此只需对 $\mathrm{trans}(w)$ 不停地跳父节点，就可以到达 $y$。那要跳多少次呢？不放假设 $w$ 的子串 $y$ 的长度为 $|y| = r - l + 1 $，那么有 $\mathrm{trans}(y)$ 的 $val$ 值 (最长子串长度，忘记定义的点<a href="lg3804.html" target="_blank">这里</a>) 一定 $\geq |y|$。</p>
+		<p>又由后缀自动机的性质，一条链上节点的 $val$ 值 (从叶子到根) 是单调递减的。且对于节点 $v$ 和父节点 $p$，子节点代表的子串 $Z(v)$ 中最短子串的长度，应该等于父节点代表的子串 $Z(p)$ 中最长子串的长度加上一 (即 $val(p) + 1$)。</p>
+		<p>因此我们跳链的时候，所有节点的 $val$ 值都 $\geq |y|$，于是就是一个经典的 <code>jump_until</code> 问题，使用倍增算法解决。</p>
+		<p>当然这里有个问题，就是 $w$ 在跳后缀自动机的时候可能会<strong>失配</strong>。因此我们还要记录 $w$ 最终到达 $\mathrm{trans}(w)$ 后最终匹配了多少位 $l(w)$，即 $w$ 通过最后的长度为 $l(w)$ 的后缀从根跳到了 $\mathrm{trans}(w)$。如果这个 $l(w) \geq |y|$，才是有效的，否则就是无效的。</p>
+		<p>分析一下复杂度，对于单次询问，跑后缀自动机是 $O(k)$ 的，然后枚举询问加倍增，是 $O(m \log n)$ 的，因此总复杂度为 $O \left( q (k + m \log n) \right)$。</p>
+		<p>记 $C = qk \leq 10^5$，因此两种算法的总复杂度分别为 $O \left( Ck \log m \right)$ 和 $O \left( C + \dfrac {C m \log n} k \right) $，由于 $\log m \sim \log n$，因此可以取阈值 $k_0 = \sqrt m$，下面这份代码中取了 $512$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 200034
+#define LN 18
+using namespace std;
+
+typedef long long ll;
+
+int n, m, q, k;
+int l[N], r[N], mat[N], ver[N];
+int p[LN][N];
+char s[N];
+
+vector &lt;int&gt; qry[513][513];
+
+namespace SAM{
+	int p, np = 1, cnt = 1;
+	int pa[N], d[N][26], val[N];
+	int f[N], child[N][26], cc[N];
+
+	#define q d[p][x]
+	void extend(int x){
+		for(p = np, val[np = ++cnt] = val[p] + 1; p &amp;&amp; !q; q = np, p = pa[p]);
+		if(!p) pa[np] = 1;
+		else
+			if(val[p] + 1 == val[q]) pa[np] = q;
+			else{
+				int nq = ++cnt;
+				val[nq] = val[p] + 1;
+				memcpy(d[nq], d[q], 104);
+				pa[nq] = pa[q];
+				pa[np] = pa[q] = nq;
+				for(int Q = q; p &amp;&amp; q == Q; q = nq, p = pa[p]);
+			}
+		f[np] = 1;
+	}
+	#undef q
+
+	void initBin(){
+		int i, j;
+		for(i = 1; i &lt;= cnt; ++i) ::p[0][i] = pa[i];
+		for(j = 0; j &lt; LN - 1; ++j)
+			for(i = 1; i &lt;= cnt; ++i)
+				::p[j + 1][i] = ::p[j][::p[j][i]];
+	}
+
+	void dfs(int x){
+		for(int i = 1; i &lt;= cc[x]; ++i){
+			dfs(child[x][i]);
+			f[x] += f[child[x][i]];
+		}
+	}
+
+	void main(){
+		int i;
+		for(i = 1; i &lt;= cnt; ++i)
+			child[pa[i]][++cc[pa[i]]] = i;
+		dfs(1);
+	}
+}
+
+ll jump_until(int t, int v){
+	for(int i = LN - 1; i &gt;= 0; --i)
+		if(SAM::val[p[i][t]] &gt;= v) t = p[i][t];
+	return SAM::f[t];
+}
+
+int main1(){
+	int i, u, v, id, t, len; ll ans;
+	for(i = 0; i &lt; m; ++i) scanf("%d%d", l + i, r + i);
+	SAM::initBin();
+	for(; q; --q){
+		scanf("%s%d%d", s, &amp;u, &amp;v);
+		t = 1; len = 0; ans = 0;
+		for(i = 0; i &lt; k; ++i){
+			id = s[i] - 'a';
+			for(; t &amp;&amp; !SAM::d[t][id]; t = SAM::pa[t], len = SAM::val[t]);
+			t ? (t = SAM::d[t][id], ++len) : (t = 1, len = 0);
+			mat[i] = len; ver[i] = t;
+		}
+		for(i = u; i &lt;= v; ++i)
+			if(mat[r[i]] &gt; r[i] - l[i])
+				ans += jump_until(ver[r[i]], r[i] - l[i] + 1);
+//			printf("ans[%d] = %lld\n", i, ans);
+		printf("%lld\n", ans);
+	}
+	return 0;
+}
+
+int main2(){
+	int i, j, u, v, id, t, cnt; ll ans;
+	for(i = 0; i &lt; m; ++i){
+		scanf("%d%d", &amp;u, &amp;v);
+		qry[u][v].push_back(i);
+	}
+	for(; q; --q){
+		scanf("%s%d%d", s, &amp;u, &amp;v); ans = 0;
+		for(i = 0; i &lt; k; ++i){
+			t = 1;
+			for(j = i; j &lt; k; ++j){
+				id = s[j] - 'a';
+				if(t = SAM::d[t][id]){
+					cnt = upper_bound(qry[i][j].begin(), qry[i][j].end(), v) - lower_bound(qry[i][j].begin(), qry[i][j].end(), u);
+					ans += (ll)cnt * SAM::f[t];
+				}else break;
+			}
+		}
+		printf("%lld\n", ans);
+	}
+	return 0;
+}
+
+int main(){
+	int i;
+	scanf("%d%d%d%d%s", &amp;n, &amp;m, &amp;q, &amp;k, s);
+	for(i = 0; i &lt; n; ++i) SAM::extend(s[i] - 'a');
+	SAM::main();
+	return k &gt;= 512 ? main1() : main2();
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意后缀自动机失配时的写法：<code>t = pa[t], len = val[t]</code>，由于上面所讲的性质，$p(t)$ 的最长串比 $t$ 的最短串短。</p>
+		<p><strong>坑2：</strong>一些变量不要忘记初始化/清零，后缀自动机的空间不要忘记乘 $2$。</p>
+	</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2693]jzptab</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>求 $$ \sum_{i=1}^n \sum_{j=1}^m \mathrm{lcm}(i, j) $$ 答案模 $10^8 + 9$ 输出，多组询问。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10000$)，表示数据组数。</p>
+		<p>接下来 $T$ 行，每行两个正整数 $n, m$ ($n, m \leq 10^7$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $T$ 行，每行一个整数，表示第 $i$ 组数据的结果。</p>
+
+		<h3>题解</h3>
+		<p>这题就是<a href="lydsy2154.html" target="_blank">上一题</a>的多组数据加强版。当时的复杂度是 $O(n + m)$，如果变成 $T$ 组数据话，时间复杂度将会变成 $O \left( T(n + m) \right)$，就难以接受了。因此我们要考虑更优的算法。</p>
+		<p>注意到刚才我们<a href="lydsy2154.html#trans" target="_blank">推出的式子</a>，即为</p>
+		<p>$$ \sum_{d=1}^n d \cdot f \left( \left \lfloor \frac nd \right \rfloor, \left \lfloor \frac md \right \rfloor \right) $$</p>
+		<p>由于 $$ f(n, m) = \sum_{d=1}^n d^2 \mu(d) g \left( \left \lfloor \frac nd \right \rfloor, \left \lfloor \frac md \right \rfloor \right) $$</p>
+		<p>代入上式，就得到了 $$ \sum_{d=1}^n d \cdot \sum_{e=1}^n e^2 \cdot \mu(e) \cdot g \left( \left \lfloor \frac n {de} \right \rfloor, \left \lfloor \frac m {de} \right \rfloor \right) = \sum_{d=1}^n \sum_{e=1}^n de \cdot e \mu(e) \cdot g \left( \left \lfloor \frac n {de} \right \rfloor, \left \lfloor \frac m {de} \right \rfloor \right) $$</p>
+		<p>我们换一种方式，枚举 $D = de$，继续作和式变换：</p>
+		<p>$$ \sum_{D=1}^n D \cdot g \left( \left \lfloor \frac nD \right \rfloor, \left \lfloor \frac mD \right \rfloor \right) \sum_{i \mid D} i \cdot \mu(i) $$</p>
+		<p>记 $h(n) = n \sum\limits_{d \mid n} d \cdot \mu(d)$，可以看出它为积性函数，因此可以线性筛后求前缀和 $H(n)$。</p>
+		<p>因此最终的式子就转化成了 $\sum\limits_{D=1}^n h(D) \cdot g \left( \left \lfloor \dfrac nD \right \rfloor, \left \lfloor \dfrac mD \right \rfloor \right)$，可以单次在 $O \left( \sqrt n + \sqrt m \right)$ 内求出。故总时间复杂度就减少到了 $O \left( T \left( \sqrt n + \sqrt m \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 10000034
+#define next(n, i) (n / (n / i + 1))
+using namespace std;
+
+typedef long long ll;
+const ll mod = 100000009;
+
+int n, m;
+int pn, p[682936];
+ll mun[N], ans;
+
+void sieve(int n){
+	int i, j, v; pn = 0;
+	memset(mun, 0, sizeof mun);
+	mun[1] = 1;
+	for(i = 2; i &lt;= n; i++){
+		if(!mun[i]) {p[pn++] = i; mun[i] = 1 - i;}
+		for(j = 0; j &lt; pn; j++){
+			if((v = i * p[j]) &gt; n) break;
+			if(!(i % p[j])) {mun[v] = mun[i]; break;}
+			else mun[v] = mun[i] * (1 - p[j]);
+		}
+	}
+}
+
+ll g(int n, int m){
+	ll P = (ll)n * (n + 1) &gt;&gt; 1, Q = (ll)m * (m + 1) &gt;&gt; 1;
+	return (P % mod) * (Q % mod) % mod;
+}
+
+int main(){
+	int T, i, j; ll t;
+	sieve(N - 1);
+	for(i = 2; i &lt; N; ++i){
+		(mun[i] %= mod) &lt; 0 ? mun[i] += mod : 0;
+		mun[i] = (mun[i] * i + mun[i - 1]) % mod;
+	}
+	for(scanf("%d", &amp;T); T; --T){
+		scanf("%d%d", &amp;n, &amp;m);
+		if(n &gt; m) swap(n, m); ans = 0;
+		for(i = n; i; i = j){
+			j = max(next(n, i), next(m, i));
+			t = (mun[i] - mun[j] + mod) % mod;
+			ans = (ans + t * g(n / i, m / i)) % mod;
+		}
+		printf("%d\n", (int)ans);
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>筛的时候可以筛 $\sum\limits_{d \mid n} d \cdot \mu(d)$，最后再乘上 $n$。注意各种乘法加法的时候不要溢出即可。</p>
+	</body>
+</html>

@@ -26,7 +26,7 @@
 	}
 
 	function DecRecords(){
-		var i, nm, info, count = 0, recnum = 0;
+		var i, nm, info, count = 0, recnum = 0, tnm;
 		var $R, $C, $A;
 		Rows = []; recArr = strBack.split('\n');
 		for(i = 0; i < recArr.length; ++i)
@@ -34,11 +34,11 @@
 				info = recArr[i].replace(/[\f\n\r\v]/g, '').split('|');
 				if(info.length !== 5) continue; // invalid record
 				++recnum;
-				nm = info[0];
-				if(OJMatch(curLocation, nm)){
+				tnm = OJMatch(curLocation, nm = info[0]);
+				if(tnm){
 					$R = $('<tr />');
 					$R.append($C = $('<td />').data('id', recnum - 1));
-					$R.append($C = $('<td />').html(pr2HTML(nm)));
+					$R.append($C = $('<td />').html(tnm));
 					$A = $('<a href="records/' + escape(nm) + '.html" target="_blank">链接</a>');
 					$R.append($C = $('<td />').append($A));
 					$R.append($C = $('<td />').html(info[1]));
@@ -101,6 +101,7 @@
 		f = 'templates/' + f + '.xml';
 		xhr.open('GET', f, true);
 		xhr.send(null);
+		return und;
 	}
 
 	function Analyze(){

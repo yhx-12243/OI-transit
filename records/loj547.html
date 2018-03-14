@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj547]匹配字符串</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一个 0/1 串 $s$，我们称 $s$ 合法，当且仅当串 $s$ 的任意一个长度为 $m$ 的子串 $s'$，不为全 1 串。</p>
+		<p>请求出所有长度为 $n$ 的 0/1 串中，有多少合法的串，答案对 $65537$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, m$ ($n, m \leq 68721573904 = \left( 2^{18} + 4 \right)^2$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所求的和对 $65537$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>考虑使用 DP。对于固定的 $m$，记 $f_i$ 表示 $n = i$ 时的答案，则对 $0 \leq n &lt; m$，有 $f_n = 2^n$ (边界状态)。</p>
+		<p>接下来考虑 $f_n$ 的转移，我们可以枚举<strong>最后一个 $0$ 出现的位置</strong>，由于不能有长度为 $m$ 的全 1 子串，因此最后一个 $0$ 出现的位置 $pos$ 必须满足 $n - m + 1 \leq pos \leq n$，而前 $pos - 1$ 位的方案数就是 $f_{pos - 1}$，由于第 $pos$ 位为 $0$ 不影响，故转移方程为</p>
+		<p>$$ f_n = \sum_{i=n-m}^{n-1} f_i \quad (n \geq m)$$</p>
+		<p>发现这是一个线性齐次递推式，可以使用<del>矩阵快速幂</del>多项式快速幂在 $O \left( m^2 \log n \right)$ 时间内解决。</p>
+		<p>当 $m$ 很大时，这个算法就跑得太慢了，因此我们要换一个算法。</p>
+		<p>注意到 $n &lt; m$ 时，答案就是 $2^n$；并且如果你把 $m$ 比较大时的 DP 值打表出来，又能注意到，当 $m \leq n \leq 2m$ 时，$f_n = 2^n - (n-m+2) \cdot 2^{n-m-1}$；也就是说当 $m$ 较大时，$f_n$ 的值可能可以表示成和 $O \left( \dfrac nm \right)$ 项关于 $n, m$ 的简单函数之和。</p>
+		<p>考虑对 $f_n$ 求前缀和 $S_n = 1 + \sum\limits_{i=0}^{n-1} f_i$，则转移方程就变成了 $S_{n+1} - S_n = S_n - S_{n-m}$，即 $S_{n+1} = 2S_n - S_{n-m}$，且有初始状态 $S_i = 2^i$ 对 $0 \leq i \leq m$。</p>
+		<p>因此可以考虑建立一张 $n+1$ 个点的图，编号为 $0 \cdots n$，然后在 $i$ 和 $i+1$ 之间连一条权值为 $2$ 的边，$i-m$ 和 $i+1$ 之间连一条权值为 $-1$ 的边。考虑 $S'_n$ 为从点 $0$ 到点 $n$ <strong>所有路径的权值</strong>的总和 (其中一条路径的权值定义为它所经过的所有边的权值<strong>乘积</strong>，长度为 $0$ 的路径的权为 $1$)。</p>
+		<p>则对 $0 \leq i \leq m$，可得这部分的导出子图只有权为 $2$ 的边，即只有一条路径，故 $S'_i = 2^i$，对 $i &gt; m$，可以使用 DP，枚举最后一步走的是权为 $2$ 的边还是权为 $-1$ 的边，故 $S'_i = 2S'_{i-1} - S'_{i-1-m}$。</p>
+		<p>于是 $S_i$ 与 $S'_i$ 具有相同的<strong>初项</strong>和<strong>递推公式</strong>，故 $S_i = S'_i$。而求 $S'_i$ 是非常容易的，只需枚举我们走了 $k$ 条权为 $-1$ 的边，由于权为 $-1$ 的边相当于 $m+1$ 条权为 $2$ 的边，故权为 $2$ 的边有 $n - (m+1) k$ 条。</p>
+		<p>因此这条路径的权值为 $(-1)^k 2^{n - (m+1) k}$，由于一共有 $n - m k$ 条边，因此有 $\dbinom {n - m k} k$ 种方法选择这种类型的路径，故总答案 $S'_n$ 就等于</p>
+		<p>$$ \sum_{k \geq 0} (-1)^k 2^{n - (m+1) k} \binom {n - m k} k $$ (注意这是有限和)</p>
+		<p>前两项可以使用快速幂计算 (其实可以预处理出 $2^{-(m+1) k} \pmod {65537}$ 的值)，最后一项由于模数比较小且是素数，因此可以使用 <strong>Lucas 定理</strong>计算，故总时间复杂度为 $O \left( p + \dfrac nm \log_p n \right)$ (其中 $p$ 为模数)，由于 $p$ 和 $\log_p n$ 比较小，因此可以近似看成 $O \left( \dfrac nm \right)$。
+		<p>对比上面的时间复杂度 $O \left( m^2 \log n \right)$，可以发现 $m$ 一个在分子，一个在分母，因此我们一开始假设的使用阈值优化的正确的。令两端复杂度相等，可以取阈值 $m_0 = O \left( \sqrt[3]{\dfrac n {\log n}} \right)$，实际编写时可取 $2000 \sim 3000$ 左右。
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 70005
+#define lg2(x) (63 - __builtin_clzll(x))
+using namespace std;
+
+typedef long long ll;
+const int mod = 65537;
+
+ll n, m;
+
+int f[N], g[N], in[N];
+int fact[N], finv[N];
+
+ll PowerMod(ll a, ll n, ll c = 1) {for(; n; n &gt;&gt;= 1, (a *= a) %= mod) if(n &amp; 1) (c *= a) %= mod; return c;}
+
+inline ll C(ll n, ll r){
+	if(n &lt; r) return 0;
+	return n &gt;= mod ? C(n / mod, r / mod) * C(n % mod, r % mod) % mod : (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;
+}
+
+void PolyPowerMod(ll n, int k){
+	int i, j, z = lg2(n);
+	for(; --z &gt;= 0; ){
+		for(i = 0; i &lt; k; ++i)
+			for(j = 0; j &lt; k; ++j)
+				g[i + j] = (g[i + j] + (ll)f[i] * f[j]) % mod;
+		if(n &gt;&gt; z &amp; 1) {for(i = (k &lt;&lt; 1) - 1; i; --i) g[i] = g[i - 1]; g[0] = 0;}
+		for(i = (k &lt;&lt; 1) - 1; i &gt;= k; --i)
+			if(g[i] %= mod)
+				for(j = 1; j &lt;= k; ++j)
+					g[i - j] += g[i];
+		for(i = 0; i &lt; k; ++i) {f[i] = g[i] % mod; g[k + i] = g[i] = 0;}
+	}
+}
+
+int main1(){
+	int i, ans = 0;
+	for(in[0] = i = 1; i &lt; m; ++i) in[i] = (in[i - 1] &lt;&lt; 1) % mod;
+	(m == 1 ? f[0] : f[1]) = 1;
+	PolyPowerMod(n, m);
+	for(i = 0; i &lt; m; ++i) ans = (ans + (ll)in[i] * f[i]) % mod;
+	return printf("%d\n", ans), 0;
+}
+
+int solve(ll n){
+	ll i, iv = PowerMod(2, mod - 1 - ((m + 1) &amp; 65535)), in = PowerMod(2, n), r, res = 0;
+	for(i = 0; (m + 1) * i &lt;= n; ++i){
+		r = in * C(n - i * m, i) % mod;
+		(res += (i &amp; 1 ? mod - r : r)) &gt;= mod ? res -= mod : 0;
+		in = in * iv % mod;
+	}
+	return (int)res;
+}
+
+int main2(){
+	int i;
+	for(fact[0] = i = 1; i &lt; mod; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	for(finv[--i] = mod - 1; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+	int ans = solve(n + 1) - solve(n);
+	return printf("%d\n", ans &lt; 0 ? ans + mod : ans), 0;
+}
+
+int main(){
+	scanf("%lld%lld", &amp;n, &amp;m);
+	return m &lt;= 3000 ? main1() : main2();
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在写多项式 (矩阵) 快速幂的时候，注意特判 $m = 1$ 时的情况，由于此时是对特征多项式 $x - 1$ 取模，故应该置初值 $[x^0]f(x) = f_0 = 1$。</p>
+		<p><strong>坑2：</strong>注意多项式除法时对系数及时取模，如果用 <code>int</code> 存储的话。</p>
+		<p><strong>坑3：</strong>快速幂时取对数时由于 (读入的) $n$ 是 <code>long long</code>，故应该使用 <code>__builtin_clzll(x)</code> 而不是 <code>__builtin_clz(x)</code>。</p>
+	</body>
+</html>

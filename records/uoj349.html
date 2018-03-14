@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj349][WC2018]即时战略</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p><strong>这是一道交互题。</strong></p>
+		<p>小 M 在玩一个即时战略 (Real Time Strategy) 游戏。不同于大多数同类游戏，这个游戏的地图是树形的。也就是说，地图可以用一个由 $n$ 个结点，$n-1$ 条边构成的连通图来表示。这些结点被编号为 $1 \sim n$。</p>
+		<p>每个结点有两种可能的状态："已知的" 或 "未知的"。游戏开始时，只有 $1$ 号结点是已知的。在游戏的过程中，小 M 可以尝试探索更多的结点。</p>
+		<p>具体来说，小 M 每次操作时需要选择一个已知的结点 $x$，和一个不同于 $x$ 的任意结点 $y$ (结点 $y$ 可以是未知的)。然后游戏的自动寻路系统会给出 $x$ 到 $y$ 的最短路径上的第二个结点 $z$，也就是从 $x$ 走到 $y$ 的最短路径上与 $x$ 相邻的结点。此时，如果结点 $z$ 是未知的，小 M 会将它标记为已知的。</p>
+		<p>这个游戏的目标是：利用至多 $T$ 次探索操作，让所有结点的状态都成为已知的。然而小 M 还是这个游戏的新手，她希望得到你的帮助。</p>
+		<p><strong>为了让游戏过程更加容易，小 M 给你提供了这个游戏的交互库，具体见【任务】和【实现细节】。</strong></p>
+
+		<h3>任务</h3>
+		<p>你需要实现一个函数 <code>play</code>，以帮助小M完成游戏的目标。</p>
+		<ul>
+		<li><code>play(n, T, dataType)</code>
+			<ul>
+			<li><code>n</code> 为树的结点个数 ($n \leq 3 \times 10^5$)；</li>
+			<li><code>T</code> 为探索操作的次数限制 ($T \leq 5 \times 10^6, T \leq n \log n$)；</li>
+			<li><code>dataType</code> 为该测试点的数据类型 (当 $\mathrm{dataType} = 3$ 时，游戏的地图是一条链，且 $T \leq n + \log n$)。</li>
+			</ul></li>
+		</ul>
+		<p>在每个测试点中，交互库都会调用恰好一次 <code>play</code> 函数。该函数被调用之前，游戏处于刚开始的状态。</p>
+		<p>你可以调用函数 <code>explore</code> 来帮助你在游戏中探索更多结点，但是这个函数的调用次数不能超过 $T$ 次。</p>
+		<ul>
+		<li><code>explore(x, y)</code>
+			<ul>
+			<li><code>x</code> 为一个已知的结点；</li>
+			<li><code>y</code> 为一个不同于 $x$ 的任意结点（可以不是已知的结点）；</li>
+			<li>这个函数会返回结点 $x$ 到 $y$ 的最短路径上的第二个结点的编号。</li>
+			</ul></li>
+		</ul>
+		<p>在函数 <code>play</code> 返回之后，交互库会检查游戏的状态：只有当每个结点都是已知的，才算游戏的目标完成。</p>
+
+		<h3>实现细节</h3>
+		<p>你需要提交一个源文件 rts.cpp 实现上述函数，且遵循下面的命名和接口。</p>
+		<p>源代码中需要包含头文件 rts.h。</p>
+		<p>你需要实现的函数 <code>play</code>：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">void play(int n, int T, int dataType);</code></pre>
+		<p>函数 <code>explore</code> 的接口信息如下：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">int explore(int x, int y);</code></pre>
+
+		<h3>题解</h3>
+		<p><del>好不容易把题面压到这么短 (我怎么感觉还是很长)</del></p>
+		<p>首先，看这个数据范围就知道树和链是要用两个算法的。</p>
+		<p>先看链的情况 (注意这里的链显然不是 $1 \sim n$ 按顺序的，不然没意义了)。我们考虑较为 "暴力" 的算法：</p>
+		<p>假如说，你已经知道了中间的一段 $l \ldots r$，接下来考虑一个未知节点 $x$。</p>
+		<p>首先我们要尽快知道这个 $x$ 是在左边还是在右边的。</p>
+		<p>因此我们可以考虑对一个<strong>端点</strong>，比如说 $l$，进行探索 <code>explore(<em>l</em>, <em>x</em>)</code>。如果返回的点是已知的，说明 $x$ 在 $l \ldots r$ 的右边，否则说明 $x$ 在 $l \ldots r$ 的左边。</p>
+		<p>接下来我们要做的就是 "暴力扩展"。不妨设 $x$ 在左边，则不停地进行 <code><em>x</em> = explore(<em>x</em>, <em>i</em>)</code> 直到 $x = i$，顺便更新一下 $l$ 和 $r$。</p>
+		<p>最后就是分析复杂度了。我们看到，只有当一开始询问 $x$ 在左边和右边的时候<strong>猜错</strong>时，才会扩展到已知的点 (其实我们上面就是一直猜 $x$ 在左边)。在这样的情况下，最坏复杂度显然是 $2n$，即每次都猜错。最优情况显然是 $n$，即没有猜错。</p>
+		<p>但这样做的期望复杂度是多少呢？<del>肯定是 $n + \log n$，不然题目不就出错了？</del></p>
+		<p>记 $E_i$ 表示已知区间长度为 $i$ 的期望<strong>猜测</strong>次数 (不是猜错次数)，则 $E_1 = 0$。</p>
+		<p>考虑 $E_i$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#include "rts.h"
+#define N 341468
+using namespace std;
+
+int n;
+int ord[N];
+char known[N];
+
+namespace LCT{
+	#define pa p[nd]
+	#define C(x) c[x][nd]
+	struct node {int Min, Max, c[2], p;} nd[N];
+
+	inline int dir(int x) {return nd[x].p ? (x == nd[x].pa.c[0] ? 0 : x == nd[x].pa.c[1] ? 1 : -1) : -1;}
+
+	void update(int x){
+		nd[x].Min = (nd[x].c[0] ? nd[x].C(0).Min : x);
+		nd[x].Max = (nd[x].c[1] ? nd[x].C(1).Max : x);
+	}
+
+	void rotate(int x){
+		int y = nd[x].p, d = !dir(x);
+		nd[nd[y].c[!d] = nd[x].c[d]].p = y;
+		nd[x].p = nd[y].p;
+		if(~dir(y)) nd[y].pa.c[dir(y)] = x;
+		nd[nd[x].c[d] = y].p = x;
+		update(y);
+	}
+
+	void splay(int x){
+		for(; ~dir(x); rotate(x))
+			if(~dir(nd[x].p)) rotate(dir(x) ^ dir(nd[x].p) ? x : nd[x].p);
+		update(x);
+	}
+
+	void access(int x){
+		for(int y = 0; x; y = x, x = nd[x].p){
+			splay(x); nd[x].c[1] = y; update(x);
+		}
+	}	
+}
+
+void tree(){
+	using namespace LCT;
+	int i, j, x, y;
+	for(j = 2; j &lt;= n; ++j)
+		if(!known[i = ord[j]]){
+			splay(1);
+			for(x = 1; x != i; ){
+				y = explore(x, i);
+				if(y == nd[x].C(0).Max) x = nd[x].c[0]; // left tree
+				else if(y == nd[x].C(1).Min) x = nd[x].c[1];
+				else{
+					if(!known[y]) nd[y].p = x;
+					known[y] = 1;
+					splay(x = y);
+				}
+			}
+			access(x);
+		}
+}
+
+void chain(){
+	int l = 1, r = 1, i, j, x;
+	for(j = 2; j &lt;= n; ++j)
+		if(!known[i = ord[j]]){
+			known[x = explore(l, i)] ? (x = r, r = i) : (l = i);
+			for(; x != i; x = explore(x, i)) known[x] = 1;
+			known[x] = 1;
+		}
+}
+
+void play(int n, int T, int dataType){
+	// random
+	char *_ptr = new char; srand(time(NULL) + (long long)_ptr); delete _ptr;
+	// shuffle
+	for(int i = 2; i &lt;= n; ++i) ord[i] = i; random_shuffle(ord + 2, ord + (n + 1));
+	// init
+	::n = n; known[1] = 1;
+	// play
+	dataType == 3 ? chain() : tree();
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

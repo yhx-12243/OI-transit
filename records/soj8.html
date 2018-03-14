@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj8]数列求值</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个线性齐次递推数列 $\{a_n\}$：$a_n = \sum\limits_{i=1}^k b_i a_{n-i}$，其中 $a_1, a_2, \cdots, a_k, b_1, b_2, \cdots, b_k$ 为给定的值，保证 $b_k \neq 0$。</p>
+		<p>现在请你求出 $a_m$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $m, k$ ($m \leq 10^9, k \leq 5 \times 10^4$)。</p>
+		<p>第二行包含 $k$ 个非负整数，表示 $a_1, a_2, \cdots, a_k$。</p>
+		<p>第三行包含 $k$ 个非负整数，表示 $b_1, b_2, \cdots, b_k$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $a_m$ 对 $998244353$ 取模后的值。</p>
+
+		<h3>题解</h3>
+		<p>这是一道经典的数列递推的题。<a href="uoj316.html" target="_blank">之前已经提到过</a>，利用矩阵快速幂可以将时间复杂度优化到 $O \left( k^3 \log m \right)$，但这不是很优，接下来将一个多项式快速幂的算法，可以将时间优化到 $O \left( k^2 \log m \right)$ 以及 $O \left( k \log k \log m \right)$ (FFT/FNTT)。</p>
+		<p>多项式快速幂的思想是，将任意一个 $a_n$ 写成 $a_0, a_1, a_2, \cdots, a_{k-1}$ 的线性组合 (之后下标默认从 $0$ 开始)，算出对应的系数 $c_i$，那么最终的答案就是 $\sum\limits_{i=0}^{k-1} c_i a_i$。</p>
+		<p>定义多项式 $f_m(x) = c_0 + c_1 x + \cdots + c_{k-1} x^{k-1}$ 如果 $a_m = \sum\limits_{i=0}^{k-1} c_i a_i$。那么对于 $m &lt; k$ 就有 $f_m(x) = x^m$，考虑对于 $m = k$，由递推式可以知道，$a_k = \sum\limits_{i=1}^k b_i a_{k-i}$，故</p>
+		<p>$$ f_k(x) = b_k + b_{k-1} x + b_{k-2} x^2 + \cdots + b_1 x^{k-1} $$</p>
+		<p>但是如果我们扩展 $f_m$ 的定义，让它的次数大于等于 $k$，那么 $f_k$ 就应该等于 $x^k$。也就是说，上述多项式与 $x^k$ <strong>在某种意义下</strong>是等价的。</p>
+		<p>同理，将 $a_k$ 一般化，变为 $a_n = b_1 a_{n-1} + b_2 a_{n-2} + \cdots + b_k a_{n-k}$，那么，$f_n(x) = b_1 x^{n-1} + b_2 x^{n-2} + \cdots + b_k x^{n-k}$，与 $x^n$ <strong>在某种意义下</strong>也该是等价的。</p>
+		<p>这么一种等价关系组成的等价类，用什么刻画最好呢？相信你们已经看出来了，即<strong>模 (该数列的) 特征多项式 $C(x) = x^k - b_1 x^{k-1} - b_2 x^{k-2} - \cdots - b_{k-1} x - b_k$ 的意义下</strong>，它们是同余的。</p>
+		<p>这是一个 $k$ 次多项式，对它取模后的多项式是不超过 $k-1$ 次的，这恰恰符合我们一开始对 $f$ 的定义。</p>
+		<p>因此，对于给定的 $n$，我们只需计算 $x^n \bmod C(x)$ 的值。最后将对应系数相乘在相加 (求点积)。</p>
+		<p>由于 $n$ 比较大，我们可以采用快速幂的形式，这样多项式的乘除就都是 $k^2$ 的了，时间复杂度 $O \left( k^2 \log n \right)$。在本题中需要用 FFT/FNTT 中的 <strong>"多项式除法及取模"</strong> 优化到 $O \left( k \log k \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 140000
+#define lg2(x) (31 - __builtin_clz(x))
+using namespace std;
+
+typedef long long ll, poly[N];
+const ll mod = 998244353, half_mod = 499122177, root = 31;
+
+int l, n, m, k, iv;
+int rev[N];
+ll x[N], y[N], init[N];
+poly f, g, g_ntt, g_inv, g_inv_ntt;
+poly buf1, buf2, buf3, buf4;
+
+ll PowerMod(ll a, int n, ll c = 1) {for(; n; n &gt;&gt;= 1, (a *= a) %= mod) if(n &amp; 1) (c *= a) %= mod; return c;}
+
+void NTT_init(const int length){
+	n = 1 &lt;&lt; (l = length); iv = PowerMod(n, mod - 2);
+	ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+	x[0] = 1; rev[0] = 0;
+	for(int i = 1; i &lt; n; ++i){
+		x[i] = x[i - 1] * g % mod;
+		rev[i] = (i &amp; 1 ? rev[i - 1] | n &gt;&gt; 1 : rev[i &gt;&gt; 1] &gt;&gt; 1);
+	}
+}
+
+void DNTT(ll *d, ll *t){
+	int i, len = 1, delta = n, R; ll *j, *k;
+	for(i = 0; i &lt; n; ++i) t[i] = d[rev[i]];
+	for(i = 0; i &lt; l; ++i){
+		delta &gt;&gt;= 1;
+		for(k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+		for(j = t; j &lt; t + n; j += len &lt;&lt; 1)
+			for(k = j; k &lt; j + len; ++k){
+				R = y[k - j] * k[len] % mod;
+				k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+				*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			}
+		len &lt;&lt;= 1;
+	}
+}
+
+void PolyInv(int degree, ll *a, ll *b, ll *t1, ll *t2){
+	int len, i; ll inv = half_mod;
+	b[0] = PowerMod(a[0], mod - 2);
+	t1[0] = a[0]; t1[1] = a[1];
+	for(len = 0; 1 &lt;&lt; len &lt; degree; ++len){
+		NTT_init(len + 2);
+		DNTT(b, t2); memcpy(b, t2, n &lt;&lt; 3); DNTT(t1, t2);
+		for(i = 0; i &lt; n; ++i)
+			((b[i] *= 2 - t2[i] * b[i] % mod) %= mod) &lt; 0 ? b[i] += mod : 0;
+		DNTT(b, t2); reverse(t2 + 1, t2 + n);
+		inv = (inv &gt;&gt; 1) + (inv &amp; 1 ? half_mod : 0);
+		for(i = 0; i &lt; 1 &lt;&lt; (len + 1); ++i) b[i] = t2[i] * inv % mod;
+		for(; i &lt; n; ++i) {b[i] = 0; t1[i] = a[i];}
+	}
+}
+
+void out(int d, ll *f, const char *str){
+	printf("%s(x) =", str);
+	for(int i = 0; i &lt;= d; ++i) printf(" %+lld x^%d", f[i]&lt;half_mod?f[i]:f[i]-mod, i);
+	putchar(10);
+}
+
+void DivMod(ll *f, ll *q, ll *r, ll *t1, ll *t2){
+	int degF = (k &lt;&lt; 1) - 1, /*degG = k, degQ = k - 1,*/ i;
+	reverse(f, f + (degF + 1));
+	memcpy(t1, f, k &lt;&lt; 3);
+	for(i = k; i &lt; ::n; ++i) t1[i] = 0;
+	DNTT(t1, t2);
+	for(i = 0; i &lt; ::n; ++i) (t2[i] *= g_inv_ntt[i]) %= mod;
+	DNTT(t2, q); reverse(q + 1, q + ::n);
+	for(i = 0; i &lt; ::n; ++i) (q[i] *= iv) %= mod;
+	reverse(q, q + k); reverse(f, f + (degF + 1));
+	for(i = k; i &lt; ::n; ++i) q[i] = 0;
+	DNTT(q, t1);
+	for(i = 0; i &lt; ::n; ++i) (t1[i] *= g_ntt[i]) %= mod;
+	DNTT(t1, r); reverse(r + 1, r + ::n);
+	for(i = 0; i &lt; k; ++i){
+		r[i] = r[i] * iv % mod;
+		r[i] = (f[i] &lt; r[i] ? f[i] - r[i] + mod : f[i] - r[i]);
+	}
+	for(; i &lt; ::n; ++i) r[i] = 0;
+}
+
+void PolyPowerMod(int n, int k){
+	int df = 1, i, j = lg2(n);
+	
+	if(!n) {f[0] = 1; f[1] = 0; return;}
+	
+	reverse(g, g + (k + 1)); PolyInv(k, g, g_inv, buf1, buf2); reverse(g, g + (k + 1));
+	for(i = k; i &lt; ::n; ++i) g_inv[i] = 0;
+	NTT_init(lg2(k) + 2); DNTT(g, g_ntt); DNTT(g_inv, g_inv_ntt);
+	
+	for(; --j &gt;= 0; ){
+		df = df &lt;&lt; 1 | (n &gt;&gt; j &amp; 1);
+		if(df &lt; k) {f[df &gt;&gt; 1] = 0; f[df] = 1;}
+		else{
+			DNTT(f, buf1);
+			for(i = 0; i &lt; ::n; ++i) (buf1[i] *= buf1[i]) %= mod;
+			DNTT(buf1, f); reverse(f + 1, f + ::n);
+			for(i = 0; i &lt; ::n; ++i) (f[i] *= iv) %= mod;
+			if(n &gt;&gt; j &amp; 1) {for(i = ::n - 1; i; --i) f[i] = f[i - 1]; f[0] = 0;}
+			DivMod(f, buf1, buf2, buf3, buf4);
+			memcpy(f, buf2, k &lt;&lt; 3);
+			memset(f + k, 0, k &lt;&lt; 3);
+		}
+	}
+}
+
+int main(){
+	int i, ans = 0;
+	scanf("%d%d", &amp;m, &amp;k); --m;
+	for(i = 0; i &lt; k; ++i) scanf("%lld", init + i);
+	for(i = k - 1; ~i; --i){
+		scanf("%lld", g + i); g[i] ? (g[i] = mod - g[i]) : 0;
+	}
+	g[k] = f[1] = 1;
+	PolyPowerMod(m, k);
+	for(i = 0; i &lt; k; ++i) ans = (ans + init[i] * f[i]) % mod;
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>讲一些常数优化吧：</p>
+		<p>由于取模的是一个固定函数，因此在多项式除法中该多项式的逆元是固定的，因此可以将它的逆元以及逆元的 DNTT 变换求出来，除法时常数可以少一半。</p>
+		<p>还有就是上面讲过的，当 $m &lt; k$ 时，$f_m(x) = x^m$，因此可以<strong>省去 "多项式取模" </strong>这一步骤，加速计算 (毕竟在快速幂中，有一半的时间 $m$ 都是小于 $k$ 的)。</p>
+		<p>最后就是快速幂使用递归版的，即从左往右扫描的 (当然你可以不使用递归实现)。因为这种版本的快速幂只有平方和乘 $x$，乘 $x$ 可以暴力计算，FFT 平方的常数也只有 $\dfrac 23$。</p>
+	</body>
+</html>

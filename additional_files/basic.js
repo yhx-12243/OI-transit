@@ -11,8 +11,8 @@ const
 	'use strict';
 	
 	var
-		DisplayDict = {'': '全部', 'Luogu': '洛谷', 'SPOJ': 'Sphere OJ', 'Local': '本地', "Unknown": "这些题的 OJ 太高级了，连 scx 都不知道，快去问一问大佬们吧"},
-		NormDict = {'lydsy': 'Lydsy', 'lg': 'Luogu', 'vijos': 'Vijos', 'hdu': 'HDU', 'poj': 'POJ', 'uoj': 'UOJ', 'loj': 'LibreOJ', 'simpleoj': 'SimpleOJ', 'cf': 'Codeforces', 'cc': 'Codechef', 'spoj': 'SPOJ'},
+		DisplayDict = {'': '全部', 'Luogu': '洛谷', 'SPOJ': 'Sphere OJ', 'SOJ': 'Simple OJ/Stupid OJ', 'Local': '本地', "Unknown": "这些题的 OJ 太高级了，连 scx 都不知道，快去问一问大佬们吧"},
+		NormDict = {'lydsy': 'Lydsy', 'lg': 'Luogu', 'vijos': 'Vijos', 'hdu': 'HDU', 'poj': 'POJ', 'uoj': 'UOJ', 'loj': 'LibreOJ', 'simpleoj': 'SOJ', 'soj': 'SOJ', 'cf': 'Codeforces', 'cc': 'Codechef', 'spoj': 'SPOJ'},
 		SiteDict = {
 			'lydsy': [[/\d+/], 'http://www.lydsy.com/JudgeOnline/problem.php?id=@0'],
 			'lg': [[/[TU]?\d+/], 'https://www.luogu.org/problemnew/show/@0'],
@@ -21,6 +21,7 @@ const
 			'uoj': [[/\d+/], 'http://uoj.ac/problem/@0'],
 			'loj': [[/\d+/], 'https://loj.ac/problem/@0'],
 			'simpleoj': [[/\d+/], 'http://10.49.27.23/problem?id=@0'],
+			'soj': [[/\d+/], 'http://10.49.27.7/problem/@0'],
 			'cf': [[/\d+/, /[A-G]\d*/], 'http://codeforces.com/contest/@0/problem/@1'],
 			'cc': [[/\w+/], 'https://www.codechef.com/problems/@0/'],
 			'spoj': [[/\w+/], 'http://www.spoj.com/problems/@0/']
@@ -57,30 +58,23 @@ const
 	win.getSite = function (s) {return SiteDict.hasOwnProperty(s) ? SiteDict[s] : null;}
 
 	win.OJMatch = function (ptrn, s){
-		var brr, i, j, leader;
-		if(!ptrn) return true;
-		brr = s.split(';');
-		for(i in brr){
-			if(j = brr[i].search(/[^a-z]/), j < 0) continue;
-			leader = brr[i].substr(0, j);
-			if(ptrn === 'Unknown'){
-				if(j > 0 && !getNorm(leader)) return true;
-			}else if(ptrn === 'Local'){
-				if(!j) return true;
-			}else
-				if(getNorm(leader) === ptrn) return true;
-		}
-		return false;
-	}
-
-	win.pr2HTML = function (s){
 		var brr, i, j, ret = '', failed;
 		var sOJ, sID, siteMethod, regSite, strSite, regResult;
+		if(ptrn){
+			brr = s.split(';');
+			for(i in brr){
+				if(j = brr[i].search(/[^a-z]/), j < 0) continue;
+				sOJ = brr[i].substr(0, j);
+				if(ptrn === 'Unknown') sOJ && !getNorm(sOJ) && (ret += brr[i] + ';');
+				else if(ptrn === 'Local') !j && (ret += brr[i] + ';');
+				else getNorm(sOJ) === ptrn && (ret += brr[i] + ';');
+			}
+			s = ret.substr(0, ret.length - 1); ret = '';
+		}
 		brr = s.split(';');
 		for(i in brr){
 			if(j = brr[i].search(/[^a-z]/), j <= 0) {ret += brr[i] + ';'; continue;}
-			sOJ = brr[i].substr(0, j);
-			sID = brr[i].substr(j);
+			sOJ = brr[i].substr(0, j); sID = brr[i].substr(j);
 			siteMethod = getSite(sOJ);
 			if(!siteMethod) {ret += brr[i] + ";"; continue;}
 			regSite = siteMethod[0]; 

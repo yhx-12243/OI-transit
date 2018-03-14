@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6089]小 Y 的背包计数问题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>scx 有一个大小为 $n$ 的背包，并且 scx 有 $n$ 种物品。第 $i$ 种物品的大小为 $i$，共有 $i$ 个可以使用。</p>
+		<p>求 scx 把该背包装满的方案数为多少，答案对于 $23333333$ 取模。</p>
+		<p>定义两种不同的方案为：当且仅当至少存在一种物品的使用数量不同。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 10^5$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示总方案数模 $23333333$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>首先，这是个多重背包问题，还不是完全背包，看起来很不好处理的样子。</p>
+		<p>不过可以注意到，如果 $i &gt; \left \lfloor \sqrt n \right \rfloor$，则由于背包总容量限制，故使用的第 $i$ 种物品数量不超过 $i$ 个——相当于这些物品的使用不受限制。</p>
+		<p>也就是说，对于 $i &gt; \left \lfloor \sqrt n \right \rfloor$，对应的物品相当于是完全背包，因此理应有简单的处理方法。</p>
+		<p>因此，我们可以对 $i \leq \left \lfloor \sqrt n \right \rfloor$ 和 $i \geq \left \lfloor \sqrt n \right \rfloor$ 分别处理，然后枚举两边的总容量，对应相乘再相加即可。也就是说，$\left \lfloor \sqrt n \right \rfloor$ 就是本题的阈值 (临界值)。</p>
+		<p>先考虑 $i \leq \left \lfloor \sqrt n \right \rfloor$ 的情况，是一个带数量限制的背包 DP。记 $f_{i, j}$ 表示使用<strong>前 $i$ 种</strong>物品，总大小为 $j$ 的方案数。则有边界状态 $f_{0, 0} = 1$，和转移</p>
+		<p>$$ f_{i, j} = \sum_{k=0}^i f_{i-1, j-ki} $$ (默认当 $j &lt; 0$ 时 $f_{i, j} = 0$)</p>
+		<p>这显然可以前缀和优化，即令 $sf_{i, j} = \sum\limits_{k \geq 0} f_{i-1, j-ki}$，则</p>
+		<p>$$ f_{i, j} = \sum_{k \geq 0} f_{i-1, j-ki} - \sum_{k \geq 0} f_{i-1, j-(i+1+k)i} = sf_{i, j} - sf_{i, j-i(i+1)} $$</p>
+		<p>故这部分的时间复杂度为 $O \left( n \sqrt n \right)$，空间可以使用滚动数组优化到 $O(n)$。</p>
+		<p>接下来考虑 $i &gt; \sqrt n$ 的情况，这是一个完全背包。由于物品数量太多 ($n - \left \lfloor \sqrt n \right \rfloor$ 个)，故不能使用一般的完全背包 $O(n^2)$，因此还需要发掘它们之间的性质。</p>
+		<p>由于这些物品的大小是<strong>连续的</strong>，且物品的大小至少是 $\left \lfloor \sqrt n \right \rfloor + 1$。因此对于一个方案，我们可以看作它是若干次 A, B 两种操作的结果，其中两种操作为：</p>
+		<ol style="list-style-type: upper-alpha">
+		<li>向背包加入一个大小为 $\left \lfloor \sqrt n \right \rfloor + 1$ 的物品。</li>
+		<li>将背包内所有物品的大小均增加 $1$。</li>
+		</ol>
+		<p>又由于背包里每个物品的大小都大于 $\left \lfloor \sqrt n \right \rfloor$，故背包内至多有 $\left \lfloor \sqrt n \right \rfloor$ 个物品。因此可以设 $g_{i, j}$ 表示使用了 $i$ 种物品 (不是前 $i$ 种)，总大小为 $j$ 的方案数。则有边界 $f_{0, 0} = 1$ 和两种转移：</p>
+		<p>对于 A 操作，转移为 $$ g_{i, j} \uparrow g_{i-1, j - \left( \lfloor \sqrt n \rfloor + 1 \right)} $$
+		<p>对于 B 操作，转移为 $$ g_{i, j} \uparrow g_{i, j-i} $$ (其中 $a \uparrow b$ 表示 <code>a += b</code>)</p>
+		<p>因此总转移方程就是 $$ g_{i, j} = g_{i-1, j - \left( \lfloor \sqrt n \rfloor + 1 \right)} + g_{i, j-i} $$</p>
+		<p>最后枚举两边的总容量，比如记 $j$ 为大物品的数量，则 $n-j$ 为小物品的数量，再设 $i$ 为大物品的个数，则答案就等于</p>
+		<p>$$ \sum_{i=0}^{\lfloor \sqrt n \rfloor} \sum_{j=0}^n f_{\lfloor \sqrt n \rfloor, n-j} \cdot g_{i, j} $$</p>
+		<p>这部分的时间复杂度还是 $O \left( n \sqrt n \right)$，其中 <code>g[]</code> 也可以用滚动数组优化到 $O(n)$，而答案则可以边 DP 边算。故总时间复杂度 $O \left( n \sqrt n \right)$，空间复杂度 $O(n)$。</p>
+		<p>听说这题有个用<strong>生成函数</strong>和<strong>多项式算法</strong>瞎推一通推到了 $O(n \log n)$ 的复杂度，而常数巨大，测试当 $n = 10^7$ 次时多项式算法还比不上 $O \left( n \sqrt n \right)$ 的阈值法。<del>(所以常数很重要啊)</del></p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+using namespace std;
+
+const int mod = 23333333;
+
+int n, srn, ans = 0;
+int f[320][N], sf[N], _[2][N], *cur = *_, *nxt = _[1];
+
+inline void add(int &amp;x, const int y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+
+int main(){
+	int i, j;
+	scanf("%d", &amp;n); srn = (int)sqrt(n);
+	nxt[0] = f[0][0] = 1;
+	for(i = 1; i &lt;= srn; ++i)
+		for(j = 0; j &lt;= n; ++j){
+			sf[j] = f[i - 1][j];
+			j &gt;= i ? add(sf[j], sf[j - i]) : (void)0;
+			f[i][j] = sf[j];
+			j &gt;= i * (i + 1) ? add(f[i][j], mod - sf[j - i * (i + 1)]) : (void)0;
+		}
+	ans = f[srn][n];
+	for(i = 1; i &lt;= srn; ++i){
+		swap(cur, nxt);
+		memset(nxt, 0, sizeof sf);
+		for(j = srn + 1; j &lt;= n; ++j){
+			add(nxt[j] = nxt[j - i], cur[j - srn - 1]);
+			add(ans, (long long)f[srn][n - j] * nxt[j] % mod);
+		}
+	}
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>本题注意使用滚动数组，以免三个 $O \left( n \sqrt n \right)$ 的数组爆空间。</p>
+	</body>
+</html>

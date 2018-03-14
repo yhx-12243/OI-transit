@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[vijos #6][soj49]子集卷积</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定两个长度为 $n$ 的序列 $a_0, a_1, \cdots, a_{n-1}$ 和 $b_0, b_1, \cdots, b_{n-1}$，你需要求出一个序列 $c_0, c_1, \cdots, c_{n-1}$，其中 $c_k$ 满足：$c_k = \sum\limits_{i \mathop \mid j = k \\ i \mathop \& j = 0} a_i b_j$。其中 $\mid$ 表示按位或，$\&$ 表示按位与。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行一个整数 $n$ ($n \leq 10^6$)，表示序列长度。</p>
+		<p>第二行 $n$ 个整数 $a_0, a_1, \cdots, a_{n-1}$ ($0 \leq a_i \leq 9$)，表示第一个序列。</p>
+		<p>第三行 $n$ 个整数 $b_0, b_1, \cdots, b_{n-1}$ ($0 \leq b_i \leq 9$)，表示第二个序列。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行 $n$ 个整数，表示你得到的序列。</p>
+
+		<h3>题解</h3>
+		<p>转化一下条件，$i \mid j = k \wedge i \mathop \& j = 0$ 可以等价为 $i \mid j = k \wedge \mathrm{pop}(i) + \mathrm{pop}(j) = \mathrm{pop}(k)$ ($\mathrm{pop}(n)$ 为<a href="uoj66.html" target="_blank">种群计数函数</a>)，因此可以想到多项式乘法的系数下标也正好是相加 (加法卷积)。</p>
+		<p>故我们可以构造两个多项式簇 $f_i(x), g_i(x)$，其中 $f_i(x)$ 的第 $\mathrm{pop}(i)$ 项系数为 $a_i$，此时令 $h_k = \sum\limits_{i \mid j = k} f_i g_j$，那么 $h_k$ 的第 $\mathrm{pop}(k)$ 项系数只能由下述条件的 $i, j$ 产生：</p>
+		<p>首先 $i \mid j = k$，其次，它们中对应项的次数之和等于 $\mathrm{pop}(k)$。由于 $f_i, g_j$ 都是单项式，因此这个要求即为 $\mathrm{pop}(i) + \mathrm{pop}(j) = \mathrm{pop}(k)$。</p>
+		<p>因此我们需要做的，就是将原来的<strong>数</strong>转化为<strong>一元多项式</strong>，在多项式环上进行快速 Möbius 变换 (FWT) 即可，时间复杂度 $O \left(n \log^2 n \right)$。</p>
+		
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1109771
+#define lg2(x) (31 - __builtin_clz(x))
+#define ID isdigit(c = *next++)
+#define RT if(!~c) return flag = 0, *this
+using namespace std;
+
+struct Istream{
+	int flag; char *next, buf[6829360];
+	void init(FILE *f = stdin) {fread(buf, 1, sizeof buf, f); next = buf;}
+	Istream&amp; operator &gt;&gt; (int &amp;x){
+		int c; x = 0;
+		for(; !ID; ) RT;
+		for(x = c &amp; 15; ID; x = x * 10 + (c &amp; 15)) RT; RT;
+		return flag = 1, *this;
+	}
+}Cin;
+
+struct Ostream{
+	FILE *_f; char buf[34];
+	void init(FILE *f = stdout){_f = f;}
+	Ostream&amp; operator &lt;&lt; (int x){
+		if(!x) return put(48), *this;
+		int i; for(i = 0; x &gt; 0; x /= 10) buf[i++] = x % 10 | 48;
+		while(--i &gt;= 0) put(buf[i]);
+		return *this;
+	}
+	Ostream&amp; operator &lt;&lt; (char c) {return put(c), *this;}
+	void put(char c) {fputc(c, _f);}
+}Cout;
+
+int n, len, scx;
+
+int a[N][20], b[N][20], c[N][20];
+
+int popc[N];
+
+void Add(int *a, int *b) {for(int i = 0; i &lt;= scx; ++i) a[i] += b[i];}
+void Sub(int *a, int *b) {for(int i = 0; i &lt;= scx; ++i) a[i] -= b[i];}
+void Mul(int *c, int *a, int *b){
+	int i, j;
+	for(i = 0; i &lt;= scx; ++i)
+		for(j = 0; j &lt;= scx - i; ++j)
+			c[i + j] += a[i] * b[j];
+}
+
+void FMT(int (*f)[20]){ // Fast Mobius Transform
+	int i, j;
+	for(i = 0; i &lt; len; ++i)
+		for(j = 0; j &lt; 1 &lt;&lt; len; ++j)
+			if(!(j &gt;&gt; i &amp; 1))
+				Add(f[j | 1 &lt;&lt; i], f[j]);
+}
+
+void IFMT(int (*f)[20]){ // just an IE-principle
+	int i, j;
+	for(i = 0; i &lt; len; ++i)
+		for(j = 0; j &lt; 1 &lt;&lt; len; ++j)
+			if(!(j &gt;&gt; i &amp; 1))
+				Sub(f[j | 1 &lt;&lt; i], f[j]);
+}
+
+int main(){
+	int i;
+	Cin.init(); Cout.init();
+	Cin &gt;&gt; n;
+	len = lg2(n - 1) + 1; scx = lg2(n);
+	for(i = 1; i &lt; n; ++i) popc[i] = popc[i &gt;&gt; 1] + (i &amp; 1);
+	for(i = 0; i &lt; n; ++i) Cin &gt;&gt; a[i][popc[i]]; FMT(a);
+	for(i = 0; i &lt; n; ++i) Cin &gt;&gt; b[i][popc[i]]; FMT(b);
+	for(i = 0; i &lt; 1 &lt;&lt; len; ++i) Mul(c[i], a[i], b[i]);
+	IFMT(c);
+	for(i = 0; i &lt; n; ++i) Cout &lt;&lt; c[i][popc[i]] &lt;&lt; (i == n - 1 ? '\n' : ' ');
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于时限比较紧，因此使用 <code>long long</code> 会 TLE (...)，需要改用 <code>int</code> 减少常数 (由于最大项不超过 $9 \times 9 \times n$)。</p>
+	</body>
+</html>

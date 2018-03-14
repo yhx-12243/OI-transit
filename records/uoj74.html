@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj74]破解密码</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>时光机的密码是一个由 $n$ 个<strong>小写英文字母</strong>组成的字符串 $s$。</p>
+		<p>时光机有一套判定密码是否正确的方法。首先他定义了函数 $f(t)$，其中 $t$ 是一个字符串，$t_0, \dots, t_{n - 1}$ 依次表示 $t$ 的每个字符：</p>
+		<p>$$ f(t) = \left( \sum_{k = 0}^{n-1}26^{n - k - 1} \times \mathrm{num}(t_k) \right) \bmod p $$</p>
+		<p>其中 $\mathrm{num}(c)$ 表示 $c$ 这个字母在字母表中排第几个 (从 $0$ 开始编号，例如 $\mathrm{num}(\texttt a) = 0, \mathrm{num}(\texttt g) = 6$)。$p$ 是个<strong>素数</strong>。$a \bmod b$ 表示 $a$ 除以 $b$ 的余数。</p>
+		<p>时光机会把输入的密码 $s$ 旋转 $0, 1, \dots, {n-1}$ 次得到字符串 $a_0, a_1, \dots, a_{n-1}$。所谓旋转就是把原字符串的第一个字符放到字符串最后面去，把原字符串第二个字符作为新的字符串的开始。</p>
+		<p>时光机存储了 $n$ 个值 $h_0, h_1, \dots, h_{n - 1}$，假如对于任意一个 $0 \leq k &lt; n$ 的整数 $k$ 都满足 $f(a_k) = h_k$，那么就算密码正确。</p>
+		<p>现在给你 $n, p$ 和 $h_0, \dots, h_{n - 1}$，请你求出密码。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行两个包含正整数 $n, p$ ($n \leq 10^5, 26 &lt; p \leq 10^9$)，含义如前所述。保证 $p$ <strong>是一个素数</strong>。</p>
+		<p>接下来 $n$ 行，每行包含一个非负整数依次表示 $h_0, \dots, h_{n - 1}$。保证 $0 \leq h_0, \dots, h_{n - 1} &lt; p$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一个由小写英文字母组成的字符串表示正确密码。</p>
+		<p>保证至少存在一个正确的密码。</p>
+		<p>如果有多种正确的密码，你只要输出任意一个即可。</p>
+
+		<h3>题解</h3>
+		<p>不难发现其实 $f(t)$ 是个标准的字符串的<strong>多项式 Hash</strong> 函数~</p>
+		<p>我们看一下这个函数有什么性质。</p>
+		<p>不难发现，考虑将一个字符换到后面去，则其它部分的 Hash 值应该是乘了一个底数，本题中即为 $26$。</p>
+		<p>记原字符串 $a_0 = c_0 c_1 c_2 \cdots c_{n-1}$，根据上面的性质，可以列出如下方程：</p>
+		<p>$$ h_{i+1} - c_i \equiv 26 (h_i - c_i \cdot 26^{n-1}) \pmod p $$</p>
+		<p>($i = 0, 1, 2, \cdots, n-1$，以下约定 $h_n = h_0$) 由于在模意义下，因此我改成了同余符号。</p>
+		<p>化简得 $(26^n - 1) c_i \equiv 26 h_i - h_{i+1} \pmod p$，由于 $p$ 是素数，因此我们分如下两种情况讨论：</p>
+		<ol>
+		<li><p>$26^n - 1 \not\equiv 0 \pmod p$。此时，对于这 $n$ 个方程，每个方程都有唯一解，直接解方程即可，可以使用逆元求解。不过原题已经告诉你一定有解，因此直接从 $0$ 到 $25$ 枚举 $c_i$ 也可以。</p></li>
+		<li><p>$26^n - 1 \equiv 0 \pmod p$。此时方程变成了 $26 h_i \equiv h_{i+1} \pmod p$。这是什么意义呢？它的意义是<strong>当 $26^n - 1 \equiv 0 \pmod p$ 时，任何一组合法的解都必须满足 $26 h_i \equiv h_{i+1} \pmod p$</strong>。又因为原题是有解的，因此给出的 $h_i$ 也会满足这个性质。</p>
+		<p>故我们构造一组 (合法) 解，让其<strong>只需满足 $h_0$ 即可</strong>，其它的自然就能满足了。那如何满足 $h_0$ 呢？直接把 $h_0$ 变成 $26$ 进制即可。</p></li>
+		</ol>
+		<p>这题运用了<strong>分类讨论</strong>的思想，有必要注意一下。总时间复杂度 $O(26 n)$ 或 $O(n \log n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+using namespace std;
+
+typedef long long ll;
+
+int n, p;
+int h[N];
+ll P = 1;
+char c[N];
+
+void convert26(){
+	int U = *h, i;
+	for(i = 0; i &lt; n; ++i) {c[i] = U % 26; U /= 26;}
+	reverse(c, c + n);
+}
+
+void solve(){
+	/* h[i+1] = 26 h[i] + (1 - 26^n) c[i]
+	=&gt; 26 h[i] - h[i+1] = (26^n - 1) c[i] */
+	ll D; int i, j;
+	P ? --P : (P = p - 1);
+	h[n] = *h;
+	for(i = 0; i &lt; n; ++i){
+		D = (26ll * h[i] - h[i + 1] + p) % p;
+		for(j = 0; j &lt; 26; ++j)
+			if(D == P * j % p){
+				c[i] = j; break;
+			}
+	}
+}
+
+int main(){
+	int i;
+	scanf("%d%d", &amp;n, &amp;p);
+	for(i = 0; i &lt; n; ++i) {scanf("%d", h + i); P = P * 26 % p;}
+	P == 1 ? convert26() : solve();
+	for(i = 0; i &lt; n; ++i) c[i] += 97;
+	puts(c);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意计算 $26 h_i - h_{i+1}$ 的时候可能爆 <code>int</code>，故要使用 <code>long long</code>存储。</p>
+	</body>
+</html>

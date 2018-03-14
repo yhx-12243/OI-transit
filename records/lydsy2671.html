@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2671]Calc</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给出 $N$，统计满足下面条件的数对 $(a, b)$ 的个数：</p>
+		<ol>
+		<li>$1 \leq a &lt; b \leq N$</li>
+		<li>$a + b \mid a \cdot b$</li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $N$ ($N &lt; 2^{31}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示数对的个数。</p>
+
+		<h3>题解</h3>
+		<p>先来看一下，$a + b \mid ab$ 这个条件可以怎么转化。</p>
+		<p><del>根据数论的套路</del>，记 $d = \gcd(a, b), a = a_1 d, b = b_1 d$，则原式就变成了 $(a_1 + b_1) d \mid a_1 b_1 d^2$，两边约去一个 $d$ 后得 $a_1 + b_1 \mid a_1 b_1 d$。</p>
+		<p>由于 $(a_1, b_1) = 1$，因此 $(a_1 + b_1, a_1) = (a_1 + b_1, b_1) = (a_1 + b_1, a_1 b_1) = 1$，根据整除的性质就有 $a_1 + b_1 \mid d$。</p>
+		<p>因此我们实际枚举的是正整数三元组 $(a_1, b_1, d)$，满足 $(a_1, b_1) = 1$ ($a_1 \perp b_1$)，$a_1 + b_1 \mid d$，以及 $a_1 d &lt; b_1 d \leq n$。
+		<p>用和式的语言就是，求下式的值：$$ \sum_{1 \leq i &lt; j} [i \perp j] \sum_{1 \leq d \leq \lfloor n/j \rfloor} [d \mid i+j] $$ (这里 $i, j$ 没有写上界，因为 $i, j$ 过大时后面的 $d$ 就没办法满足了)</p>
+		<p>先化简右边那个和式。可见满足条件的 $d$ 就是 $i+j, 2(i+j), \cdots$，直到 $d = k(i+j) \geq \left \lfloor \dfrac nj \right \rfloor$，因此 $d$ 的数目 (也就是右边和式的值) 就应该等于 $k = \left \lfloor \dfrac n {j(i+j)} \right \rfloor$。</p>
+		<p>于是开始和式变换，顺便来一发 Möbius 反转变换：</p>
+		<p>$$ \sum_{1 \leq i &lt; j} [i \perp j] \sum_{1 \leq d \leq \lfloor n/j \rfloor} [d \mid i+j] = \sum_{1 \leq i &lt; j} [i \perp j] \left \lfloor \frac n {j(i+j)} \right \rfloor = \sum_{1 \leq i &lt; j} \left \lfloor \frac n {j(i+j)} \right \rfloor \sum_{d \mid i, d \mid j} \mu(d)
+= \sum_{d \geq 1} \mu(d) \sum_{1 \leq i' &lt; j'} \left \lfloor \frac n {j'd (i'd + j'd)} \right \rfloor = \sum_{d \geq 1} \mu(d) \sum_{1 \leq i &lt; j} \left \lfloor \frac n {d^2 j (i+j)} \right \rfloor $$</p>
+		<p>现在可以分析上界了。由于 $j \geq 2$，因此 $4d^2 &lt; d^2 j (i+j) \leq n$，即 $d \leq \left \lfloor \dfrac {\sqrt n} 2 \right \rfloor$。类似地，$d^2 j^2 \leq n \Rightarrow dj \leq \sqrt n$，因此 $j \leq \left \lfloor \dfrac {\sqrt n} d \right \rfloor$。</p>
+		<p>如果我们<strong>直接枚举所有的 $(d, j)$ 对</strong>，记 $M = \left \lfloor \sqrt n \right \rfloor$，那么<strong>枚举量</strong>可以像<a href="uoj21.html" target="_blank">那道题</a>一样计算，大约为 $M + \dfrac M2 + \dfrac M3 + \cdots + \dfrac M{M/2} = O(M \log M) = O \left( \sqrt n \log n \right)$。
+		<p>枚举完 $d, j$ 后，显然不能再暴力枚举 $i$ (否则就是 $O(n \log n)$ 啦！)，不过我们发现，对于固定的 $(d, j)$，记 $M = \left \lfloor \dfrac n {d^2 j} \right \rfloor$，后面的和式就变成了 $\sum\limits_{j &lt; i &lt; 2j} \left \lfloor \dfrac Mi \right \rfloor$，可以分块处理！因此这部分的复杂度为 $O \left( \min\{j, \sqrt M\} \right)$。</p>
+		<p>那么最终复杂度是对的吗？先粗略地分析一波。先考虑 $\min\{j, \sqrt M\}$，一增一减，那么当它们相等时取极值，即 $j^2 = M = \dfrac n {d^2 j}$，就是 $j = O \left( \sqrt[3] {\dfrac n {d^2}} \right)$。</p>
+		<p>这个式子的意思是说，对于一个固定的 $d$，对第二次枚举的每个 $j$，后面分块处理 $i$ 的复杂度不超过 $O \left( \sqrt[3] {\dfrac n {d^2}} \right)$。因此最后的复杂度就大概为</p>
+		<p>$$ M \left( \sqrt[3] n \right) + \frac M2 \left( \sqrt[3] {\frac n4} \right) + \cdots = n^{5/6} \left( \frac 1 {1^{5/3}} + \frac 1 {2^{5/3}} + \cdots \right) = O \left( n^{5/6} \right) $$</p>
+		<p>(后面的和由于 $\dfrac 53 &gt; 1$，因此收敛于一常数，约为 $\zeta \left( \dfrac 53 \right) \approx 2$)</p>
+		<p>因此可以在 $O \left( n^{5/6} \right)$ 的时间内解决问题，常数因子其实非常小 <del>(比如 $\mu(d) = 0$ 根本不用计算，这里就有 $\dfrac 6 {\pi^2}$ 的常数；还有后面分析的时候把所有的 $j$ 的时间复杂度都看成了最大值 $O \left( \sqrt[3] {\dfrac n {d^2}} \right)$，这里的常数也有几分之一；其次还有分块是 $j \sim 2j$ 而不是 $1 \sim M$，也有几分之一的常数因子……)</del></p>
+		<p>总之还是看数据说话，下面的代码在跑 $n = 2^{31} - 1$ 时<strong>最内层循环</strong>的运行次数仅为 $4275901$，是非常之小的。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100034
+#define next(n, i) (n / (n / i + 1))
+using namespace std;
+
+typedef long long ll;
+
+ll n, srn, ans = 0;
+int pn, mu[N], p[10034];
+
+void sieve(int n){
+	int i, j, v; pn = 0;
+	memset(mu, 1, sizeof mu);
+	mu[0] = 0; mu[1] = 1;
+	for(i = 2; i &lt;= n; i++){
+		if(mu[i] &gt; 1) {p[pn++] = i; mu[i] = -1;}
+		for(j = 0; j &lt; pn; j++){
+			if((v = i * p[j]) &gt; n) break;
+			if(!(i % p[j])) {mu[v] = 0; break;}
+			else mu[v] = -mu[i];
+		}
+	}
+}
+
+int main(){
+	int d, i, j, k; ll M, res;
+	sieve(N - 1);
+	scanf("%lld", &amp;n); srn = (ll)sqrt(n);
+	for(d = 1; d &lt;&lt; 1 &lt;= srn; ++d){
+		if(!mu[d]) continue;
+		res = 0;
+		for(j = 2; j * d &lt;= srn; ++j){
+			M = n / (j * d * d);
+			for(i = (j &lt;&lt; 1) - 1; i &gt; j; i = k){ // \sum_{i=j+1}^{2j-1} [M/i]
+				(k = next(M, i)) &lt; j ? k = j : 0;
+				res += M / i * (i - k);
+			}
+		}
+		mu[d] == 1 ? ans += res : (ans -= res);
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>尽量多去优化，比如 $\mu(d) = 0$ 的情况。还有要适当的调整枚举顺序，这道题很多人都是先枚举 $j$ 再枚举 $d$，这样就避免不了<strong>枚举因数</strong>的玄学复杂度；如果先枚举 $d$ 再枚举 $j$，那么枚举量就是确定的 $O \left( \sqrt n \log n \right)$。由于后面的分块还有除以 $d$，因此最后的 $\log n$ 也消去了。</p>
+	</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj75]智商锁</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给你一个 $k$，请你构造一个结点数不超过 $100$ 的无向图，使得这个无向图中<strong>生成树</strong> (Spanning tree) 的个数对 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 取模后恰为 $k$。</p>
+		<p>作为智商超高的你一定一眼秒掉了此题！请写一个程序证明你的智商跟智商锁的主人一样吧！</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10$)，表示数据组数。</p>
+		<p>接下来 $T$ 行每行一个非负整数 $k$，保证 $0 \leq k &lt; 998244353$。</p>
+
+		<h3>输出格式</h3>
+		<p>你需要对每一个给出来的 $k$，输出一张无向简单图。如果有多解输出任意一组解均可。如果无解请输出卖萌表情 “<samp>QwQ</samp>”（不含引号）。</p>
+		<p>输出无向图时，先一行两个非负整数 $n, m$，分别表示结点数和边数。你需要满足 $1 \leq n \leq 100$。接下来 $m$ 行，每行两个整数 $v, u$ 表示 $v$ 号结点和 $u$ 号结点之间有一条无向边。结点从 $1$ 到 $n$ 编号。</p>
+
+		<h3>题解</h3>
+		<p>可以看出这是一个与<strong>数无向图生成树</strong>有关的问题，自然可以想到用 Kirchhoff's Matrix-Tree 来解决。</p>
+		<p>构造出原图的 Kirchhoff 矩阵后，可以使用 Gauss 消元在 $O(n^3)$ 的时间内求出生成树的个数。</p>
+		<p>那接下来如何保证生成树的个数就是我们想要的呢？</p>
+		<p>注意到<del>第 7 个点的数据</del>如果用一条桥边 $e$ 把两个连通图连接起来的话，生成树的个数就是两边生成树个数的乘积 (因为桥边 $e$ 必须要选，于是通过乘法原理即可)。</p>
+		<p>因此，如果题目中给定 $k$ 是几个数的乘积，且每个对于每个因子 $k_0, k_1, \cdots$，都容易构造出生成树个数为 $k_i$ 的图，那我们就解决了。</p>
+		<p>那如果 $k$ 不好分解呢？没关系，由于这是取模后的，因此我们一定可以在模意义下找到 $k_i$。</p>
+		<p>然后考虑如何构造生成树个数为 $k_i$ 的图，由于它需要合并，因此图的点数不能过大。直接构造并不好构造，我们可以使用<strong>逆向思维</strong>，先构造一大堆随机连通图，得到非常多的 $k_i$，再用这些 $k_i$ 取拼凑得到 $k$。</p>
+		<p>接下来所要干的就是调调参数了。我在代码中生成了 $N = 1000$ 张大小为 $Z = 16$ 的 (几乎) 连通图。由于 $16$ 阶完全图的生成树个数远大于模数，且模数是个质数，因此我们可以假设这 $1000$ 个数 (在模意义下) 是<strong>均匀分布</strong>的。</p>
+		<p>我们尝试着去找到一个<strong>四元组</strong> $(a, b, c, d)$ 使得 $k_a \cdot k_b \cdot k_c \cdot k_d \equiv k \pmod {998244353}$，这可以使用折半搜索 (meet in the middle) 解决，即先把 $k_a \cdot k_b$ 的所有可能值算出来，保存在一个 <code>map &lt;int, pair&gt;</code>里，然后枚举 $k \cdot (k_c \cdot k_d)^{-1} \pmod {998244353}$，与 <code>map &lt;int, pair&gt;</code> 中元素比较一下即可 (当然也可以使用 <code>hash_map</code> 加速)。</p>
+		<p>接下来分析一下这个算法正确的概率，不妨假设 $k_a \cdot k_b$ 的值 (即 <code>map &lt;int, pair&gt;</code> 中的值，共 $10^6$ 个) 是在模意义下均匀分布的。那么对于一对指定的 $k \cdot (k_c \cdot k_d)^{-1}$，找不到 $(a, b)$ 的概率应该为 $\left( 1 - \dfrac 1P \right)^{10^6}$ ($P$ 为模数)，枚举所有的 $(c, d)$，找不到的概率就应该为它的 $10^6$ 次方，即 $p = \left( 1 - \dfrac 1P \right)^{10^{12}} \approx 9 \times 10^{-436}$。</p>
+		<p>因此对所有的 $k$，全部能找到的概率就是 $(1 - p)^P$，由于 $p \cdot P \ll 1$，因此这个概率 $\approx \left( e^{-p} \right)^P \approx 1$。</p>
+		<p>总的时间复杂度就是 $O \left( N Z^3 + N^2 T \right)$，正确率基本没问题 <del>(估计这个世纪是没人能 hack 掉了)</del>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1000
+#define Z 16
+using namespace std;
+
+typedef pair &lt;int, int&gt; pr;
+typedef map &lt;int, int&gt; Map;
+typedef int Graph[Z][Z], (*pGraph)[Z];
+typedef long long ll;
+const ll mod = 998244353;
+
+int edge[N];
+Graph G[N];
+ll cnt[N], cni[N];
+Map f;
+
+inline ll inv(ll x) {return x &lt;= 1 ? x : (mod - mod / x) * inv(mod % x) % mod;}
+
+ll Matrix_Tree(pGraph G){
+	int i, j, k; ll m[Z][Z], coe, res = 1;
+	memset(m, 0, sizeof m);
+	for(i = 0; i &lt; Z; ++i)
+		for(j = 0; j &lt; Z; ++j)
+			if(G[i][j]) {m[i][j] = mod - 1; ++m[i][i];}
+	for(i = 1; i &lt; Z; ++i){
+		if(!(res = res * m[i][i] % mod)) return 0;
+		coe = inv(m[i][i]);
+		for(j = 1; j &lt; Z; ++j) m[i][j] = m[i][j] * coe % mod;
+		for(k = 1; k &lt; Z; ++k){
+			if(i == k) continue;
+			coe = m[k][i];
+			for(j = 1; j &lt; Z; ++j) (m[k][j] -= coe * m[i][j] % mod) &lt; 0 ? m[k][j] += mod : 0;
+		}
+	}
+	return res;
+}
+
+void init(){
+	char *p = new char; srand(time(NULL) + (ll)p); delete p;
+	int i, j, u, v; pGraph G;
+	for(i = 0; i &lt; N; ++i){
+		G = ::G[i];
+		for(u = 0; u &lt; Z - 1; ++u)
+			for(v = u + 1; v &lt; Z; ++v)
+				edge[i] += (G[u][v] = G[v][u] = (rand() &amp; 15) &lt;= 12);
+		cnt[i] = Matrix_Tree(G); cni[i] = inv(cnt[i]);
+		for(j = 0; j &lt;= i; ++j) f.insert(pr(cnt[i] * cnt[j] % mod, j &lt;&lt; 16 | i));
+	}
+}
+
+void print(pGraph G, int offset){
+	int u, v;
+	for(u = 0; u &lt; Z - 1; ++u)
+		for(v = u + 1; v &lt; Z; ++v)
+			if(G[u][v])
+				printf("%d %d\n", u + offset, v + offset);
+}
+
+int main(){
+	int T, n, z, i, j, k, l;
+	Map::iterator it;
+	init();
+	for(scanf("%d", &amp;T); T; --T){
+		scanf("%d", &amp;n); if(!n) {puts("64 0"); continue;}
+		for(i = 0; i &lt; N; ++i)
+			for(j = i; j &lt; N; ++j)
+				if((z = cni[i] * cni[j] % mod) &amp;&amp; (it = f.find((ll)z * n % mod)) != f.end()){
+					k = it-&gt;second &gt;&gt; 16; l = it-&gt;second &amp; 65535;
+					printf("%d %d\n", Z &lt;&lt; 2, edge[k] + edge[l] + edge[i] + edge[j] + 3);
+					print(G[k], 1); print(G[l], Z + 1); print(G[i], Z &lt;&lt; 1 | 1); print(G[j], Z * 3 + 1);
+					printf("%d %d\n%d %d\n%d %d\n", Z, Z + 1, Z &lt;&lt; 1, Z &lt;&lt; 1 | 1, Z * 3, Z * 3 + 1);
+					i = j = N + 1;
+				}
+		if(i == N) puts("orzscx");
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>$k = 0$ 时由于没有逆元，注意要特判 (输出一个大于 $1$ 阶的零图)。</p>
+		<p><strong>坑2：</strong>在 <code>map</code> 中寻找的是 $k \cdot (k_c \cdot k_d)^{-1}$，不要漏乘因子，比如 $k$ (当时写的时候没乘 $k$，得到一堆答案为 $1$ 的图)。</p>
+	</body>
+</html>

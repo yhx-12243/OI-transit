@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3944]Sum</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个正整数 $N$ ($N &lt; 2^{31}$)，求</p>
+		<p>$$ \large ans_1 = \sum_{i=1}^n \varphi(i), ans_2 = \sum_{i=1}^n \mu(i) $$</p>
+		<p>多组询问。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10$)，表示数据组数。</p>
+		<p>第 $2 \sim T+1$ 行，每行一个非负整数 $N$ ($N &lt; 2^{31}$)，代表一组询问。</p>4
+
+		<h3>输出格式</h3>
+		<p>一共 $T$ 行，每行两个用空格分隔的数 $ans_1, ans_2$。</p>
+
+		<h3>题解</h3>
+		<p>这题应该可以算是一个杜教筛的模板题了，对于函数 $f, g$，设 $h = f \ast g$ ($\ast$ 为 Dirichlet 卷积)，则有 $$ h(n) = \sum_{ab = n} f(a) g(b) $$</p>
+		<p>让 $i$ 取遍 $1 \sim n$ 中的所有整数，就有 $$ \sum_{i=1}^n h(i) = \sum_{ab \leq n} f(a) g(b) $$</p>
+		<p>令大写字母的函数为对应小写字母的函数的前缀和，比如 $F(n) = \sum\limits_{i=1}^n f(i)$，那么对 $b$ 求和，就有</p>
+		<p>$$ H(n) = \sum_{ab \leq n} f(a) g(b) = \sum_{b=1}^n g(b) F \left( \left \lfloor \frac nb \right \rfloor \right) $$</p>
+		<p>如果 $g(1) \neq 0$，则将 $b = 1$ 的项移出和式，就得到</p>
+		<p>$$ F(n) = \frac 1 {g(1)} \left( H(n) - \sum_{b=2}^n g(b) F \left( \left \lfloor \frac nb \right \rfloor \right) \right) $$</p>
+		<p>就可以递归处理了。然后你发现你交一发就 TLE 掉了？</p>
+		<p>等等，这道题是需要底(ka)层(chang)优(shu)化的，现在将一些杜教筛优化的小 trick。</p>
+		<p>可以证明，当线性筛筛到 $O \left( n^{2/3} \right)$ 时，整个算法的复杂度取到最小值 $O \left( n^{2/3} \right)$，因此我们要合理调整线性筛的范围。</p>
+		<p>而本题中由于杜教筛被多次调用，而线性筛只在开头使用一次，因此基于常数考虑，我们自然要把线性筛筛地范围加大一点。比如原题 $\left( 2^{31} \right)^{2/3} \approx 1.7 \times 10^6$，我们可以筛它的两倍，到 $3.4 \times 10^6$。</p>
+		<p>不过线性筛的范围也不能过大，我在线性筛筛到 $10^7$ 的时候测试了一下：在本机 (Linux) 和 UOJ 上跑得会变快 (大约是原来的 $\dfrac 34$ 时间)，而在 Lydsy 上会变得非常慢 (大约是原来的两倍)，<del>可能是不同评测机编译器版本的问题吧。</del></p>
+		<p>其次就是杜教筛的时候避免使用 <code>map &lt;int, ll&gt;</code>，(像<del>洲阁筛等</del>大多数数论问题一样) 可以进行<strong>分两段存储</strong>，可以稍微变快一点。</p>
+		<p>(以下内容纯属 xbb)</p>
+		<p>最后我通过各种操作的时间测试分析得到，杜教筛时间的瓶颈在于<strong>递归过程中的除法运算</strong>！因此如果写<del>新式杜教筛</del>的话，那么分块的 <code>next</code> 中就会有两次除法 (<code>next(n, i) = n / (n / i + 1)</code>)，后面还会有一次除法 (可以优化掉)，这样下来这 $2 \sqrt n$ 个数大约要执行 $6 \sqrt n$ 次 (或 $4 \sqrt n$ 次) 除法！于是时间就非常慢了。</p>
+		<p>这个时候就可以使用<del>(ka)老(chang)式(ban)杜教筛</del>，即算出 $b = \left \lfloor \sqrt n \right \rfloor$，然后 $i = 1$ 到 $b$ 循环一遍，两边的函数值同时计算，因此对一个 $i$，只需要做一次除法。这样下来这 $\sqrt n$ 个数大约只需执行 $\sqrt n$ 次除法，常数瞬间快 $4$ 倍！(一个根号的时间远小于 $\sqrt n$ 个除法的时间)</p>
+		<p>再加上一些寻址优化和调参数，<del>就成功地在 Lydsy 上从 TLE 卡进前 15……(写本文的时间之前)</del></p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 3414680
+#define M 100034
+#define next(n, i) (n / (n / i + 1))
+using namespace std;
+
+typedef long long ll;
+typedef pair &lt;ll, ll&gt; pll;
+typedef pair &lt;ll, pll&gt; plp;
+typedef map &lt;ll, pll&gt; mlp;
+
+int pn, mu[N], p[426835]; ll phi[N];
+
+int cnt;
+ll n, srn;
+ll v[M], f[M], g[M];
+
+void sieve(int n){
+	int i, *j, v; pn = 0;
+	phi[0] = mu[0] = 0;
+	phi[1] = mu[1] = 1;
+	for(i = 2; i &lt;= n; ++i){
+		if(!phi[i]) {p[pn++] = i; mu[i] = -1; phi[i] = i - 1;}
+		for(j = p; ; ++j){
+			if((v = i * *j) &gt; n) break;
+			if(!(i % *j)) {mu[v] = 0; phi[v] = phi[i] * *j; break;}
+			else {mu[v] = -mu[i]; phi[v] = phi[i] * (*j - 1);}
+		}
+	}
+}
+
+inline int ID(ll x) {return x &lt;= srn ? x : cnt + 1 - n / x;}
+
+// 卡常版杜教筛
+void calc(ll n, ll &amp;m, ll &amp;p){
+	if(n &lt; N) {m = mu[n]; p = phi[n]; return;}
+	int _n = ID(n);
+	if(g[_n]) {m = f[_n]; p = g[_n]; return;}
+	ll i, j, k, la, nw, b = (ll)(sqrtl(n) + 1e-6);
+	m = 1; p = n * (n + 1) &gt;&gt; 1; la = n / (b + 1);
+	for(i = b; i &gt;= 1; --i){
+		nw = n / i;
+		j = nw - la;
+		m -= j * mu[i]; p -= j * phi[i]; la = nw;
+		if(i != 1 &amp;&amp; nw &gt; b) {calc(nw, j, k); m -= j; p -= k;}
+	}
+	f[_n] = m; g[_n] = p;
+}
+
+int main(){
+	int T, i; ll a, b;
+	sieve(N - 1);
+	for(i = 1; i &lt; N; ++i) {mu[i] += mu[i - 1]; phi[i] += phi[i - 1];}
+	for(scanf("%d", &amp;T); T; --T){
+		scanf("%lld", &amp;n); srn = (ll)sqrtl(n); cnt = 0;
+		for(i = n; i; i = next(n, i)) {++cnt; f[cnt] = g[cnt] = 0;}
+		calc(n, a, b);
+		printf("%lld %lld\n", b, a);
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>底层优化有时还是很重要的，一些相关的技巧和常数分析还是有必要掌握的，<del>毕竟有些题就是如此之坑~</del></p>
+	</body>
+</html>

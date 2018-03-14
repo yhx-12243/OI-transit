@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3309]DZY Loves Math</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于正整数 $n$，定义 $f(n)$ 为 $n$ 所含质因子的最大幂指数。例如 $f(1960) = f(2^3 \times 5^1 \times 7^2) = 3, f(10007) = 1, f(1) = 0$。</p>
+		<p>给定正整数 $a, b$，求 $$ \sum_{i=1}^a \sum_{j=1}^b f \left( \gcd(i, j) \right) $$</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10000$)，表示询问数。</p>
+		<p>接下来 $T$ 行，每行两个正整数 $a, b$ ($a, b \leq 10^7$)。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每一个询问，输出一行一个整数作为回答。</p>
+
+		<h3>题解</h3>
+		<p>还是进行带 Möbius 反转变换的和式变换 (设 $n = \min \{a, b\}$)：</p>
+		<p>$$ \sum_{i=1}^a \sum_{j=1}^b f \left( \gcd(i, j) \right) = \sum_{d=1}^n f(d) \sum_{i=1}^{\lfloor a/d \rfloor} \sum_{j=1}^{\lfloor b/d \rfloor} [i \perp j] = \sum_{d=1}^n f(d) \sum_{i=1}^{\lfloor a/d \rfloor} \sum_{j=1}^{\lfloor b/d \rfloor} \sum_{e \mid i, e \mid j} \mu(e)
+= \sum_{d=1}^n f(d) \sum_{e=1}^n \mu(e) \left \lfloor \frac a {de} \right \rfloor \left \lfloor \frac b {de} \right \rfloor $$</p>
+		<p>跟<a href="lydsy2693.html" target="_blank">这道题</a>类似，枚举 $D = de$，那么就变成了</p>
+		<p>$$ \sum_{D=1}^n \left \lfloor \frac aD \right \rfloor \left \lfloor \frac bD \right \rfloor \sum_{i \mid D} \mu(i) f \left( \frac Di \right) $$</p>
+		<p>因此接下来的问题就是如何求 $g(n) = \sum\limits_{d \mid n} \mu(d) f \left( \dfrac nd \right)$，如果能求出所有 $g(n)$，那么求个前缀和，再分块一下就可以了。</p>
+		<p>不过它<strong>不是</strong>积性函数，那么它看起来就不能进行线性筛了。不过 $n \leq 10^7$，因此我们要在接近 $O(n)$ (或者常数非常小的 $O(n \log n)$) 时间内求出所有 ($n$ 个) $g(n)$ 值。</p>
+		<p>首先，如果你打个表，那么你将惊讶地发现，<strong>$g(n)$ 的取值竟然只有 $\{-1, 0, 1\}$！这是一个非常神奇的性质！与 Möbius 函数有惊人地相似之处！</strong>如果你再仔细地看一下，就会发现，<strong>$g(n)$ 取非零值的充要条件是 $n$ 是一个平方松 (square-free) 的整数的整数次幂</strong>！并且如果 $n = a^b$ ($a$ 为平方松的整数，即 $\mu(a) \neq 0$)，那么 $g(n) = -\mu(a)$！</p>
+		<p>这是为什么呢？我们下面来证明一下。</p>
+		<p>先考虑 $n = a^b$ ($a &gt; 1$) 的形式。由于 $a$ 平方松，因此我们可以将 $a$ 写成若干个<strong>不同素数</strong>的乘积，即 $a = p_1 p_2 \cdots p_l$，此时 $n = p_1^b p_2^b \cdots p_l^b$。</p>
+		<p>注意 $g(n)$ 的表达式 $g(n) = \sum\limits_{d \mid n} \mu(d) f \left( \dfrac nd \right)$，可以发现当 $d$ 非平方松 (即 $\mu(d) = 0$) 时不会对答案产生贡献。因此 $d$ 一定为这 $l$ 个素数 (所构成的集合) 的一个<strong>子集</strong>，换句话说，有用的 $d$ 满足 $d \mid a$。
+		<p>那么当 $d = a$ 时，$f \left( \dfrac nd \right) = f \left( a^{b-1} \right) = b-1$，当 $d \neq a$ 时，$\dfrac nd$ 中必有一个素因子的幂次为 $b$，因此有</p>
+		<p>$$ g(n) = \sum_{d \mid a} \mu(d) f \left( \frac nd \right) = \sum_{d \mid a, d \neq a} \mu(d) \cdot b + \mu(a) \cdot (b-1) = \sum_{d \mid a} \mu(d) \cdot b - \mu(a) = -\mu(a) $$</p>
+		<p>如果 $n$ 不具有 $a^b$ 的形式，那么我们令 $b = f(n)$，则 $n$ 的标准分解式中<strong>必存在一个素因子 $p_i$，它的幂指数 $\alpha_i = v_{p_i}(n) &lt; b$</strong>。不妨设 $n = p_1^b p_2^{\alpha_2} \cdots p_l^{\alpha_l}$ ($l \geq 2$，此时不要求素数递增)，即其中 $p_1$ 的幂指数为 $b$，其余指数均<strong>不超过</strong> $b$。</p>
+		<p>那么不妨设 $\alpha_2 &lt; b$，由于对答案有贡献的 $d$ 需要平方松，即 $d \mid p_1 p_2 \cdots p_l$，因此，$d$ 的选择只有 $2^l$ 种。我们将这 $2^l$ 种分为两类，一类是 $d \mid p_2$ 的，另一类是 $d \nmid p_2$ 的，每类各 $2^{l-1}$ 个，并将它们<strong>两两配对</strong>。也就是说，对第二类的 $d$，与第一类的 $p_2 d$ 配成一对 $(p_2 d, d)$。</p>
+		<p>考虑每一对 ($p_2 d, d$) 的函数值的和。可以看出，它们的 Möbius 函数 ($\mu$) 值<strong>互为相反数</strong>。又由于 $d$ 和 $p_2 d$ 平方松，因此不管怎样都有 $\dfrac nd$ 中 $v_1$ 的幂指数 $v_{p_1} \left( \dfrac nd \right) \geq b-1 \geq \alpha_2$，因此 $\alpha_2$ 是否多除一个对 $f$ 值没有影响，因此，它们的 $f$ 值<strong>相同</strong>，因此这一对数的函数值之和等于 $0$。</p>
+		<p>因此如果 $n$ 不具有这种形式，它所配成的 $2^{l-1}$ 对的函数值，每对都是 $0$，因此 $g(n)$ 也自然就等于 $0$ 啦。</p>
+		<p>这样以来，$g(n)$ 的确<strong>可以使用线性筛预处理</strong> <del>(哇，线性筛可以筛非积性函数！)</del>，对于整数 $n$，如果它的最小素因子为 $p$，我们只需记录 $p$ 的幂指数 $\alpha = v_p(n)$ (代码中为 <code>deg[n]</code>) 以及 $n$ 除掉所有因子 $p$ 后的值 $\dfrac n {p^\alpha}$ (代码中为 <code>la[n]</code>)。</p>
+		<p>然后对一个新的 (不整除 $n$ 的) 素数加入，只需判断前面的最大次数是否是 $1$ 即可 (如果是，则取原来那串 $g$ 值的相反数，否则置 $0$)。如果对于旧的 (整除 $n$ 的) 素数加入，只需判断它的次数与前面 (<code>la[n]</code>) 的次数是否相等。注意 <code>la[n] == 1</code> 时的特判。(如果不懂的具体看代码)</p>
+		<p>总时间复杂度 $O \left( T \left( \sqrt a + \sqrt b \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 10000034
+#define next(n, i) (n / (n / i + 1))
+using namespace std;
+
+typedef long long ll;
+
+int n, m;
+int pn, scx[N], deg[N], la[N], p[682936];
+ll sum[N], ans;
+
+void sieve(int n){
+	int i, j, v; pn = 0;
+	memset(scx, 1, sizeof scx);
+	scx[1] = 0;
+	for(i = 2; i &lt;= n; i++){
+		if(scx[i] &gt; 1) {p[pn++] = i; deg[i] = la[i] = scx[i] = 1;}
+		for(j = 0; j &lt; pn; j++){
+			if((v = i * p[j]) &gt; n) break;
+			if(!(i % p[j])){
+				deg[v] = deg[i] + 1; la[v] = la[i];
+				scx[v] = (la[i] == 1 ? 1 : deg[la[i]] == deg[v] ? -scx[la[i]] : 0);
+				break;
+			}
+			else{
+				deg[v] = 1; la[v] = i;
+				scx[v] = (deg[i] == 1 ? -scx[i] : 0);
+			}
+		}
+	}
+}
+
+int main(){
+	int T, i, j;
+	sieve(N - 1);
+	for(i = 1; i &lt; N; ++i) sum[i] = sum[i - 1] + scx[i];
+	for(scanf("%d", &amp;T); T; --T){
+		scanf("%d%d", &amp;n, &amp;m);
+		if(n &gt; m) swap(n, m); ans = 0;
+		for(i = n; i; i = j){
+			j = max(next(n, i), next(m, i));
+			ans += (sum[i] - sum[j]) * (n / i) * (m / i);
+		}
+		printf("%lld\n", ans);
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>线性筛时需要注意当 <code>la[n] == 1</code> 时，此时 $n$ 为素数的幂，那么 $g(n) = -\mu(p) = 1$，需要特判 (不能通过比较次数取相反数)。</p>
+	</body>
+</html>
