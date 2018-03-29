@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3812][uoj37][清华集训2014]主旋律</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>响应主旋律的号召，大家决定让这个班级充满爱，现在班级里面有 $n$ 个女生。</p>
+		<p>如果 $a$ 爱着 $b$，那么就相当于 $a$ 和 $b$ 之间有一条 $a \to b$ 的有向边。如果这 $n$ 个点的图是强联通的，那么就认为这个班级是充满爱的。</p>
+		<p>不幸的是，有一些不好的事情发生了，现在每一条边都可能被摧毁。我作为爱的使者，想知道有多少种摧毁的方式，使得这个班级任然充满爱呢？(说人话就是有多少边的子集删去之后整个图仍然强联通)</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($1 \leq n \leq 15; 0 \leq m \leq n(n-1)$)，表示班级里的女生数和爱的关系数。</p>
+		<p>接下来 $m$ 行，每行包含两个正整数 $a, b$，表示女生 $a$ 爱着女生 $b$。同时 $a$ 不等于 $b$。</p>
+		<p>所有女生从 $1$ 到 $n$ 标号。</p>
+		<p>同一条边不会出现两遍，但可能出现 $a$ 爱着 $b$，$b$ 也爱着 $a$ 的情况，这是两条不同的边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示对 $10^9 + 7$ 取模后的答案。</p>
+
+		<h3>题解</h3>
+		<p>注意到数据规模很小，于是采用状态压缩 DP。</p>
+		<p>记 $f_S$ 表示集合为 $S$ 的点组成的强连通图 (SCG) 的数量，那么答案就是 $f_U$。边界为 $|S| = 1$ 时 $f_S = 1$。</p>
+		<p>我们考虑取补计算，即从所有图中减去不是 <abbr title="Strongly-connected Graph, 强连通图">SCG</abbr> 的数量，得到的就是答案。</p>
+		<p>我们记 $e(S)$ 表示原图以 $S$ 导出的子图中一共有多少条边，这个很容易求得。</p>
+		<p>对于一个非 <abbr title="Strongly-connected Graph, 强连通图">SCG</abbr>，缩点后一定有入度为 $0$ 的节点 (反证即可)，因此我们只需枚举 (缩点后) 哪些节点入度为 $0$。<strong>注意到除了枚举的节点外，其它节点的入度也可能是 $0$</strong>，因此可以采用容斥原理枚举入度为 $0$ 的节点个数。</p>
+		<p>注意到缩点后的节点其实对应原图中的一个点集，因此这样 DP 复杂度是错的，转移方程太长就不写了。</p>
+		<p>考虑优化这个 DP。我们换一种方式，考虑枚举<strong>入度为 $0$ 的节点对应原图的那个点集 $T$</strong>，先不考虑里面有多少个点。如果设 $g_{k, S}$ 表示将点集 $S$ 分成 $k$ 个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 的方案数，则 DP 方程如下：</p>
+		<p>$$ f_S = 2^{e(S)} + \sum_{T \subseteq S} \sum_{k=1}^{|T|} (-1)^k \cdot g_{k, T} \cdot 2^{e(T, S \setminus T) + e(S \setminus T)} $$
+		<p>其中 $e(A, B)$ 代表起点在 $A$，终点在 $B$ 的边数，也很容易求得。<strong>且当 $T = S$ 时 $k \neq 1$</strong>。</p>
+		<p>注意到后面部分 $2^{e(T, S \setminus T) + e(S \setminus T)}$ 与 $k$ 无关，因此可以提到外面。因此对一个图，我们需要求的就是一个<strong>容斥系数</strong>，及下列表达式的值：</p>
+		<p>$$ u_S = \sum_{k=1}^{|S|} (-1)^k \cdot g_{k, S} $$</p>
+		<p>(如果求出了 $u_S$，那么 $f_S$ 就变成了 $$ f_S = 2^{e(S)} + \sum_{T \subseteq S} u_T \cdot 2^{e(T, S \setminus T) + e(S \setminus T)} $$，可以在 $O \left( 3^n \right)$ 时间内得到解决)</p>
+		<p>考虑集合 $S$ 所对应的 $u_S$，首先特判 $k = 1$ 的情况 (即只有一个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr>)，此时的系数为 $-f_S$。如果 $k &gt; 1$，<del>根据套路</del>，我们枚举其中一个节点 $v \in S$ (代码实现中可以令 $v = \mathrm{lowbit}(S)$)。</p>
+		<p>设 $C$ 为包含 $v$ 的强连通分量，那么考虑集合 $S \setminus C$，如果它里面有 $k$ 个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr>，对应过来 $S$ 里面就有 $k+1$ 个连通分量，也就是说，需要变号。而 $C$ 里面的点单独成为一个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr>，因此转移方程马上就出来了：</p>
+		<p>$$ u_S = - f_S - \sum_{C' \subseteq S \setminus \{v\}} u_{C'} \cdot f_{S \setminus C'} $$ (注：枚举的 $C'$ 为上面讨论的 $S \setminus C$)</p>
+		<p>边界为 $|S| = 1$ 时 $u_S = -1$。这样一来，$f$ 和 $u$ 都可以在 $O \left( 3^n \right)$ 的时间内完成，故总时间复杂度 $O \left( 3^n \right)$。</p>
+		<p style="color: red">ps：代码中的 <code>sc[S]</code> 为 $f_S$，<code>uc[S]</code> 为 $-u_S$，<code>cross[T]</code> 表示 $e(T, S \setminus T)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 18
+#define N2 34000
+using namespace std;
+
+typedef long long ll;
+const ll mod = 1000000007;
+
+int V, E, _V;
+int in[N2], out[N2], pop[N2], cross[N2];
+// cross[k]: edge count of k -&gt; (i\k)
+ll pw2[N2], sc[N2], uc[N2], e[N2];
+// sc[i]: strong-connected, uc[i]: IE-coefficient, e[i]: the number of edges
+
+inline void add(ll &amp;x, const ll y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+
+int main(){
+	int i, j, k, u, v;
+	scanf("%d%d", &amp;V, &amp;E); _V = (1 &lt;&lt; V) - 1;
+	for(i = 1; i &lt;= E; ++i){
+		scanf("%d%d", &amp;u, &amp;v); u = 1 &lt;&lt; u - 1; v = 1 &lt;&lt; v - 1;
+		out[u] |= v; in[v] |= u;
+	}
+	for(*pw2 = i = 1; i &lt;= _V; ++i){
+		pw2[i] = (pw2[i - 1] &lt;&lt; 1) % mod;
+		pop[i] = pop[i &gt;&gt; 1] + (i &amp; 1);
+	}
+	for(i = 1; i &lt;= _V; ++i){
+		v = i &amp; -i; j = i ^ v;
+		if(!j) {sc[i] = uc[i] = 1; e[i] = 0; continue;}
+		e[i] = e[j] + pop[in[v] &amp; i] + pop[out[v] &amp; i];
+		for(k = j; k; k = k - 1 &amp; j)
+			add(uc[i], mod - uc[k] * sc[i ^ k] % mod);
+		add(sc[i] = pw2[e[i]], mod - uc[i]);
+		for(k = i; k; k = k - 1 &amp; i)
+			if(k == i) cross[i] = 0;
+			else{
+				(u = i ^ k) &amp;= -u;
+				cross[k] = cross[k | u] - pop[out[u] &amp; (i ^ k)] + pop[in[u] &amp; k];
+				add(sc[i], mod - uc[k] * pw2[cross[k] + e[i ^ k]] % mod);
+			}
+		add(uc[i], sc[i]);
+	}
+	printf("%lld\n", sc[_V]);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>计算出入边时，为避免使用 <code>clz</code> 函数，在读入时可以令 <code>out[1 &lt;&lt; u] = 1 &lt;&lt; v;</code> 等代码。</p>
+		<p><strong>坑1：</strong>要注意上面两个式子看似有循环定义，其实不然。因为转移 $f_S$ 时如果 $T = S$ 则 $k \neq 1$，因此可以先处理 $k &gt; 1$ 时的部分 $u_S$，再转移到 $f_S$，最后再转移回 $u_S$。</p>
+	</body>
+</html>

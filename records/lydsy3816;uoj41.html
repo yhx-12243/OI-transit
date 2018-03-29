@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3816][uoj41][清华集训2014]矩阵变换</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给出一个 $N$ 行 $M$ 列的矩阵 $A$, 保证满足以下性质：</p>
+		<ol>
+		<li>$M &gt; N$。</li>
+		<li>矩阵中每个数都是 $[0, N]$ 中的自然数。</li>
+		<li>每行中，$[1, N]$ 中每个自然数都恰好出现一次。这意味着每行中 $0$ 恰好出现 $M - N$ 次。</li>
+		<li>每列中，$[1, N]$ 中每个自然数至多出现一次。</li>
+		</ol>
+		<p>现在我们要在每行中选取一个非零数，并把这个数之后的数赋值为这个数。我们希望保持上面的性质 4，即每列中，$[1, N]$ 中每个自然数仍然至多出现一次。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T &lt; 50$)，表示数据组数。</p>
+		<p>后面包含 $T$ 组数据，各组数据之间无空行。</p>
+		<p>每组数据以两个正整数 $N, M$ ($N &lt; 200, M &lt; 400$) 开始，接下来 $N$ 行，每行 $M$ 个用空格隔开的整数，意义如题所述。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据输出一行。如果有解，则输出 $N$ 个整数，依次表示每一行取的数是多少 (这应该是一个 $1$ 到 $N$ 的排列)。如果无解，则输出任意卖萌表情。</p>
+
+		<h3>题解</h3>
+		<p>神构造~</p>
+		<p>把行看成男生，数看成女生，建立<strong>稳定婚姻模型</strong>。对于每个男生 (行)，他偏爱更靠左的女生 (数)，对于每个女生 (数)，她更喜欢出现她的位置靠右的男生 (行)。</p>
+		<p>这样如果某个方案<strong>不满足题意</strong>，那么说明存在某一列，某个数出现了两次。</p>
+		<p>设第 $1$ 行和第 $2$ 行的第 $j$ 列的数相同且等于 $v$ ($v \neq 0$)，不妨设 $j$ 是满足相同的最小的 $j$，则必存在其中一行，它的第 $j$ 列原来就是 $v$，那么不妨设它为第一行。</p>
+		<p>那么可以得到，第二行选的数为 $v$，第一行选的数不为 $v$ (且为 $v$ 右边的数)。考虑男生 $1$ 和女生 $v$，可以发现男生 $1$ 更喜欢女生 $v$ 且女生 $v$ 也更喜欢男生 $1$，因此这个对 (pair) 是不稳定的。</p>
+		<p>因此我们只需要根据上述的排名规则建立稳定婚姻模型后，然后使用 Gale-Shapley 算法即可。</p>
+		<p>下面简单地讲述一下 Gale-Shapley 算法的过程：</p>
+		<ol>
+		<li><p>游(qiu)戏(hun)分为好几轮：</p></li>
+		<li><p>每轮开始，每个男生像他当前<strong>排名最高</strong>且<strong>没有拒绝他</strong>的女生表白，该轮结束后，$n$ 个女生分别收到若干男生的表白 (可能没有)。</p></li>
+		<li><p>对于每个女生，如果他收到了男生的表白，则她先<strong>暂时地</strong>选择这些男生中最喜欢的一个，并<strong>把其他 (向她表白的) 男生拒绝</strong>。</p></li>
+		<li><p>再回到男生，有些男生可能被拒绝，有些男生可能已经找到了配偶。如果此时所有男生都已找到配偶 (即不存在拒绝)，则算法结束，否则回到第 2 步，开始下一轮游(qiu)戏(hun)。</p></li>
+		</ol>
+		<p>当算法结束时，当前的配偶关系即为所求。</p>
+		<p>可以发现，我们要证明两个问题：</p>
+		<ol>
+		<li><strong>算法是否能够结束且每个男生均有配偶？</strong></li>
+		<li><strong>最终所有男生与女生组成的对都是稳定的吗？</strong></li>
+		</ol>
+		<p>先证明第 1 个结论：算法一定能结束且每个男生均有配偶。由于最多出现 $n(n-1)$ 次拒绝，因此 $n(n-1)$ 轮后必能结束。如果有一个男生最终没有配偶，那么说明他被所有女生拒绝。然而被拒绝过的女生都是有配偶的，因此此时已经存在完全匹配，矛盾。</p>
+		<p>再证明第 2 个结论：所有对都是稳定的。假如说 $b_i$ 和 $g_j$ 不稳定，那么说明 $b_i$ 的配偶比 $g_j$ 差，$g_j$ 的配偶比 $b_i$ 差。于是当 $b_i$ 向 $g_j$ 表白时，$g_j$ 拒绝了 $b_i$，因此最终 $g_j$ 的配偶一定不比 $b_i$ 差，矛盾。</p>
+		<p>因此我们就成功解决了这个问题，最后来分析一下算法的时间复杂度：</p>
+		<p>第一轮结束后，至少有一个女生已经有了配偶。那么第二轮开始之前，如果只有一对配偶，除了已经有配偶的男生，其他男生都被该女生拒绝，因此第二轮至少会出现两对配偶。</p>
+		<p>如果第二轮结束后只有两对配偶，那么说明剩下的 $n-2$ 个男生在前两轮表白中均被拒绝，因此第三轮结束后至少会出现三对配偶。以此类推，在第 $n$ 轮游(qiu)戏(hun)结束后，所有男生均找到配偶。</p>
+		<p>每轮游戏的时间复杂度是 $O(n)$ 的 (男生女生都能 $O(1)$ 处理他/她们的事情)，因此总时间复杂度即为读入复杂度，$O \left( n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 250
+using namespace std;
+
+int n, m;
+int girl[N][N], iboy[N][N];
+int rankboy[N], rankgirl[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+int main(){
+	int T, i, j, u, v; bool failed;
+	for(scanf("%d", &amp;T); T; --T){
+		scanf("%d%d", &amp;n, &amp;m);
+		for(i = 1; i &lt;= n; ++i)
+			for(u = 0, j = 1; j &lt;= m; ++j)
+				if(scanf("%d", &amp;v), v)
+					girl[i][++u] = v, iboy[v][i] = j;
+		for(i = 1; i &lt;= n; ++i) {rankboy[i] = 1; rankgirl[i] = 0;}
+		for(failed = true; failed; ){
+			for(i = 1; i &lt;= n; ++i){
+				v = girl[i][rankboy[i]];
+				up(rankgirl[v], iboy[v][i]);
+			}
+			failed = false;
+			for(i = 1; i &lt;= n; ++i){
+				v = girl[i][rankboy[i]];
+				if(rankgirl[v] != iboy[v][i])
+					++rankboy[i], failed = true;
+			}
+		}
+		for(i = 1; i &lt;= n; ++i) printf("%d%c", girl[i][rankboy[i]], i == n ? 10 : 32);
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>对于女生的话，可以用 <code>boy[v][i]</code> 来存储男生 $i$ 在女生 $v$ 心目中的排名，对于男生的话，可以直接用 <code>girl[i][u]</code> 表示男生 $i$ 心目中第 $u$ 名的女生，这样会方便游戏过程中的计算。</p>
+	</body>
+</html>

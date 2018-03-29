@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj13]最小生成树</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>scx 有一张 $(r-1) \times (c-1)$ 的网格图，网格图上一共有 $r \times c$ 个<strong>格点</strong>，每相邻两个节点之间连有一条边，初始时所有边的权值均为 $0$。</p>
+		<p>她觉得这张网格图太无聊了，于是她想对这张图进行 $q$ 次操作，操作分为两种：</p>
+		<ol>
+		<li><code>- <em>x</em> <em>y</em> <em>w</em></code>表示将 $(x, y)$ 和 $(x, y+1)$ 之间的边的边权改为 $w$；</li>
+		<li><code>| <em>x</em> <em>y</em> <em>w</em></code>表示将 $(x, y)$ 和 $(x+1, y)$ 之间的边的边权改为 $w$。</li>
+</ol>
+		<p>其中 $(x, y)$ 表示第 $x$ 行第 $y$ 列的<strong>格点</strong>。</p>
+		<p>同时，scx 还想知道每次操作后这张图的最小生成树的边权和，请在每次操作后告诉她最小生成树的边权和。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $r, c, q$，分别表示网格图 (格点) 的行数、列数和操作数。</p>
+		<p>接下来的 $q$ 行，每行描述一次操作，格式见题目描述。</p>
+		<p>注意 $x, y, w$ 是<strong>强制在线</strong>的。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行一个整数，分别表示每次操作后最小生成树的边权和。</p>
+
+		<h3>题解</h3>
+		<p>可以发现其实就是网格图最小生成树的模板题……</p>
+		<p>考虑<a href="uoj3.html" target="_blank">这道题目</a>，当以其中一维排序后，所要做的就是用 <abbr title="Link-Cut Tree, 动态树">LCT</abbr> 维护只支持加边的最小生成树。</p>
+		<p>当时加边的过程是这么实现的：对边 $e = (u, v)$，如果 $u, v$ 不连通，则直接加边，否则找到 $u \sim v$ 路径上边权最大的边 $e'$，$e$ 和 $e'$ 中保留权值较小的一个。</p>
+		<p>将它一般化，也就是我们可以实现支持<strong>减小边权</strong>操作的动态 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> (断开的边可以视作权为 $+ \infty$ 的边，加边相当于减小权为 $+ \infty$ 的边权)。如果权值减小的边 $(u, v)$ 在 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 上，则什么都不用操作，否则找到 $u \sim v$ 路径上边权最大的边 $e'$ 与之比较。</p>
+		<p>但是这个 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 不支持删边操作 (相当于<strong>增大边权</strong>)，那怎么办呢？</p>
+		<p>对一般的图，我们可以离线乱搞在 $O \left( n \log^2 n \right) \sim O \left( n \log^3 n \right)$ 的时间内解决，然而这道题是强制在线的，因此我们要利用网格图的性质。</p>
+		<p>我们考虑网格图的<strong><a href="lydsy1001.html" target="_blank">对偶图</a></strong>，可以发现，对于网格图的一个生成树 $T = (V_0, E_0)$，则它的边集的补 $E \setminus E_0$ (其中 $E$ 为网格图的总边集) 所对应的图 $T'$ 就是<strong>对偶图的一个生成树</strong>。</p>
+		<p>我们来证明一下，不妨设网格图为 $r \times c$ 的 (按格点计数，$r, c \geq 2$)，则 $|V_0| = r \cdot c, |E_0| = r \cdot c - 1$，而整个网格图的 $|E| = r (c-1) + (r-1) c = 2rc - r - c$，因此 $\left| E \setminus E_0 \right| = rc - r - c + 1 = (r-1) (c-1)$。</p>
+		<p>而对偶图的点数 $|V'|$ 为 $(r-1) (c-1) + 1$ (算上外点)，因此 $T'$ 满足 $E(T') = V(T') - 1$。</p>
+		<p>接下来证明 $T'$ 无环，如果 $T'$ 有环，则可以推出 $T$ 不连通，与 $T$ 是树矛盾。</p>
+		<p>因此它的 $T'$ 就是一棵生成树，由于<strong>网格图的边要么在 $T$ 中，要么在 $T'$ 中</strong>，必居其一。因此 $T$ 的<strong>最小生成树</strong>就对应于 $T'$ 的最大生成树。</p>
+		<p>那么回到原问题，对于增大 $T$ 中边的边权，对 $T'$ 来说就是增大 $T'$ 外边的边权。又由于 $T'$ 是最大生成树，于是就转化为了减小边权的问题，可以用另一棵 LCT 维护。注意到两棵树的操作是同步的，因此每一步的操作都需要在两棵树上分别更新。</p>
+		<p>至于如何统计最大边权，那可以像那题一样<strong>裂边</strong>操作，把每条边添加一个对应点，然后分裂成两条边。
+		<p>统计答案也不难，由于每次操作至多改变一条边，因此暴力算算就好了。总时间复杂度 $O \left( (n+q) \log n \right)$ (其中 $n = r \cdot c$)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1000005
+using namespace std;
+
+typedef long long ll;
+typedef int edge;
+const int mask = 0xfffff;
+
+namespace LCT{
+	#define pa p[nd]
+	#define C(x) c[x][nd]
+	struct node {int v, s, p, c[2]; char rev;} nd[N];
+
+	inline int dir(int x) {return nd[x].p ? (x == nd[x].pa.c[0] ? 0 : x == nd[x].pa.c[1] ? 1 : -1) : -1;}
+
+	void reverse(int x) {swap(nd[x].c[0], nd[x].c[1]); nd[x].rev ^= 1;}
+
+	void push_down(int x) {if(nd[x].rev) {reverse(nd[x].c[0]); reverse(nd[x].c[1]); nd[x].rev = 0;}}
+
+	void pull_down(int x) {if(~dir(x)) pull_down(nd[x].p); push_down(x);}
+
+	void up(int &amp;x, const int y) {nd[x].v &lt; nd[y].v ? x = y : 0;}
+
+	void update(int x){
+		nd[x].s = x;
+		up(nd[x].s, nd[x].C(0).s);
+		up(nd[x].s, nd[x].C(1).s);
+	}
+
+	void rotate(int x){
+		int y = nd[x].p, d = !dir(x);
+		nd[nd[y].c[!d] = nd[x].c[d]].p = y;
+		nd[x].p = nd[y].p;
+		if(~dir(y)) nd[y].pa.c[dir(y)] = x;
+		nd[nd[x].c[d] = y].p = x;
+		update(y);
+	}
+
+	void splay(int x){
+		for(pull_down(x); ~dir(x); rotate(x))
+			if(~dir(nd[x].p)) rotate(dir(x) ^ dir(nd[x].p) ? x : nd[x].p);
+		update(x);
+	}
+
+	void access(int x){
+		for(int y = 0; x; y = x, x = nd[x].p) {splay(x); nd[x].c[1] = y; update(x);}
+	}
+
+	void make_root(int x) {access(x); splay(x); reverse(x);}
+
+	void link(int x, int y) {/*printf("link %d %d\n", x, y);*/ make_root(x); nd[x].p = y;}
+
+	void split(int x, int y) {make_root(x); access(y); splay(y);}
+
+	void cut(int x, int y) {/*printf("cut %d %d\n", x, y);*/ split(x, y); nd[x].p = nd[y].c[0] = 0; update(y);}
+}
+
+char op[3];
+int R, C, n, q, out, offset[4];
+ll mst = 0;
+
+using namespace LCT;
+inline edge P(int r, int c) {return C * (r - 1) + c;}
+inline edge I(int r, int c) {return offset[1] + C * (r - 1) + c;}
+inline edge H(int r, int c) {return offset[2] + C * (r - 1) + c;}
+inline edge V(int r, int c) {return offset[3] + C * (r - 1) + c;}
+void toPoint(edge e, int &amp;u, int &amp;v) {e &lt;= offset[3] ? (u = e - offset[2], v = u + 1) : (u = e - offset[3], v = u + C);}
+void toPointi(edge e, int &amp;u, int &amp;v){
+	if(e &lt;= offset[3]) {e -= offset[2]; u = (e &lt;= C ? out : e - C); v = (e + C &gt;= n ? out : e);}
+	else {e -= offset[3]; u = (e % C == 1 ? out : e - 1); v = (e % C ? e : out);} u += n; v += n;
+}
+inline void Glink(edge e) {int u, v; toPoint(e, u, v); link(u, e); link(e, v);}
+inline void Gcut(edge e) {int u, v; toPoint(e, u, v); cut(u, e); cut(e, v);}
+inline void Ilink(edge e) {int u, v; toPointi(e, u, v); link(u, e); link(e, v);}
+inline void Icut(edge e) {int u, v; toPointi(e, u, v); cut(u, e); cut(e, v);}
+inline void modify(edge e, int weight) {splay(e); nd[e].v = weight; update(e);}
+
+int main(){
+	int r, c, u, v, w; edge i, j;
+	scanf("%d%d%d", &amp;R, &amp;C, &amp;q); n = R * C;
+	offset[0] = 0; offset[1] = n; offset[2] = n * 2 - C; offset[3] = n * 3 - C; out = n * 3 - C * 2 + 1;
+	for(r = 1; r &lt;= R; ++r) for(c = 1; c &lt; C; ++c) Glink(H(r, c));
+	for(r = 1; r &lt; R; ++r) for(Glink(V(r, 1)), c = 2; c &lt;= C; ++c) {Ilink(i = V(r, c)); nd[i].v = -1;}
+	for(i = 0; i &lt; offset[2]; ++i) nd[i].v = INT_MIN; nd[out + n].v = INT_MIN;
+	for(; q; --q){
+		scanf("%s%d%d%d", op, &amp;r, &amp;c, &amp;w); w = (int)((w ^ mst) &amp; mask);
+		i = (*op == 45 ?
+			H((r + mst - 1) % R + 1, (c + mst - 1) % (C - 1) + 1) :
+			V((r + mst - 1) % (R - 1) + 1, (c + mst - 1) % C + 1));
+//		i = (*op == 45 ? H(r, c) : V(r, c));
+		if(nd[i].v &gt;= 0){ // main tree
+			if(w &lt;= nd[i].v) {mst += w - nd[i].v; modify(i, w);}
+			else{
+//				puts("main tree up");
+				toPointi(i, u, v);
+				split(u, v); j = nd[v].s;
+				if(w &gt; ~nd[j].v){
+					mst += ~nd[j].v - nd[i].v;
+					Icut(j); Gcut(i); Ilink(i); Glink(j);
+					modify(j, ~nd[j].v);
+					modify(i, ~w);
+				}else{
+					mst += w - nd[i].v;
+					modify(i, w);
+				}
+			}
+		}else // auxiliary
+			if(w &gt;= ~nd[i].v) modify(i, ~w);
+			else{
+//				puts("auxiliary tree down");
+				toPoint(i, u, v);
+				split(u, v); j = nd[v].s;
+				if(w &lt; nd[j].v){ // change
+					mst += w - nd[j].v;
+					Gcut(j); Icut(i); Glink(i); Ilink(j);
+					modify(j, ~nd[j].v);
+					modify(i, w);
+				}else
+					modify(i, ~w); // nonchange
+			}
+		printf("%lld\n", mst);
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>还是这个问题，在 <abbr title="Link-Cut Tree, 动态树">LCT</abbr> 中要切记<strong>先删边，再加边</strong>！</p>
+		<p><strong>坑2：</strong>关于如何统计最大边的情况，有一个技巧，由于边权非负，对于树外的边，把它的边权存为它实际边权的相反数 (其实是按位取反 $\neg x$)，然后最大就成了最小，顺便也可以判断边在树内还是树外，同时记得先更新答案再修改边权。</p>
+	</body>
+</html>

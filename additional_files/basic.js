@@ -14,7 +14,7 @@ const
 		DisplayDict = {'': '全部', 'Luogu': '洛谷', 'SPOJ': 'Sphere OJ', 'SOJ': 'Simple OJ/Stupid OJ', 'Local': '本地', "Unknown": "这些题的 OJ 太高级了，连 scx 都不知道，快去问一问大佬们吧"},
 		NormDict = {'lydsy': 'Lydsy', 'lg': 'Luogu', 'vijos': 'Vijos', 'hdu': 'HDU', 'poj': 'POJ', 'uoj': 'UOJ', 'loj': 'LibreOJ', 'simpleoj': 'SOJ', 'soj': 'SOJ', 'cf': 'Codeforces', 'cc': 'Codechef', 'spoj': 'SPOJ'},
 		SiteDict = {
-			'lydsy': [[/\d+/], 'http://www.lydsy.com/JudgeOnline/problem.php?id=@0'],
+			'lydsy': [[/\d+/], 'https://www.lydsy.com/JudgeOnline/problem.php?id=@0'],
 			'lg': [[/[TU]?\d+/], 'https://www.luogu.org/problemnew/show/@0'],
 			'hdu': [[/\d+/], 'http://acm.hdu.edu.cn/showproblem.php?pid=@0'],
 			'poj': [[/\d+/], 'http://poj.org/problem?id=@0'],

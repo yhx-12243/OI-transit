@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj33]树上 GCD</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一棵 $n$ 个结点的有根树 $T$。结点编号为 $1 \dots n$，其中根结点为 $1$。</p>
+		<p>树上每条边的长度为 $1$。我们用 $d(x, y)$ 表示结点 $x, y$ 在树上的距离，$\mathrm{LCA}(x, y)$ 表示 $x, y$ 的最近公共祖先 (即树中最深的既是 $v$ 的祖先也是 $u$ 的祖先的结点)。</p>
+		<p>对于两个结点 $u, v$ $(u \neq v)$，令 $a = \mathrm{LCA}(u, v)$，定义 $f(u, v) = \gcd (d(u, a), d(v, a))$。其中 $\gcd(x, y)$ 表示 $x,y$ 的最大公约数，特别地，$\gcd(0, x) = \gcd(x, 0) = x$ ($x \neq 0$)。</p>
+		<p>对于所有 $i \in \{1, 2, \cdots, n - 1\}$，求出有多少个无序对 $(u, v)$，满足 $f(u, v) = i$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($2 \leq n \leq 2 \times 10^5$)。</p>
+		<p>第 $2$ 到 $n$ 行中，第 $i$ 行包含一个正整数 $p_i$ ($p_i &lt; i$)，表示结点 $i$ 在树上的父亲是 $p_i$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出共 $n-1$ 行，其中第 $i$ 行表示对于 $i$ 的答案。</p>
+
+		<h3>题解</h3>
+		<p>分两种情况讨论。</p>
+		<p>第一种情况：$u$ 是 $v$ 的祖先节点。此时 $\mathrm{LCA}(u, v) = u$，因此 $f(u, v) = d(u, v)$。</p>
+		<p>由于边权均为 $1$，因此对 $c_i$ 求个后缀和即可得到所有 $i$ 的答案，其中 $c_i$ 表示深度为 $i$ 的点数。由于求的是无序对，因此 $v$ 为祖先节点也是一样的。</p>
+		<p>第二种情况：$\mathrm{LCA}(u, v) \notin \{u, v\}$。这时候有两条路径，直接求 $\gcd$ 可能比较麻烦。此时<del>根据套路地</del>使用容斥原理后转化为<strong>对所有的 $d$，求多少个无序对 $(u, v)$ 满足 $d \mid d(u, a)$ 且 $d \mid d(v, a)$</strong>。</p>
+		<p>可以采用树形 DP。对于一个固定的 $d$，我们令 $f_i$ 表示<strong>以 $i$ 为根的子树中，到 $i$ 的距离为 $d$ 的整数倍的点的个数</strong>。为了方便处理，我们令 $g_i$ 表示<strong>以 $i$ 为根的子树中，到 $i$ 的距离模 $d$ 为 $d-1$ 的点的个数</strong>，则有</p>
+		<p>$$ f_i = \sum_{c \in child(i)} g_c + 1 $$ (其中 $child(i)$ 为 $i$ 的子节点集合) 和</p>
+		<p>$$ g_i = \sum_{c \in child^{(d-1)}(i)} f_c + 1 $$ (其中 $child^{(n)}(i)$ 表示 $i$ 的 $n$ 阶子节点)</p>
+		<p>更新 $g$ 的时候，可以用一个节点去更新它的 $d-1$ 阶父节点。至于更新答案的话，可以像<a href="lydsy1023.html" target="_blank">那题</a>一样，在更新 $f_i$ 之前先乘上 $g_c$ 即可，然后再给 $f_i$ 加上 $g_c$。</p>
+		<p>这样一来，对于一个 $d$ 的时间复杂度是 $O(n)$ 的，如果枚举所有的 $d$ 都这样做，这样肯定是不行的 (甚至还不如暴力)，因此我们可以尝试对较大的 $d$ 使用另一种算法 (阈值优化)。</p>
+		<p>对于较大的 $d$，我们令 $f_i$ 表示以 $i$ 为根的子树中<strong>距离为 $c$ 的点</strong>的个数，注意 $f_i$ 是一个数组，对所有的 $c$ 都有定义。</p>
+		<p>继续使用类似 DP 的思想，考虑将子节点信息转移到父节点。这不难，只需将父节点的值加上子节点对应的值，注意要 $+ 1$，最后加上子节点本身 (距离为 $1$)。</p>
+		<p>考虑一下空间的问题。如果我们把子节点信息转移到父节点后把子节点的信息清除掉，并用 <code>vector</code> 存储，这样由于在任意一个时刻每个点只会被一个点记录到，因此空间是 $O(n)$ 的。</p>
+		<p>统计答案是完全类似地，就是在更新父节点之前顺便把答案统计出来。</p>
+		<p>最后是分析时间复杂度，由于转移是一个合并过程，因此可以考虑暴力启发式合并 (注意 <code>vector</code> 交换是 $O(1)$ 的)，这样由于每个点只会被合并 $O(\log n)$ 次，因此合并的复杂度是 $O(n \log n)$。</p>
+		<p>至于统计答案部分的复杂度嘛，假设阈值为 $th$，那么对于 $size &gt; th$ 的点就为 $\dfrac n {th} + \dfrac n {th + 1} + \cdots + \dfrac n n = O \left( n \cdot \log n \right) $</p>
+		<p>由于这样的点至多有 $O \left( \dfrac n {th} \right)$ 个，因此这部分的复杂度为 $O \left( \dfrac {n^2 \log n} {th} \right)$。</p>
+		<p>注意到前面部分的复杂度为 $O \left( n \cdot th \right)$，因此可以取 $th = O \left( \sqrt{n \log n} \right)$，总时间复杂度 $O \left( n \sqrt{n \log n} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 200005
+using namespace std;
+
+typedef long long ll;
+typedef vector &lt;int&gt; vec;
+const int th = 256;
+
+int n;
+int p[N], dep[N], pd[N]; // pd[i] = p[p[...[p[i]]...]] = (d-1)th parent of i
+int f[N], g[N];
+ll ans[N], chain[N];
+vec v[N];
+
+int main(){
+	int i, j, d, s, ps, r, pr;
+	scanf("%d", &amp;n);
+	for(i = 2; i &lt;= n; ++i){
+		scanf("%d", p + i); dep[i] = dep[p[i]] + 1;
+		++chain[dep[i]];
+	}
+	for(i = n; i; --i) {chain[i] += chain[i + 1]; pd[i] = i;}
+	for(d = 1; d &lt;= th; ++d){
+		memset(f, 0, sizeof f);
+		memset(g, 0, sizeof g);
+		for(i = n; i; --i){ // tree-dp
+			g[pd[i]] += ++f[i]; pd[i] = p[pd[i]];
+			ans[d] += (ll)f[p[i]] * g[i]; f[p[i]] += g[i];
+		}
+	}
+	for(i = n; i &gt; 1; --i){
+		v[i].push_back(1);
+		if((s = v[i].size()) &gt; (ps = v[p[i]].size())){
+			swap(v[i], v[p[i]]); swap(s, ps);
+		}
+		if(s &gt; th &amp;&amp; ps &gt; th)
+			for(d = th + 1; d &lt;= s; ++d){
+				for(r = 0, j = d; j &lt;= s; j += d) r += v[i][s - j];
+				for(pr = 0, j = d; j &lt;= ps; j += d) pr += v[p[i]][ps - j];
+				ans[d] += (ll)r * pr;
+			}
+		for(j = 1; j &lt;= s; ++j){ // union
+			v[p[i]][ps - j] += v[i][s - j]; v[i].pop_back();
+		}
+	}
+	for(i = n; i; --i)
+		for(j = i &lt;&lt; 1; j &lt;= n; j += i)
+			ans[i] -= ans[j];
+	for(i = 1; i &lt; n; ++i) printf("%lld\n", ans[i] + chain[i]);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>转移信息时注意最后要对所有下标 (距离) $+ 1$，并算上自身的 $1$。当然如果<strong>倒着存储</strong>就可以避免数组平移的问题。</p>
+	</body>
+</html>

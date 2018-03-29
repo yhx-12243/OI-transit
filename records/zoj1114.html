@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[zoj1114]傻逼题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>B 君初来乍到，也不知道各位⽔平如何，就出了⼏个简单题，希望⼤家能做得开⼼。
+		<p>输⼊两个正整数 $x$ 和 $n$，B 君想知道第 $n$ ⼩的正整数，包含数字 $x$。
+		<p>所谓包含，是指转换成字符串后，作为⼦串出现，⽐如说 $62333$ 包含 $233$，但是不包含 $63$。</p>
+		<p>输⼊的数字不会有前导零。</p>
+
+		<h3>输入格式</h3>
+		<p>共两行，第一行包含正整数 $x$，第二行包含正整数 $n$ ($x \leq 10^{1000}, n \leq 10^{18}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示答案。</p>
+
+		<h3>题解</h3>
+		<p>类似于<a href="lydsy1009.html" target="_blank">这道题</a>，我们可以使用 KMP + 数位 DP 的方式来解决。</p>
+		<p>记 $d_{i, j}$ 表示当前在 KMP 的第 $i$ 个节点，下一个数位为 $j$，所能转移到的新的节点为 $d_{i, j}$，如果有多个满足取匹配位数尽量大的。当 $i = n$ 时，强制令 $d_{i, j} = n$ (即已经有匹配了不重置，此处的 $n$ 为 $x$ 的位数)。</p>
+		<p>$d_{i, j}$ 可以轻松使用 KMP 在 $O \left( \log^2 x \right)$ 的时间内解决。</p>
+		<p>接下来令 $f_{i, j}$ 表示当前在 KMP 的第 $j$ 个节点，还需要填 $i$ 个数位，这样的满足条件 (到最终节点) 的方案总数，边界为 $f_{0, j} = [j = n]$。</p>
+		<p>转移非常简单，直接枚举下一位填什么即可，公式为 $$ f_{i, j} = \sum_{k=0}^9 f_{i-1, d_{j, k}} $$</p>
+		<p>那么满足 $f_{m, 0} \geq N$ 的最小 $m$ 即为所求数的位数，显然 $m = O \left( \log x \right)$。</p>
+		<p>接下来就是一个简单的枚举了，枚举每一位是什么，并在 KMP 上跳，把 DP 值和 $N$ 比较即可。</p>
+		<p>总时间复杂度为 $O \left( \log^2 x \cdot 10 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<h4>正常版</h4>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 2005
+using namespace std;
+
+typedef long long ll;
+
+ll K, tot;
+
+int n, m;
+char s[N], ans[N];
+int used[10], f[N], d[N][10];
+ll dp[N][N];
+
+void KMP(){
+	int i, j = 0; f[0] = -1; f[1] = 0; s[0] &amp;= 15;
+	for(i = 1; i &lt; n; f[++i] = ++j)
+		for(s[i] &amp;= 15; j &gt;= 0 &amp;&amp; s[j] != s[i]; j = f[j]);
+}
+
+void Init(){
+	int i, j;
+	memset(used, -1, sizeof used);
+	for(i = 0; i &lt; n; ++i)
+		for(j = i; j &gt;= 0; j = f[j])
+			if(used[s[j]] != i)
+				d[i][s[j]] = j + 1, used[s[j]] = i;
+	for(j = 0; j &lt; 10; ++j) d[n][j] = n;
+}
+
+int main(){
+	int i, j, t = 0;
+	scanf("%s%lld", s, &amp;K); n = strlen(s);
+	KMP(); Init();
+	dp[0][n] = 1;
+	for(m = 1; ; ++m){
+		for(i = 0; i &lt;= n; ++i)
+			for(j = 0; j &lt; 10; ++j)
+				dp[m][i] += dp[m - 1][d[i][j]];
+		if(dp[m][0] &gt;= K) break;
+	}
+	for(i = 0; i &lt; m; ++i){
+		for(j = 0; j &lt; 10; ++j){
+			ans[i] = j; tot = dp[m - i - 1][d[t][j]];
+			if(tot &lt; K) K -= tot; else break;
+		}
+		t = d[t][ans[i]];
+	}
+	for(i = 0; i &lt; m; ++i) putchar(ans[i] | 48);
+	return 0;
+}
+</code>
+</pre></div>
+
+		<h4>毒瘤版</h4>
+		
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include&lt;bits/stdc++.h&gt;
+#define N[2005]
+#define F for
+#define G(x,y)F(x=0;x&lt;y;++x)
+long long K,T,g N N;int n,m,u N,f N,d N N;char s N,a N;
+int main(){
+	int i,j=0,t=0;std::cin&gt;&gt;s&gt;&gt;K;n=strlen(s);*f=-1;
+	F(i=1;i&lt;n;f[++i]=++j)F(;s[j]-s[i]&amp;&amp;~j;j=f[j]);
+	G(i,n)F(j=i;~j;j=f[j])if(u[s[j]]-i-1)d[i][s[j]]=j+1,u[s[j]]=i+1;G(j,10)d[n][j|48]=n;g[0][n]=1;
+	G(m,1e9){G(i,n+1)G(j,10)g[m+1][i]+=g[m][d[i][j|48]];if(*g[m+1]&gt;=K)break;}
+	G(i,m+1){F(j=48;j&lt;58;++j){a[i]=j;if((T=g[m-i][d[t][j]])&lt;K)K-=T;else break;}t=d[t][j];}puts(a);
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意当 $x$ 很大时，输出的答案会非常大，因此注意数组要开两倍 (比如 $2000$ 左右)。</p>
+	</body>
+</html>

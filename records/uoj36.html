@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj36][清华集训2014]玛里苟斯</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>$S$ 是一个可重集合，$S = \{a_1, a_2, \dots, a_n \}$。</p>
+		<p>等概率随机取 $S$ 的一个子集 $A = \{a_{i_1}, \dots, a_{i_m}\}$。</p>
+		<p>计算出 $A$ 中所有元素的异或和，记为 $x$, 求 $x^k$ 的期望。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($n \leq 10^5; k \leq 5$)。</p>
+		<p>接下来的 $n$ 行，每行包含一个非负整数 $a_i$。</p>
+		<p>保证答案小于 $2^{63}$。</p>
+
+		<h3>输出格式</h3>
+		<p>如果结果是整数，直接输出。如果结果是小数 (显然这个小数是有限的)，输出精确值 (末尾不加多余的 $0$)。</p>
+
+		<h3>题解</h3>
+		<p>先证明一个结论：</p>
+		<p><strong>若 $S$ 中元素可以异或出 $a, b$，则它们异或出 $a$ 的方案数 (子集数) 等于异或出 $b$ 的方案数 (子集数)，换句话说，就是异或出任何数的方案数都相等。</strong></p>
+		<p>证明：设 $A, B \subseteq S$ 且 $\bigoplus A = a, \bigoplus B = b$ ($\bigoplus A$ 表示 $A$ 中所有元素的异或和)。令 $C = A \oplus B$ (此处的 $\oplus$ 指集合的对称差)，则 $\bigoplus C = a \oplus b$。</p>
+		<p>考虑对任意一种能异或出 $a$ 的方案 $X$。则令 $Y = X \oplus C$，则有 $\bigoplus Y = a \oplus (a \oplus b) = b$，也就是说，对于一种能异或出 $a$ 的方案 $X$，我们找到了一种能异或出 $b$ 的方案。同理，对一种能异或出 $b$ 的方案，我们也能类似地找出能异或出 $a$ 的方案。因此我们建立了一一对应，故异或出 $a$ 的方案数等于异或出 $b$ 的方案数。</p>
+		<p>那么一来，最终的期望值就等于所有能异或出来的数的 $k$ 次方和再除以总数。</p>
+		<p>记 $\Lambda(S) = \{c_1, c_2, \cdots, c_m\}$ 表示 $S$ 中元素所<strong>能异或出来</strong>的数的集合，则答案就是 $\dfrac 1m \sum\limits_{i=1}^m c_i^k$。</p>
+		<p>考虑到 $S$ 中元素可能太多，且我们只需知道它能异或出来哪些数，因此只需对 $S$ 求一遍<strong>线性基</strong> (或者你叫它高斯消元也是可以的)，其中能异或出来的数的集合是不变的。这样我们就把 $|S|$ 缩小为 $O \left( \log a_i \right)$ 级别的。</p>
+		<p>接下来分析一下 $a_i$ 的范围。注意到答案 $x^k &lt; 2^{63}$，因此期望值 $x &lt; 2^{63/k}$，因此 $\log a_i \approx \dfrac {63} k$。</p>
+		<p>因此当 $k \geq 3$ 时，$|S| \leq 21$，因此可以用 $O \left( 2^{|S|} \right)$ 枚举 $\Lambda(S)$ 中的元素计算期望即可。</p>
+		<p>接下来考虑 $k = 1, 2$ 的情况，首先是 $k = 1$ 的情况。</p>
+		<p>以下假设 $S$ 是线性独立的 (即求过线性基后的集合)，那么 $m = \left| \Lambda(S) \right| = 2^{|S|}$。考虑将 $c_i$ 二进制展开，即设 $c_i = \sum_{j=0}^{63} b_{ij} 2^j$ (其中 $b_{ij} = 1$)，则</p>
+		<p>$$ \frac 1m \sum_{i=1}^m c_i = \frac 1m \sum_{i=1}^m \sum_{j=0}^{63} b_{ij} 2^j = \sum_{j=0}^{63} 2^j \cdot \dfrac {\sum\limits_{i=1}^m b_{ij}} m $$</p>
+		<p>考虑快速求出 $\sum\limits_{i=1}^m b_{ij}$，即 $\Lambda(S)$ 所有数第 $j$ 位的和。</p>
+		<p>由于 $0 \in \Lambda(S)$，因此一共有两种情况：一种是所有数的第 $j$ 位都为 $0$，那么这个和显然为 $0$；否则说明既有 $0$ 又有 $1$，那么由结论，这一位异或出 $0$ 的方案数等于异或出 $1$ 的方案数 (容易证明)，也就是说 $\sum\limits_{i=1}^m b_{ij} = \dfrac m2$。</p>
+		<p>也就是说，最终答案就是 $S$ 中所有元素按位或的一半。</p>
+		<p>当 $k = 2$ 时，类似地有</p>
+		<p>$$ \frac 1m \sum_{i=1}^m c_i^2 = \frac 1m \sum_{i=1}^m \left( \sum_{j=0}^{63} b_{ij} 2^j \right)^2 = \frac 1m \sum_{i=1}^m \sum_{u=0}^{63} \sum_{v=0}^{63} b_{iu} \cdot b_{iv} \cdot 2^{u+v} = \sum_{u=0}^{63} \sum_{v=0}^{63} 2^{u+v} \cdot \dfrac {\sum\limits_{i=1}^m b_{iu} \cdot b_{iv}} m $$</p>
+		<p>如果 $u = v$，那么就转化为了刚才的情况，如果 $u \neq v$，这回我们要考虑所有数的两位 (第 $u$ 位和第 $v$ 位)。如果有一位所有数都为 $0$，那么和显然是 $0$；否则两位都出现过 $1$，那么一定出现过两位都是 $1$ 的情况。如果线性基中所有数提取这两位后只有两种情况 $00$ 和 $11$，那么最终的和为 $\dfrac m2$，否则就有 $4$ 种情况，由独立性知最终的和为 $\dfrac m4$。</p>
+		<p>因此当 $k = 2$ 时可以在 $O \left( 32^2 \right)$ 时间内得到答案。</p>
+		<p>当 $k \geq 3$ 时，如果使用格雷码优化搜索，可以在不超过 $O \left( 2^{21} \right)$ 的时间内完成。</p>
+		<p>最后是输出精确值的问题。由上面的式子，容易得出答案一定是 $\dfrac 12$ 的倍数，因此可以直接奇偶分类输出。当然，<del>如果像我一样懒的话</del>，这里有个懒人做法——直接使用 <code>%.20Lg</code> (注意使用 <code>long double</code>)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 105
+#define ctz(x) (__builtin_ctz(x))
+using namespace std;
+
+typedef unsigned long long ull;
+typedef __int128 lll;
+
+int n, k, cnt;
+ull t, ans, cur;
+ull lb[N], s[N];
+lll res;
+
+void insert(ull x){
+	int i;
+	for(i = 63; i &gt;= 0; --i)
+		if(x &gt;&gt; i &amp; 1){
+			if(lb[i]) x ^= lb[i];
+			else {lb[i] = x; return;}
+		}
+}
+
+lll Power(ull a, int n) {return (lll)a * a * a * (n &amp; 4 ? (n == 5 ? a : 1) * a : 1);}
+
+int main(){
+	int i, j, u, v;
+	scanf("%d%d", &amp;n, &amp;k);
+	for(i = 1; i &lt;= n; ++i) {scanf("%llu", &amp;t); insert(t);}
+	for(t = i = 0; i &lt; 64; ++i)
+		for(t |= lb[i], j = 0; j &lt; 64; ++j)
+			if(lb[i] &gt;&gt; j &amp; 1) s[j] |= 1 &lt;&lt; i;
+	if(k == 1) ans = t;
+	else if(k == 2){
+		for(u = 0; u &lt; 32; ++u) if(t &gt;&gt; u &amp; 1)
+			for(v = 0; v &lt; 32; ++v) if(t &gt;&gt; v &amp; 1)
+				ans += 1llu &lt;&lt; u + v - (s[u] != s[v]);
+	}else{
+		for(i = 0; i &lt; 64; ++i) lb[i] ? s[cnt++] = lb[i] : 0;
+		for(i = 0; i &lt; 1 &lt;&lt; cnt; ++i){
+			cur ^= s[ctz(i)];
+			res += Power(cur, k);
+		}
+		ans = res &gt;&gt; cnt - 1;
+	}
+	printf("%.20Lg\n", (long double)ans * 0.5);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $k = 2$ 时取 $\dfrac m4$ 的条件不是 $u \neq v$，而是线性基提取之后有 $4$ 种不同的值。</p>
+		<p><strong>坑2：</strong>暴力枚举时注意要使用 <code>__int128</code>。</p>
+	</body>
+</html>
