@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj50]出租车</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵根为 $1$ 的有根树，每个点 $i$ 上有一个权值 $W_i$。对于节点对 $(a, b)$，设 $c = \mathrm{LCA}(a, b)$，则这一对点会产生 $\left( W_a \oplus W_c \right) \times \left( W_b \oplus W_c \right)$ 的联合权值，其中 $\oplus$ 表示按位异或。</p>
+		<p>有若干个询问，共分为两类：</p>
+		<ol>
+		<li>对于某一点 $x$，求以 $x$ 为根的子树中所有节点对的联合权值的和。</li>
+		<li>对于两点 $a, b$，求 $a, b$ 最短路上所有节点对的联合权值的和。</li>
+		</ol>
+		<p>由于答案可能会很大，你只需要输出答案关于 $2^{64}$ 取模的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 3 \times 10^5$)，表示树的大小和询问的个数。</p>
+		<p>第二行包含 $n$ 个非负整数 $W_1, W_2, \cdots, W_n$ ($0 \leq W_i &lt; 2^{31}$)。</p>
+		<p>接下来 $n-1$ 行，每行两个整数 $u, v$ ($1 \leq u, v \leq n$)，表示 $u, v$ 间有一条边。</p>
+		<p>接下来 $m$ 行，每行两个或三个整数 <code>1 <em>x</em></code> 或 <code>2 <em>a</em> <em>b</em></code>，表示一个询问。</p>
+
+		<h3>输出格式</h3>
+		<p>输出共 $m$ 行，每行一个整数，表示询问的答案。</p>
+
+		<h3>题解</h3>
+		<p>可以发现第二种询问更容易解决。注意到如果 $a$ 为 $b$ 的祖先，那么 $\mathrm{LCA}(a, b) = a$，因此 $(a, b)$ 的联合权值即为 $0$。因此我们只需考虑不是祖先后代关系的节点对即可。</p>
+		<p>令 $c = \mathrm{LCA}(a, b)$，那么在链 $a - c - b$ 上能产生联合权值的点一定是 $a - c$ 上的点与 $b - c$ 上的点。那么对于链上的每个点 $i$，令 $f_i = W_i \oplus W_c$，则 $(x, y)$ 就能产生 $f_x f_y$ 的联合权值。因此总的联合权值即为</p>
+		<p>$$ \sum_{x \in (a - c)} \sum_{y \in (b - c)} f_x f_y = \left( \sum_{x \in (a - c)} f_x \right) \left( \sum_{y \in (b - c)} f_y \right) $$</p>
+		<p>亦即两条链上权值和的乘积。但是如何快速求出 $\sum\limits_{x \in (a - c)} f_x = \sum\limits_{x \in (a - c)} \left( W_x \oplus W_c \right)$ 呢？</p>
+		<p>这个并不难，注意到这里有异或运算，而异或运算对每一位是独立的，因此自然想到按位计算，即计算每一位的 $\sum W_x$，最后如果 $W_c$ 的那一位为 $1$ 的话就用总数去减。</p>
+		<hr />
+		<p>接下来考虑第一种询问。注意到只有一个参数 $x$，因此我们可以考虑预处理出所有答案后然后 $O(1)$ 回答。</p>
+		<p>对于 $x$ 点的答案，我们分为两类，一类是 $\mathrm{LCA}(a, b) = x$ 的答案，还有一类是 $\mathrm{LCA}(a, b)$ 为 $x$ 的子节点的答案。</p>
+		<p>如果我们像树形 DP 一样自下而上的处理答案，那么第二类的答案可以直接从子节点的答案中转移过来，因此我们只需考虑第一类的答案。</p>
+		<p>由于 LCA 为 $x$ 是固定的，因此还是设 $f_i = W_i \oplus W_x$。假设 $x$ 下面有 $k$ 棵子树 $T_1, T_2, \cdots, T_k$，我们所要求的就是，对于所有满足 $a, b$ 在不同子树的无序对 $(a, b)$，$f_a f_b$ 的乘积。</p>
+		<p>与前面类似地，我们只需枚举两个不同的子树，就能得到答案为 $$ \sum_{1 \leq i &lt; j \leq k} S_i S_j $$</p>
+		<p>其中 $S_i = \sum\limits_{v \in T_i} f_v$。显然 $S_i$ 可以通过递归 + 按位计算得到，接下来就是如何计算 $\sum\limits_{1 \leq i &lt; j \leq k} S_i S_j$，这里有两种方法：</p>
+		<ol>
+		<li>通过公式 $$ \sum_{1 \leq i &lt; j \leq k} S_i S_j = \frac 12 \left( \left( \sum_{i=1}^k S_i \right)^2 - \sum_{i=1}^k S_i^2 \right) $$ 然后分别计算 $\sum\limits_{i=1}^k S_i$ 和 $\sum\limits_{i=1}^k S_i^2$，不过由于模数是 $2$ 的倍数，因此不能使用逆元，需要使用 <code>__int128</code>。</li>
+		<li><p><del>用到 <code>__int128</code> 的算法当然不是标算</del>。我们注意到这个式子还可以写成这种形式：</p>
+		<p>$$ \sum_{1 \leq i &lt; j \leq k} S_i S_j = \sum_{j=2}^k S_j \left( \sum_{i=1}^{j-1} S_i \right) $$</p>
+		<p>然后可以利用类似 DP 的思想，一边计算 $\sum\limits_{i=1}^j S_i$，一边更新答案，这样就避免了取模的问题。</p></li>
+		</ol>
+		<p>这样我们就得到了以某个点为根的子树的答案，时间复杂度显然为 $O \left( (n + q) \log W_i + L(n) \right)$，其中 $L(n)$ 为计算 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 的复杂度。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 300005
+#define M 600005
+#define lg2(x) (31 - __builtin_clz(x))
+using namespace std;
+
+typedef unsigned long long ll;
+const ll mask = (ll)-1;
+
+struct binary{
+	int b[32];
+	binary (int x = 0) {for(int i = 0; i &lt; 32; ++i) b[i] = x &gt;&gt; i &amp; 1;}
+	binary &amp; operator += (const binary &amp;B) {for(int i = 0; i &lt; 32; ++i) b[i] += B.b[i]; return *this;}
+	binary operator + (const binary &amp;B) const {binary ret; for(int i = 0; i &lt; 32; ++i) ret.b[i] = b[i] + B.b[i]; return ret;}
+	binary operator - (const binary &amp;B) const {binary ret; for(int i = 0; i &lt; 32; ++i) ret.b[i] = b[i] - B.b[i]; return ret;}
+};
+
+int n, q, E;
+int to[M], first[N], next[M];
+int w[N], p[N], size[N], dep[N];
+ll ans[N];
+binary sum[N], psum[N];
+
+/**** lca begin ****/
+int cnt = 0, id[N], st[21][M], *ord = *st;
+
+inline int dmin(const int &amp;x, const int &amp;y) {return dep[x] &lt;= dep[y] ? x : y;}
+
+void build_st_table(){
+	int *f, *g = ord, i, j, k = cnt;
+	for(j = 0; 1 &lt;&lt; j + 1 &lt;= cnt; ++j){
+		f = g; g = st[j + 1]; k -= 1 &lt;&lt; j;
+		for(i = 0; i &lt; k; ++i)
+			g[i] = dmin(f[i], f[i + (1 &lt;&lt; j)]);
+	}
+}
+
+inline int LCA(int x, int y){
+	int L = min(id[x], id[y]), R = (id[x] ^ id[y] ^ L) + 1, D = R - L, c = lg2(D);
+	return dmin(st[c][L], st[c][R - (1 &lt;&lt; c)]);
+}
+/**** lca end ****/
+
+inline void addedge(int u, int v){
+	to[++E] = v; next[E] = first[u]; first[u] = E;
+	to[++E] = u; next[E] = first[v]; first[v] = E;
+}
+
+ll to_long(int n, int mask, binary x){
+	ll ans = 0;
+	for(int i = 0; i &lt; 32; ++i) ans += (ll)(mask &gt;&gt; i &amp; 1 ? n - x.b[i] : x.b[i]) &lt;&lt; i;
+	return ans;
+}
+
+void dfs(int x){
+	int i, y; ll t, s = 0;
+	size[x] = 1; sum[x] = w[x]; id[x] = cnt; ord[cnt++] = x;
+	for(i = first[x]; i; i = next[i])
+		if((y = to[i]) != p[x]){
+			p[y] = x; dep[y] = dep[x] + 1; psum[y] = psum[x] + w[y];
+			dfs(y); ord[cnt++] = x;
+			size[x] += size[y]; sum[x] += sum[y]; ans[x] += ans[y];
+		}
+	for(i = first[x]; i; i = next[i])
+		if((y = to[i]) != p[x]){
+			t = to_long(size[y], w[x], sum[y]);
+			ans[x] += s * t; s += t;
+		}
+}
+
+int main(){
+	int i, u, v, lca, op; binary U, V; ll left, right;
+	scanf("%d%d", &amp;n, &amp;q);
+	for(i = 1; i &lt;= n; ++i) scanf("%d", w + i);
+	for(i = 1; i &lt; n; ++i) {scanf("%d%d", &amp;u, &amp;v); addedge(u, v);}
+	psum[1] = w[1]; dfs(1); build_st_table();
+	for(; q; --q)
+		if(scanf("%d", &amp;op), op == 1)
+			scanf("%d", &amp;v), printf("%llu\n", ans[v]);
+		else{
+			scanf("%d%d", &amp;u, &amp;v);
+			lca = LCA(u, v);
+			U = psum[u] - psum[lca]; V = psum[v] - psum[lca];
+			left = to_long(dep[u] - dep[lca], w[lca], U);
+			right = to_long(dep[v] - dep[lca], w[lca], V);
+			printf("%llu\n", left * right);
+		}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>输出答案时需要得使用 <code>unsigned long long</code>。</p>
+		<p><strong>坑2：</strong>如果使用第一种算法，不要忘记平方的时候转 <code>__int128</code>。</p>
+	</body>
+</html>

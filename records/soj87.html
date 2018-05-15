@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj87]最简单题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你有 $n$ 个硬币，第 $i$ 个硬币在 $p_i$ 位置。每次你能选择两个在 $x, y$($y - x \geq 2$) 的硬币，然后移到 $x + 1, y - 1$ 位置。</p>
+		<p>问最多能进行多少次操作。注意可能同时有两个硬币在相同的位置。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个整数 $n$ ($n \leq 10^5$)，表示硬币的总个数。</p>
+		<p>第二行包含 $n$ 个整数 $p_1, p_2, \cdots, p_n$ ($0 \leq p_i \leq 10^6$)，分别表示这 $n$ 个硬币的位置 。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示答案。</p>
+
+		<h3>题解</h3>
+		<p>显然硬币的相对顺序是无关的，因此我们可以不妨假设硬币的位置 $p_i$ 是递增的 (排序)。</p>
+		<p>此时，如果对于 $\forall 1 \leq i &lt; n$， 都有 $p_{i+1} \leq p_i + 1$，也就是说相邻两个硬币要么重合，要么距离为 $1$。因此我们定义<strong>半不变量</strong> $K = \sum\limits_{i=1}^n p_i^2$ (注：半不变量指操作过程中单调增/减的量)，这样假设对 $p_i$ 与 $p_j$ ($p_j \geq p_i + 2$)，进行操作后，半不变量的差 $\Delta K = \left( (p_i + 1)^2 + (p_j - 1)^2 \right) - (p_i^2 + p_j^2) = -2 (p_j - p_i - 1) \leq -2$，是个单调递减的量。</p>
+		<p>因此如果我们希望操作步数尽可能的多的话，就是要让每次操作后 $K$ 的差 (的绝对值) 尽可能的小。</p>
+		<p>可以看出，当 $p_j = p_i + 2$，即它们之间的距离为 $2$ 时，$\left| \Delta K \right|$ 最小，因此我们就需要让每次操作时的 $p_j = p_i + 2$。</p>
+		<p>而这是可以做到的，因为 $p_{i+1} \leq p_i + 1$，这个条件的意思就是硬币之间的稠密的，没有空隙。</p>
+		<p>因此我们只需计算此时初始状态和终止状态下的 $I$，相减除以 $2$ 就是操作步数。由于每次操作后 $I = \sum\limits_{i=1}^n p_i$ 是一个<strong>不变量</strong> (即操作过程中不会改变的量)，而终止状态满足 $p_n \leq p_1 + 1$，因此容易得到整个终止状态，从而计算 $\Delta I$。</p>
+		<hr />
+		<p>接下来考虑一般情况。由于不一定存在 $p_j = p_i + 2$ 的 $(i, j)$ 对，因此无法直接计算。</p>
+		<p>不过从式子 $\left| \Delta K \right| = 2 (p_j - p_i - 1)$ 中可以看出，$p_i$ 和 $p_j$ 越接近，$\left| \Delta K \right|$ 的值就会越小，从而操作次数就会变多。</p>
+		<p>这引导我们使用贪心——每次操作的 $i, j$ 是相邻的 (当然 $p_j = p_i + 2$ 且 $\exists p_k = p_i + 1$ 时不需要操作)。</p>
+		<p>这个的证明是显然的，如果对于三个硬币 $i, j, k$ ($i &lt; j &lt; k$)，不妨设 $p_i + 1 &lt; p_j &lt; p_k$，那么操作 $(i, k)$ 可以等效于先操作 $(i, j)$，后操作 $(j, k)$。</p>
+		<p>考虑从左到右依次移动硬币 (使得满足 $p_{i+1} \leq p_i + 1$ 的条件——称为 <em>A 条件</em>)。假如说前 $k-1$ 个硬币已经满足 A 条件，且覆盖区间 $[l, r]$，现在加入一个新的硬币 $k$，容易得到 $p_k \geq r$。</p>
+		<p>如果 $p_k = r$ 或 $p_k = r + 1$，则直接加入即可。</p>
+		<p>否则，我们要将 $k$ 向左移动。可以选择 $[l, r]$ 中最靠右的有至少两个硬币的位置，将其与 $k$ 向右移动，如果不存在，可以选择在 $l$ 处的硬币。当然，如果某个时刻前 $k$ 个硬币已经满足 A 条件，则停止移动。</p>
+		<hr />
+		<p>证明也比较容易，因为前 $k-1$ 个硬币之间的移动没有意义，会在最后通过不变量统计到。因此每个有意义的移动都是包含 $k$ 的。接下来假设某移动序列为最优解。</p>
+		<p>考虑某次移动的另一个硬币 $c$。如果 $p_c$ 处有多于一个硬币，我们说明 $p_c$ 一定为最靠右的这样的位置。否则如果有一个 $d$，$p_d$ 出也有多于一个硬币，那么操作序列 $(c, k)$ 可以变成 $(d, k), (c, d)$，故不是最优解，矛盾。</p>
+		<p>如果 $p_c$ 处只有一个硬币，那么该轮移动后 $p_c$ 处就就没有硬币了。考虑 $c$ 左边第一个有多于一个硬币的位置 $d$，如果没有，则 $d = l$，因此如果要将 $p_c$ 重新补上硬币，则必须要在 $d$ 出减少一个硬币。因此可以等价于把 $d$ 上的硬币向右移动，而总操作数没有变。</p>
+		<hr />
+		<p>因此我们的算法总能找出最优解。而这部分的时间复杂度是 $O(n^2)$ 的，因此考虑用数据结构等来加速移动这个过程。</p>
+		<p>注意到满足 A 条件的硬币组总能拆分成若干个连续区间并，约定没有两个区间互相包含，则这样的拆分是唯一的。我们考虑用单调栈来维护这些区间。</p>
+		<p>记 $[l, r]$ 为栈顶区间，令 $L = r - l + 1$ 为 $[l, r]$ 的长度。</p>
+		<p>因此 $l$ 可移动 $L$ 步会到达 $r + 1$，如果 $p_k$ 移动 $L$ 步后能到达 $\leq r + 2$ 的位置，即 $p_k - L \leq r + 2$，因此该轮可以移动完，否则该轮无法移完，接下来<em>在一个<strong>主移动循环</strong>中</em>，分三种情况讨论：</p>
+		<ol>
+			<li>$p_k - (r + 1) &gt; L + 1$，则该轮无法移动完，我们将 $L$ 移动到 $r + 1$，相当于整个区间<strong>向右平移</strong>一个单位。当然，真正移动时肯定不是只移动 $L$，因为这违背了相邻移动的条件。正确的移动序列应为 $(r, k), (r-1, r), (r-2, r-1), \cdots (l, l+1), (r, k) \cdots$，共 $\dfrac 12 L(L+1)$ 次，进行下一次循环。</li>
+			<li>$p_k - (r + 1) = L + 1$，则此时正好移动到位置 $r + 2$，操作次数还是 $\dfrac 12 L(L+1)$ 次，区间长度增加 $1$，并<strong>跳出循环</strong>。</li>
+			<li>$p_k - (r + 1) &lt; L + 1$，令 $s = p_k - (r + 1) &gt; 0$ 为到 $p_k$ 到 $r+1$ 的距离，那么可以知道移动 $s$ 步后就可以停止了 (满足 A 条件)，而第 $i$ 次移动的实际此处为 $L - i + 1$，因此总操作次数为 $$ \sum_{i=1}^s (L - i + 1) = \dfrac s 2 (2L - s + 1) $$ 并<strong>跳出循环</strong>。</li>
+		</ol>
+		<p>最后分析一下复杂度，排序过程的复杂度是 $O(n \log n)$ 的；对于移动第 $i$ 个硬币，主移动循环的循环次数为 $O \left( \dfrac {p_i} i \right)$ (最坏)，每一轮循环中由于是单调栈，因此是 $O(1)$ 的，因此移动部分的复杂度为 $O \left( \sum \dfrac {p_i} i \right) = O \left( p_i \log n \right)$；最后通过不变量计算的复杂度是 $O(n)$。因此总复杂度为 $O \left( n \log n + p_i \log n \right)$ (最坏复杂度)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define stack scx
+#define x first
+#define y second
+#define $ (void)
+using namespace std;
+
+typedef long long ll;
+typedef pair &lt;int, int&gt; pr;
+
+int n, top = 0;
+int a[N], b[N], final[N];
+ll sum = 0, ans = 0;
+pr stack[N];
+
+int main() {
+	int i, j, cur, l; pr t;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) {scanf("%d", a + i); sum += a[i];}
+	sort(a + 1, a + (n + 1)); j = sum / n;
+	for (i = 1; i &lt;= n; ++i) final[i] = j;
+	for (i = n - (sum - j * n) + 1; i &lt;= n; ++i) ++final[i];
+	stack[++top] = pr(a[1], a[1]);
+	for (i = 2; i &lt;= n; ++i)
+		if (a[i] == stack[top].y) stack[++top] = pr(a[i], a[i]);
+		else if (a[i] == stack[top].y + 1) ++stack[top].y;
+		else for (cur = a[i]; ; ) {
+			t = stack[top--]; l = t.y - t.x + 1; j = cur - t.y - 1; // steps
+			if (j &gt; l + 1) {
+				top ? $(stack[top].y = t.y + 1) : $(stack[++top] = pr(t.x + 1, t.y + 1));
+				ans += (ll)l * (l + 1); cur -= l;
+			} else if (j == l + 1) {
+				top ? $(stack[top].y = t.y + 2) : $(stack[++top] = pr(t.x + 1, t.y + 2));
+				ans += (ll)l * (l + 1); break;
+			} else {
+				top ? $(stack[top].y = t.x + j) : $(stack[++top] = pr(t.x + 1, t.x + j));
+				stack[++top] = pr(t.x + j, t.y + 1);
+				ans += (ll)j * (l * 2 - j + 1); break; // sum_{i=l-j+1}^l i
+			}
+		}
+	l = 0;
+	for (i = 1; i &lt;= top; ++i)
+		for (j = stack[i].x; j &lt;= stack[i].y; ++j) b[++l] = j;
+	for (i = 1; i &lt;= n; ++i) ans += (ll)(b[i] + final[i]) * (b[i] - final[i]);
+	printf("%lld\n", ans &gt;&gt; 1);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>如果栈中只有一个元素，说明 $[l, r]$ 中没有一个位置有两个硬币，因此此时移动的是最左边的硬币，在栈中处理时要特判。</p>
+	</body>
+</html>

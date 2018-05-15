@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj82]骨牌</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给出 $n$，求 $\dbinom {2n} n^2 \bmod 998244353$ 的值，多组询问。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10^5$)，表示数据组数。</p>
+		<p>接下来 $T$ 行，每行一个正整数 $n$ ($n &lt; 2^{32}$)，表示一组询问。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行两个整数，分别为 $n^2$ 和 $\dbinom {2n} n^2 \bmod 998244353$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>注意到 $n$ 可能会大于模数，因此可以使用 Lucas 定理来计算二项式系数。</p>
+		<p>因此我们可以把 $n$ 转移到小于阶乘的范围，剩下部分就是如何快速计算阶乘了。</p>
+		<p>由于模数为大素数，因此没有什么好的多项式类算法快速计算阶乘，因此只能使用暴力方法了。</p>
+		<p>暴力方法主要有两种：一种为分段打表，一种为循环展开。</p>
+		<p>两种都可以在常数较小的 $O(\mathrm{mod})$ 时间内完成任务。但是本题有多组询问，如果每组数据都这样跑，那很可能又会超时了。</p>
+		<p>不过，由于要计算的阶乘只有 $O(T)$ 个，因此我们可以把询问离线，算出所要求的所有阶乘，跑一遍后存在 <code>map &lt;ll, ll&gt;</code> 中，最后直接使用就可以了。</p>
+		<p>总时间复杂度 $O \left( T + \mathrm{mod} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+using namespace std;
+
+typedef long long ll;
+typedef pair &lt;ll, ll&gt; pr;
+typedef map &lt;ll, ll&gt; Map;
+const ll mod = 998244353;
+
+ll a[N], b[N &lt;&lt; 2];
+Map fact;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+inline ll _C(ll n, ll r) {return PowerMod(fact[r] * fact[n - r] % mod, mod - 2, fact[n]);}
+
+inline ll C(ll n, ll r) {return _C(n / mod, r / mod) * _C(n % mod, r % mod) % mod;}
+
+void unroll_fact(int n) {
+	int i, j, i0 = 1, i1 = 2, i2 = 3, i3 = 4, i4 = 5, i5 = 6, i6 = 7, i7 = 8;
+	ll A0 = 1, A1 = 1, A2 = 1, A3 = 1, A4 = 1, A5 = 1, A6 = 1, A7 = 1, s;
+	for (i = 0; i &lt; n; ++i) {
+		for (; i7 &lt;= b[i]; ) {
+			A0 = A0 * i0 % mod; i0 += 8;
+			A1 = A1 * i1 % mod; i1 += 8;
+			A2 = A2 * i2 % mod; i2 += 8;
+			A3 = A3 * i3 % mod; i3 += 8;
+			A4 = A4 * i4 % mod; i4 += 8;
+			A5 = A5 * i5 % mod; i5 += 8;
+			A6 = A6 * i6 % mod; i6 += 8;
+			A7 = A7 * i7 % mod; i7 += 8;
+		}
+		s = ((A0 * A1 % mod) * (A2 * A3 % mod) % mod)
+		  * ((A4 * A5 % mod) * (A6 * A7 % mod) % mod) % mod;
+		for (j = i0; j &lt;= b[i]; ++j) s = s * j % mod;
+		fact.insert(pr(b[i], s));
+	}
+}
+
+int main() {
+	int n, i, cnt = 0; ll t;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) {
+		scanf("%lld", a + i);
+		b[cnt++] = a[i] % mod;
+		b[cnt++] = a[i] * 2 % mod;
+		b[cnt++] = a[i] / mod;
+		b[cnt++] = a[i] * 2 / mod;
+//		b[cnt++] = a[i] * 2 / mod - a[i] / mod;
+	}
+	sort(b, b + cnt); cnt = unique(b, b + cnt) - b;
+	unroll_fact(cnt);
+	for (i = 0; i &lt; n; ++i) {
+		t = C(a[i] * 2, a[i]);
+		printf("%llu %lld\n", a[i] * a[i], t * t % mod);
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>一个组合数对应着三个阶乘，不过如果是 $\dbinom {2n} n$，那只需要两个就够了，但是被 Lucas 化简后由于有除法，故可能又是三个。因此对于每个组合数都可以把三个阶乘写出来，最后 <code>std::unique</code> 一下就好了。</p>
+	</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj9]巧克力</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个正整数，你可以把每个数进行乘 $k$ 和除以 $k$ 并下取整的操作，问至少要进行多少次操作才能使所有数均相同。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($1 \leq n \leq 10^6; 2 \leq k \leq 233$)，表示数的个数和操作的参数。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($1 \leq a_i \leq 10^9$)，表示每个盒子中巧克力的数量。</p>
+
+		<h3>输出描述</h3>
+		<p>输出一行一个整数，表示最少的操作次数。</p>
+
+		<h3>题解</h3>
+		<p>容易发现，乘 $k$ 和除以 $k$ 可以看作把那个数在 $k$ 进制意义下<strong>左移</strong>一位和<strong>右移</strong>一位。当然，右移时是直接把低位扔掉，而左移时是在右边补 $0$。</p>
+		<p>也就是说，对于一个转成 $k$ 进制后的数，我们可以把左端 (高位) 对齐，于是左移和右移相当于低位指针向右和向左移动。</p>
+		<p>因此，我们可以把这 $n$ 个数的高位对齐，每个数的低位各有一个指针。现在考虑最终状态下每个数的位数 $d$。</p>
+		<p>首先，我们能证明 $d \geq \mathrm{LCP}(a_1, \cdots, a_n)$，即最终的位数一定不小于它们的 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr>。记 $s = \mathrm{LCP}(a_1, \cdots, a_n)$，且 $s_i$ 为 $a_i$ 的长度 ($s_i \geq s$)，则最终移到均为 $s$ 位只需要 $\sum\limits_{i=1}^n (s_i - s)$ 次操作。而对于 $d &lt; s$，至少需要 $\sum\limits_{i=1}^n (s_i - d)$ 次操作，显然更亏。</p>
+		<p>如果 $d \geq s$，那么最终的数中从 $s+1$ 位起 (如果存在) 必须全为 $0$。因为初始状态下这些位是不全相同的，因此想要把它们全部变成相同，那只能靠左移得到的 $0$ 了。</p>
+		<p>那么，对于每个数 $a_i$，考虑它 $s+1$ 位起的第一个非零位 $e$ ($e \geq s+1$)，显然第 $e$ 到 $s_i$ 位的所有数都<strong>必须将它消除</strong> (因为有非 $0$ 位)。因此我们可以预先把这 $s_i - e$ 次操作统计掉，然后令 $a_i$ 为操作后的 $a_i$。</p>
+		<p>接下来事情就简单了，如果 $a_i$ 的长度为 $s_i$ ($s_i \geq s$)，那么将它的长度变为 $d$ ($d \geq s$)，只需要进行 $\left| s_i - d \right|$ 次操作，因为这些位全部为 $0$。于是后半部分的答案就是</p>
+		<p>$$ \sum_{i=1}^n \left| s_i - d \right| $$</p>
+		<p>我们要选择一个 $d$ 使得上式最小，像<a href="lydsy1045;lg1368;lg2512.html" target="_blank">这道题</a>一样，只需令 $d$ 为 $s_i$ 的中位数即可。最终加上第一部分的答案就即可。</p>
+		<p>总时间复杂度就是进制转换的复杂度，即 $O \left( n \log_k a_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1000005
+using namespace std;
+
+typedef unsigned char byte;
+
+int n, k, lcp, ans = 0;
+int a[N], pos[N];
+byte s[N][30];
+
+inline int convert(int x, byte *s) {byte *t = s; for(; x; x /= k) *t++ = x % k; reverse(s, t); return t - s;}
+
+int main(){
+	int i, j, l = 30;
+	scanf("%d%d", &amp;n, &amp;k);
+	for(i = 0; i &lt; n; ++i) {scanf("%d", a + i); pos[i] = convert(a[i], s[i]); l = min(l, pos[i]);}
+	for(j = 0; j &lt; l; ++j){
+		for(i = 1; i &lt; n; ++i) if(s[i][j] != s[0][j]) break;
+		if(i &lt; n) break;
+	}
+	for(lcp = j, i = 0; i &lt; n; ++i){
+		for(j = lcp; j &lt; pos[i]; ++j) if(s[i][j]) break;
+		ans += pos[i] - j; pos[i] = j;
+	}
+	nth_element(pos, pos + (n &gt;&gt; 1), pos + n); j = pos[n &gt;&gt; 1];
+	for(i = 0; i &lt; n; ++i) ans += abs(pos[i] - j);
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>枚举 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr> 的时候注意不能超过任何一个数的位数。</p>
+	</body>
+</html>

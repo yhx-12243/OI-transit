@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj90]探险</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>这是一道<strong>交互题</strong>。</p>
+		<p>某天，你在小明埋在地下的宝藏屋中探险。</p>
+		<p>小明的宝藏屋呈一个无限满二叉树的结构，其中根节点与地面相连，如下图所示：</p>
+		<p><img class="center-block" src="/pictures/90-1.png" alt="二叉树" /></p>
+		<p>不知怎么的，你突然迷路了。好在小明考虑到了这点，于是它在你探险之前给了你一个探测器，它能给你得到你离地面的相对高度 (即当前宝藏屋的深度，其中地面的深度为 $0$)，不过它的电量已经不足，因此至多只能使用 $T$ 次。</p>
+		<p>由于每个宝藏屋都有恰好 $3$ 条道路连接它，故小明为了方便起见，把<strong>与每个宝藏屋相邻</strong>的三条道路分别编号为 $0, 1, 2$。</p>
+		<p>目前你只知道你当前离地面的相对高度，你需要编写一套寻路系统来到达地面。注意你现在的食物和水分只够你移动 $1050000$ 次。</p>
+
+		<h3>任务</h3>
+		<p>你需要编写一个函数 explore，来模拟寻路的过程：</p>
+		<ul>
+			<li>explore(n, T):
+			<ul>
+			<li>n 表示你当前所在宝藏屋的深度。</li>
+			<li>T 表示你能使用探测器的次数上限。</li>
+			<li>函数不需要返回值，当你到达地面时，请立即退出函数。</li>
+			</ul></li>
+		</ul>
+		<p>你可以调用两个函数 move 和 query 来完成寻路：</p>
+		<ul>
+			<li>move(type):
+			<ul><li>type 表示你所选的道路的编号。</li>
+			<li>调用此函数后会从当前结点沿着编号为 type 的道路进行一次移动。</li>
+			<li>函数返回一个 bool，表示移动后是否到达地面。</li>
+			</ul></li>
+			<li>query():
+			<ul><li>函数返回一个 int，表示当前你离地面的相对高度。</li>
+			</ul></li>
+		</ul>
+
+		<h3>实现细节</h3>
+		<p>本题只支持 C++。</p>
+		<p>你只能提交一个源文件实现如上所述的 explore 函数，并且遵循下面的命名和接口。你需要包含头文件 explore.h。</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">void explore(int n, int T);</code></pre>
+		<p>函数 move, query 的接口信息如下。</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">bool move(int type);
+int query();</code></pre>
+		<p>如果有不清楚的地方，见样例及测评库下载，内附了样例程序。</p>
+
+		<h3>题解</h3>
+		<p>首先可以得到，如果每一轮暴力找父节点的话，那么一共需要 $3n + 2$ 次移动和 $2n + 1$ 次询问。而本题的移动的次数特别多 ($10$ 倍左右)，而询问的次数特别少 (只有一半多)，因此我们可以考虑多次移动后再进行单次询问。</p>
+		<p>我们考虑对于一个点 $x$，进行 $p$ 次 (不走回头路地) 单向移动后到达了 $y$。容易发现它一定是先向上走到 $\mathrm{LCA}(x, y)$，再向下走到 $y$。而我们可以知道 $x$ 的深度、$y$ 的深度以及 $x$ 到 $y$ 的距离，因此我们就可以得到 $\mathrm{LCA}(x, y)$ 的深度。</p>
+		<p>于是我们就能走到点 $\mathrm{LCA}(x, y)$，顺便得到了它向下的两条边，因此就可以得到它的父节点，然后将它看作 $x$，继续递归操作即可。</p>
+		<p>这里要注意一个细节，即如果 $\mathrm{LCA}(x, y) = y$，那么我们只知道 $y$ 向下的一条边，不能直接得到 $y$ 的父节点。因此这里只需将 $y$ 看作 $x$，继续递归操作。</p>
+		<p>最后来分析一下时间复杂度 (函数调用次数)。先分析平均移动次数，注意到每一轮操作有 $\dfrac 12$ 的概率使深度减少 $1$，有 $\dfrac 14$ 的概率使深度减少 $2$，有 $\dfrac 18$ 的概率使深度减少 $3$，因此每次移动深度减少的期望为</p>
+		<p>$$ \frac 12 \cdot 1 + \frac 14 \cdot 2 + \frac 18 \cdot 3 + \cdots = \sum_{i=1}^\infty \frac i {2^i} = 2 $$</p>
+		<p>因此操作次数的期望就是 $\dfrac n2$。而每一轮操作只调用一次 <code>query()</code>，因此调用次数约为 $\dfrac n2$。</p>
+		<p>接下来考虑 <code>move()</code> 的调用次数，每一轮操作的调用次数不超过 $2P$，而总操作次数的期望是 $\dfrac n2$，故总调用次数的期望为 $P \cdot n$，取 $P = 10$ 即可。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#include "explore.h"
+using namespace std;
+
+const int P = 10;
+
+int cnt;
+int a[P + 1];
+
+void work(int dep, int dir){
+	if(!dep) return;
+	int i, x, new_dep, new_dir;
+	for(*a = dir, i = 1; i &lt;= P; ++i) a[i] = (a[i - 1] + (rand() &amp; 1) + 1) % 3;
+	for(i = 1; i &lt;= P; ++i) if(move(a[i])) return;
+	new_dep = query();
+	x = dep - new_dep + P &gt;&gt; 1; // x-th point is LCA
+	if(x == P){
+		move(new_dir = (a[P] + 1) % 3);
+		if(query() &lt; new_dep) return work(new_dep - 1, new_dir);
+		move(new_dir);
+		move(new_dir = (a[P] + 2) % 3);
+		return work(new_dep - 1, new_dir);
+	}
+	for(i = P; i &gt; x; --i) move(a[i]);
+	move(new_dir = a[i] ^ a[i + 1] ^ 3);
+	return work(dep - x - 1, new_dir);
+}
+
+void explore(int n, int T){
+	char *new_char = new char; srand(time(NULL) + (long long)new_char); delete new_char;
+	int i;
+	for(i = 0; i &lt; 3; ++i){
+		move(i);
+		if(query() &lt; n) break;
+		move(i);
+	}
+	work(n - 1, i);
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意从 $x$ 走到 $y$ 的过程中最好加入随机化，否则可能会被 hack，且随机的过程中需要保证相邻两条边的编号都不相同。</p>
+	</body>
+</html>

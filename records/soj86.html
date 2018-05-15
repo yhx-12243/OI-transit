@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj86]更简单题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>首先我们来定义一下 $01$ 串的乘法：</p>
+		<ul>
+		<li>如果 $a, b$ 是长度分别为 $n, m$ 的 $01$ 串，那么 $c = a \times b$ 为一个长度为 $nm$ 的 $01$ 串，且满足 $c_i = a_{i \bmod n} \oplus b_{\lfloor i/n \rfloor}$，其中 $\oplus$ 为异或。</li>
+		<li>比如说 $011 \times 01 = 011100, 01 \times 011 = 011010$。</li>
+		</ul>
+		<p>一个串 $c$ 被称为素数串当且仅当把 $c$ 写成 $a \times b$ 的形式时 $a$ 和 $b$ 中恰好有一个长度为 $1$。比如说 $011101$ 是素数串，但是 $011010 = 01 \times 011, 0 = 0 \times 0$，所以这两个串都不是。</p>
+		<p>问有多少长度不超过 $n$ 的素数串，答案对 $10^9 + 7$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 10^6$)。</p>
+
+		<h4>输出格式</h4>
+		<p>输出一行一个整数，表示答案。</p>
+
+		<h3>题解</h3>
+		<p>我们先把问题转化为计算有多少个长度为 $n$ 的素数串。记长度为 $n$ 的素数串的个数为 $f_n$，则答案就等于 $\sum\limits_{i=2}^n f_i$。</p>
+		<p>对于如何计算 $f_n$。首先正面计算显然是不方便的，因此我们使用减法原理，转化为计算有多少个<strong>合数串</strong>，然后用 $2^n$ 减即可。</p>
+		<p>对于一个合数串 $n = a \times b$，像线性筛一样，我们可以假设 $a$ 是素数串，否则如果 $a = a_0 \times c$，则 $n = (a_0 \times c) \times b = a_0 \times (c \times b)$，会在 $a_0$ 处计算到。</p>
+		<p>因此对于一个素数串 $a$ ($|a| = d$)，我们将它重复 $\dfrac nd$ 次就可以得到一个合数串，而这 $\dfrac nd$ 次的方案数为 $2^{n/d - 1}$ (因为第一个串会在两个不同的素数串中统计到)，故合数串的个数就应该为</p>
+		<p>$$ \sum_{d \mid n} f_d \cdot 2^{n/d - 1} $$</p>
+		<p>当然这是不对的，比如串 $\texttt {010101}$，它既被 $\texttt {01}$ 筛到，又被 $\texttt {010}$ 筛到 ($\texttt {010101} = \texttt {01} \times \texttt {000} = \texttt {010} \times \texttt {01}$)，因此我们还要把多算的部分减掉。我们把这种被计算多次的串叫做 "坏串"。我们把长度比较小的 "坏串" 的表打出来，可以发现它主要有这两种形式：</p>
+		<ol>
+		<li>$\texttt {0000} \ldots \texttt{0000} \ldots \texttt{1111}$</li>
+		<li>$\texttt {0101} \ldots \texttt{0101} \ldots \texttt{1010}$</li>
+		</ol>
+		<p>可以看出，它由一个基本串与某个串相乘得到。我们把那个基本串，即最左边的一段叫做 "基本坏串"，那么可以发现 "基本坏串" 一共有这么 $4$ 种形式：
+		<ol>
+		<li>$\texttt {0000} \ldots$</li>
+		<li>$\texttt {0101} \ldots$</li>
+		<li>$\texttt {1010} \ldots$</li>
+		<li>$\texttt {1111} \ldots$</li>
+		</ol>
+		<p>接下来我们证明基本坏串只有这 $4$ 种形式。</p>
+		<p>对于某个坏串，假设它能被长度为 $a$ 和 $b$ 的素数串整除，分两种情况讨论：</p>
+		<ol>
+		<li><p>$\gcd(a, b) = 1$。</p>
+		<p>我们考虑在一个周期 $T = ab$ 内的情况 (显然不同周期之间是不会影响的)，因此我们不妨假设该坏串的长度为 $n = ab$。</p>
+		<p>设坏串为 $c_1 c_2 c_3 \ldots c_n$，由串乘法的定义，易得当 $a \nmid i$ 时有 $c_i \oplus c_{i+a} = c_{i+1} \oplus c_{i+a+1}$，即 $c_i \oplus c_{i+1} = c_{i+a} \oplus c_{i+a+1}$。</p>
+		<p>因此我们将它 (异或) 差分后的串记作 $d$，即 $d_i = c_i \oplus c_{i+1}$。则 $d$ 的长度为 $n-1$，且有 $d_i = d_{i+a} \quad (a \nmid i)$，同理 $d_i = d_{i+b} \quad (b \nmid i)$，我们希望证明所有的 $d_i$ 都相等。</p>
+		<p>我们考虑由 $ab - 1$ 个点组成的图，对于 $i$ 和 $i+a$ ($a \nmid i$) 连一条红边，对于 $i$ 和 $i+b$ ($b \nmid i$) 连一条绿边，则就是要证明这个图是连通的。
+		<p>我们将这些点的编号从左到右、从上到下地排成一个 $a$ 行 $b$ 列的数表，如下表所示：</p>
+		<table class="table table-bordered table-text-center table-vertical-middle">
+		<tr><td style="width: 20%">$1$</td><td style="width: 20%">$2$</td><td style="width: 20%">$3$</td><td style="width: 20%">$\cdots$</td><td style="width: 20%">$b$</td></tr>
+		<tr><td>$b+1$</td><td>$b+2$</td><td>$b+3$</td><td>$\cdots$</td><td>$2b$</td></tr>
+		<tr><td>$\vdots$</td><td>$\vdots$</td><td>$\vdots$</td><td>$\ddots$</td><td>$\vdots$</td></tr>
+		<tr><td>$(a-1)b+1$</td><td>$(a-1)b+2$</td><td>$(a-1)b+3$</td><td>$\cdots$</td><td>$ab$ (这个点是不存在的)</td></tr>
+		</table>
+		<p>可以看出，除最后一列外，每一列的数都是通过绿边连通的。不妨设 $b &lt; a$，那么考虑第一行的 $b$ 个数都能连出去一条红边，显然这 $b$ 条红边的终点分别分布在 $b$ 列。由于 $(a, b) = 1$，因此我们沿着红边 (和返回第一行的绿边) 走，走出来的周期应该为 $b$。</p>
+		<p>因此可以得到，前 $b-1$ 列的所有数都是连通的。对于最后一列的数 $b$ 到 $(a-1)b$，由于 $(a, b) = 1$，故它们不是 $a$ 的倍数，因此都有一条红边连向前 $b-1$ 列。因此所有 $ab - 1$ 个数都是连通的，即所有的 $d_i$ 都相等。</p>
+		<hr />
+		<p>这样一来，如果所有的 $d_i = 0$，那么所有的 $c_i$ 都相等，即上面的第 1 种情况和第 4 种情况。</p>
+		<p>如果所有的 $d_i = 1$，那么 $c_i \oplus c_{i+1} = 1$，也就是说 $c$ 为 $01$ 交错的，即第 2 种情况和第 3 种情况。</p>
+		<hr />
+		<p>那么如果这个坏串有多个周期 $n = n_0 \cdot ab$，可以得到每个周期里面的 $c$ 串都是下述形式之一。</p>
+		<p>考虑将整个串进行差分，就会有 $d_i = d_{i+n}$，即除了 $n \mid i$，每个周期的 $d$ 都是相同的，因此 $c$ 串要么由若干个 2 和 3 情况组合，要么由若干个 1 和 4 情况组合，这就完成了证明。</p></li>
+		<li><p>$\gcd(a, b) &gt; 1$。</p>
+		<p>我们设 $d = \gcd(a, b), a = a_0 d, b = b_0 d$，我们将每 $d$ 个串作为一个整体记号 $C_i$，于是考虑一个周期 $\mathrm{lcm}(a, b) = a_0 b_0 d$ 中，$C$ 的长度 $|C| = a_0 \cdot b_0$，因此就化归为 $\gcd(a_0, b_0) = 1$ 时的情况。</p>
+		<p>由上述，对应的那张图是个连通图，也就是说每 $d$ 个串的整体是相同的，或互补的。因此长度为 $a, b$ 的串都不是素数串 (能被长度为 $d$ 的串整除)，矛盾。</p></li>
+		</ol>
+		<p>这样一来，对于一个坏串，如果它被长度为 $p_1, p_2, \cdots, p_n$ 的串筛到，则 $p_1, p_2, \cdots, p_n$ 都是素数。这是因为这些串满足上面 $4$ 种基本形式，故如果 $d \mid p$，它就不可能是素数串了 (能被长度为 $d$ 的串整除）.</p>
+		<p>因此我们枚举所有基本坏串的长度 $d$，由上述原因，我们可以令 $d$ 为若干个不同素数的乘积。</p>
+		<p>枚举每个基本坏串的方案，可以得到长度为 $d$ 的基本坏串构成的长度为 $k$ 的坏串的方案数就应该等于 $2^{k/d+1}$。</p>
+		<p>不过有些串可能会被多个 $d$ 计算到，因此实现的时候需要使用容斥原理，即偶数时减，奇数时加 (统计合数串时)，也就是说容斥系数为 $\mu(d)$。</p>
+		<p>最后分析一下时间复杂度，DP 时可以使用刷表法，时间复杂度为调和级数的 $O \left( n \log n \right)$；对每个数枚举平方松因数，由于每个数至多有 $\Omega = 7$ 个不同素因子，因此容斥的复杂度为 $O \left( 2^\Omega \right)$，总时间复杂度 $O \left( n \log n + n \cdot 2^\Omega \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1000005
+using namespace std;
+
+typedef long long ll;
+const ll mod = 1000000007;
+
+ll pow2[N], f[N];
+int n, k, cnt, scx[N];
+int pn, c[N], p[80005];
+
+ll PowerMod(ll a, int n, ll c = 1) {for(; n; n &gt;&gt;= 1, a = a * a % mod) if(n &amp; 1) c = c * a % mod; return c;}
+
+void sieve(int n){
+	int i, j, v; pn = 0;
+	for(i = 2; i &lt;= n; i++){
+		if(!c[i]) p[pn++] = i;
+		for(j = 0; j &lt; pn; j++){
+			if((v = i * p[j]) &gt; n) break;
+			c[v] = p[j];
+			if(!(i % p[j])) break;
+		}
+	}
+}
+
+void dfs(int dep, int v, int coe){
+	if(dep &gt;= cnt){
+		if(c[v]) f[k] = (f[k] + mod + coe * pow2[k / v] % mod) % mod;
+	}else{
+		dfs(dep + 1, v, coe);
+		dfs(dep + 1, v * scx[dep], -coe);
+	}
+}
+
+int main(){
+	int i, j, v, ans = 0;
+	sieve(N - 1);
+	scanf("%d", &amp;n);
+	for(*f = *pow2 = i = 1; i &lt;= n; ++i) f[i] = pow2[i] = pow2[i - 1] * 2 % mod;
+	for(i = 2; i &lt;= n; ++i){
+		if(c[i]){
+			for(cnt = 0, k = j = i; c[j]; )
+				for(scx[cnt++] = v = c[j]; !(j % v); j /= v);
+			j == 1 ? 0 : (scx[cnt++] = j);
+			dfs(0, 1, 2);
+		}
+		for(j = 2; (v = i * j) &lt;= n; ++j)
+			f[v] = (f[v] + mod - f[i] * pow2[j - 1] % mod) % mod;
+	}
+	for(i = 2; i &lt;= n; ++i) ans = (ans + f[i]) % mod;
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>dfs 进行容斥时不要忘记乘 $2$，即全相同和交错的版本。</p>
+	</body>
+</html>

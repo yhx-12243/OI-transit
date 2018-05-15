@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj102]普通平衡树</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>您需要写一种数据结构 (可参考题目标题)，来维护一些数，其中需要提供以下操作：</p>
+		<ol>
+		<li>插入 $x$ 数 (若已有 $x$ 则不进行此操作)；</li>
+		<li>删除 $x$ 数 (若 $x$ 不存在则不进行此操作)；</li>
+		<li>求 $x$ 在当前数中的排名 (排名定义为小于 $x$ 的数的数量 $+ 1$)；</li>
+		<li>求当前数中排名为 $x$ 的数 (若不存在输出 $- 1$)；</li>
+		<li>求 $x$ 的前趋 (前趋定义为小于 $x$，且最大的数，若不存在则输出 $-1$)；</li>
+		<li>求 $x$ 的后继 (后继定义为大于 $x$，且最小的数，若不存在则输出 $-1$)；</li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 5 \times 10^6$)，表示操作的个数。</p>
+		<P>接下来的 $n$ 行，每行包含两个正整数 $\mathrm{opt}$ 和 $x$ ($1 \leq \mathrm{opt} \leq 6; x \leq 5 \times 10^6$)，$\mathrm{opt}$ 表示操作的序号。</p>
+
+		<h3>输出格式</h3>
+		<p>对于操作 $3, 4, 5, 6$ 每行输出一个数，表示对应答案。</p>
+
+		<h3>题解</h3>
+		<p>听说你想写 Splay？TLE + MLE 不谢</p>
+		<p>好了，这道题的正解是<strong style="color: red">树状数组</strong>。</p>
+		<p>注意到数的范围只有 $5 \times 10^6$，因此可以用权值线段树的思想，用 $b_i$ 表示数 $i$ 是否出现 (如果是可重集则维护出现次数)。</p>
+		<p>这样插入和删除就对应成了单点修改问题，而排名就成了一个简单的区间和问题。</p>
+		<p>而求 $k$ 大，就是求排名的逆运算，因此可以使用在树状数组上二分完成。</p>
+		<p>前趋后继也不难，直接转化成排名和 $k$ 大即可。</p>
+		<p>这样做空间就达到了 $O(x)$，时间为 $O(n \log x)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 5000001
+#define lowbit(x) (x &amp; -x)
+using namespace std;
+
+int x, y, l, r;
+int val[N + 5];
+
+void add(int *b, int h, int v) {for(++h; h &lt;= N + 1; h += lowbit(h)) b[h] += v;}
+
+int sum(int *b, int h) {int s = 0; for(++h; h; h -= lowbit(h)) s += b[h]; return s;}
+
+int get(int *b, int h) {int s = b[++h]; for(int i = h - 1; i != h - lowbit(h); i -= lowbit(i)) s -= b[i]; return s;}
+
+int kth(int k){ // (k-1)th
+	if(sum(val, N - 1) &lt; k) return -1;
+	int l = 0, r, i;
+	for(i = 22; i &gt;= 0; --i)
+		if((r = l + (1 &lt;&lt; i)) &lt;= N + 1 &amp;&amp; val[r] &lt; k)
+			k -= val[l = r];
+	return l;
+}
+
+inline int prev(int x) {int k = sum(val, x - 1); return k &lt;= 1 ? -1 : kth(k);}
+
+inline int succ(int x) {return kth(sum(val, x) + 1);}
+
+int main(){
+	int q, op;
+	add(val, 0, 1); add(val, N, 1);
+	for(scanf("%d", &amp;q); q; --q)
+		switch(scanf("%d%d", &amp;op, &amp;x), op){
+			case 1: if(!get(val, x)) add(val, x, 1); break;
+			case 2: if(get(val, x)) add(val, x, -1); break;
+			case 3: printf("%d\n", sum(val, x - 1)); break;
+			case 4: printf("%d\n", kth(x + 1)); break;
+			case 5: printf("%d\n", prev(x)); break;
+			case 6: printf("%d\n", succ(x)); break;
+		}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意前趋后继的边界问题，即是否要 $+ 1/- 1$。</p>
+	</body>
+</html>

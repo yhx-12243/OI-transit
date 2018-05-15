@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj67]新年的毒瘤</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>辞旧迎新之际，喜羊羊正在打理羊村的绿化带，然后他发现了一棵长着毒瘤的树。</p>
+		<p>这个长着毒瘤的树可以用 $n$ 个结点 $m$ 条无向边的无向图表示。这个图中有一些结点被称作是毒瘤结点，即<strong>删掉这个结点</strong>和与之相邻的边之后，这个图会变为一棵树。树也即无简单环的无向连通图。</p>
+		<p>现在给你这个无向图，喜羊羊请你帮他求出所有毒瘤结点。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行两个正整数 $n, m$ ($2 \leq n \leq 10^5; 1 \leq m \leq 10^5$)，表示有 $n$ 个点 $m$ 条边。</p>			<p>接下来 $m$ 行，每行两个整数 $v, u$ ($1 \leq v, u \leq n$)，表示 $v$ 和 $u$ 之间有一条无向边。保证没有重边和自环。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行一个正整数 $n_s$，表示这个图中有 $n_s$ 个结点是毒瘤。</p>
+		<p>接下来一行，共 $n_s$ 个整数，每个整数表示一个毒瘤结点的编号。<strong>请按编号从小到大的顺序输出</strong>。</p>
+		<p>数据保证图中至少存在一个毒瘤结点。</p>
+
+		<h3>题解</h3>
+		<p>先来寻找毒瘤节点的必要条件。</p>
+		<p>由于删掉节点 $v$ (即相连的边) 后，剩下的 $n-1$ 个节点组成一棵树，因此这棵树一共有 $n-2$ 条边，因此删掉的边数，即点 $v$ 的度数应该为 $m-n+2$。</p>
+		<p>当然这只是必要条件，这只能保证剩下 $n-1$ 个点的导出子图是一个 "边数等于点数减一" 的图，然而我们要变成一棵树，这怎么办呢？</p>
+		<p>由树的等价定义之一，<strong>$n$ 个节点的树是具有 $n-1$ 条边的连通图</strong>，因此如果这个导出子图还是个连通图那就好了。</p>
+		<p>而删一个点后图仍然连通，那说明点 $v$ <strong>不是</strong>原图的割点。因此点 $v$ 是毒瘤节点的另一个必要条件是 "$v$ 不是原图的割点"。</p>
+		<p>这两个条件合起来，其实也是充分的。</p>
+		<p>由于数据保证图中至少存在一个毒瘤节点 $c$，那么把 $c$ 除掉后，整张图就是连通的。因此我们分两种情况讨论：</p>
+		<ol>
+		<li><p>原图是连通图。</p>
+		<p>那么，对于任意一个满足上述两个条件的 $v$，"$v$ 不是原图的割点" 保证了删去 $v$ 后的导出子图是连通的，$deg[v] = m-n+2$ 保证了删去 $v$ 后的导出子图具有 $n-2$ 条边。由树的定义，剩下的导出子图即为一棵树。</p></li>
+		<li><p>原图不是连通图。</p>
+		<p>那么，由于除 $c$ 之外的 $n-1$ 个点是连通的，因此 $c$ 只能自成一个连通块。因此把 $c$ 除掉后，相当于只除去了一个点，因此剩下的部分本来就是一棵树，故此时有 $m = n - 2$。</p>
+		<p>这样 $deg[v] = m-n+2 \Leftrightarrow deg[v] = 0$，因此 $v$ 只能为 $c$，而此时 $v$ 显然不是割点。</p></li>
+		</ol>
+		<p>因此在题目的条件下，这两个条件就是 "$v$ 为毒瘤节点" 的充要条件，因此只需跑一遍 Tarjan 割点即可。</p>
+		<p>(思考：如果数据不保证至少存在一个毒瘤节点，那么又该怎么判定呢？)</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define M 200005
+using namespace std;
+
+typedef vector &lt;int&gt; vec;
+
+int V, E, Es = 0;
+int to[M], first[N], next[M], deg[N];
+int cnt = 0, id[N], low[N], cut[N];
+int ccnt = 0, cancer[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+inline void addedge(int u, int v){
+	to[++Es] = v; next[Es] = first[u]; first[u] = Es;
+	to[++Es] = u; next[Es] = first[v]; first[v] = Es;
+}
+
+void dfs(int x, int px){
+	int i, y, C = 0;
+	id[x] = low[x] = ++cnt;
+	for(i = first[x]; i; i = next[i])
+		if(!id[y = to[i]]){
+			++C; dfs(y, x);
+			down(low[x], low[y]);
+			if(px &amp;&amp; id[x] &lt;= low[y]) cut[x] = 1;
+		}else if(y != px)
+			down(low[x], low[y]);
+	if(!px &amp;&amp; C &gt; 1) cut[x] = 1;
+}
+
+int main(){
+	int i, u, v;
+	scanf("%d%d", &amp;V, &amp;E);
+	for(i = 0; i &lt; E; ++i) {scanf("%d%d", &amp;u, &amp;v); addedge(u, v); ++deg[u]; ++deg[v];}
+	dfs(1, 0);
+	for(i = 1; i &lt;= V; ++i) if(!cut[i] &amp;&amp; deg[i] == E - V + 2) cancer[++ccnt] = i;
+	printf("%d\n", ccnt);
+	for(i = 1; i &lt;= ccnt; ++i) printf("%d%c", cancer[i], i == ccnt ? 10 : 32);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $1$ 号节点的割点判定方法，不是 <code>id[x] &lt;= low[y]</code>，而是子树个数 $&gt; 1$。</p>
+		<p style="color: transparent">思考题答案：只需判定是否有 $\geq n-1$ 的连通块就可以辣！</p>
+	</body>
+</html>

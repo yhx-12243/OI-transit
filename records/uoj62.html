@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj62]怎样跑得更快</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>令 $p = 998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数)。</p>
+		<p>给定整数 $n, c, d$。现在有整数 $x_1, x_2, \cdots, x_n$ 和 $b_1, b_2, \cdots, b_n$ 满足 $0 \leq x_1, x_2, \cdots, x_n, b_1, b_2, \cdots, b_n &lt; p$，且对于 $1 \leq i \leq n$ 满足：</p>
+		<p>$$ \sum_{j=1}^n \gcd(i, j)^c \cdot \mathrm{lcm}(i, j)^d \cdot x_j \equiv b_i \pmod p $$</p>
+		<p>有 $q$ 个询问，每次给出 $b_1, b_2, \cdots, b_n$，请你解出 $x_1, x_2, \cdots, x_n$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个非负整数 $n, c, d, q$ ($n, q \geq 1; n \cdot q \leq 3 \times 10^5; 0 \leq c, d \leq 10^9$)。</p>
+		<p>接下来 $q$ 行，每行 $n$ 个整数依次表示 $b_1, b_2, \cdots, b_n$。保证 $0 \leq b_i &lt; p$。</p>
+
+		<h3>输出格式</h3>
+		<p>共 $q$ 行，每行对给出的 $b_1, b_2, \cdots, b_n$，输出对应的 $x_1, x_2, \cdots, x_n$。如果有多组解输出任意一组即可。如果无解那么这一行只用输出一个整数 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>由于 $\mathrm{lcm}(i, j) = \dfrac {ij} {\gcd(i, j)}$，因此原方程组可以化为</p>
+		<p>$$ \sum_{j=1}^n \gcd(i, j)^{c-d} \cdot i^d \cdot j^d \cdot x_j \equiv b_i \pmod p \qquad \left( i = 1, 2, \cdots, n \right) $$</p>
+		<p>记 $X_j = j^d x_j, b_j = i^d B_j, C = c-d$ (在模 $p$ 意义下)，则方程组化为</p>
+		<p>$$ \sum_{j=1}^n \gcd(i, j)^C X_j \equiv B_i \pmod p \qquad \left( i = 1, 2, \cdots, n \right) $$</p>
+		<p>由于这里的 $\gcd$ 比较麻烦，我们考虑将它转化掉。注意到以前遇到 $\gcd$ 都是通过 Möbius 反转变换来解决的，因此在这里我们也可以试一试 Möbius 反转变换。</p>
+		<p>由于先枚举 $\gcd$ 再变换务必会比较复杂，因此这里我们直接设 $\mathbf n^C = \mathbf 1 \ast f$ ($\ast$ 为 Dirichlet 卷积)，即 $f = \mathbf n^C \ast \mu$，代入上式即得</p>
+		<p>$$ \sum_{j=1}^n \left( \sum_{d \mid i, d \mid j} f(d) \right) X_j \equiv B_i \pmod p $$
+		<p>交换求和次序，得 $$ \sum_{d \mid i} f(d) \left( \sum_{d \mid j} X_j \right) \equiv B_i \pmod p $$</p>
+		<p>记 $E_i = \sum\limits_{i \mid j} X_j$，则变成</p>
+		<p>$$ \sum_{d \mid i} f(d) E_d \equiv B_i \pmod p $$</p>
+		<p>令 $F_i = f(i) E_i$，则有 $\sum\limits_{d \mid i} F_i = B_i$，立即可以看出 $B_i$ 是 $F_i$ 的 Möbius 变换，因此我们就解出了这个方程，然后通过如下步骤计算最终的答案：</p>
+		<ol>
+		<li>将 $B_i = b_i \cdot i^{-d}$ 进行 <strong>Möbius 反转变换</strong>算出 $F_i$。</li>
+		<li>此时变成了方程组 $f(i) E_i = F_i$，因此根据 $f(i)$ 是否为 $0$ 判断无解和解出 $E_i$。</li>
+		<li>然后由于 $E_i = \sum\limits_{i \mid j} X_j$，可知 $E_i$ 是 $X_i$ 的倍数型 Möbius 变换，因此只需将 $E_i$ 进行<strong>倍数型 Möbius 反转变换</strong>算出 $X_i$。</li>
+		<li>最后通过公式 $x_i = X_i \cdot i^{-d}$ 解出 $x_i$。
+		</ol>
+		<p>加上开头求 $\mathbf n^C$ 的 <strong>Möbius 反转变换</strong>，因此整道题一共要使用 $3$ 次 Möbius 反转变换，而每次 Möbius 反转变换的时间复杂度是 $O(n \log n)$ 的，因此总时间复杂度 $O \left( q n \log n \right)$。</p>
+		<p>注意 Möbius 反转变换时不需要预先筛出 $\mu(n)$ 函数，只需将 Möbius 变换的过程逆过来做就可以了 (就像 FMT 和 IFMT 一样)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+using namespace std;
+
+typedef long long ll;
+const int mod = 998244353, pmod = mod - 1;
+
+int n, c, d, q;
+int b[N], p[N], ip[N];
+
+inline void sub(int &amp;x, const int y) {x = (x - y &lt; 0 ? x - y + mod : x - y);}
+
+ll PowerMod(ll a, int n, ll c = 1){
+	for(n = n % pmod + (n &lt; 0 ? pmod : 0); n; n &gt;&gt;= 1, a = a * a % mod) if(n &amp; 1) c = c * a % mod; return c;
+}
+
+void mobius_inv(int *a, int n){
+	int i, j;
+	for(i = 1; i &lt;= n; ++i)
+		for(j = i &lt;&lt; 1; j &lt;= n; j += i) sub(a[j], a[i]);
+}
+
+void Mobius_inv(int *a, int n){
+	int i, j;
+	for(i = n; i; --i)
+		for(j = i &lt;&lt; 1; j &lt;= n; j += i) sub(a[i], a[j]);
+}
+
+int main(){
+	int i;
+	scanf("%d%d%d%d", &amp;n, &amp;c, &amp;d, &amp;q); c -= d;
+	for(i = 1; i &lt;= n; ++i) {p[i] = PowerMod(i, c); ip[i] = PowerMod(i, -d);}
+	mobius_inv(p, n);
+	for(i = 1; i &lt;= n; ++i) p[i] = PowerMod(p[i], -1);
+	for(; q; --q){
+		for(i = 1; i &lt;= n; ++i) {scanf("%d", b + i); b[i] = (ll)b[i] * ip[i] % mod;} mobius_inv(b, n);
+		for(i = 1; i &lt;= n; ++i) {if(b[i] &amp;&amp; !p[i]) break; b[i] = (ll)b[i] * p[i] % mod;}
+		if(i &lt;= n) {puts("-1"); continue;} Mobius_inv(b, n);
+		for(i = 1; i &lt;= n; ++i) printf("%lld%c", (ll)b[i] * ip[i] % mod, i == n ? 10 : 32);
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>记得判断无解 ($f(i) = 0 \wedge F_i \neq 0$) 的情况。</p>
+		<p><strong>坑2：</strong>负指数 (求逆元的时候) 可能小于 $- \mathrm{mod}$，因此需要先模再加。</p>
+	</body>
+</html>
