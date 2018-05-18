@@ -16,13 +16,14 @@ const
 		SiteDict = {
 			'lydsy': [[/\d+/], 'https://www.lydsy.com/JudgeOnline/problem.php?id=@0'],
 			'lg': [[/[TU]?\d+/], 'https://www.luogu.org/problemnew/show/@0'],
+			'vijos': [[^/\d+/], 'https://vijos.org/p/@0'],
 			'hdu': [[/\d+/], 'http://acm.hdu.edu.cn/showproblem.php?pid=@0'],
 			'poj': [[/\d+/], 'http://poj.org/problem?id=@0'],
 			'uoj': [[/\d+/], 'http://uoj.ac/problem/@0'],
 			'loj': [[/\d+/], 'https://loj.ac/problem/@0'],
 			'simpleoj': [[/\d+/], 'http://10.49.27.23/problem?id=@0'],
 			'soj': [[/\d+/], 'http://10.49.27.7/problem/@0'],
-			'cf': [[/\d+/, /[A-G]\d*/], 'http://codeforces.com/contest/@0/problem/@1'],
+			'cf': [[/\d+/, /[A-Z]\d*/], 'http://codeforces.com/contest/@0/problem/@1'],
 			'cc': [[/\w+/], 'https://www.codechef.com/problems/@0/'],
 			'spoj': [[/\w+/], 'http://www.spoj.com/problems/@0/']
 		};

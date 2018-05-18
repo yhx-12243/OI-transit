@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj206][APIO2016]Gap</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $N$ 个严格递增的非负整数 $a_1, a_2, \cdots, a_N$ ($0 \leq a_1 &lt; a_2 &lt; \cdots &lt; a_N \leq 10^{18}$)。你需要找出 $a_{i+1} - a_i$ ($0 \leq i \leq N - 1$) 里的最大的值。</p>
+		<p>你的程序不能直接读入这个整数序列，但是你可以通过给定的函数来查询该序列的信息。关于查询函数的细节,请根据你所使用的语言，参考下面的实现细节部分。</p>
+		<p>你需要实现一个函数，该函数返回 $a_{i+1} - a_i$ ($0 \leq i \leq N - 1$) 中的最大值。</p>
+
+		<h3>实现细节</h3>
+		<p>你需要包含头文件 gap.h。</p>
+		<p>你需要实现一个函数 findGap(T, N)，该函数接受下面的参数，并返回一个 <samp>long long</samp> 类型的整数：</p>
+		<ul>
+			<li>$T$：子任务的编号（$1$ 或者 $2$）</li>
+			<li>$N$：序列的长度</li>
+		</ul>
+		<p>你的函数 findGap 可以调用系统提供的查询函数 MinMax(s, t, &amp;mn, &amp;mx)，该函数的前两个参数 $s$ 和 $t$ 是 <samp>long long</samp> 类型的整数，后两个参数 &amp;mn 和 &amp;mx 是 <samp>long long</samp> 类型的整数的指针 (mn 和 mx 是 <samp>long long</samp> 类型的整数)。</p>
+		<p>当 MinMax(s, t, &amp;mn, &amp;mx) 返回时，变量 mn 将会存储满足 $a_i \in [s, t]$ 中 $a_i$ 的最小值，变量 mx 将会存储满足 $a_i \in [s, t]$，$a_i$ 的最大值。如果区间 $[s, t]$ 中没有序列中的数，则 mn 和 mx 都将存储 $-1$。在查询时需要满足 $s \leq t$，否则程序将会终止，该测试点计为 $0$ 分。</p>
+
+		<h3>题解</h3>
+		<p>先看第一个子任务——调用 MinMax 的次数不超过 $\left \lceil \dfrac N2 \right \rceil$。</p>
+		<p>这个比较简单，我们可以采取中位数的思想，从两边开始询问。第一次询问 $0 \sim 10^{18}$ 之间的最小值和最大值，得到 $a_1$ 和 $a_n$，然后询问 $a_1 + 1 \sim a_n - 1$ 就可以得到 $a_2$ 和 $a_{n-1}$，以此类推，询问 $\left \lceil \dfrac N2 \right \rceil$ 次后就可以得到所有数，然后暴力计算 Gap 值即可。</p>
+		<p>再来看第二个子任务——调用所包含的数不超过 $3N$。</p>
+		<p>第一次还是询问 $0 \sim 10^{18}$，得到最小值 $a_1$ 和最大值 $a_n$。</p>
+		<p>由平均值原理，$\max\limits_{1 \leq i &lt; N} \left( a_{i+1} - a_i \right) \geq \dfrac 1 {N - 1} \sum\limits_{1 \leq i &lt; N} \left( a_{i+1} - a_i \right) = \dfrac {a_N - a_1} {N - 1}$，因此我们可以得到 Gap 值的一个下界：$\left \lceil \dfrac {a_N - a_1} {N - 1} \right \rceil$，记为 $D$。</p>
+		<p>这样，我们可以把区间 $[a_1, a_n]$ 分成不超过 $N$ 段：$[a_1, a_1 + D], [a_1 + D + 1, a_1 + 2D + 1], \cdots$，每段都包含 $D + 1$ 个数。</p>
+		<p>如果对每一个区间询问它的最小值和最大值，并将所询问得到的所有数拼接起来，求一遍 Gap 值，就是原来的 Gap 值。</p>
+		<p>为什么呢？这很简单，由于新的序列由原序列删去若干元素得到，因此新的 Gap 值肯定不小于原来的 Gap 值。而如果新的 Gap 值大于原来的 Gap 值，那么它也会大于 $D$，因此形成它的 $a_i$ 与 $a_{i+1}$ 在两个不同的区间中。</p>
+		<p>而这只有可能是左区间的最大值和右区间的最小值，而这两个数都不会被删去，因此得到原序列中这两个数 ($a_i$ 与 $a_{i+1}$) 的差值大于 Gap 值，矛盾。</p>
+		<p>分析一下调用复杂度，调用所包含的数显然不超过 $2N$ (一开始调用所有数各一遍以及之后每个数至多被查到一遍)，接下来是调用次数，由于区间的段数不超过 $\dfrac {a_N - a_1} {D + 1} \leq \dfrac {D(N - 1)} {D + 1} &lt; N - 1$，因此总调用次数 $&lt; 1 + (N - 1) = N$，总和刚好不超过 $3N$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "gap.h"
+#include &lt;bits/stdc++.h&gt;
+#define N 100005
+using namespace std;
+
+typedef long long ll;
+const ll inf = 1000000000000000000ll;
+
+ll a[N];
+
+ll findGap(int T, int n) {
+	int i, j; ll ans = 0, gap, u, v, la;
+	if (T == 1) {
+		*a = -1; a[n + 1] = inf + 1;
+		for (i = 1, j = n; i &lt;= j; ++i, --j) MinMax(a[i - 1] + 1, a[j + 1] - 1, a + i, a + j);
+	} else {
+		MinMax(0, inf, a + 1, a);
+		gap = (*a - a[1] + n - 2) / (n - 1);
+		j = 1;
+		for (la = a[1] + 1; la &lt; *a; la += gap + 1) {
+			MinMax(la, la + gap, &amp;u, &amp;v);
+			if (u == -1) continue;
+			a[++j] = u; if (u != v) a[++j] = v;
+		}
+		if (a[j] &lt; *a) a[++j] = *a; n = j;
+	}
+	for (i = 1; i &lt; n; ++i) ans = max(ans, a[i + 1] - a[i]);
+	return ans;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>计算平均值的时候注意要上取整，不然容易被卡常。不过这里还有一个技巧 (对于子任务 2)，可以在一边询问一边更新 Gap 值，然后顺便扩大区间的长度，这样常数就非常松了 (在随机数据下)。</p>
+		<p><strong>坑2：</strong>注意 Gap 值是差分后的最大值，因此不要忘记初始情况令 <code>ans = 0;</code>，还有就是注意 $u = v \geq 0$ 和 $u = v = -1$ 时特判。</p>
+	</body>
+</html>
