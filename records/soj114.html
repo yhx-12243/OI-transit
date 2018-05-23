@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj114]中位数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个长度为 $2n-1$ 的数组 $a$。可以重排 $a$ 中的元素，然后生成一个长度为 $n$ 的数组 $b$，其中 $b_i$ 为 $a_1 \sim a_{2i-1}$ 的中位数 (数组下标均从 $1$ 开始)。</p>
+		<p>问对于给定的 $a$，能生成多少种不同的 $b$。由于答案很大，你只需要输出答案对 $998244353$ 取模的结果即可。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 60$)，含义见题目描述。</p>
+		<p>第二行包含 $2n - 1$ 个正整数 $a_i$，表示数组 $a$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示生成的不同的 $b$ 的数量，对 $998244353$ 取模。</p>
+
+		<h3>题解</h3>
+		<p>看这数据规模就是一道多项式复杂度的神 DP 题……</p>
+		<p>由于初始 $a_i$ 的顺序不影响答案，因此我们不妨假设 $a_i$ 是升序的。</p>
+		<p>那么 $b_i$ 有如下两条性质：</p>
+		<ol>
+		<li><p>$b_i \in \{a_i, a_{i+1}, \cdots, a_n, \cdots, a_{2n - i}\}$；</p></li>
+		<li><p>不存在 $i &lt; j$，使得 $b_i$ 介于 $b_j$ 和 $b_{j+1}$ 之间 (不含端点)。</p></li>
+		</ol>
+		<p>并且可以证明，对于任意一个 $b$ 序列，如果满足上面两个性质，则也一定可以构造出一个 $a$ 序列，满足原题的中位数条件。</p>
+		<p>主要证明思路是<del>数学归纳法</del>递推方法，即每次构造出 $a_{2n-2}$ 和 $a_{2n-1}$ 然后转化为规模较小的相同的子问题。</p>
+		<p>因此我们就把原题转化成了满足上述两个条件的数组 $b$ 的个数。</p>
+		<p>令 $f_{i, j, k}$ 表示当前确定 $b_i \sim b_n$，且第 $i$ 层左边还有 $j$ 个 (不同的) 数可供选择，右边还有 $k$ 个 (不同的) 数可供选择的方案数 (不含 $b_i$)。边界为 $f_{n, 0, 0} = 1$。</p>
+		<p>考虑转移，如果 $b_{i-1} = b_i$，则两侧可选的数的个数不变，加上两端新增的数 (可能没有) 即可，即 (其中 $le$ 表示 $a_i$ 是否等于 $a_{i-1}$，$re$ 对称类似)</p>
+		<p>$$ f_{i-1, j+le, k+re} \gets f_{i, j, k} $$</p>
+		<p>如果 $b_{i-1} &lt; b_i$，则由性质 2，再之前的 $b_j$ 不能在范围 $(b_{i-1}, b_i)$ 之间，因此这些数就没用了。而右侧可选的数的数量就比原来多 $1$，左侧可选的数的数量可以在 $0 \sim j+le-1$ 任取，状态即</p>
+		<p>$$ f_{i-1, v, k+1+re} \gets f_{i, j, k} \quad \left( v \in [0, j+le) \right) $$</p>
+		<p>最后答案就是当 $i = 1$ 时的状态了，任取 $j, k \in [0, 2n-1]$ 求和即可。</p>
+		<p>可以使用滚动数组优化空间 ($O(n^2)$)，时间复杂度 $O \left( n^4 \right)$ (常数比较小)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 125
+using namespace std;
+
+const int mod = 998244353;
+
+int n, G;
+int a[N];
+int f[2][N][N], (*cur)[N] = *f, (*nxt)[N] = f[1];
+
+inline void add(int &amp;x, const int y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+	
+int main() {
+	int i, j, k, v, le, re, c, ans = 0;
+	scanf("%d", &amp;n); G = (n &lt;&lt; 1) - 1;
+	for (i = 1; i &lt;= G; ++i) scanf("%d", a + i);
+	sort(a + 1, a + (G + 1));
+	nxt[0][0] = 1;
+	for (i = n; i &gt; 1; --i) {
+		swap(cur, nxt); memset(nxt, 0, sizeof *f);
+		le = (a[i] != a[i - 1]); re = (a[G - i + 1] != a[G - i + 2]);
+		for (j = 0; j &lt;= n - i &lt;&lt; 1; ++j)
+			for (k = 0; k &lt;= n - i &lt;&lt; 1; ++k)
+				if (c = cur[j][k]) {
+					add(nxt[j + le][k + re], c); // forward
+					for (v = 0; v &lt; j + le; ++v) add(nxt[v][k + 1 + re], c); // right
+					for (v = 0; v &lt; k + re; ++v) add(nxt[j + 1 + le][v], c); // left
+				}
+	}
+	for (i = 0; i &lt;= G; ++i)
+		for (j = 0; j &lt;= G; ++j)
+			add(ans, nxt[i][j]);
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>DP 时要计算可行范围，尽量不要 <code>for</code> 满，不然常数可能较大。</p>
+	</body>
+</html>

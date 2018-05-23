@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[spoj DIVCNT2]Counting Divisors (square)</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义 $d(n)$ 为 $n$ 的正因数的个数，比如 $d(2) = 2, d(6) = 4$。</p>
+		<p>令 $$ S_2(n) = \sum_{i=1}^n d(i^2) $$</p>
+		<p>给定 $n$，求 $S_2(n)$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10000$)，表示数据组数。</p>
+		<p>接下来的 $T$ 行，每行包含一个正整数 $n$ ($n \leq 10^{12}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个 $n$，输出一行一个整数，表示 $S_2(n)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>由于 $n_\max = 10^{12}$，因此 $O \left( \dfrac {n^{3/4}} {\log n} \right)$ 的洲阁筛会 TLE，需要寻找函数的性质。</p>
+		<p>先考虑如何处理 $d(n^2)$。记 $n$ 的标准分解式为 $n = p_1^{\alpha_1} p_2^{\alpha_2} \cdots p_l^{\alpha_l}$，那么 $d = p_1^{\beta_1} p_2^{\beta_2} \cdots p_l^{\beta_l}$ 为 $n^2$ 的因数当且仅当 $0 \leq \beta_i \leq 2 \alpha_i$。</p>
+		<p>我们考虑 $d$ 中 $\beta_i &gt; 0$ 的素数集合 $P$。由于每个 $\beta_i$ 可取 $2 \alpha_i$ 种不同值，且当 $1 \leq \beta_i \leq \alpha_i$ 时，这部分是 $n$ 的因数。</p>
+		<p>故对每个 $i$，我们取 $\beta'_i = \beta_i \bmod \alpha_i$ (即 $\beta_i \leq \alpha_i$ 时为 $\beta_i$，否则为 $\beta_i - \alpha_i$)。这样得到一个新的数 $d' = \displaystyle \prod_{p_i \in P} p_i^{\beta'_i}$，满足 $d' \mid n$。</p>
+		<p>这样一来，对每个 (素因子集合为 $P$ 的) $d'$，它都有 $2^{|P|}$ 种方式生成 $d$，又每个 $d$ 显然有唯一的 $d'$ 与之确定。这样我们就建立了一个多对一的映射。枚举 $d'$，那么可以得到</p>
+		<p>$$ d(n^2) = \sum_{d \mid n} 2^{\omega(d)} $$ (其中 $\omega(n)$ 为 $n$ 的<strong>不同</strong>素因子的个数)</p>
+		<p>记 $\left( 2^\omega \right) (n) = 2^{\omega(n)}, f(n) = d(n^2)$，则上式可以写作 $f = 2^\omega \ast 1$ (其中 $\ast$ 为 Dirichlet 卷积)。</p>
+		<p>接下来考虑 $2^{\omega(n)}$，容易看出它等于 $n$ 的平方松 (square free) 的因子个数，因此有</p>
+		<p>$$ 2^{\omega(n)} = \sum_{d \mid n} \mu^2 (d) $$</p>
+		<p>亦即 $2^\omega = \mu^2 \ast 1$，代入上式，得到 $f = 2^\omega \ast 1 = (\mu^2 \ast 1) \ast 1 = \mu^2 \ast (1 \ast 1) = \mu^2 \ast d$ (Dirichlet 卷积的结合律)。</p>
+		<p>接下来将 $S_2(n)$ 代入进行和式变换：</p>
+		<p>$$ S_2(n) = \sum_{i=1}^n f(n) = \sum_{c \leq n} f(c) = \sum_{c \leq n} \sum_{ab = c} \mu^2(a) d(b) = \sum_{ab \leq n} \mu^2(a) d(b) $$</p>
+		<p>可以枚举 $\left \lfloor \dfrac na \right \rfloor$ 或 $\left \lfloor \dfrac nb \right \rfloor$ 进行数论分块，因此我们只需要求 $\mu^2$ 和 $d$ 的前缀和即可。</p>
+		<p>首先显然有 $\sum\limits_{i=1}^n d(i) = \sum\limits_{i=1}^n \left \lfloor \dfrac ni \right \rfloor$，可以数论分块在 $O \left( \sqrt n \right)$ 的复杂度内算出，<del>或者使用 <a href="spojDIVCNT1.html" target="_blank">spoj DIVCNT1</a> 的技巧在 $O \left( n^{1/3} \right)$ 时间内完成</del>。</p>
+		<p>对于 $\sum\limits_{i=1}^n \mu^2(i)$，即 $n$ 以内平方松的数的个数，利用容斥的思想，即可得到</p>
+		<p>$$ \sum_{i=1}^n \mu^2(i) = \sum_i \mu(i) \left \lfloor \frac n {i^2} \right \rfloor $$</p>
+		<p>也能在 $O \left( \sqrt n \right)$ 的时间内得到，当然如果枚举 $\left \lfloor \dfrac n {i^2} \right \rfloor$ 的所有 $O \left( \sqrt[3]n \right)$ 种取值后就可以在 $O \left( n^{1/3} \right)$ 时间内完成。</p>
+		<p>当然，可以利用杜教筛的思想，当 $n$ 比较小的时候利用线性筛预处理，来加快运行速度。</p>
+		<hr />
+		<p>最后来分析一下时间复杂度：记算一次 $d$ 或 $\mu^2$ 前缀和的时间不超过 $O \left( n^\alpha \right)$。设用线性筛预处理 $O \left( n^x \right)$ 的前缀和，则剩下的 $O \left( n^{1-x} \right)$ 需要单独计算，即 $g(n), g \left( \dfrac n2 \right), \cdots g \left( \dfrac n {n^{1-x}} \right)$，因此这部分的时间复杂度为</p>
+		<p>$$ O \left( n^\alpha \right) + O \left( \left( \frac n2 \right)^\alpha \right) + \cdots + O \left( \left( \frac n {n^{1-x}} \right)^\alpha \right) $$
+		<p>构造函数 $F(t) = \left( \dfrac nt \right)^\alpha$，上式的和近似等于</p>
+		<p>$$ \int_1^{n^{1-x}} F(t) \mathrm dt = \left. n^\alpha t^{1-\alpha} \right|_1^{n^{1-x}} = O \left( n^{1 - (1 - \alpha) x} \right) $$</p>
+		<p>可知当 $x = 1 - (1 - \alpha) x$ 时，即 $x = \dfrac 1 {2 - \alpha}$ 时，时间复杂度取到最小值 $O \left( n^{1/(2-\alpha)} \right)$ [注：当 $\alpha = \dfrac 12$ 时 (一般算法) 时间复杂度为 $O \left( n^{2/3} \right)$，$\alpha = \dfrac 13$ 时 (较优秀的算法) 时间复杂度为 $O \left( n^{3/5} \right)$]。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 30000005
+using namespace std;
+
+typedef long long ll;
+
+int pn, p[1860000];
+int mu[N], d[N], de[N];
+ll smu2[N], sd[N];
+ll R[2000005];
+
+void sieve(int n) {
+	int i, j, v; pn = 0;
+	mu[1] = d[1] = 1;
+	for (i = 2; i &lt;= n; ++i) {
+		if (!d[i]) p[pn++] = i, mu[i] = -1, d[i] = 2, de[i] = 1;
+		for (j = 0; j &lt; pn; ++j) {
+			if ((v = i * p[j]) &gt; n) break;
+			if (i % p[j]) {
+				mu[v] = -mu[i];
+				d[v] = d[i] &lt;&lt; 1; de[v] = d[i];
+			} else{
+				mu[v] = 0;
+				d[v] = d[i] + de[i];
+				de[v] = de[i];
+				break;
+			}
+
+		}
+	}
+	for (i = 1; i &lt;= n; ++i) smu2[i] = smu2[i - 1] + (mu[i] &amp; 1), sd[i] = sd[i - 1] + d[i];
+}
+
+ll sum_mu2(ll n) {
+	if (n &lt; N) return smu2[n];
+	int i; ll g, j, ret = 0;
+	for (i = 1; (g = (ll)i * i) &lt;= n; ++i) mu[i] &amp;&amp; (j = mu[i] &gt;&gt; 1, ret += n / g + j ^ j);
+	return ret;
+}
+
+ll sum_d(ll n) {
+	if (n &lt; N) return sd[n];
+	int i; ll ret = 0;
+	for (i = 1; (ll)i * i &lt;= n; ++i) ret += n / i; --i;
+	return ret * 2 - (ll)i * i;
+}
+
+ll S2(ll n) {
+	int i, q = sqrt(n), cn = q * 2 - ((ll)q * (q + 1) &gt; n);
+	ll last = 0, cur, ret = 0;
+	for (i = 1; i &lt;= q; ++i) R[i] = i, R[cn + 1 - i] = n / i;
+	for (i = 1; i &lt;= cn; ++i) {
+		cur = sum_mu2(R[i]);
+		ret += (cur - last) * sum_d(R[cn + 1 - i]);
+		last = cur;
+	}
+	return ret;
+}
+
+int main() {
+	int T; ll n;
+	sieve(N - 1);
+	for (scanf("%d", &amp;T); T; --T) {scanf("%lld", &amp;n); printf("%lld\n", S2(n));}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意多次计算时一些数组和变量的清零<del>和一些必要的常数优化</del>。</p>
+	</body>
+</html>
