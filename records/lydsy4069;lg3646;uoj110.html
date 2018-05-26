@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4069][lg3646][uoj110][APIO2015]Bali Sculptures</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $N$ 个数 $a_1, a_2, \cdots, a_N$，你需要把它们分成 $X$ 组 (每个数必须属于一组)，且每组是连续的一个非空区间，需要满足 $A \leq X \leq B$。</p>
+		<p>对于每个组，计算出该组所有数的和，求所有 "和" 的按位或的结果的最小值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个用空格分开的正整数 $N, A, B$ ($1 \leq A \leq B \leq N \leq 2000$)。</p>
+		<p>第二行包含 $N$ 个用空格分开的非负整数 $a_1, a_2, \cdots, a_N$ ($0 \leq a_i \leq 10^9$)。</p>
+		<p>注：当 $N &gt; 100$ 时有 $A = 1$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示按位或的结果的最小值。</p>
+
+		<h3>题解</h3>
+		<p>尝试按位考虑，不过发现本问题不是各位独立的，有后效性。</p>
+		<p>不过没关系，根据二进制位的特点，我们可以考虑像 Trie 树一样贪心，尽可能让高位大，在高位相同的前提下再让低位尽可能大。</p>
+		<p>对每一位使用动态规划，不妨设当前位为 $b$。设 $f_{i, j}$ 表示满足当前高位条件下，且第 $b$ 位为 $0$，前 $i$ 个数能否分为 $j$ 段。边界状态为 $f_{0, 0} = \mathrm{true}$。</p>
+		<p>至于转移 ($f_{i, j}$)，我们枚举上一段的终点 $k$，则这一段的数的和为 $S_{ki} = s_i - s_k$ (其中 $s_i = \sum\limits_{j=1}^i a_i$)。如果 $S_{ki}$ 的第 $b$ 位为 $0$，且高位与当前答案 $cur$ 按位或的值还是 $cur$ (即没有 $S_{ki}$ 为 $1$，$cur$ 为 $0$ 的多余位)，则进行转移：</p>
+		<p>$$ f_{i, j} \gets f_{i, j} \vee f_{k, j-1} \quad \left( \textrm{for } \forall 1 \leq j \leq n \right) $$</p>
+		<p>最后如果 $\bigvee\limits_{A \leq j \leq B} f_{n, j} = \mathrm{true}$，则该位可以为 $0$，否则该位必须为 $1$，从而统计出答案。
+		<p>由于位 (bit) 的个数不超过 $\log \left( \sum a_i \right)$，所以时间复杂度为 $O \left( n^3 \log \sum a_i \right)$。</p>
+		<p>如果使用 <code>bitset</code> 优化，则复杂度可以降为 $O \left( \dfrac {n^3 \log \sum a_i} \omega \right)$。</p>
+		<hr />
+		<p>看起来好像直接过了？<del>当然 <code>bitset</code> 优化有点作弊</del> (雾)，假设我们不用 <code>bitset</code>，我们对 $A = 1$ 的测试点寻找更高效的做法。</p>
+		<p>此时条件为段数 $X \leq B$，即 $\bigvee\limits_{j \leq B} f_{n, j} = \mathrm{true}$，因此可以维护最小的能使得 $f_{i, j} = \mathrm{true}$ 的 $j$，看看这个 $j$ 是否不超过 $B$ 即可。实际意义是，<em>换一种状态</em>，记 $f_i$ 表示在满足上述条件下，前 $i$ 位所需要分的<strong>最小段数</strong>。</p>
+		<p>转移完全类似，即对每一个满足条件的 $S_{ki}$，我们令 $f_i \gets \min \{f_i, f_k + 1\}$ 即可。</p>
+		<p>最后的成功 (该位为 $0$) 条件就是 $f_n \leq B$。</p>
+		<p>这样这部分时间复杂度就降为 $O \left( n^2 \log \sum a_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N1 2005
+#define N2 105
+#define INF 0x3f3f3f3f
+using namespace std;
+
+typedef long long ll;
+typedef bitset &lt;N2&gt; bit;
+
+int n, A, B;
+
+ll a[N1];
+int f[N1];
+bit g[N2], Mask;
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+int main1() {
+	int b, i, j; ll v, cur = 0, mask;
+	for (b = 40; b &gt;= 0; --b) {
+		mask = -1ll &lt;&lt; b; f[0] = 0;
+		for (i = 1; i &lt;= n; ++i)
+			for (f[i] = INF, j = 0; j &lt; i; ++j) {
+				v = a[i] - a[j] &amp; mask;
+				if (!(v &amp; ~cur)) down(f[i], f[j] + 1);
+			}
+		cur |= (ll)(f[n] &gt; B) &lt;&lt; b;
+	}
+	return printf("%lld\n", cur), 0;
+}
+
+int main2() {
+	int b, i, j; ll v, cur = 0, mask;
+	for (i = A; i &lt;= B; ++i) Mask.set(i);
+	for (b = 40; b &gt;= 0; --b) {
+		mask = -1ll &lt;&lt; b; g[0].reset().set(0);
+		for (i = 1; i &lt;= n; ++i)
+			for (g[i].reset(), j = 0; j &lt; i; ++j) {
+				v = a[i] - a[j] &amp; mask;
+				if (!(v &amp; ~cur)) g[i] |= g[j] &lt;&lt; 1;
+			}
+		cur |= (ll)(g[n] &amp; Mask).none() &lt;&lt; b;
+	}
+	return printf("%lld\n", cur), 0;
+}
+
+int main() {
+	scanf("%d%d%d", &amp;n, &amp;A, &amp;B);
+	for (int i = 1; i &lt;= n; ++i) scanf("%lld", a + i);
+	partial_sum(a, a + (n + 1), a);
+	return A == 1 ? main1() : main2();
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>位运算通常会伴随着贪心技巧，因此判断转移条件的时候不能丢掉前面贪心所得的答案 (每一位都需要用到当前的答案 $cur$)。</p>
+	</body>
+</html>

@@ -1,4 +1,4 @@
-(function (win, und){
+(function (win, und) {
 	
 	"use strict";
 	
@@ -17,12 +17,12 @@
 			
 			'p': function (a, b){
 				var A = a.cells[1].innerText, B = b.cells[1].innerText;
-				return A == B ? 0 : (A < B ? -1 : 1);
+				return js_natcasesort(A, B);
 			},
 			
 			'pr': function (a, b){
 				var A = a.cells[1].innerText, B = b.cells[1].innerText;
-				return A == B ? 0 : (A < B ? 1 : -1);
+				return -js_natcasesort(A, B);
 			},
 			
 			'c': function (a, b) {return (+b.cells[4].innerText) - (+a.cells[4].innerText);},
@@ -35,12 +35,12 @@
 			
 			'a': function (a, b){
 				var A = a.cells[6].innerText, B = b.cells[6].innerText;
-				return A == B ? 0 : (A < B ? -1 : 1);
+				return js_natcasesort(A, B);
 			},
 			
 			'ar': function (a, b){
 				var A = a.cells[6].innerText, B = b.cells[6].innerText;
-				return A == B ? 0 : (A < B ? 1 : -1);
+				return -js_natcasesort(A, B);
 			}
 		}
 	

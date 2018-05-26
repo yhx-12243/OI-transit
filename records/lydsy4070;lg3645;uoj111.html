@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4070][lg3645][uoj111][APIO2015]Jakarta Skyscrapers</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>印尼首都雅加达市有 $N$ 座摩天楼，它们排列成一条直线，我们从左到右依次将它们编号为 $0$ 到 $N - 1$。除了这 $N$ 座摩天楼外，雅加达市没有其他摩天楼。</p>
+		<p>有 $M$ 只叫做 "doge" 的神秘生物在雅加达市居住，它们的编号依次是 $0$ 到 $M - 1$。编号为 $i$ 的 doge 最初居住于编号为 $B_i$ 的摩天楼。每只 doge 都有一种神秘的力量，使它们能够在摩天楼之间跳跃，编号为 $i$ 的 doge 的跳跃能力为 $P_i$ ($P_i &gt; 0$)。</p>
+		<p>在一次跳跃中，位于摩天楼 $b$ 而跳跃能力为 $p$ 的 doge 可以跳跃到编号为 $b - p$ (如果 $0 \leq b - p &lt; N$) 或 $b + p$ (如果 $0 \leq b + p &lt; N$) 的摩天楼。</p>
+		<p>编号为 $0$ 的 doge 是所有 doge 的首领，它有一条紧急的消息要尽快传送给编号为 $1$ 的 doge。任何一个收到消息的 doge 有以下两个选择:</p>
+		<ol>
+			<li>跳跃到其他摩天楼上；</li>
+			<li>将消息传递给它当前所在的摩天楼上的其他 doge。</li>
+		</ol>
+		<p>请帮助 doge 们计算将消息从 $0$ 号 doge 传递到 $1$ 号 doge 所需要的最少总跳跃步数，或者告诉它们消息永远不可能传递到 $1$ 号 doge。</p>
+
+		<h3>输入格式</h3>
+		<p>输入的第一行包含两个正整数 $N, M$ ($1 \leq N \leq 30000; 2 \leq M \leq 30000$)。</p>
+		<p>接下来 $M$ 行，每行包含非负两个整数 $B_i, P_i$ ($0 \leq B_i &lt; N; 1 \leq P_i \leq N$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所需要的最少步数。如果消息永远无法传递到 $1$ 号 doge，输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>又是一道 UOJ hack 神题...</p>
+		<p>下面讲两种方法：</p>
+		<p>方法一：</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 30005
+#define mV 3001000
+#define mE 10000000
+#define INF 0x3f3f3f3f
+using std::priority_queue;
+
+struct edge {
+	int nxt, v, w;
+	edge (int next = 0, int v0 = 0, int w0 = 0): nxt(next), v(v0), w(w0) {}
+} e[mE];
+
+struct node {
+	int to, dist;
+	node (int to0 = 0, int dist0 = 0) : to(to0), dist(dist0) {}
+	inline bool operator &lt; (const node &amp;B) const {return dist &gt; B.dist;}
+};
+
+struct doge {
+	int b, p;
+	doge (int b0 = 0, int p0 = 0) : b(b0), p(p0) {}
+	doge * read () {scanf("%d%d", &amp;b, &amp;p); return this;}
+	inline bool operator &lt; (const doge &amp;B) const {return p &lt; B.p;}
+} a[N];
+
+priority_queue &lt;node&gt; pq;
+
+int V, E, B;
+int n, m, start, end;
+int d[mV], first[mV], first2[mV];
+int buf[105][N];
+
+inline void link(int u, int v, int w = 0) {e[++E] = edge(first[u], v, w); first[u] = E;}
+
+inline void addedge(int u, int v, int w = 0) {link(u, v, w); link(v, u, w);}
+
+inline void scx(int u, int v) {e[++E] = edge(first2[u], v); first2[u] = E;}
+
+void Dijkstra(int st, int en) {
+	int i, j, x, y, p; node t;
+	for (i = 0; i &lt; V; ++i) d[i] = (i == st ? 0 : INF);
+	for (pq.push(node(st, 0)); !pq.empty(); ) {
+		t = pq.top(); pq.pop();
+		if ((x = t.to) == en) return;
+		if (d[x] &lt; t.dist) continue;
+		for (i = first2[x]; i; i = e[i].nxt) {
+			p = e[i].v;
+			for (j = 1; (y = x + j * p) &lt; n; ++j)
+				if (d[x] + j &lt; d[y]) pq.push(node(y, d[y] = d[x] + j));
+			for (j = 1; (y = x - j * p) &gt;= 0; ++j)
+				if (d[x] + j &lt; d[y]) pq.push(node(y, d[y] = d[x] + j));
+		}
+		for (i = first[x]; i; i = e[i].nxt)
+			if (d[x] + e[i].w &lt; d[y = e[i].v])
+				pq.push(node(y, d[y] = d[x] + e[i].w));
+	}
+}
+
+int main() {
+	int i, j, k;
+	scanf("%d%d", &amp;n, &amp;m);
+	for (i = 0; i &lt; m; ++i) a[i].read();
+	B = std::min(25, (int)sqrt(n)); V = n;
+	for (i = 1; i &lt;= B; ++i)
+		for (j = 0; j &lt; i; ++j)
+			for (k = j; k &lt; n; k += i) {
+				buf[i][k] = V++;
+				link(buf[i][k], k);
+				if (k &gt;= i) addedge(buf[i][k], buf[i][k - i], 1);
+			}
+	for (i = 0; i &lt; m; ++i) {	
+		int x = a[i].b, p = a[i].p;
+		if (p &lt;= B) link(x, buf[p][x]);
+		else scx(x, p);
+	}
+	start = a[0].b; end = a[1].b;
+	Dijkstra(start, end);
+	printf("%d\n", d[end] &lt; INF ? d[end] : -1);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

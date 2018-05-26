@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3240][lg1397][uoj124][NOI2013]矩阵游戏</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>scx 是个喜欢矩阵的小朋友，有一天她想用电脑生成一个巨大的 $n$ 行 $m$ 列的矩阵 (你不用担心她如何存储)。她生成的这个矩阵满足一个神奇的性质：</p>
+		<p>若用 $F_{i, j}$ 来表示矩阵中第 $i$ 行第 $j$ 列的元素，则 $F_{i, j}$ 满足下面的递推式：</p>
+		<p>\begin{cases}
+F_{1, 1} &amp; = &amp; 1 \\
+F_{i, j} &amp; = &amp; a \cdot F_{i, j-1} + b &amp; j \neq 1 \\
+F_{i, 1} &amp; = &amp; c \cdot F_{i-1, m} + d &amp; i \neq 1
+\end{cases}</p>
+		<p>递推式中 $a, b, c, d$ 都是给定的常数。</p>
+		<p>现在 scx 想知道 $F_{n, m}$ 的值是多少，请你帮助她。由于最终结果可能很大，你只需要输出 $F_{n, m}$ 除以 $10^9 + 7$ 的余数。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含六个正整数 $n, m, a, b, c, d$ ($n, m \leq 10^{1000000}; a, b, c, d \leq 10^9$)，意义如题所述。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $F_{n, m}$ 除以 $10^9 + 7$ 的余数。</p>
+
+		<h3>题解</h3>
+		<p>我们先寻找 $F_{i, m}$ 与 $F_{i, 1}$ 之间的关系。</p>
+		<p>构造一次函数 $f(x) = a x + b$，则有 $F_{i, m} = f^{(m-1)} \left( F_{i, 1} \right)$，我们只需解一个一次的函数迭代。</p>
+		<p>当 $a \neq 1$ 时，由于 $f(x) = a x + b = a \left( x + \dfrac b {a-1} \right) - \dfrac b {a-1}$，因此有 $f^{(n)}(x) = a^n \left( x + \dfrac b {a-1} \right) - \dfrac b {a-1} = a^n x + \dfrac {a^n - 1} {a - 1} b$，故 $F_{i, m} = a^{m-1} F_{i, 1} + \dfrac {a^{m-1} - 1} {a - 1} b$。</p>
+		<p>当 $a = 1$ 时，由于 $f(x) = x + b$，因此 $f^{(n)}(x) = x + n b$ <del>(当然你用 L'Hospital 法则也是可以滴)</del>，故此时 $F_{i, m} = F_{i, 1} + (m-1) b$。</p>
+		<p>总之，我么可以得到它们是一个线性关系，设 $F_{i, m} = A \cdot F_{i, 1} + B$。
+		<p>接着，我们可以得到 $F_{i, 1}$ 与 $F_{i-1, 1}$ 之间的关系。这很简单，因为</p>
+		<p>$$ F_{i, 1} = c \cdot F_{i-1, m} + d = c \left( A \cdot F_{i-1, 1} + B \right) + d = A c \cdot F_{i-1, 1} + \left( Bc + d \right) $$</p>
+		<p>记 $F_{i, 1} = C \cdot F_{i-1, 1} + D$。按照上面的方法 (令 $g(x) = Cx + D$)，可以得到 $F_{n, 1}$ 与 $F_{1, 1}$ 的关系，进而得到 $F_{n, m}$ 与 $F_{1, 1}$ 的关系，从而得到解。</p>
+		<p>最后还有一个问题，就是 $n, m$ 比较大，如何快速求 $a^n$。这里有两个解决方案：</p>
+		<ol>
+			<li><p>使用<strong>十进制快速幂</strong>，比如计算 $a^n$，先计算 $a^{\lfloor n/10 \rfloor}$，然后乘 $10$ 次再乘尾数，不过此方法常数较大。</p></li>
+			<li><p>使用 <strong>Fermat 小定理</strong>：$a^{p-1} \equiv 1 \pmod p$ ($p$ 为素数)，本题中 $p = 10^9 + 7$，因此我们可以将 (读入的) $n$ 先模 $10^9 + 6$，然后用普通的快速幂跑即可。</p></li>
+		</ol>
+		<p>最后代入 $F_{1, 1} = 1$ 即可。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define L 1000005
+using namespace std;
+
+typedef long long ll;
+const ll mod = 1000000007, phi_mod = mod - 1;
+
+char n[L], m[L];
+int a, b, c, d;
+ll A, B, t, u, v;
+
+ll PowerMod(ll a, int n, ll c = 1) {
+	for (n = n % phi_mod + (n &gt;&gt; 31 &amp; phi_mod); n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;
+}
+
+ll extract(char *_s, ll mod) {
+	ll ret = 0;
+	for (char *p = _s; *p; ++p) ret = (ret * 10 + (*p - 48)) % mod;
+	return ret;
+}
+
+void get(ll a, ll b, char *_s, ll &amp;A, ll &amp;B) {
+	if (a == 1) {A = 1; B = b * (extract(_s, mod) + mod - 1) % mod; return;}
+	ll t = PowerMod(mod + 1 - a, -1, b);
+	A = PowerMod(a, extract(_s, phi_mod) - 1); B = (mod + 1 - A) * t % mod;
+}
+
+int main() {
+	scanf("%s%s%d%d%d%d", n, m, &amp;a, &amp;b, &amp;c, &amp;d);
+	get(a, b, m, A, B);
+	get(A * c % mod, (B * c + d) % mod, n, u, v);
+	printf("%lld\n", (A * (u + v) + B) % mod);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意要根据 $a, c$ 的情况合理选择 $n, m$ 的模数。即 $a \neq 1$ 时，$m$ 在指数上，因此要模 $10^9 + 6$，而当 $a = 1$ 时，$m$ 是线性的，因此要模 $10^9 + 7$。</p>
+		<p><strong>坑2：</strong>题中所求的是 $F_{n, m}$ 而不是 $F_{n+1, 1}$，因此是迭代 $n-1$ 遍 $g$ 后再迭代 $m-1$ 遍 $f$ (或者是迭代 $n$ 遍 $g$ 后再迭代 $f^{-1}$？)。</p>
+	</body>
+</html>

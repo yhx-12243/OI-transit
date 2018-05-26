@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj167]元旦老人与汉诺塔</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给出一个有 $n$ 个圆盘的汉诺塔，一开始汉诺塔的状态为 $S$，接着你可以对这个汉诺塔进行至多 $m$ 次移动，要求在移动结束之后汉诺塔的状态是 $T$，请问不同的操作序列有多少种？</p>
+		<p>两个操作序列时不同的当且仅当操作序列长度不同或者在某一步操作之后汉诺塔的状态不同。</p>
+		<p>一个汉诺塔由三根柱子和若干个大小互不相同的圆盘组成，每一次操作你可以取出某一根柱子上最顶端的圆盘然后放到另外一根的柱子的顶端，同时必须保证每一时刻每一个圆盘不能放在比它小的圆盘的上方。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 100$)。</p>
+		<p>第二行包含 $n$ 个 $1$ 到 $3$ 之间的正整数 $A_i$，描述了状态 $S$：$A_i$ 表示第 $i$ 小的圆盘处在第 $A_i$ 根柱子上。</p>
+		<p>第三行包含 $n$ 个 $1$ 到 $3$ 之间的正整数 $B_i$，描述了状态 $T$：$B_i$ 表示第 $i$ 小的圆盘处在第 $B_i$ 根柱子上。</p>
+		<p>同一根柱子上的圆盘默认为以自上而下大小递增的顺序摆放。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数，表示合法的操作序列数目。</p>
+		<p>答案可能很大，你只需要输出答案对 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 取模后的结果。</p>
+
+		<h3>题解</h3>
+		<p>首先容易想到一个暴力 DP：</p>
+		<p>设 $f_{i, A}$ 表示从状态 $S$ 操作 $i$ 次得到状态 $A$ 的方案数，那么有 $f_{0, S} = 1$，答案即为 $\sum\limits_{i=0}^m f_{i, T}$。</p>
+		<p>转移也比较容易，由于操作是可逆的，因此我们只需对 $A$ 进行一次操作，就可以枚举上一次的状态 $A'$，然后从 $f_{i-1, A'}$ 转移而来。</p>
+		<p>不过可以发现，DP 状态数太多了。我们来计算一下：由于每个圆盘的可能位置有 $3$ 种，因此一共有 $3^n$ 种合法状态，故一共有 $O \left( 3^n \cdot m \right)$ 种 DP 状态，显然不够存储。</p>
+		<p>因此我们考虑使用记忆化搜索，来分析一下<strong>通过转移</strong>可能出现的 <strong>Hanoi 塔状态</strong>总数。</p>
+		<p>根据经典结论，将一个高度为 $h$ 的塔从一根柱子移动到另一根柱子，需要 $2^h - 1$ 次移动。从而移动从上往下数第 $i$ 个圆盘，需要等到第 $2^{i-1}$ 次移动。</p>
+		<p>也就是说，对于每根柱子，我们至多能移动从上往下数的第 $6$ 个圆盘，故通过转移可能出现的 Hanoi 状态总数不超过 $3^{18} &lt; 4 \times 10^8$，看起来已经小了不少。</p>
+		<p>不过经过实际测试，发现实际的状态数基本不会超过 $10^5$~~，所以大家就根本不用担心状态数爆表啦。</p>
+		<p>时空复杂度嘛~ 大概就是状态数乘上一个 $m$ 再乘上一点常数罢了。</p>
+
+		<h3>代码</h3>
+
+		<h4>C++11</h4>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+typedef long long ll;
+typedef vector &lt;int&gt; vec;
+typedef map &lt;vec, ll&gt; Map;
+const ll mod = 998244353;
+
+int n, m;
+vec S, T, cur[3];
+Map f[101];
+
+inline void add(ll &amp;x, const ll y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+
+ll dfs(int r, vec &amp;st, vec *op) {
+	auto it = f[r].find(st);
+	if (it != f[r].end()) return it-&gt;second;
+	if (!r) return 0;
+	int i, j, k; ll ret = 0;
+	for (i = 0; i &lt; 3; ++i)
+		if (!op[i].empty())
+			for (k = op[i].back(), j = 0; j &lt; 3; ++j)
+				if (op[j].empty() || op[i].back() &lt; op[j].back()) {
+					op[j].push_back(k); op[i].pop_back(); st[k] = j;
+					add(ret, dfs(r - 1, st, op));
+					op[i].push_back(k); op[j].pop_back(); st[k] = i;
+				}
+	f[r].emplace(st, ret);
+	return ret;
+}
+
+int main() {
+	int i, v; ll ans = 0;
+	scanf("%d%d", &amp;n, &amp;m);
+	for (i = 0; i &lt; n; ++i) scanf("%d", &amp;v), S.push_back(--v);
+	for (i = 0; i &lt; n; ++i) scanf("%d", &amp;v), T.push_back(--v);
+	for (i = n - 1; i &gt;= 0; --i) cur[T[i]].push_back(i);
+	f[0].emplace(S, 1);
+	for (i = 0; i &lt;= m; ++i) add(ans, dfs(i, T, cur));
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>这题有几个小技巧：</p>
+		<ol>
+			<li><p>(针对 C++11) 对于 <code>map &lt;vector, ll&gt;</code> 这种数据类型 (尤其是含 <code>vector</code> 等的)，可以使用 <code>emplace()</code> 代替 <code>insert()</code>，减少构造时间，降低常数。</p></li>
+			<li><p>由上面的分析，对每根柱子，至多移动第 $6$ 个圆盘，因此记录状态的时候可以用大小为 $6 \times 3$ 的数组记录 (省去查找的时间)，当然使用 <code>hash_map</code> 也可以少一个 $\log$。</p></li>
+		</ol>
+	</body>
+</html>
