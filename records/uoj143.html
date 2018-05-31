@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj143]万圣节的数列</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一个数列 $A_1, A_2, \dots, A_n$ 和一个数列 $B_1, B_2, \dots, B_m$，若存在一组 $p_1, p_2, \dots, p_m$ 满足 $1 \leq p_1 &lt; p_2 &lt; \dots &lt; p_m \leq n$ 且对于任意的 $1 \leq i \leq m$ 有 $B_i = A_{p_i}$，则称 $B$ 是 $A$ 的子序列。若 $B$ 对于任意 $1 &lt; i &lt; m$ 还满足 $B_i - B_{i - 1} = B_{i + 1} - B_i$ 则称 $B$ 是 $A$ 的等差子序列。</p>
+		<p>scx 不喜欢等差数列，于是一个数列的等差子序列数量越少，她越喜欢。</p>
+		<p>现在她把被打乱后的数列 $A$ 交给了你，你需要将 $A$ 中元素重新排列得到使得等差子序列数量最少，两个等差子序列不同当且仅当 $m$ 不同或者存在 $k$ 使得 $p_k$ 不同。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 500$)，表示数列的长度。</p>
+		<p>第二行包含 $n$ 个正整数，表示 $A_1, A_2, \cdots, A_n$ ($A_i \leq 10^9$)。</p>
+
+		<h3>输出格式</h3>
+		<p>仅一行，输出 $n$ 个整数 $p_1, p_2, \dots, p_n$。其中第 $i$ 个数 $p_i$ 表示重新排列后的数列中第 $i$ 个元素在原数列 $A$ 中是第 $p_i$ 个元素。</p>
+		<p>如果存在多种满足条件的方案，输出任意一个就行。</p>
+
+		<h3>题解</h3>
+		<p>容易发现，(在任何排列下)。长度不超过 $2$ 的子序列均为等差数列。并且，如果有 $k$ 个相同的 $A_i$，则若干 ($\leq k$) 个 $A_i$ 组成的序列也为等差数列。</p>
+		<p>那么还能否有其它的等差子序列呢？其实，我们可以通过适当排列，让所有其它的等差子序列均不出现。</p>
+		<p>我们先考虑只有 $0, 1, 2, 3$ 的情况，此时，显然把 $0$ 和 $2$ 放左边，$1$ 和 $3$ 放右边，就没有其它的等差数列了。</p>
+		<p>那么如果是 $0 \sim 7$ 的话，那么先尝试把奇数和偶数分为一边 —— $0, 2, 4, 6, 1, 3, 5, 7$，然后发现有等差子序列 $0, 2, 4$，然后递归使用上面的技巧 ($0, 1, 2, 3 \to 0, 2, 1, 3$)，最终的序列就变成了 $0, 4, 2, 6, 1, 5, 3, 7$。</p>
+		<p>相信你们已经找到了规律：最终的排列即为<strong>递增 (二进制) 翻转后的整数</strong> (就 FFT 蝴蝶变换那玩意儿，二进制翻转后排序)，我们来证明一下它的合理性。</p>
+		<p>我们不妨设里面存在一个长度 $\geq 3$ 的非常数等差数列，其中三项为 $a-d, a, a+d$。</p>
+		<p>设 $d = 2^k p$ ($p$ 为奇数)，则这三个数在二进制下的第 $0$ 位到第 $k-1$ 位均相同，而对于第 $k$ 位，设 $a$ 的第 $k$ 位为 $a_0$，则 $a \pm d$ 的第 $k$ 位均为 $1 - a_0$。根据翻转后的整数排序的规律，$a-d$ 与 $a+d$ 要么都在 $a$ 前，要么都在 $a$ 后，因此这个等差数列不存在，矛盾。</p>
+		<p>因此我们只需 <code>bit_reverse</code> 后排序，再将对应下标输出即可。时间复杂度 $O \left( n \log n \right)$ <del>(这就是出题人出 $n = 500$ 的理由？)</del>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 510
+using namespace std;
+
+typedef unsigned int uint;
+typedef pair &lt;uint, int&gt; pr;
+const uint A[5] = {0x55555555, 0x33333333, 0x0f0f0f0f, 0x00ff00ff, 0x0000ffff};
+
+pr a[N];
+
+uint bit_reverse(uint n) {
+	n = (n &gt;&gt; 1 &amp; A[0]) | ((n &amp; A[0]) &lt;&lt; 1);
+	n = (n &gt;&gt; 2 &amp; A[1]) | ((n &amp; A[1]) &lt;&lt; 2);
+	n = (n &gt;&gt; 4 &amp; A[2]) | ((n &amp; A[2]) &lt;&lt; 4);
+	n = (n &gt;&gt; 8 &amp; A[3]) | ((n &amp; A[3]) &lt;&lt; 8);
+	return n = (n &gt;&gt; 16 &amp; A[4]) | ((n &amp; A[4]) &lt;&lt; 16);
+}
+
+int main() {
+	int n, i; uint t;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) scanf("%u", &amp;t), a[i] = pr(bit_reverse(t), i);
+	sort(a, a + n);
+	for (i = 0; i &lt; n; ++i) printf("%u\n", a[i].second + 1);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>注：递增翻转后的整数可以用分治法在 $O \left( \log \log n \right)$ 时间内完成。</p>
+	</body>
+</html>

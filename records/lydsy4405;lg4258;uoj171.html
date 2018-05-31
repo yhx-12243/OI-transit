@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4405][lg4258][uoj171][WC2016]挑战NPC</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个球，用整数 $1$ 到 $n$ 编号。还有 $m$ 个筐子，用整数 $1$ 到 $m$ 编号。</p>
+		<p>每个筐子最多能装 $3$ 个球。</p>
+		<p>每个球只能放进特定的筐子中。具体有 $e$ 个条件，第 $i$ 个条件用两个整数 $v_i$ 和 $u_i$ 描述，表示编号为 $v_i$ 的球可以放进编号为 $u_i$ 的筐子中。</p>
+		<p>每个球都必须放进一个筐子中。如果一个筐子内有<strong>不超过</strong> $1$ 个球，那么我们称这样的筐子为<strong>半空</strong>的。</p>
+		<p>求半空的筐子最多有多少个，以及在最优方案中，每个球分别放在哪个筐子中。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 5$)，表示有 $T$ 组数据。</p>
+		<p>对于每组数据，第一行包含三个正整数 $n, m, e$ ($m \leq 100; n \leq 3m$)，表示球的个数，筐子的个数和条件的个数。</p>
+		<p>接下来 $e$ 行，每行包含两个正整数 $v_i, u_i$ ($1 \leq v_i \leq n; 1 \leq u_i \leq m$)，表示编号为 $v_i$ 的球可以放进编号为 $u_i$ 的筐子。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，先输出一行，包含一个整数，表示半空的筐子最多有多少个。</p>
+		<p>然后再输出一行，包含 $n$ 个整数 $p_1, p_2, \cdots, p_n$，相邻整数之间用空格隔开，表示一种最优解。其中 $p_i$ 表示编号为 $i$ 的球放进了编号为 $p_i$ 的筐子。如果有多种最优解,可以输出其中任何一种。</p>
+
+		<h3>题解</h3>
+		<p>神建图...</p>
+		<p>我们考虑对每个筐子 $B$，建立三个点 $B_1, B_2, B_3$，并在 $B_1$ 与 $B_2$ 之间连边。</p>
+		<p>那么，当三个点中被占用 $0$ 或 $1$ 个点时，剩下的点可能形成大小为 $1$ 个匹配 (令占用的点为 $B_3$ 即可)；当占用的点数为 $2$ 或 $3$ 时，剩下的点就无法形成非空匹配。</p>
+		<p>因此对每个球，我们将它对<strong>可放入的筐子</strong>所对应的三个点连边。那么当<strong>每个球代表的点均为匹配点时</strong>，如果一个筐子是半空的，则它被占用的点数为 $0$ 或 $1$，则可以形成匹配，否则就不能形成匹配。</p>
+		<p>也就是说，筐子内部连的 $m$ 条边中的最大匹配的大小，即为半空筐子个数的最大值。</p>
+		<p>而其它边 (球 - 框对应的边) 的匹配中一定有 $n$ 条边，因此要筐子内部的边的匹配大小最大，等价于让整张图的匹配大小最大。</p>
+		<p>因此采用带花树算法即可，点数为 $3m + n$，边数为 $m + e$，总时间复杂度 $O \left( (3m + n) (m + e) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using namespace std;
+
+int n, m, q;
+
+namespace General_Match {
+	const int N = 605, M = N * N, unknown = -1, boy = 0, girl = 1;
+
+	int V, E, res;
+	int to[M], first[N], next[M];
+	int match[N], prev[N];
+	int p[N], col[N], que[M];
+
+	inline int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+	inline void addedge(int u, int v) {
+		to[++E] = v; next[E] = first[u]; first[u] = E;
+		to[++E] = u; next[E] = first[v]; first[v] = E;
+	}
+
+	int hash_cnt = 0, hash[N];
+
+	int LCA(int x, int y) {
+		for (++hash_cnt; x; y ? swap(x, y) : (void)0) {
+			x = ancestor(x);
+			if (hash[x] == hash_cnt) return x;
+			hash[x] = hash_cnt;
+			x = prev[match[x]];
+		}
+		return 0x131a371;
+	}
+
+	void blossom(int x, int y, int root, int &amp;t) {
+		for (int z; ancestor(x) != root; y = z, x = prev[y]) {
+			prev[x] = y; z = match[x];
+			if (col[z] == girl) que[t++] = z, col[z] = boy;
+			p[x] == x ? p[x] = root : 0;
+			p[z] == z ? p[z] = root : 0;
+		}
+	}
+
+	bool bfs(int st) {
+		int h, t = 1, i, x, y, b, g;
+		que[0] = st; col[st] = boy;
+		for (h = 0; h &lt; t; ++h)
+			for (i = first[x = que[h]]; i; i = next[i])
+				if (col[y = to[i]] == unknown) {
+					prev[y] = x; col[y] = girl;
+					if (!match[y]) {
+						for (g = y; g; swap(match[b], g))
+							match[g] = b = prev[g];
+						return true;
+					}
+					col[que[t++] = match[y]] = boy;
+				} else if (col[y] == boy &amp;&amp; ancestor(x) != ancestor(y)) {
+					b = LCA(x, y); blossom(x, y, b, t); blossom(y, x, b, t);
+				}
+		return false;
+	}
+
+	inline void reset_all() {
+		V = E = res = 0;
+		memset(first, 0, sizeof first);
+		memset(match, 0, sizeof match);
+	}
+
+	int main() {
+		int i;
+		for (i = V; i; --i) {
+			memset(col + 1, unknown, V &lt;&lt; 2);
+			iota(p + 1, p + (V + 1), 1);
+			if (!match[i] &amp;&amp; bfs(i)) ++res;
+		}
+		return res;
+	}
+}
+
+#define GM General_Match
+
+void work() {
+	int i, u, v, cnt = 0;
+	GM::reset_all();
+	scanf("%d%d%d", &amp;n, &amp;m, &amp;q);
+	for (i = 1; i &lt;= m; ++i) GM::addedge(i * 3 - 2, i * 3 - 1);
+	cnt = 3 * m;
+	for (i = 0; i &lt; q; ++i) {
+		scanf("%d%d", &amp;u, &amp;v);
+		GM::addedge(cnt + u, v * 3 - 2);
+		GM::addedge(cnt + u, v * 3 - 1);
+		GM::addedge(cnt + u, v * 3);
+	}
+	GM::V = cnt + n;
+	printf("%d\n", GM::main() - n);
+	for (i = 1; i &lt;= n; ++i)
+		printf("%d%c", (GM::match[cnt + i] + 2) / 3, i == n ? 10 : 32);
+}
+
+int main() {
+	int T;
+	for (scanf("%d", &amp;T); T; --T) work();	
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于每个球代表的点要优先成为匹配点 (而题目保证 "满足每个球均为匹配点" 的匹配存在)，因此需要<strong>先对球进行增广</strong>，后对筐进行增广，而不能按照 $1 \sim n$ 的顺序 (否则<em>输出方案</em>中会出错)。</p>
+	</body>
+</html>

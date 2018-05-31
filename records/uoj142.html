@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj142]万圣节的南瓜灯</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $n \times m$ 的网格图，其中每行为一个圈，即 $(x, 1)$ 和 $(x, m)$ 视为相邻。</p>
+		<p>现在在网格图中删去指定的 $K$ 个点 (以及与它们关联的边)，判断剩下的图是否为一棵树。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含三个整数 $n, m, K$ ($3 \leq n, m \leq 10^9; 0 \leq K \leq \min \{nm-1, 10^5\}$)，表示网格图的大小和删去点的个数。</p>
+		<p>接下来 $K$ 行，每行包含两个整数 $x, y$ ($1 \leq x \leq n; 1 \leq y \leq m$），表示第 $x$ 行第 $y$ 列的点被删去了。保证同一个点至多被描述一次。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行，如果剩下的图为一棵树，那么输出 "<samp>Yes</samp>"，否则输出 "<samp>No</samp>"。</p>
+
+		<h3>题解</h3>
+		<p>由于一个点至多出现一次，因此我们可以直接计算出最终图的点数和边数上界。</p>
+		<p>点数很简单，即 $|V| = n m - K$。</p>
+		<p>至于边数的话，由于原图共有 $n m$ 条横向边和 $(n-1) m$ 条纵向边，故有 $(2n-1) m$ 条边。而每删去一个点至多删去 $4$ 条边，因此 $|E| \geq (2n-1) m - 4K$。</p>
+		<p>由于树需要满足 $|E| = |V| - 1$，因此有 $nm - K - 1 = |E| \geq (2n-1) m - 4K$，这等价于 $3 K \geq (n-1) m + 1$。</p>
+		<p>因此如果 $n, m$ 不满足上述条件的话，直接返回 <code>No</code>。</p>
+		<p>如果 $n, m$ 满足上述条件，由于 $n \geq 3 \Rightarrow n \leq \dfrac 32 (n-1)$，因此 $|V| &lt; n m \leq \dfrac 32 (n-1) m &lt; \dfrac 92 K \leq 4.5 \times 10^5$。</p>
+		<p>即点数不超过 $4.5 \times 10^5$，故直接使用 dfs 或并查集判断是否为树即可。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 500005
+using namespace std;
+
+const int dr[4] = {0, -1, 0, 1}, dc[4] = {-1, 0, 1, 0};
+
+int n, m, k;
+int forbid[N], used[N];
+
+inline int get(int r, int c) {return (r - 1) * m + c;}
+
+bool dfs(int r, int c, int la = 0) {
+	int d, nr, nc, cur, nxt;
+	used[cur = get(r, c)] = 1;
+	for (d = 0; d &lt; 4; ++d) {
+		nr = r + dr[d]; nc = (c + dc[d] + m - 1) % m + 1; nxt = get(nr, nc);
+		if (1 &lt;= nr &amp;&amp; nr &lt;= n &amp;&amp; !forbid[nxt] &amp;&amp; nxt != la)
+			if (used[nxt] || !dfs(nr, nc, cur)) return false;
+	}
+	return true;
+}
+
+bool work() {
+	int i, j = 0, u, v;
+	scanf("%d%d%d", &amp;n, &amp;m, &amp;k);
+	if (3 * k &lt;= (n - 1ll) * m) {for (++k; k; --k) gets((char*)used); return false;}
+	memset(forbid, 0, sizeof forbid);
+	memset(used, 0, sizeof used);
+	for (i = 0; i &lt; k; ++i) scanf("%d%d", &amp;u, &amp;v), forbid[get(u, v)] = 1;
+	for (i = 1; i &lt;= n; ++i) {
+		for (j = 1; j &lt;= m; ++j)
+			if (!(forbid[get(i, j)] || used[get(i, j)])) {
+				if (!dfs(i, j)) return false; break;
+			}
+		if (j &lt;= m) break;
+	}
+	for (i = get(i, j); i &lt;= n * m; ++i)
+		if (!(forbid[i] || used[i])) return false;
+	return true;
+}
+
+int main() {
+	int T;
+	for (scanf("%d", &amp;T); T; --T) puts(work() ? "Yes" : "No");
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>不满足条件输出 <code>No</code> 时记得把剩下 $k$ 行数据读进来。</p>
+		<p><strong>坑2：</strong>dfs 时注意父子边不能算入环，还有原图的行为一个圈，需要注意。</p>
+	</body>
+</html>

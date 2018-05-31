@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj139]被删除的黑白树</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>我们可以把它描述为一棵 $n$ 个节点的有根树 (默认树的根为 $1$ 号节点)，所有非根的度数为 $1$ 的节点被称为叶子节点。最开始所有的节点都是白色的。</p>
+		<p>现在你需要选出一些节点并把这些节点染成黑色的。为了迎合树的审美，你的染色方案必须要满足所有叶子节点到根路径上的黑色节点个数相同。</p>
+		<p>你发现黑色节点个数越多，树就会越高兴，所以你想要知道在所有合法的染色方案中，黑色节点总个数最多是多少。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^5$)，表示树的节点个数。</p>
+		<p>接下来的 $n-1$ 行，每行两个整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$) 表示树上的一条边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示在所有合法方案中黑色节点的最多数量。</p>
+
+		<h3>题解</h3>
+		<p>对于满足条件的染色，可以得到黑点最多的染色放哪的一个性质：</p>
+		<p><strong>必然存在一个叶节点 $v$，它到根的路径上的所有点都是黑色的。</strong></p>
+		<p>反之，如果对于一个合法的染色，每个叶节点到根的路径上，都存在一个白点，则我们一定可以修改染色方案，使得每个叶节点到根的路径上的黑点数都增加一个，且总黑点数增加。</p>
+		<p>具体的实现就是将原树 dfs，每当遇到一个白色节点 $w$ 时将它染黑，并停止对子树的 dfs，回溯到 $w$ 的父节点继续 dfs。</p>
+		<p>可以证明，这样得到的新的染色方案符合题意，且总黑点数增加。</p>
+		<p>这样以来，我们可以预处理出 $b_i$ ——以 $i$ 为根的子树中，深度最小的叶子在该子树中的深度 (此处约定根的深度为 $1$)。</p>
+		<p>因此我们可以对原树进行 dfs，在 dfs 的过程中维护当前 (以 $i$ 为根的) 子树中，叶节点到根的黑色节点个数 $r$，可知 $b_i \geq r$；此时如果 $b_i = r$，则可以将其染黑，否则就留白，让子树的点取染黑。</p>
+		<p>时间复杂度为 $O(n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define M 200005
+using namespace std;
+
+int n, E, ans;
+int to[M], first[N], next[M];
+int b[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+inline void addedge(int u, int v){
+	to[++E] = v; next[E] = first[u]; first[u] = E;
+	to[++E] = u; next[E] = first[v]; first[v] = E;
+}
+
+void dfs(int x, int px = 0) {
+	int i, y; b[x] = INT_MAX;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px) {
+			dfs(y, x); down(b[x], b[y]);
+		}
+	b[x] == INT_MAX ? b[x] = 1 : ++b[x];
+}
+
+void dfs2(int x, int rem, int px = 0) {
+	int i, y;
+	if (b[x] == rem) ++ans, --rem;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px)
+			dfs2(y, rem, x);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1); dfs2(1, b[1]);
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>处理 $b_i$ 时，由于要取 $\min$，因此要对叶节点特殊处理，此时 $b_i = 1$，而不是 $+ \infty$。</p>
+	</body>
+</html>

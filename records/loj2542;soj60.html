@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj2542][soj60][PKUWC2018]随机游走</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个结点的树，你从点 $x$ 出发，每次等概率随机选择一条与所在点相邻的边走过去。</p>
+		<p>有 $Q$ 次询问，每次询问给定一个集合 $S$，求如果从 $x$ 出发一直随机游走，直到点集 $S$ 中所有点都至少经过一次的话，期望游走几步。</p>
+		<p>特别地，点 $x$ (即起点) 视为一开始就被经过了一次。</p>
+		<p>答案对 $998244353$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, Q, x$ ($1 \leq x \leq n \leq 20; Q \leq 5000$)。</p>
+		<p>接下来 $n-1$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，描述一条树边。</p>
+		<p>接下来 $Q$ 行，每行第一个整数 $k$ ($1 \leq k \leq n$) 表示集合大小，接下来 $k$ 个互不相同的整数表示集合 $S$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $Q$ 行，每行一个整数，表示答案 (期望值)。</p>
+
+		<h3>题解</h3>
+		<p>先来科普一下 <strong>Min-Max 容斥原理</strong>：</p>
+		<p>设有一个集合 $S$。有一个随机过程，每一轮随机标记 $S$ 中若干个元素 (标记不会消失，同一个元素可能标记多次)。令 $T \subseteq S$，定义 $f(T)$ 为：在该过程中，$T$ 中<strong>至少一个数</strong>被标记所需的轮数的期望值。再定义 $g(T)$ 表示 $T$ 中<strong>所有数</strong>被标记所需的轮数的期望值，则有：</p>
+		<p>$$ g(T) = \sum_{A \subseteq T} (-1)^{|A|-1} f(A) $$</p>
+		<p>证明 (可能不是很严谨)：</p>
+		<p>对于给定集合 $A$，记随机变量 $F(A)$ 为 $A$ 中<strong>至少一个数</strong>被标记所需的轮数。则 $f(A) = E(F(A))$。随机变量 $G(A)$ 同理，满足 $g(A) = E(G(A))$。</p>
+		<p>对于正整数 $k$，考虑 $F(T) \leq k$ 的概率 $p$，这说明，在前 $k$ 次随机过程中，有 $p$ 的概率满足 $T$ 中至少一个数被标记。</p>
+		<p>而对 $A \subseteq T$，考虑 $G(A) \leq k$ 的概率 $p'$，这表明，在前 $k$ 次随机过程中，有 $p$ 的概率满足 $A$ 中所有数均被标记。</p>
+		<p>现在我们对 "前 $k$ 次随机过程中，$T$ 中至少一个数被标记" 的概率算两次，由 (一般) 容斥原理可以得到：</p>
+		<p>$$ p \left( F(T) \leq k \right) = \sum_{A \subseteq T} (-1)^{|A|-1} p \left( G(A) \leq k \right) $$
+		<p>由整数的离散型，以及随机变量 $F(A), G(A)$ 只取整数的性质，可以得到，对于 $\forall k \in \mathbb N^*$，都有</p>
+		<p>$$ p \left( F(T) = k \right) = \sum_{A \subseteq T} (-1)^{|A|-1} p \left( G(A) = k \right) $$</p>
+		<p>令 $k \to \infty$，按期望的定义求和 (显然该无穷级数收敛)，就有</p>
+		<p>$$ f(T) = \sum_{A \subseteq T} (-1)^{|A|-1} g(A) $$</p>
+		<p>由容斥原理和 De Morgan 定律的若干性质，可以得到</p>
+		<p>$$ g(T) = \sum_{A \subseteq T} (-1)^{|A|-1} f(A) $$</p>
+		<hr />
+		<p>接下来回到原题。</p>
+		<p>很明显，这个随机游走的过程属于上面所说的<strong>随机过程</strong>，即 $S = V$ (点集)，每走一步随机标记 $S$ 中可能到达的点。而询问就相当于<strong>所有数均被标记</strong>的步数 (随机过程的轮数) 的期望值，根据 Min-Max 容斥原理，我们只需求出，对于一个集合 $T$，至少经过 $T$ 中的一个点的步数期望值。</p>
+		<p>这样就可以树形 DP 了。令 $x$ 为原树的根，对于一个给定的 $T$，我们要求出这个期望值 $f_T$。</p>
+		<p>记 $E_i$ 表示，从点 $i$ 开始，至少走到 $T$ 中一个点的步数期望值。显然对于 $i \in T$，有 $E_i = 0$。我们需要求出 $E_x$。</p>
+		<p>转移的话，对于点 $i$ ($i \notin T$)，设它的度数为 $d(i) = m$，与它相邻的 $m$ 个点分别记为 $v_1, v_2, \cdots, v_m$，则有</p>
+		<p>$$ E_i = 1 + \frac 1m \sum_{j=1}^m E_{v_j} $$
+		<p>不过可以发现，这很难直接转移。如果使用暴力的高斯消元，那将是 $O(n^3)$ 的。<del>不过此题的 $n$ 很小，可以水过去</del>。下面就是一个<strong>树上消元</strong>的经典技巧：</p>
+		<p>可以发现，对于每个点 $v$。我们尽量表示成 $E_v = k E_{p_v} + b$ 的形式，其中 $p_v$ 为 $v$ 的父节点，$k, b$ 为系数。这样一来，由于 $p_1 = 0 \Rightarrow E_0 = 0$，我们就可以得到 $E_1$ 的值——它就等于对应的系数 $b$。</p>
+		<p>那么，对于 $T$ 中的节点，我们可以得到 $k = b = 0$，而对其它的叶节点，我们可以得到 $k = b = 1$。</p>
+		<p>而对一般的节点 $v$，这 $m$ 个节点中有一个为它的父节点，其余 $m-1$ 个节点都表示成 $k E_v + b$ 的形式，因此代入后最终是一个关于 $E_v$ 和 $E_{p_v}$ 的方程，化为一次函数即可 (容易证明对于非根节点，方程中两个变量的系数均不为 $0$)。</p>
+		<p>最后我们就得到了所有 $f_T$ 的值，关于如何求 $g_T$ 的值，这很简单：我们只需令 $f'_T = (-1)^{|T|-1} f_T$，那么就有 $g_T = \sum\limits_{A \subseteq T} f'_A$，只需一次快速 Möbius 变换 (子集和变换) 即可。</p>
+		<p>时间复杂度 $O \left( 2^n n + \sum k \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 25
+#define N2 1050000
+using namespace std;
+
+typedef long long ll;
+const ll mod = 998244353;
+
+int n, q, E, s, cur;
+int to[N &lt;&lt; 1], first[N], next[N &lt;&lt; 1];
+int deg[N], inv[N];
+int k[N], b[N];
+int pop[N2], ans[N2];
+
+inline void addedge(int u, int v) {
+	to[++E] = v; next[E] = first[u]; first[u] = E; ++deg[u];
+	to[++E] = u; next[E] = first[v]; first[v] = E; ++deg[v];
+}
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void FMT(int *f) {
+	int i, *j, *k, len = 1;
+	for (i = 0; i &lt; n; ++i) {
+		for (j = f; j &lt; f + (1 &lt;&lt; n); j += len &lt;&lt; 1)
+			for (k = j; k &lt; j + len; ++k)
+				k[len] = (*k + k[len] &gt;= mod ? *k + k[len] - mod : *k + k[len]);
+		len &lt;&lt;= 1;
+	}
+}
+
+void dfs(int x, int px) {
+	int i, y = 0; ll iv = inv[deg[x]], _k = 0, _b = 0, t;
+	if (cur &gt;&gt; x - 1 &amp; 1) {k[x] = b[x] = 0; return;}
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px)
+			dfs(y, x), _k += k[y], _b += b[y];
+	if (!y) {k[x] = b[x] = 1; return;}
+	_k = _k * iv % mod;
+	_b = _b * iv % mod;
+	t = PowerMod(mod + 1 - _k, mod - 2);
+	k[x] = t * iv % mod;
+	b[x] = t * (_b + 1) % mod;
+}
+
+int main() {
+	int i, u, v, k;
+	scanf("%d%d%d", &amp;n, &amp;q, &amp;s);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	for (inv[1] = 1, i = 2; i &lt;= n; ++i) inv[i] = (mod - mod / i) * inv[mod % i] % mod;
+	for (i = 1; i &lt; 1 &lt;&lt; n; ++i) {
+		pop[i] = pop[i &gt;&gt; 1] + (i &amp; 1);
+		cur = i; dfs(s, 0);
+		ans[i] = (b[s] ? (pop[i] &amp; 1 ? b[s] : mod - b[s]) : 0);
+	}
+	FMT(ans); // Min-Max IE-Principle
+	for (; q; --q) {
+		scanf("%d", &amp;k);
+		for (v = 0; k; --k) scanf("%d", &amp;u), v |= 1 &lt;&lt; u - 1;
+		printf("%d\n", ans[v]);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意数组需要开到 $2^{20}$，不要开小了。</p>
+		<p><strong>坑2：</strong>有一种算法是每次对询问暴力求子集和，这样是 $O \left( 2^n n + \sum 2^k \right)$ 的，常数略紧。建议使用子集和变换，变换时注意 $\pm 1$ 系数和时间常数。</p>
+	</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy1568][lg4254][JSOI2008]Blue Mary开公司</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p><img src="https://www.lydsy.com/JudgeOnline/images/1568.jpg" alt="题面" /></p>
+		<p>&emsp;&emsp;&emsp;回答&emsp;$2.1$</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 10^5$)，表示方案和询问的总数。</p>
+		<p>接下来 $N$ 行，每行开头为一个单词 "<samp>Query</samp>" 或 "<samp>Project</samp>"。</p>
+		<p>若单词为 "<samp>Query</samp>"，则后接一个正整数 $T$ ($T \leq 50000$)，表示 Blue Mary 询问第 $T$ 天的最大收益。</p>
+		<p>若单词为 "<samp>Project</samp>"，则后接两个实数 $S, P$ ($|S| \leq 10^6; 0 &lt; P &lt; 100$)，表示该种设计方案第一天的收益为 $S$，以及以后每天比上一天多出的收益为 $P$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每一个 "<samp>Query</samp>"，输出一行一个整数，表示询问的答案，并精确到整百元 (以百元为单位，例如：该天最大收益为 $210$ 或 $290$ 时，均应该输出 $2$)，没有方案时回答询问要输出 $0$。</p>
+
+		<h3>题解</h3>
+		<p>使用标记永久化的线段树 (来维护直线)。</p>
+		<p>每次插入一条直线 $l : y = kx + b$，先比较 $k$ 和当前线段树节点的斜率，如果 $k$ 较大，再比较中点的函数值，如果 $l$ 的函数值比原来线段的函数值大，则<strong>右子区间内</strong>原直线将<strong>不再产生贡献</strong>，因此将当前节点的直线改为 $l$，原直线向左子树递归处理。</p>
+		<p>如果 $l$ 的函数值比原来线段的函数值小，则 $l$ <strong>不会在左子区间内产生贡献</strong>，因此直接让 $l$ 去右子树递归处理。</p>
+		<p>如果 $k$ 较小，那也是类似的，如果函数值较大，则将当前节点的直线改为 $l$，把原直线扔到右子树中，否则直接让 $l$ 去左子树递归。</p>
+		<p>询问 $x$ 的时候，我们只需访问包含 $x$ 的所有 $O \left( \log n \right)$ 个节点，然后取函数值的最大值就可以了。</p>
+		<p>时间复杂度为 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define T 50005
+#define segc int M = L + R - 1 &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+using namespace std;
+
+struct func {
+	double k, b;
+	func (double k0 = 0, double b0 = 0) : k(k0), b(b0) {}
+	func * read() {scanf("%lf%lf", &amp;b, &amp;k); b -= k; return this;}
+	inline double operator () (int x) {return fma(k, x, b);}
+} st[T &lt;&lt; 2];
+
+int n = 0;
+double k[N], b[N];
+
+inline void up(double &amp;x, const double y) {x &lt; y ? x = y : 0;}
+
+void adj(int id, int L, int R, func v) {
+	func &amp;cur = st[id];
+	if (L == R) {cur(L) &lt; v(L) ? cur = v : 0; return;}
+	segc;
+	if (v.k &gt; cur.k) (cur(M) &lt; v(M) ? (void)(adj(lc, L, M, cur), cur = v) : adj(rc, M + 1, R, v));
+	else (cur(M) &lt; v(M) ? (void)(adj(rc, M + 1, R, cur), cur = v) : adj(lc, L, M, v));
+}
+
+double range(int id, int L, int R, int h) {
+	if (L == R) return st[id](h);
+	segc; double s = st[id](h);
+	up(s, h &lt;= M ? range(lc, L, M, h) : range(rc, M + 1, R, h));
+	return s;
+}
+
+int main() {
+	int Q, h; char op[10];
+	func f; double ans;
+	for (scanf("%d", &amp;Q); Q; --Q)
+		if (scanf("%s", op), *op == 80)
+			adj(1, 1, T, *f.read());
+		else {
+			scanf("%d", &amp;h);
+			ans = range(1, 1, T, h);
+			printf("%d\n", (int)(ans * 0.01));
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于给的是第一天的收益，因此直线的函数为 $y = P x + (S - P)$。</p>
+	</body>
+</html>
