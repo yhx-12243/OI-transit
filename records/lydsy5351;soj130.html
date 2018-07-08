@@ -4,10 +4,10 @@
 		<meta charset="utf-8">
 		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
 		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
-		<title>[loj5351][soj130]Query on a sequence</title>
+		<title>[lydsy5351][soj130]Query on a sequence</title>
 		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
 		<script src="../additional_files/sh_main.min.js"></script>
-		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<script src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 	</head>
 	<body>
 		<h3>题目描述</h3>
@@ -27,6 +27,18 @@
 		<p>输出一行一个整数，表示满足条件的不同四元组的数量。</p>
 
 		<h3>题解</h3>
+		<p>题目即求一个给定字符串的两个相等子串，中间间隔的字符数为给定数 $F$。</p>
+		<p>因此 $b, d$ 可以由 $a, c$ 确定。也就是说，我们可以考虑二元组 $(a, c)$ 的个数。</p>
+		<p>我们先来看一下 $a, c$ 需要满足什么条件。</p>
+		<p>首先，不妨设 $a &lt; c$，则显然有 $a + F + 1 \leq c$，此时，串长为 $l = c - a - F$，由于以第 $P_a$ 开头的后缀与以 $P_c$ 开头的后缀的相同，因此有 $a$ 和 $c$ 的最长公共前缀 $\operatorname{LCP}(a, c) \geq l = c - a - F$，即 $c \leq a + F + lcp$。从而 $a + F + 1 \leq c \leq a + F + lcp$。</p>
+		<p>因此如果 $lcp$ 已知，那么就变成了一道基础的二维数点问题。但是如何才能保证 $lcp$ 已知呢？</p>
+		<p>得到原串的后缀数组后，可以得到相邻两个 (排名) 后缀之间的 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr> (Height 值)，然后由 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr> 的性质——按照后缀排序的顺序，任意两个后缀的 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr> 值等于它们之间所有 Height 值的最小值。</p>
+		<p>先按照 Height 值从大到小插入，这样，每次插入时，就会连接 (后缀排序中) 两个相邻的连通块 $[l, m]$ 和 $[m+1, r]$，且连接它们的 "桥" 的 Height 值是最小的一个。因此对 $\forall x \in [l, m]$ 和 $\forall y \in [m+1, r]$，都有 $\operatorname{LCP}(x, y) = h$ (其中 $h$ 为本次插入的 Height 值)。</p>
+		<p>因此对这 $(m-l+1) (r-m)$ 个 (可能的) 二元组，它们的 $lcp$ 就变成了已知的。就转化为了一个二维数点的问题。</p>
+		<p>由于 $lcp$ 不是全局的定值，因此我们可以像<a href="lydsy2733.html" target="_blank">这道题</a>一样，使用权值线段树合并。对查询的情况，当然也不需要二维数据结构，我们可以枚举 $a$ (或 $c$)，然后用线段树查询满足条件的 $c$ (或 $a$) 的个数。当然用各种分治也可以。</p>
+		<p>至于具体是枚举 $a$ 呢，还是枚举 $c$ 的问题，我们可以采用 "启发式合并" 的思想，枚举 $m-l+1$ 和 $r-m$ 中较小的一个，然后在线段树中查找另一个。这样，每个数的查询次数就降为了 $O \left( \log n \right)$。</p>
+		<p>当然，如果是枚举 $c$ 的话，相应的条件就变为 $c - F - lcp \leq a \leq c - F - 1$，注意端点的判断。</p>
+		<p>总时间复杂度 $O \left( n \log^2 n \right)$。</p>
 
 		<h3>代码</h3>
 
@@ -172,5 +184,7 @@ y + f + 1 &lt;= x &lt;= y + lcp + f
 </pre></div>
 
 		<h3>坑</h3>
+		<p><strong>坑1：</strong>线段树合并时注意如果到底 (到叶节点) 的话，则需要直接将左右儿子的值相加，<del>虽然这道题用不到 (因为不会到底)</del>。</p>
+		<p><strong>坑2：</strong>合并时需要记录最左端点，不要忘记置 $x, y$ 分别为它们的祖先节点。</p>
 	</body>
 </html>

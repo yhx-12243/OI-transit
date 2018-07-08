@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6438]框出一个正方形</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在平面直角坐标系中，你可以每次选择两个格点($(x, y)$，其中 $x$ 和 $y$ 都是整数的点)，然后做出过这两个点的直线。</p>
+		<p>画出四条这样的直线，可以围成一个正方形，这个正方形具有面积 $S$。</p>
+		<p>给定面积 $S$，是否存在一种方案能围出这个正方形？如果是，请给出一种构造。</p>
+		<p>我们只考虑有理数 $S = \dfrac pq$ 的情况，而你的输出也必须是精确解。</p>
+		<p>举例：</p>
+		<ul>
+			<li><p>$\dfrac 12, \dfrac 52, \dfrac 45$ 可以构造；</p></li>
+			<li><p>$\dfrac 14, \dfrac 23$ 不能构造；</p></li>
+			<li><p>$\dfrac {12} {15}$ 就是 $\dfrac 45$，所以可以构造。</p></li>
+		</ul>
+		<p>例如，下面是一个 $\dfrac 45$ 的构造：</p>
+		<img class="center-block" src="https://dram.cf/repo/square.svg" alt="4/5 的构造" />
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 20000)，表示总共有 $T$ 组询问。</p>
+		<p>接下来 $T$ 行，每行两个正整数 $p, q$ ($1 \leq p, q &lt; 5 \times 10^6$），表示本次询问的是 $S = \dfrac pq$ 的构造。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行：
+		<ul>
+			<li><p>如果给出的面积 $S$ 可以构造，输出 $16$ 个空格分隔的整数表示你的构造，包含：</p>
+			<ul>
+				<li><p>$4$ 条能围成面积为 $S$ 的正方形的线 (不必在意线的顺序)，</p></li>
+    			<li><p>每条线 $2$ 个点，</p></li>
+    			<li><p>每个点两个整数 $x$ 和 $y$ 表示 $(x, y)$ 这个点，其中，$-2^{64} &lt; x, y &lt; 2^{64}$。</p></li>
+    		</ul></li>
+    		<li><p>否则，面积 $S$ 不能构造，输出一行 <code>impossible</code></p></li>
+		</ul>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define gcd std::__gcd
+#define N 5000005
+#define PN 350000
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+
+int pn, c[N], p[PN];
+int n = 0, idx[PN];
+int fp[N], fa[N];
+pr r[N];
+
+ll exgcd(ll a, ll b, ll &amp;x, ll &amp;y) {
+	if (b) {ll d = exgcd(b, a % b, y, x); y -= a / b * x; return d;}
+	else {x = 1; y = 0; return a;}
+}
+
+ll Power(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a *= a) if (n &amp; 1) c *= a; return c;}
+
+void sieve(int n){
+	int i, j, v;
+	memset(c, -1, sizeof c);
+	for(i = 2; i &lt;= n; ++i) {
+		if (c[i] == -1) c[i] = pn, p[pn++] = i;
+		for (j = 0; j &lt;= c[i]; ++j) {
+			if ((v = i * p[j]) &gt; n) break;
+			c[v] = j;
+		}
+	}
+}
+
+void init_square_sum(int n) {
+	int i, j, s;
+	for (i = 1; i * i &lt;= n; ++i)
+		for (j = i; (s = i * i + j * j) &lt;= n; ++j)
+			r[s] = pr(i, j);
+}
+
+void push(int _p, int _a) {
+	int id = (idx[_p] ? idx[_p] : (idx[_p] = n++));
+	fp[id] = p[_p]; fa[id] = _a;
+}
+
+// (A^2 + B^2) (x^2 + y^2) = (Ax + By)^2 + (Ay - Bx)^2
+inline void square_push(ll &amp;A, ll &amp;B, ll x, ll y) {ll t = A * x - B * y; B = A * y + B * x; A = t;}
+
+bool work(int P, int Q, ll &amp;A, ll &amp;B, ll &amp;C) {
+	int i, j, u, v; n = 0;
+	memset(idx, 0, sizeof idx);
+	for (; P != 1; push(i, j))
+		for (i = c[P], j = 0; !(P % p[i]); P /= p[i], ++j);
+	for (; Q != 1; push(i, -j))
+		for (i = c[Q], j = 0; !(Q % p[i]); Q /= p[i], ++j);
+	A = C = 1; B = 0;
+	for (i = 0; i &lt; n; ++i)
+		if (fp[i] == 2) { // p = 2
+			if (fa[i] &lt; -1) return false;
+			if (fa[i] &amp; 1) ++fa[i], square_push(A, B, 1, 1);
+			C &lt;&lt;= fa[i] &gt;&gt; 1;
+		} else if (fp[i] &amp; 2) { // p = 4k + 3
+			if (fa[i] &lt; 0 || fa[i] &amp; 1) return false;
+			C *= Power(fp[i], fa[i] &gt;&gt; 1);
+		} else { // p = 4k + 1
+			for (; fa[i] &gt; 0; fa[i] -= 2) C *= fp[i];
+			u = r[fp[i]].first; v = r[fp[i]].second;
+			for (; fa[i] &lt; 0; ++fa[i]) square_push(A, B, u, v);
+		}
+	return true;
+}
+
+void draw_line(ll A, ll B, ll C, char end = ' ') {
+	ll x, y, d = exgcd(A, B, x, y); C /= -d; x *= C; y *= C;
+	printf("%lld %lld %lld %lld%c", x, y, x + B, y - A, end);
+}
+
+int main() {
+	int T, P, Q, D; ll A, B, C;
+	sieve(N - 1); init_square_sum(N - 1);
+	for (scanf("%d", &amp;T); T; --T) {
+		scanf("%d%d", &amp;P, &amp;Q);
+		D = gcd(P, Q); P /= D; Q /= D;
+		if (work(P, Q, A, B, C)) {
+			draw_line(A, B, 0); draw_line(B, -A, 0);
+			draw_line(A, B, C); draw_line(B, -A, C, '\n');
+		} else puts("impossible");
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj131]序列</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有两个长为 $n$ 的 $\texttt 0/\texttt 1$ 串 $A, B$。它们 $\texttt 1$ 的个数都为 $k$。现在要对 $A$ 进行一些操作。</p>
+		<p>令 $a_1, a_2, \cdots, a_k$ 是 $A$ 中 $\texttt 1$的下标，$b_1, b_2, \cdots, b_k$ 是 $B$ 中 $\texttt 1$ 的下标。然后将向量 $\mathbf a, \mathbf b$ 等概率随机重新排列。接下来按 $1$ 到 $k$ 的顺序交换 $A_{a_i}$ 与 $A_{b_i}$。</p>
+		<p>令 $P$ 为交换之后 $A$ 与 $B$ 相同的概率，求 $P \times (k!)^2$ 对 $998244353$ 取模的结果。</p>
+
+		<h3>输入格式</h3>
+		<p>两行，每行一个长为 $n$ ($n \leq 10^5$) 的 $\texttt 0/\texttt 1$ 串，分别表示 $A, B$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $P \times (k!)^2$ 对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 140000
+#define lg2(x) (31 - __builtin_clz(x))
+using std::reverse;
+
+typedef long long ll;
+const ll mod = 998244353, root = 31;
+
+int A, B, n;
+char scx[2][N], *p, *q;
+int z[N], y[N], buf1[N], buf2[N];
+int fact[N], finv[N];
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(){
+	int i;
+	for(*fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	--i; finv[i] = PowerMod(fact[i], mod - 2);
+	for(; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+namespace Poly {
+	int l, n; ll iv;
+	int x[N], y[N], buf[N];
+	int rev[N];
+
+	void NTT_init(int length) {
+		n = 1 &lt;&lt; (l = length); iv = PowerMod(n, mod - 2);
+		ll g = PowerMod(root, 1 &lt;&lt; 23 - l);
+		x[0] = 1; rev[0] = 0;
+		for (int i = 1; i &lt; n; ++i) {
+			x[i] = (ll)x[i - 1] * g % mod;
+			rev[i] = (i &amp; 1 ? rev[i - 1] | 1 &lt;&lt; (l - 1) : rev[i &gt;&gt; 1] &gt;&gt; 1);
+		}
+	}
+
+	void DNTT(int *d, int *t){
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k){
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+}
+
+using Poly::DNTT;
+
+void PolyPowerMod(int n, int k) {
+	Poly::NTT_init(lg2(k) + 2); int n0 = Poly::n, i;
+	for (; n; n &gt;&gt;= 1) {
+		if (n &amp; 1) {
+			DNTT(y, buf1); DNTT(z, buf2);
+			for (i = 0; i &lt; n0; ++i) buf1[i] = (ll)buf1[i] * buf2[i] % mod;
+			DNTT(buf1, y); reverse(y + 1, y + n0);
+			for (i = 0; i &lt;= k; ++i) y[i] = y[i] * Poly::iv % mod;
+			for (; i &lt; n0; ++i) y[i] = 0;
+		}
+		DNTT(z, buf1);
+		for (i = 0; i &lt; n0; ++i) buf1[i] = (ll)buf1[i] * buf1[i] % mod;
+		DNTT(buf1, z); reverse(z + 1, z + n0);
+		for (i = 0; i &lt;= k; ++i) z[i] = z[i] * Poly::iv % mod;
+		for (; i &lt; n0; ++i) z[i] = 0;
+	}
+}
+
+int main() {
+	int i; ll ans = 0;
+	scanf("%s%s", scx[0], scx[1]);
+	for (p = scx[0], q = scx[1]; *p; ++p, ++q) A += *p &amp; *q &amp; 1, B += *p &amp; ~*q &amp; 1;
+	n = A + B; init();
+	for (i = 0; i &lt;= A; ++i) z[i] = finv[i + 1];
+	*y = 1; PolyPowerMod(B, A);
+	for (i = 0; i &lt;= A; ++i) ans += y[i];
+	ans = ans % mod * fact[A] % mod * fact[B] % mod * fact[A + B] % mod;
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>
