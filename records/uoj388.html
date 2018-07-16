@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj388]配对树</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一棵大小为 $n$ 的树，第一个节点是网络科学，第二个节点是博弈论，……</p>
+		<p>Lyra 的暑期计划是一个每个元素在 $[1, n]$ 的序列，她计划完成一个长度为偶数的子区间的 ddl，并且咕咕咕掉剩下的。</p>
+		<p>她会给区间内的节点两两配对，两个节点如果很接近，那么她就只需要把第一个节点要交的作业稍作修改，在网络学堂上上传到第二个节点。</p>
+		<p>Lyra 很聪明，所以她总是能巧妙的把区间内的节点两两匹配使得匹配的节点之间在树上的距离之和 (唯一简单路上的边权和)最小。每个长度为偶数的区间的完成时间定义为最小配对方法中每对匹配点间距离的总和。</p>
+		<p>作为 Lyra 的朋友，你要帮她求序列每个长度为偶数的区间的接地啊你的完成时间之和。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($1 \leq n, m \leq 10^5$) 表示树的大小和序列的长度。</p>
+		<p>接下来 $n-1$ 行，每行三个正整数 $u, v, w$ ($1 \leq u, v \leq n; u \neq v; 1 \leq w \leq 10^9)，表示一条连接 $u, v$ 长度为 $w$ 的树边。</p>
+		<p>接下来一行包含 $m$ 个整数表示序列。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示答案。由于答案可能很大，输出其对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define M 200005
+
+typedef long long ll;
+typedef std::vector &lt;int&gt; vec;
+const ll mod = 998244353;
+
+struct edge{
+	int u, v, w;
+	edge(int u0 = 0, int v0 = 0, int w0 = 0): u(u0), v(v0), w(w0) {}
+} e[M];
+
+int n, m, E;
+int first[N], next[M];
+int a[N], init[N];
+ll ans = 0;
+vec z[N];
+#undef M
+
+namespace ST {
+	int root[N];
+	struct node {int v, lc, rc, ans, r[4], l[4];} x[6000000];
+
+	int cnt = 0;
+
+	node merge(node &amp;ret, node a, node b, int A, int B) {
+		int i, mask;
+		if (a.v == -1) a.v = 0, a.l[0] = a.r[0] = A / 2, a.l[2] = a.r[2] = (A + 1) / 2;
+		if (b.v == -1) b.v = 0, b.l[0] = b.r[0] = B / 2, b.l[2] = b.r[2] = (B + 1) / 2;
+		ret.v = a.v + b.v;
+		mask = (B &amp; 1) &lt;&lt; 1 | (b.v &amp; 1);
+		for (i = 0; i &lt; 4; ++i) ret.r[i] = b.r[i] + a.r[i ^ mask];
+		mask = (A &amp; 1) &lt;&lt; 1 | (a.v &amp; 1);
+		for (i = 0; i &lt; 4; ++i) ret.l[i] = a.l[i] + b.l[i ^ mask];
+		ret.ans = a.ans + b.ans;
+		for (i = 0; i &lt; 4; ++i) ret.ans = (ret.ans + (ll)a.r[i] * b.l[i ^ 1]) % mod;
+	}
+
+	int adj(int id, int L, int R, int h, int v) {
+		if (!id) id = ++cnt;
+		if (L == R) {
+			x[id].v = v; x[id].ans = 0; 
+			x[id].l[2 ^ v] = x[id].r[2 ^ v] = 1;
+			return id;
+		}
+		int M = L + R - 1 &gt;&gt; 1;
+		h &lt;= M ? x[id].lc = adj(x[id].lc, L, M, h, v) : (x[id].rc = adj(x[id].rc, M + 1, R, h, v));
+		merge(x[id], x[id].lc[x], x[id].rc[x], M - L + 1, R - M);
+		return id;
+	}
+
+	int Merge(int id1, int id2, int L, int R) {
+	    if (!(id1 &amp;&amp; id2)) return id1 | id2;
+	    if (L &lt; R) {
+	        int M = L + R - 1 &gt;&gt; 1;
+	        x[id1].lc = Merge(x[id1].lc, x[id2].lc, L, M);
+	        x[id1].rc = Merge(x[id1].rc, x[id2].rc, M + 1, R);
+	    	merge(x[id1], x[id1].lc[x], x[id1].rc[x], M - L + 1, R - M);
+	    }
+	    return id1;
+	}
+};
+
+inline void addedge(int u, int v, int w){
+	e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+	e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+}
+
+void dfs(int x, int px = 0) {
+	int i, j, y, n0;
+	for (i = first[x]; i; i = next[i])
+		if ((y = e[i].v) != px) {
+			dfs(y, x);
+			ans = (ans + (ll)ST::x[ST::root[y]].ans * e[i].w) % mod;
+			ST::root[x] = ST::Merge(ST::root[x], ST::root[y], 1, m);
+		}
+	n0 = z[x].size();
+	for (i = 0; i &lt; n0; ++i) ST::root[x] = ST::adj(ST::root[x], 1, m, z[x][i], 1);
+}
+
+int main() {
+	int i, u, v, w;
+	scanf("%d%d", &amp;n, &amp;m);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), addedge(u, v, w);
+	for (i = 1; i &lt;= m; ++i) scanf("%d", a + i), z[a[i]].push_back(i);
+	ST::x[0].v = -1;
+	dfs(1);
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

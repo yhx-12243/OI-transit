@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[codechef PRIMEDST]Prime Distance On Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个节点的树，每条边的长度均为 $1$。如果我们均匀随机地选择两个不同的点，那么它们之间的距离为素数的概率为多少？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$，表示点的个数。</p>
+		<p>接下来的 $n-1$ 行，每行两个整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq n; a_i \neq b_i$)，表示 $a_i$ 与 $b_i$ 之间有一条长为 $1$ 的边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示最终的概率。答案被认为正确当且仅当绝对或相对误差不超过 $10^{-6}$。</p>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef long long ll;
+const int N = 500005, M = 1320000;
+const ll mod = 2013265921, iv2 = (mod + 1) / 2, root = 137;
+
+int n, m, E;
+int to[M], first[N], next[M];
+int pn, c[N], p[N];
+int scx[N], size[N];
+int max_dep;
+ll A[M], t[M], t2[M], ts[M];
+ll ans;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void sieve(int n){
+	int i, j, v;
+	for (i = 2; i &lt;= n; ++i) {
+		if (!c[i]) p[pn++] = i;
+		for (j = 0; j &lt; pn; ++j) {
+			if ((v = i * p[j]) &gt; n) break;
+			c[v] = p[j];
+			if (!(i % p[j])) break;
+		}
+	}
+}
+
+namespace Poly {
+	const int N = ::M;
+
+	int l, n, rev[N];
+	ll iv, x[N], y[N], buf[N];
+
+	void NTT_init(int len) {
+		n = 1 &lt;&lt; (l = len); iv = PowerMod(n, mod - 2);
+		ll g = PowerMod(root, 1 &lt;&lt; 27 - l);
+		x[0] = 1; rev[0] = 0;
+		for (int i = 1; i &lt; n; ++i) {
+			x[i] = x[i - 1] * g % mod;
+			rev[i] = (i &amp; 1 ? rev[i - 1] | 1 &lt;&lt; (l - 1) : rev[i &gt;&gt; 1] &gt;&gt; 1);
+		}
+	}
+
+	void DNTT(ll *d, ll *t) {
+		int i, len = 1, delta = n; ll *j, *k, R;
+		for(i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for(i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for(k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for(j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for(k = j; k &lt; j + len; ++k) {
+					R = y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+
+	void Sqr(ll *d, ll *t, int deg) {
+		int i;
+		Poly::NTT_init(lg2(deg) + 2);
+		Poly::DNTT(d, buf);
+		for (i = 0; i &lt; n; ++i) buf[i] = buf[i] * buf[i] % mod;
+		Poly::DNTT(buf, t); std::reverse(t + 1, t + n);
+		for (i = 0; i &lt; n; ++i) t[i] = t[i] * iv % mod;
+	}
+}
+
+inline void addedge(int u, int v) {
+	to[++E] = v; next[E] = first[u]; first[u] = E;
+	to[++E] = u; next[E] = first[v]; first[v] = E;
+}
+
+namespace Centroid {
+	int V, Gm, G, size[N];
+
+	void init(int _V) {V = _V; Gm = INT_MAX;}
+
+	int get(int x, int px = 0) {
+		int i, y, Ma = 0; size[x] = 1;
+		for (i = first[x]; i; i = next[i])
+			if ((y = to[i]) != px &amp;&amp; !scx[y]) {
+				get(y, x); up(Ma, size[y]);
+				size[x] += size[y];
+			}
+		up(Ma, V - size[x]);
+		return Ma &lt;= Gm ? (Gm = Ma, G = x) : G;
+	}
+}
+
+#define get_centroid(x, y, z) Centroid::init(z); x = Centroid::get(y)
+
+void dfs(int x, int px = 0, int dep = 1) {
+	int i, y; size[x] = 1; ++t[dep]; up(max_dep, dep);
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px &amp;&amp; !scx[y]) {
+			dfs(y, x, dep + 1);
+			size[x] += size[y];
+		}
+}
+
+void solve(int x) {
+	int i, j, y, G, Max_dep = 0;
+	scx[x] = 1;
+	for (j = first[x]; j; j = next[j])
+		if (!scx[y = to[j]]) {
+			max_dep = 0; dfs(y);
+			Poly::Sqr(t, t2, max_dep);
+			for (i = 0; i &lt;= max_dep &lt;&lt; 1; ++i) A[i] = (A[i] + mod - t2[i]) % mod;
+			for (i = 0; i &lt;= max_dep; ++i) ts[i] = (ts[i] + t[i]) % mod, t[i] = 0;
+			up(Max_dep, max_dep);
+		}
+	Poly::Sqr(ts, t2, Max_dep);
+	for (i = 0; i &lt;= Max_dep &lt;&lt; 1; ++i) A[i] = (A[i] + t2[i]) % mod;
+	for (i = 0; i &lt;= Max_dep &lt;&lt; 1; ++i) A[i] = (A[i] &gt;&gt; 1) + (A[i] &amp; 1 ? iv2 : 0);
+	for (i = 0; i &lt; pn &amp;&amp; p[i] &lt;= Max_dep &lt;&lt; 1; ++i) ans += A[p[i]] + ts[p[i]];
+	for (i = 0; i &lt;= Max_dep &lt;&lt; 1; ++i) A[i] = ts[i] = 0;
+	for (i = first[x]; i; i = next[i])
+		if (!scx[y = to[i]]) {
+			get_centroid(G, y, size[y]); solve(G);
+		}
+}
+
+int main() {
+	int i, u, v, G; ll total;
+	sieve(N - 1); 
+	scanf("%d", &amp;n);
+	total = (ll)n * (n - 1) / 2;
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	get_centroid(G, 1, n); solve(G);
+	printf("%.8lg\n", (double)ans / (double)total);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

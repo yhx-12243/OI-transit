@@ -16,7 +16,7 @@ const
 		SiteDict = {
 			'lydsy': [[/\d+/], 'https://www.lydsy.com/JudgeOnline/problem.php?id=@0'],
 			'lg': [[/[TU]?\d+/], 'https://www.luogu.org/problemnew/show/@0'],
-			'vijos': [[^/\d+/], 'https://vijos.org/p/@0'],
+			'vijos': [[/\d+/], 'https://vijos.org/p/@0'],
 			'hdu': [[/\d+/], 'http://acm.hdu.edu.cn/showproblem.php?pid=@0'],
 			'poj': [[/\d+/], 'http://poj.org/problem?id=@0'],
 			'uoj': [[/\d+/], 'http://uoj.ac/problem/@0'],

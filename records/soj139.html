@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj139]网络流</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $N$ 个点的树，树上每条边都有容量。$M$ 次询问 $S$ 到 $T$ 的最大流的值是多少，但这样显然太难了。</p>
+		<p>所以为了简化问题，每次询问的时候你有总共 $K$ 的预算，你可以做两种<del>蛇皮</del>操作，花费 $A$ 的代价在任意两点间建一条容量为 $1$ 的边，或者花费 $B$ 的代价将某条边的容量加 $1$，问你在不超过预算的情况下能获得的最大流量。</p>
+		<p>其中询问互相独立。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $N, M$ ($1 \leq N, M \leq 10^5$)，分别代表点数和询问数。</p>
+		<p>接下来 $N - 1$ 行，每行三个非负整数 $u, v, w$ ($1 \leq u, v \leq N; u \neq v; 0 \leq w \leq 10^4$) 分别代表一条树上的边 $(u, v)$ 和流量 $w$。</p>
+		<p>接下来 $M$ 行每行五个非负整数 $S, T, K, A, B$ ($0 \leq K \leq 2^{31} - 1; 1 \leq A, B \leq 2^{31} - 1$)，代表一组询问。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示答案。</p>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define Z 200010
+#define lg2(x) (31 - __builtin_clz(x))
+using std::min;
+using std::max;
+
+typedef long long ll;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[Z];
+
+int n, q, E;
+int first[N], next[Z];
+int id[N], dep[Z];
+int cnt = 0, st[19][Z], *ord = *st;
+
+namespace ST {
+	int cnt = 1, root[N];
+	struct node {int v, s, scx, lc, rc;} x[6000000];
+
+	int add(int id, int L, int R, int h, int v) {
+		int nid = ++cnt; x[nid] = x[id];
+		if (L == R) {x[nid].v += v; x[nid].s += v; x[nid].scx += v * L; return nid;}
+		int M = L + R - 1 &gt;&gt; 1;
+		h &lt;= M ? x[nid].lc = add(x[id].lc, L, M, h, v) : (x[nid].rc = add(x[id].rc, M + 1, R, h, v));
+		x[nid].s = x[nid].lc[x].s + x[nid].rc[x].s;
+		x[nid].scx = x[nid].lc[x].scx + x[nid].rc[x].scx;
+		return nid; 
+	}
+
+	ll return_back;
+	int get(int id1, int id2, int id3, int limit) {
+		int L = 0, R = 10000, M, ret; ll C1, C2, T1 = 0, T2 = 0, J, RET;
+		for (; L != R; ) {
+			M = L + R - 1 &gt;&gt; 1;
+			C1 = (ll)x[id1].lc[x].s + x[id2].lc[x].s - x[id3].lc[x].s * 2ll;
+			C2 = (ll)x[id1].lc[x].scx + x[id2].lc[x].scx - x[id3].lc[x].scx * 2ll;
+			J = (T1 + C1) * (M + 1) - (T2 + C2);
+			J &lt;= limit
+			 ? (id1 = x[id1].rc, id2 = x[id2].rc, id3 = x[id3].rc, ret = M, RET = J, T1 += C1, T2 += C2, L = M + 1)
+			 : (id1 = x[id1].lc, id2 = x[id2].lc, id3 = x[id3].lc, R = M);
+		}
+		return_back = RET;
+		return ret;
+	}
+}
+
+inline int dmin(const int A, const int B) {return dep[A] &lt; dep[B] ? A : B;}
+
+inline void addedge(int u, int v, int w) {
+	e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+	e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+}
+
+void build_st_table() {
+	int *f, *g = ord, i, j, k = cnt;
+	for (j = 0; 1 &lt;&lt; j + 1 &lt;= cnt; ++j) {
+		f = g; g = st[j + 1]; k -= 1 &lt;&lt; j;
+		for (i = 0; i &lt;= cnt; ++i)
+			g[i] = dmin(f[i], f[i + (1 &lt;&lt; j)]);
+	}
+}
+
+inline int LCA(int x, int y) {
+	int L = id[x], R = id[y], c; if (L &gt; R) std::swap(L, R); c = lg2(++R - L);
+	return dmin(st[c][L], st[c][R - (1 &lt;&lt; c)]);
+}
+
+void dfs(int x, int px = 0) {
+	int i, y;
+	ord[cnt] = x; id[x] = cnt++;
+	for (i = first[x]; i; i = next[i])
+		if ((y = e[i].v) != px) {
+			ST::root[y] = ST::add(ST::root[x], 0, 10000, e[i].w, 1);
+			dep[y] = dep[x] + 1;
+			dfs(y, x);
+			ord[cnt++] = x;
+		}
+}
+
+int main() {
+	int i, u, v, w, A, B;
+	int lca, p, dist; ll U, V;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), addedge(u, v, w);
+	ST::root[1] = 1; dfs(1);
+	build_st_table();
+	for (; q; --q) {
+		scanf("%d%d%d%d%d", &amp;u, &amp;v, &amp;w, &amp;A, &amp;B);
+		lca = LCA(u, v); dist = dep[u] + dep[v] - dep[lca] * 2;
+		p = ST::get(ST::root[u], ST::root[v], ST::root[lca], 0) + 1;
+		U = (w &gt;= A ? (w - A) / min(A, B) + 1ll + p : p);
+		V = ST::get(ST::root[u], ST::root[v], ST::root[lca], w / B) + 1;
+		w -= B * ST::return_back;
+		V += w / ((ll)B * dist);
+		printf("%lld\n", max(U, V));
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>
