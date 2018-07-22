@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj2058][TJOI/HEOI2016]求和</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在 2016 年，scx 刚刚学习了第二类斯特林数，非常开心。</p>
+		<p>现在她想计算这样一个函数的值：</p>
+		<p>$$ f(n) = \sum_{i=0}^n \sum_{j=0}^i S(i, j) \cdot 2^j \cdot j! $$</p>
+		<p>其中 $S(i, j)$ 表示第二类斯特林数，递推公式为: $S(i, j) = j \cdot S(i − 1, j) + S(i − 1, j − 1)$, ($1 \leq j \leq i − 1$)。
+		<p>边界条件为：$S(i, i) = 1$ ($0 \leq i$)，$S(i, 0) = 0$ ($1 \leq i$)。</p>
+		<p>你能帮帮她吗？</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 10^5$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数 $f(n)$。由于结果会很大，输出 $f(n)$ 对 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 取模的结果即可。</p>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 263000
+#define lg2(x) (31 - __builtin_clz(x))
+typedef long long ll;
+const ll mod = 998244353, root = 31;
+
+int n;
+int a[N], b[N], c[N];
+ll fact[N], finv[N];
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	ll iv;
+	int l, n;
+	int x[N], y[N], rev[N];
+	
+	void NTT_init(int len) {
+		n = 1 &lt;&lt; (l = len); iv = PowerMod(n, mod - 2);
+		ll g = PowerMod(root, 1 &lt;&lt; 23 - l);
+		x[0] = 1; rev[0] = 0;
+		for (int i = 1; i &lt; n; ++i){
+			x[i] = (ll)x[i - 1] * g % mod;
+			rev[i] = (i &amp; 1 ? rev[i - 1] | 1 &lt;&lt; (l - 1) : rev[i &gt;&gt; 1] &gt;&gt; 1);
+		}
+	}
+	
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[i] = d[rev[i]];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) {
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+	
+	void Mul(int *a, int *b, int *c, int deg){
+		int i;
+		NTT_init(lg2(deg) + 1);
+		DNTT(a, c); DNTT(b, a);
+		for(i = 0; i &lt; n; ++i) a[i] = (ll)a[i] * c[i] % mod;
+		DNTT(a, c);
+		std::reverse(c + 1, c + n);
+		for(i = 0; i &lt; n; i++) c[i] = (ll)c[i] * iv % mod;
+	}
+}
+
+int main() {
+	int i; ll r, coe = 1, ans = 0;
+	scanf("%d", &amp;n);
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = finv[i] * i % mod;
+	for (i = 0; i &lt;= n; ++i) a[i] = i &amp; 1 ? mod - finv[i] : finv[i];
+	b[0] = 1; b[1] = n + 1;
+	for (i = 2; i &lt;= n; ++i) {
+		r = finv[i] * finv[i - 1] % mod * fact[i - 2] % mod;
+		b[i] = (PowerMod(i, n + 1, r) + mod - r) % mod;
+	}
+	Poly::Mul(a, b, c, n &lt;&lt; 1);
+	for (i = 0; i &lt;= n; ++i) {
+		ans = (ans + c[i] * coe) % mod;
+		coe = coe * 2 * (i + 1) % mod;
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>
