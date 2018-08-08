@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2654]Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给你一个无向带权连通图，每条边是黑色或白色。让你求一棵最小权的恰好有 $K$ 条白色边的生成树。题目保证有解。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $V, E, K$ ($1 \leq V \leq 5 \times 10^4; 1 \leq E \leq 10^5; 0 \leq K \leq E$)，分别表示点数、边数和需要的白色边数。</p>
+		<p>接下来 $E$ 行，每行包含四个非负整数 $s, t, c, col$ ($1 \leq col \leq 100$)，分别表示这条边的端点 (点从 $0$ 开始标号)、边权、颜色 ($0$ 为白色、$1$ 为黑色)。
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所求生成树的边权和。</p>
+
+		<h3>题解</h3>
+		<p>直接做看似并不好做，因为很难控制 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 的白色边数。</p>
+		<p>如果我们能合适地改变边权，我们就得到了控制 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中的白色边数的一种途径。</p>
+		<p>先二分一个权值 $w$，然后把<strong>所有白色的边</strong>的权值加上 $w$。则最后 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中白色边的数量是 (随着 $w$) 单调递减的。</p>
+		<p>因此我们可以找到一个最小的 $w$，使得当白边权值加上 $w$ 后，最终求得的 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中恰好有 $K$ 条白边。</p>
+		<p>可以验证，此时的生成树中的边，对应到原图中，就是原图的答案 (指定边数的最小生成树)。</p>
+		<p>若不然，设原图有更小的生成树，则将它们的所有边权加上 $w$，由于白边数均为 $K$，则在新图中，也能得到一个更小的生成树，与原树为 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 矛盾。</p>
+		<p>故只需二分权值跑 Kruskal，顺便得到白边的数量，这部分复杂度为 $O \left( E \log E \log w_i \right)$。</p>
+		<p>当然这里还有一个问题，就是可能 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 中白边的数量可能不会取到 $K$，比如当 $w &lt; w_0$ 时取 $6$，当 $w &gt; w_0$ 时取 $4$。中间跳过了 $5$。</p>
+		<p>这个时候，说明当 $w = w_0$ 时，此时的树偶若干条<strong>边权相等</strong>的边，因此 $w = w_0$ 时是可以取到 $K$ 的 (比如上例可以取到 $4$ 和 $6$)。</p>
+		<p>为了避免权值相等而随机选边的问题，我们可以固定<strong>优先选黑边</strong>策略，这样的话，上面那个例子就能取到 $4$ 了。</p>
+		<p>因此，我们可以二分得到<strong>使实际白边个数 $\leq K$</strong> 的最小权值 $w$，此时的解一定是最优解 (像上例就是一定存在 $5$ 的方案的)。如果要输出方案，可以选择这些权值相同的边，选指定数量黑白边即可。</p>
+		<p>总时间复杂度 $O \left( E \log E \log w_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 50005
+#define MI 200005
+
+struct edge{
+	int u, v, w, c;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0, int c0 = 0) : u(u0), v(v0), w(w0), c(c0) {}
+	bool operator &lt; (const edge &amp;B) const {return w &lt; B.w || (w == B.w &amp;&amp; c &lt; B.c);}
+} e0[MI], e[MI];
+
+int V, E, K;
+int L, R, M;
+int p[N];
+int sum = 0, cnt = 0;
+
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+inline bool test(int x, int y) {
+	if ((x = ancestor(x)) == (y = ancestor(y))) return true;
+	return p[x] = y, false;
+}
+
+bool check(int val) {
+	int i, Es = 0; sum = cnt = 0;
+	for (i = 1; i &lt;= V; ++i) p[i] = i;
+	for (i = 1; i &lt;= E; ++i) e[i] = edge(e0[i].u, e0[i].v, e0[i].w + e0[i].c * val, e0[i].c);
+	std::sort(e + 1, e + (E + 1));
+	for (i = 1; i &lt;= E; ++i)
+		if (!test(e[i].u, e[i].v)) {
+			sum += e[i].w;
+			cnt += e[i].c;
+			if (++Es &gt;= V - 1) break;
+		}
+	return cnt &gt; K;
+}
+ 
+int main() {
+	int i, u, v, w, col, ans = 0;
+	scanf("%d%d%d", &amp;V, &amp;E, &amp;K);
+	for (i = 1; i &lt;= E; ++i) scanf("%d%d%d%d", &amp;u, &amp;v, &amp;w, &amp;col), e0[i] = edge(u + 1, v + 1, w, !col);
+	for (L = -321, R = 321; L &lt; R; )
+		check(M = (L + R) &gt;&gt; 1) ? L = M + 1 : (R = M, ans = sum - M * K);
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>记得把原来的边再存一份，由于 Kruskal 中边会被排序，因此下一轮重新计算边权时需要使用原来的数组 (当然直接用带 <code>val</code> 的比较函数也是滋磁滴)。</p>
+	</body>
+</html>

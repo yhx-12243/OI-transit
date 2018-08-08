@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj172]降临</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+
+		<h3>输入格式</h3>
+
+		<h3>输出格式</h3>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+
+typedef long long ll;
+const ll INF = 0x7fffffffffff;
+
+struct way {
+	int l, r, p;
+	way * read() {scanf("%d%d%d", &amp;l, &amp;r, &amp;p); return this;}
+	inline bool operator &lt; (const way &amp;B) const {return l &lt; B.l || (l == B.l &amp;&amp; r &lt; B.r);}
+} a[N];
+
+int n, m;
+ll w[N], W[N];
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+namespace ST {
+	struct node {ll v, v1, tag;} x[N &lt;&lt; 2];
+
+	inline void push_down(int id, int lc, int rc) {
+		x[lc].v += x[id].tag; x[lc].v1 += x[id].tag; x[lc].tag += x[id].tag;
+		x[rc].v += x[id].tag; x[rc].v1 += x[id].tag; x[rc].tag += x[id].tag;
+		x[id].tag = 0;
+	}
+
+	inline void update(int id, int lc, int rc) {
+		x[id].v = std::max(x[lc].v, x[rc].v); x[id].v1 = std::max(x[lc].v1, x[rc].v1);
+	}
+
+	void build(int id, int L, int R) {
+		if (L == R) {x[id].v = -INF; x[id].v1 = x[id].v + W[L]; return;}
+		segc; build(lc, L, M); build(rc, M + 1, R);
+		update(id, lc, rc);
+	}
+
+	void add(int id, int L, int R, int ql, int qr, ll v, bool adj = false) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) {x[id].v += v; x[id].v1 += v; x[id].tag += v; return;}
+		segc; if (x[id].tag) push_down(id, lc, rc);
+		if (ql &lt;= M) add(lc, L, M, ql, std::min(qr, M), v, adj);
+		if (qr &gt; M) add(rc, M + 1, R, std::max(ql, M + 1), qr, v, adj);
+		update(id, lc, rc);
+	}
+
+	void adj(int id, int L, int R, int h, ll v) {
+		if (L == R) {up(x[id].v, v); x[id].v1 = x[id].v + W[L]; return;}
+		segc; if (x[id].tag) push_down(id, lc, rc);
+		h &lt;= M ? adj(lc, L, M, h, v) : adj(rc, M + 1, R, h, v);
+		update(id, lc, rc);
+	}
+
+	void range(int id, int L, int R, int ql, int qr, ll &amp;ret, ll &amp;ret1) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) {ret = x[id].v; ret1 = x[id].v1; return;}
+		segc; if (x[id].tag) push_down(id, lc, rc);
+		ll tmp, tmp1; ret = ret1 = -INF;
+		if (ql &lt;= M) range(lc, L, M, ql, std::min(qr, M), tmp, tmp1), up(ret, tmp), up(ret1, tmp1);
+		if (qr &gt; M) range(rc, M + 1, R, std::max(ql, M + 1), qr, tmp, tmp1), up(ret, tmp), up(ret1, tmp1);
+	}
+}
+
+int main() {
+	int i, l, r; ll t, scx, ret, ret1;
+	scanf("%d%d", &amp;n, &amp;m);
+	for (i = 1; i &lt;= n; ++i) scanf("%lld", w + i);
+	std::partial_sum(w, w + (n + 1), W);
+	for (i = 1; i &lt;= m; ++i) a[i].read();
+	std::sort(a + 1, a + (m + 1));
+	ST::build(1, 1, n);
+	for (i = 1; i &lt;= m; ++i) {
+		l = a[i].l; r = a[i].r;
+		if (r &lt; n) ST::add(1, 1, n, r + 1, n, a[i].p);
+		scx = t = a[i].p - W[r] + W[l - 1];
+		if (l &gt; 1)
+			ST::range(1, 1, n, 1, l - 1, ret, ret1), up(scx, ret + t);
+		ST::range(1, 1, n, l, r, ret, ret1);
+		up(scx, ret1 - W[r] + a[i].p);
+		ST::adj(1, 1, n, r, scx);
+	} 
+	ST::range(1, 1, n, 1, n, ret, ret1);
+	up(ret, 0);
+	printf("%lld\n", ret);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

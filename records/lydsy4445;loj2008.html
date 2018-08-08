@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4445][loj2008][SCOI2015]小凸爱跑步</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小凸晚上喜欢到操场跑步，今天他跑完两圈之后，他玩起了这样一个游戏。</p>
+		<p>操场是个凸 $n$ 边形，$n$ 个顶点按照逆时针从 $0 \sim n - 1$ 编号。现在小凸随机站在操场中的某个位置，标记为 $P$ 点。将 $P$ 点与 $n$ 个顶点各连一条边，形成 $n$ 个三角形。如果这时 $P$ 点，$0$ 号点，$1$ 号点形成的三角形的面积是 $n$ 个三角形中最小的一个，小凸则认为这是一次正确站位。</p>
+		<p>现在小凸想知道他一次站位正确的概率是多少。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($3 \leq n \leq 10^5$)，表示操场的顶点数。</p>
+		<p>接下来的 $n$ 行，每行包含两个正整数 $x_i, y_i$ ($-10^9 \leq x_i, y_i \leq 10^9$)，表示顶点的坐标。</p>
+		<p>输入保证按逆时针顺序输入点，所有点保证构成一个凸 $n$ 边形，保证不存在三点共线。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示正确站位的概率，保留 $4$ 位小数。</p>
+
+		<h3>题解</h3>
+		<p>由于三角形 $\Delta A_P A_0 A_1$ 为面积最小的一个，因此我们可以得到 $n-1$ 个不等式：</p>
+		<p>$$ S_{\Delta A_P A_0 A_1} &lt; S_{\Delta A_P A_i A_{i+1}} \quad (1 \leq i &lt; n; A_n = A_0) $$
+		<p>对于一个 $i$，可以发现，满足 $S_{\Delta A_P A_0 A_1} = S_{\Delta A_P A_i A_{i+1}}$ 的点需要满足它到<strong>定直线</strong> $A_0 A_1$ 的距离与到直线 $A_i A_{i+1}$ 的比为 $\dfrac {\left| A_i A_{i+1} \right|} {\left| A_0 A_1 \right|}$ (常数)，由数学基础可知它的轨迹是一条 (过那两条直线交点的) 直线。</p>
+		<p>因此，满足不等式 $S_{\Delta A_P A_0 A_1} &lt; S_{\Delta A_P A_i A_{i+1}}$ 的点的轨迹就是一个半平面了。</p>
+		<p>而三角形面积最小的概率，有几何概型，可知就是求满足条件的区域的面积。</p>
+		<p>可以发现，这些区域时一些半平面的交——即原始多边形的半平面和面积限制所得的新的半平面。</p>
+		<p>因此剩下的问题就是一个<strong>半平面求交</strong>问题。</p>
+		<p>不过和<a href="lydsy1038%3Blg2600.html" target="_blank">这道题</a>不一样的是，以前的半平面交都是求一个<strong>上凸包</strong>，也就是说，所有直线的上方都是可行域。</p>
+		<p>而这道题的直线可以是各个方向的，因此需要做略微的改动。</p>
+		<p>将所有直线按照极角 (或法向量) 排序后 (注意方向是一整圈，故不能直接叉积，需要特判或用 <code>atan2</code>)，相同的方向保留内侧的，依然扫下来，并在<strong>双向队列</strong>中记录相邻两条线的交点。</p>
+		<p>不过要注意的是，每新加一条直线，需要在<strong>队首</strong>和<strong>队尾</strong>同时判断删除元素。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+
+const double eps = 1e-7;
+
+struct vec2 {
+	double x, y;
+	vec2 (double x0 = 0.0, double y0 = 0.0) : x(x0), y(y0) {}
+	vec2 * read() {scanf("%lf%lf", &amp;x, &amp;y); return this;}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline vec2 operator * (double k) const {return vec2(x * k, y * k);}
+	inline double operator * (const vec2 &amp;B) const {return x * B.x + y * B.y;}
+	inline double operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}
+	inline double norm2() const {return *this * *this;}
+} p[N];
+
+struct line {
+	double A, B, C; // Ax + By + C = 0
+	line (double A0 = 0.0, double B0 = 0.0, double C0 = 0.0) : A(A0), B(B0), C(C0) {}
+	line (const vec2 u, const vec2 v) {A = u.y - v.y; B = v.x - u.x; C = u ^ v;} // left positive
+} l[N];
+
+int n;
+int ord[N];
+double ang[N], Ang[N];
+int que_l[N];
+vec2 que_v[N], *beg, *end;
+
+// (Ax + By + C1 = 0) &lt; (Ax + By + C2 = 0) : C1 &lt; C2
+
+inline bool cmp(const int A, const int B) {
+	return ang[A] &lt; ang[B] - eps || ang[A] &lt; ang[B] + eps &amp;&amp; fabs(l[A].A) * l[B].C &gt; fabs(l[B].A) * l[A].C;
+}
+
+inline double substitute(const vec2 P, const line l) {return l.A * P.x + l.B * P.y + l.C;}
+
+inline bool parallel(const line u, const line v) {return fabs(u.A * v.B - u.B * v.A) &lt; eps;}
+
+inline vec2 intersection(const line u, const line v) {
+	double Det = 1.0 / (u.A * v.B - u.B * v.A);
+	return vec2(u.B * v.C - u.C * v.B, u.C * v.A - u.A * v.C) * Det;
+}
+
+inline void area_line(int id) { // p[0]p[1] with p[id]p[id+1]
+	if (parallel(l[0], l[id])) {
+		l[id].C = (l[0].C * l[id].A / l[0].A + l[id].C) * 0.5;
+		return;
+	}
+	vec2 I = intersection(l[0], l[id]), v = p[0] - p[1] + p[id + 1] - p[id];
+	l[id] = line(I, I + v);
+}
+
+void HPI() {
+	int h = 0, t = -1, i;
+	for (i = 0; i &lt; n; ++i) {
+//		printf("i = %d, Line: %+lg x %+lg y %+lg &gt; 0\n", i, l[ ord[i] ].A, l[ ord[i] ].B, l[ ord[i] ].C);
+		for (; h &lt; t &amp;&amp; substitute(que_v[t - 1], l[ ord[i] ]) &lt; -eps; --t);
+		for (; h &lt; t &amp;&amp; substitute(que_v[h], l[ ord[i] ]) &lt; -eps; ++h);
+		if (h &gt; t || ang[ord[i]] &gt; ang[que_l[t]] + eps) {
+			que_l[++t] = ord[i];
+			if (t) que_v[t - 1] = intersection(l[ que_l[t - 1] ], l[ que_l[t] ]);
+		}
+	}
+	for (; h &lt; t &amp;&amp; substitute(que_v[t - 1], l[ que_l[h] ]) &lt; -eps; --t);
+	que_v[t] = intersection(l[ que_l[t] ], l[ que_l[h] ]);
+	beg = que_v + h; end = que_v + t;
+}
+
+double Area2(vec2 *_beg, vec2 *_end) {
+	double ret = 0.0;
+	for (vec2 *p = _beg; p != _end; ++p) ret += *p ^ p[1];
+	return ret;
+}
+
+int main() {
+	int i, h, t; double ans;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) p[i].read(); p[n] = p[0];
+	for (i = 0; i &lt; n; ++i) l[i] = line(p[i], p[i + 1]);
+//	for (i = 0; i &lt; n; ++i) printf("l[%d]: %+lg x %+lg y %+lg &gt; 0\n", i, l[i].A, l[i].B, l[i].C);
+	for (i = 1; i &lt; n; ++i) area_line(i);
+//	for (i = 0; i &lt; n; ++i) printf("l[%d]: %+lg x %+lg y %+lg &gt; 0\n", i, l[i].A, l[i].B, l[i].C);
+	for (i = 0; i &lt; n; ++i) ord[i] = i, ang[i] = atan2(l[i].B, l[i].A);
+	std::sort(ord, ord + n, cmp);
+	HPI(); *++end = *beg;
+//	for (vec2 *p = beg; p &lt;= end; ++p) printf("(%.8lg, %.8lg)\n", p-&gt;x, p-&gt;y);
+	ans = Area2(beg, end) / Area2(p, p + n);
+	printf("%.4lf\n", fabs(ans));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意半平面交中的直线是<strong>有向直线</strong>。如果像我一样使用 $Ax + By + C = 0$ 存储直线，那么就用 (代入直线后) 的正负号来确定方向。</p>
+		<p><strong>坑2：</strong>最终计算面积时注意要给出<strong>闭合多边形</strong>，不要漏算最后一条边的贡献。</p>
+		<p><strong>坑3：</strong>注意计算面积限制的半平面时，<strong>特判两条直线平行的情况</strong>！这个时候两条直线的交点是不存在的！(容易得到那个半平面是那一组平行线的<strong>中位直线</strong>)</p>
+	</body>
+</html>

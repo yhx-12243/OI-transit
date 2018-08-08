@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj2720][soj149][NOI2018]你的名字</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 A 被选为了 ION2018 的出题人，他精心准备了一道质量十分高的题目，且已经把除了题目命名以外的工作都做好了。</p>
+		<p>由于 ION 已经举办了很多届，所以在题目命名上也是有规定的，ION 命题手册规定：每年由命题委员会规定一个小写字母字符串，我们称之为那一年的命名串，<strong>要求每道题的名字必须是那一年的命名串的一个非空连续子串，且不能和前一年的任何一道题目的名字相同</strong>。</p>
+		<p>由于一些特殊的原因，小 A 不知道 ION2017 每道题的名字，但是他通过一些特殊手段得到了 ION2017 的命名串，现在小 A 有 $Q$ 次询问：每次给定 ION2017 的命名串和 ION2018 的命名串，求有几种题目的命名，使得这个名字一定满足命题委员会的规定，即是 ION2018 的命名串的一个非空连续子串且一定不会和 ION2017 的任何一道题
+		目的名字相同。</p>
+		<p>由于一些特殊原因，所有询问给出的 ION2017 的命名串都是某个串的连续子串，详细可见输入格式。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个字符串 $S$ ($1 \leq |S| \leq 5 \times 10^5$)，之后询问给出的 ION2017 的命名串都是 $S$ 的连续子串。</p>
+		<p>第二行包含一个正整数 $Q$ ($Q \leq 10^5$)，表示询问次数。</p>
+		<p>接下来 $Q$ 行，每行包含一个字符串 $T$ ($1 \leq |T| \leq 5 \times 10^5; \sum |T| \leq 10^6$) 和两个正整数 $l, r$ ($1 \leq l \leq r \leq |S|$)，表示询问如果 ION2017 的命名串是 $S[l \ldots r]$，ION2018 的命名串是 $T$ 的话，有几种<strong>命名方式</strong>一定满足规定。</p>
+		<p>保证输入中给出的字符串都是由小写字母构成的。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $Q$ 行，第 $i$ 行一个非负整数表示第 $i$ 个询问的答案。</p>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1000005
+
+typedef long long ll;
+
+int n, q;
+char s[N], u[N];
+int used[N];
+int fc[N], nc[N];
+int dfn = 0, ord[N], id[N], end_id[N];
+int root[N];
+
+inline void link(int x, int px) {nc[x] = fc[px]; fc[px] = x;}
+
+namespace ST {
+	struct node {int v, lc, rc;} x[20030321];
+	int cnt = 1;
+
+	int add(int id, int L, int R, int h, int v) {
+		int nid = ++cnt; x[nid] = x[id];
+		if (L == R) return x[nid].v += v, nid;
+		int M = L + R - 1 &gt;&gt; 1;
+		h &lt;= M ? x[nid].lc = add(x[id].lc, L, M, h, v) : (x[nid].rc = add(x[id].rc, M + 1, R, h, v));
+		x[nid].v = x[nid].lc[x].v + x[nid].rc[x].v;
+		return nid;
+	}
+
+	bool range(int id1, int id2, int L, int R, int ql, int qr) {
+		if (!id2) return false;
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id2].v &gt; x[id1].v; // x[id2].v - x[id1].v &gt; 0;
+		int M = L + R - 1 &gt;&gt; 1; bool s = false;
+		if (ql &lt;= M) s |= range(x[id1].lc, x[id2].lc, L, M, ql, std::min(qr, M));
+		if (qr &gt; M) s |= range(x[id1].rc, x[id2].rc, M + 1, R, std::max(ql, M + 1), qr);
+		return s;
+	}
+}
+
+struct SAM {
+	int p, np, cnt;
+	int pa[N], d[N][26], val[N], f[N];
+
+	SAM () : np(1), cnt(1) {}
+
+	void reset() {
+		memset(pa, 0, cnt + 1 &lt;&lt; 2);
+		memset(d, 0, (cnt + 1) * 104);
+		memset(val, 0, cnt + 1 &lt;&lt; 2);
+		p = 0; np = 1; cnt = 1;
+	}
+
+	#define q d[p][x]
+	void extend(int x, int key = 0) {
+		for (p = np, val[np = ++cnt] = val[p] + 1; p &amp;&amp; !q; q = np, p = pa[p]);
+		if (!p) pa[np] = 1;
+		else
+			if (val[p] + 1 == val[q]) pa[np] = q;
+			else {
+				int nq = ++cnt;
+				val[nq] = val[p] + 1;
+				memcpy(d[nq], d[q], 104);
+				pa[nq] = pa[q];
+				pa[np] = pa[q] = nq;
+				for (int Q = q; p &amp;&amp; q == Q; q = nq, p = pa[p]);
+			}
+		f[np] = key;
+	}
+	#undef q
+} S, U;
+
+void dfs(int x) {
+	int y;
+	ord[++dfn] = x; id[x] = dfn;
+	for (y = fc[x]; y; y = nc[y]) dfs(y);
+	end_id[x] = dfn;
+}
+
+void init() {
+	int i, n = S.cnt;
+	for (i = 1; i &lt;= n; ++i) link(i, S.pa[i]);
+	dfs(1); root[0] = 1;
+	for (i = 1; i &lt;= n; ++i)
+		root[i] = (S.f[ord[i]] ? ST::add(root[i - 1], 1, n, S.f[ord[i]], 1) : root[i - 1]);
+}
+
+int main() {
+	int i, j, l, r, A, id, len, query_index;
+	int t1, t2, t3, lb, ub; ll ans;
+	scanf("%s%d", s, &amp;q); n = strlen(s);
+	for (i = 0; i &lt; n; ++i) S.extend(s[i] - 'a', i + 1);
+	init();
+	for (query_index = 1; query_index &lt;= q; ++query_index) {
+		scanf("%s%d%d", u, &amp;l, &amp;r);
+		A = strlen(u);
+		for (i = 0; i &lt; A; ++i) U.extend(u[i] - 'a');
+		t1 = t2 = 1; ans = len = 0;
+		for (i = 0; i &lt; A; ++i) {
+			id = u[i] - 'a';
+			for (; t1 &amp;&amp; !S.d[t1][id]; t1 = S.pa[t1], len = S.val[t1]);
+			t1 ? (t1 = S.d[t1][id], ++len) : (t1 = 1, len = 0);
+			for (; t1 != 1 &amp;&amp; (l + len - 1 &gt; r ||
+				!ST::range(root[::id[t1] - 1], root[end_id[t1]], 1, S.cnt, l + len - 1, r)); )
+				if (--len &lt;= S.val[S.pa[t1]]) t1 = S.pa[t1];
+			t2 = U.d[t2][id];
+			for (t3 = t2; t3 != 1; t3 = U.pa[t3]) {
+				if (used[t3] == query_index) break;
+				used[t3] = query_index;
+				lb = U.val[U.pa[t3]]; ub = U.val[t3];
+				ans += std::max(ub - std::max(lb, len), 0);
+			}
+		}
+		printf("%lld\n", ans);
+		U.reset();
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj171]黑暗</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>乘法实在是太难了，所以为了简化问题，小葱喜欢除法。所以他给了你 $N$ 个数 $a_1, a_2, \cdots, a_N$，并且希望你执行 $M$ 次操作，每次操作可能有以下两种：</p>
+		<ol>
+			<li>给你三个数 $l, r, v$，你需要将 $a_l, a_{l+1}, \cdots, a_r$ 之间所有 $v$ 的倍数除以 $v$。</li>
+			<li>给你两个数 $l, r$，你需要回答 $a_l + a_{l+1} + \cdots + a_r$ 的值是多少。</li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $N, M$，代表数的个数和操作的次数。</p>
+		<p>第二行包含 $N$ 个非负整数 $a_1, a_2, \cdots, a_N$，代表 $N$ 个数初始的值。</p>
+		<p>接下来 $M$ 行，每行描述一个操作。</p>
+		<p>每行开始有一个正整数 $\mathrm{opt}$，如果 $\mathrm{opt} = 1$，那么接下来有三个整数 $l, r, v$，代表这次操作需要将第 $l$ 个数到第 $r$ 个数中 $v$ 的倍数除以 $v$；</p>
+		<p>如果 $\mathrm{opt} = 2$，那么接下来有两个整数 $l, r$，代表你需要回答第 $l$ 个数到第 $r$ 个数的和。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每一次的第二种操作，输出一行一个整数，代表这次操作所询问的值。</p>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define RE 1000005
+#define lowbit(x) (x &amp; -x)
+
+typedef long long ll;
+typedef std::vector &lt;int&gt; vec;
+
+struct list {
+	int sz, *val, *next, *prev;
+	list () : val(NULL), next(NULL), prev(NULL) {}
+	~list () {if (val) delete [] (val); if (next) delete [] (next); if (prev) delete [] (prev);}
+
+	void resize(int size) {
+		sz = size;
+		if (val) delete [] (val); val = new int[sz + 2]; memset(val, 0, (sz + 2) &lt;&lt; 2);
+		if (next) delete [] (next); next = new int[sz + 2]; memset(next, 0, (sz + 2) &lt;&lt; 2);
+		if (prev) delete [] (prev); prev = new int[sz + 2]; memset(prev, 0, (sz + 2) &lt;&lt; 2);
+	}
+
+	void init(vec &amp;v) {
+		int i, n = v.size();
+		resize(n);
+		for (i = sz; i; --i) val[i] = v[i - 1], v.pop_back();
+		val[0] = val[sz + 1] = prev[0] = next[sz + 1] = -1;
+		for (i = 0; i &lt;= sz; ++i) next[i] = i + 1, prev[i + 1] = i;
+	}
+
+	int Next(int id) {return ~val[id] ? id : next[id] = Next(next[id]);} // skip blank - next
+
+	int Prev(int id) {return ~val[id] ? id : prev[id] = Prev(prev[id]);} // skip blank - previous
+
+	int lower_bound(int v) {
+		int L = next[0], R = prev[sz + 1], M;
+		for (; L &lt; R; ) {
+			M = Prev((L + R) &gt;&gt; 1);
+			v &gt; val[M] ? (L = Next(M + 1)) : (R = M);
+		}
+		return v &gt; val[R] ? sz + 1 : R;
+	}
+
+	inline void erase(int id) {
+		val[id] = -1; next[prev[id]] = next[id]; prev[next[id]] = prev[id];
+	}
+} li[RE];
+
+int n, q;
+int a[N];
+int cnt = 0, Div[N];
+vec pri[RE], di[N], ret;
+
+ll bit[N];
+
+void add(int h, ll v) {for (; h &lt;= n; h += lowbit(h)) bit[h] += v;}
+
+ll sum(int h) {ll s = 0; for (; h; h -= lowbit(h)) s += bit[h]; return s;}
+
+void init(int id) {
+	int i, n = a[id];
+	for (i = 2; i * i &lt;= n; ++i)
+		if (!(n % i)) {
+			di[id].push_back(i);
+			if (i * i != n) di[id].push_back(n / i);
+		}
+	di[id].push_back(n);
+	n = di[id].size();
+	for (i = 0; i &lt; n; ++i) pri[di[id][i]].push_back(id);
+}
+
+inline void Erase(int pri, int pos) {
+	int i = li[pri].lower_bound(pos); li[pri].erase(i);
+}
+
+void divide(int id, int v) {
+	int ao = a[id], an = a[id] / v, n = di[id].size(), i; ret.clear();
+	for (i = 0; i &lt; n; ++i) 
+		if (an % di[id][i]) Erase(di[id][i], id);
+		else ret.push_back(di[id][i]);
+	di[id] = ret;
+	a[id] = an; add(id, an - ao);
+}
+
+void solve(int l, int r, int v) {
+	if (v == 1) return;
+	if (li[v].val == NULL) return;
+	int i = li[v].lower_bound(l); cnt = 0;
+	for (; ~li[v].val[i] &amp;&amp; li[v].val[i] &lt;= r; i = li[v].next[i]) Div[++cnt] = li[v].val[i];
+	for (i = 1; i &lt;= cnt; ++i) divide(Div[i], v);
+}
+
+int main() {
+	int i, l, r, v, op;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i), add(i, a[i]);
+	for (i = 1; i &lt;= n; ++i) init(i);
+	for (i = 2; i &lt; RE; ++i)
+		if (!pri[i].empty())
+			li[i].init(pri[i]);
+	for (; q; --q) {
+		if (scanf("%d%d%d", &amp;op, &amp;l, &amp;r), op == 1) {
+			scanf("%d", &amp;v); solve(l, r, v);
+		} else printf("%lld\n", sum(r) - sum(l - 1));
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>
