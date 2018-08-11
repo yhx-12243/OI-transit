@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2434][lg2414][loj2444][NOI2011]阿狸的打字机</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>阿狸喜欢收藏各种稀奇古怪的东西，最近他淘到一台老式的打字机。打字机上只有 $28$ 个按键，分别印有 $26$ 个小写英文字母和 <kbd>B</kbd>、<kbd>P</kbd> 两个字母。 经阿狸研究发现，这个打字机是这样工作的：</p>
+		<ul>
+			<li>输入小写字母，打字机的一个凹槽中会加入这个字母 (按 <kbd>P</kbd> 前凹槽中至少有一个字母)。</li>
+			<li>按一下印有 <kbd>B</kbd> 的按键，打字机凹槽中最后一个字母会消失。</li>
+			<li>按一下印有 <kbd>P</kbd> 的按键，打字机会在纸上打印出凹槽中现有的所有字母并换行，但凹槽中的字母不会消失 (保证凹槽中至少有一个字母)。</li>
+		</ul>
+		<p>例如，阿狸输入 <kbd>aPaPBbP</kbd> ，纸上被打印的字符如下：</p>
+		<pre>a
+aa
+ab
+</pre>
+		<p>我们把纸上打印出来的字符串从 $1$ 开始顺序编号，一直到 $n$。打字机有一个非常有趣的功能，在打字机中暗藏一个带数字的小键盘，在小键盘上输入两个数 $(x, y)$ (其中 $1 \leq x, y \leq n$)，打字机会显示第 $x$ 个打印的字符串在第 $y$ 个打印的字符串中出现了多少次。</p>
+		<p>阿狸发现了这个功能以后很兴奋，他想写个程序完成同样的功能，你能帮助他么？</p>
+
+		<h3>输入格式</h3>
+		<p>输入的第一行包含一个字符串 $s$ ($1 \leq |s| \leq 10^5$)，按阿狸的输入顺序给出所有阿狸输入的字符。</p>
+		<p>第二行包含一个正整数 $m$ ($m \leq 10^5$)，表示询问个数。</p>
+		<p>接下来 $m$ 行描述所有由小键盘输入的询问。其中第 $i$ 行包含两个整数 $x, y$ ，表示第 $i$ 个询问为 $(x, y)$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 行，其中第 $i$ 行包含一个整数，表示第 $i$ 个询问的答案。</p>
+
+		<h3>题解</h3>
+		<p>容易发现，这个打字的过程就是一个遍历 Trie 树 (字典树) 的过程。</p>
+		<p>因此，容易建出这所有字符串构成的 Trie 树。</p>
+		<p>接下来考虑如何求得字符串 $u$ 在 $v$ 中出现的次数。</p>
+		<p>由于 Trie 是一个前缀结构，因此我们可以知道 $v$ 的所有前缀。</p>
+		<p>然而，$u$ 是 $v$ 的子串 $\Leftrightarrow$ <strong>$u$ 是 $v$ 的一个前缀的后缀</strong>。</p>
+		<p>那么，对于 $root$ 到 $v$ 中的所有节点 $x$，我们只需判断 $u$ 是否为 $x$ 的后缀。</p>
+		<p>而在 Aho-Corasick 自动机中，$u$ 为 $x$ 的后缀，就等价于在 fail 树中，$u$ 为 $x$ 的祖先节点。</p>
+		<p>因此，我们可以对整个 Trie 建立 AC 自动机，然后以它的 fail 树进行查找。</p>
+		<p>设 Trie 树中 $root$ 到 $v$ 的所有节点集合为 $F(v)$，我们就是要查找，<strong>fail 树中的以 $u$ 为根的子树，有多少个节点属于 $F(v)$</strong>。</p>
+		<p>对。就是子树求和问题。</p>
+		<p>但是。由于它在两棵不同的树中进行，很难进行同步。</p>
+		<p>那怎么办呢？<strong>离线处理！</strong></p>
+		<p>回到刚开始时的那个性质，<strong>打字的过程就是遍历 Trie 树的过程</strong>。</p>
+		<p>因此，我们可以对 $y$ 排序，这样的话，由于 $y$ 时一个遍历 Trie 树的过程，因此 Trie 树中，$root$ 到 $y$ 的路径所经过的节点集合 $F(y)$，是<strong>连续变化</strong>的。</p>
+		<p>那么，就可以通过<strong>树状数组</strong>来记录某个点是否属于 $F(y)$。</p>
+		<p>这样，子树求和问题就迎刃而解。</p>
+		<p>总时间复杂度 $O \left( |s| + m \log |s| \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 120005
+
+struct request {
+	int x, y, id;
+	request * read(int _id) {scanf("%d%d", &amp;x, &amp;y); id = _id; return this;}
+	inline bool operator &lt; (const request &amp;B) const {return y &lt; B.y;}
+} qry[N];
+
+int n = 0, q;
+int a[N], ans[N];
+int fc[N], nc[N];
+char s[N];
+
+inline void link(int x, int px) {nc[x] = fc[px]; fc[px] = x;}
+
+namespace BIT {
+	#define lowbit(x) (x &amp; -x)
+	int n, x[N];
+	void add(int h, int v) {for (; h &lt;= n; h += lowbit(h)) x[h] += v;}
+	int sum(int h) {int s = 0; for (; h; h -= lowbit(h)) s += x[h]; return s;}
+	int range(int l, int r) {return sum(r) - sum(l - 1);} 
+}
+
+namespace AC {
+	int cnt = 1;
+	int d[N][26], f[N], p[N];
+	int que[N];
+	int dfn = 0, ord[N], id[N], end_id[N];
+
+	void init(char *s) {
+		int t = 1, id;
+		for (char *ch = s; *ch; ++ch)
+			if (*ch == 66) t = p[t];
+			else if (*ch == 80) a[++n] = t;
+			else {
+				id = *ch - 97;
+				t = (d[t][id] ? d[t][id] : (p[d[t][id] = ++cnt] = t, cnt));
+			}
+	}
+
+	void build() {
+		int h, ta = 1, i, t, id;
+		que[0] = 1; f[1] = 0;
+		for (h = 0; h &lt; ta; ++h)
+			for (i = que[h], id = 0; id &lt; 26; ++id) {
+				t = (f[i] ? d[f[i]][id] : 1);
+				int &amp;u = d[i][id];
+				if (!u) {u = t; continue;}
+				f[u] = t; que[ta++] = u;
+			}
+	}
+
+	void dfs(int x) {
+		int y;
+		ord[++dfn] = x; id[x] = dfn;
+		for (y = fc[x]; y; y = nc[y]) dfs(y);
+		end_id[x] = dfn;
+	}
+	
+
+	void pre_dfs() {
+		for (int i = 2; i &lt;= cnt; ++i) link(i, f[i]);
+		dfs(1);
+		BIT::n = dfn;
+	}
+}
+
+int main() {
+	scanf("%s%d", s, &amp;q);
+	AC::init(s);
+	AC::build();
+	AC::pre_dfs();
+	int t, i, j, root;
+	for (i = 0; i &lt; q; ++i) qry[i].read(i);
+	std::sort(qry, qry + q);
+	t = 1; i = j = 0;
+	for (char *ch = s; *ch; ++ch)
+		if (*ch == 66) BIT::add(AC::id[t], -1), t = AC::p[t];
+		else if (*ch == 80)
+			for (++i; j &lt; q &amp;&amp; qry[j].y == i; ++j) {
+				root = a[qry[j].x];
+				ans[qry[j].id] = BIT::range(AC::id[root], AC::end_id[root]);
+			}
+		else t = AC::d[t][*ch - 97], BIT::add(AC::id[t], 1);
+	for (i = 0; i &lt; q; ++i) printf("%d\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意字符集大小，不要越界了。</p>
+		<p><strong>坑2：</strong>在树状数组中修改或查询，不要忘记使用 dfs 序。</p>
+	</body>
+</html>
