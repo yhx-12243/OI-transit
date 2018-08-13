@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj173]随机排列</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>现在你有一个 $n$ 个数的排列 $A_1, A_2, \cdots, A_n$ (排列是指 $1, 2, \cdots, n$ 中每个数出现且仅出现一次)，你可以对它做两种操作：</p>
+		<ol>
+			<li>交换相邻两个元素；</li>
+			<li>将整个排列随机打乱，随机打乱后出现任意一种排列的概率都是相等的 (即都是 $\dfrac 1 {n!}$)。</li>
+		</ol>
+		<p>现在你最多对这个排列执行 $k$ 次操作 <strong>(可以少于 $k$ 次)</strong>，问在最优策略下，最终的排列的逆序对数量的数学期望的最小可能值。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。</p>
+		<p>第一行包含一个正整数 $T$ ($T \leq 100$) 表示数据组数。</p>
+		<p>对于每组数据，第一行包含两个正整数 $n, k$ ($n \leq 100; k \leq 10^9$)。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$，表示这个排列。保证输入的是一个排列。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个实数，表示答案。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-6}$。
+
+		<h3>题解</h3>
+		<p>有一个经典的结论：<strong>交换序列中相邻的两个元素，则该序列的逆序对数增加 $1$ 或减少 $1$</strong>。</p>
+		<p>证明略。</p>
+		<p>因此，设原序列的逆序对数为 $t$，则如果<strong>只用操作 2</strong>，则能达到逆序对数量可以达到 $\max \{t - k, 0\}$。</p>
+		<p>(scx: 那如果使用了操作 1 呢？)</p>
+		<p>这个时候，我们就需要知道一些<strong>随机排列</strong>的性质，进行 DP 等操作。</p>
+		<p>设 $f_{i, j}$ 表示长度为 $i$ 的排列，有 $j$ 个逆序对的概率，<del>可以看出这是一个基础 DP</del>。首先，显然 $f_{1, 0} = 1$。</p>
+		<p>考虑转移，对于长度为 $i$ 的排列，我们枚举最大数 $j$ 的位置，即可得到如下转移方程：</p>
+		<p>$$ f_{i, j} = \sum_{k - i &lt; k \leq j \\ 0 \leq k \leq \dbinom {i-1} 2} f_{i-1, k} $$
+		<p>可以通过前缀和优化在 $O \left( n^3 \right)$ 时间内完成。</p>
+		<p>接下来再设 $g_{i, j}$ 为长度为 $i$ 的<strong>随机序列</strong>，<strong>进行最优方案</strong>操作了 $j$ 次后得到的逆序对数的期望 (的最小可能值)。那么边界条件为 $g_{i, 0} = \dfrac 12 \dbinom i2 = \dfrac {i(i-1)} 4$。</p>
+		<p>考虑 $g_{i, j}$ 的转移，即长度为 $i$ 的随机序列操作 $j$ 次。</p>
+		<p>一种方案是，直接使用 $j$ 次 1 操作，还有一种方案是，先打乱，然后使用 $j-1$ 次操作的状态。</p>
+		<p>很显然，如果选择方案二，我们最终得到的逆序数期望为 $g_{i, j-1}$。而如果选择方案一，则最终的逆序数为当前逆序数减去 $j$。
+		<p>由于我们要<strong>挑选最优方案</strong>，因此当拿到那个随机序列时 (设逆序数为 $t$)，如果 $t - j \leq g_{i, j-1}$，则使用方案一，否则使用方案二。</p>
+		<p>设 $k = \left \lfloor j + g_{i, j-1} \right \rfloor$，这样我们就可以得到转移方程了：</p>
+		<p>$$ g_{i, j} = 0 \cdot \left( f_{i, 0} + f_{i, 1} + \cdots + f_{i, j} \right) + 1 \cdot f_{i, j+1} + 2 \cdot f_{i, j+2} + \cdots (k-j) \cdot f_{i, k} + g_{i, j-1} \cdot \left( f_{i, k+1} + f_{i, k+2} + \cdots + f_{i, \binom i2} \right) $$</p>
+		<p>我们发现需要维护 $f_{i, j}$ 的前缀和 $F_{i, j}$ 以及 $j f_{i, j}$ 的前缀和 $F'_{i, j}$，则上述转移可以写成</p>
+		<p>$$ g_{i, j} = \left( F'_{i, k} - F'_{i, j} \right) - j \left( F_{i, k} - F_{i, j} \right) + g_{i, j-1} \left( F_{i, \binom i2} - F_{i, k} \right) $$</p>
+		<p>在这种情况下，最后的答案就是 $g_{n, k-1}$ 了。与第一种方案取个较小值·个较小值 ($\min$) 即得最终答案。</p>
+		<p>总时间复杂度 $O \left( n^3 + T n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 110
+#define M 6000
+
+typedef double mat[N][M];
+
+int n, k;
+int a[N];
+
+mat f, g, sf, sfi;
+
+void init() {
+	double ivi;
+	int i, j, k, i2, r;
+	f[1][0] = 1; sf[1][0] = 1;
+	for (i = 2; i &lt; N; ++i) {
+		i2 = i * (i - 1) / 2; ivi = 1.0 / (double)i;
+		for (j = 0; j &lt;= i2; ++j) {
+			r = std::min(j, i2 - i + 1);
+			f[i][j] = sf[i - 1][r] - (j &gt;= i ? sf[i - 1][j - i] : 0.0);
+			f[i][j] *= ivi;
+			sf[i][j] = (j ? sf[i][j - 1] : 0.0) + f[i][j];
+			sfi[i][j] = (j ? sfi[i][j - 1] : 0.0) + f[i][j] * (double)j;
+		}
+		g[i][0] = i2 * 0.5;
+	}
+	for (i = 2; i &lt; N; ++i) {
+		i2 = i * (i - 1) / 2;
+		for (j = 1; j &lt;= i2; ++j) {
+			k = std::min((int)g[i][j - 1] + j, i2);
+			g[i][j] = g[i][j - 1] * (sf[i][i2] - sf[i][k]); // bad case (shuffle)
+			g[i][j] += (sfi[i][k] - sfi[i][j]) - (sf[i][k] - sf[i][j]) * (double)j; // good case (swap)
+		}
+	}
+}
+
+void work() {
+	int i, j, rev = 0, S1;
+	scanf("%d%d", &amp;n, &amp;k);
+	for (i = 1; i &lt;= n; ++i) {
+		scanf("%d", a + i);
+		for (j = 1; j &lt; i; ++j) rev += a[j] &gt; a[i];
+	}
+	S1 = std::max(rev - k, 0);
+	printf("%.8lg\n", S1 ? std::min((double)S1, g[n][k - 1]) : 0.0);
+}
+
+int main() {
+	int T;
+	init();
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>当 $k$ 很大 (如 $\geq \dbinom n2$) 时，第一种方案已经可以做到答案 $0$ 了，这时就无需与第二种方案比较了，避免数组越界。</p>
+	</body>
+</html>

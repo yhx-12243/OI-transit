@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj2537][PKUWC2018]Minimax</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 300005
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef long long ll;
+const ll mod = 998244353, inv = 796898467;
+
+int n;
+int p[N], lc[N], rc[N];
+int w[N], root[N];
+int lcnt = 0, leaf[N], rank[N];
+pr D[N];
+
+namespace ST {
+	ll p, q;
+
+	struct node {
+		int v, mul, lc, rc;
+		node () : mul(1) {}
+	} x[10015161];
+
+	int cnt = 0;
+
+	void push_down(int id, int lc, int rc) {
+		if (x[id].mul == 1) return;
+		x[lc].v = (ll)x[lc].v * x[id].mul % mod; x[lc].mul = (ll)x[lc].mul * x[id].mul % mod;
+		x[rc].v = (ll)x[rc].v * x[id].mul % mod; x[rc].mul = (ll)x[rc].mul * x[id].mul % mod;
+		x[id].mul = 1;
+	}
+
+	int merge(int id1, int id2, int G1, int G2) {
+		if (!id1) {x[id2].v = (ll)x[id2].v * G1 % mod; x[id2].mul = (ll)x[id2].mul * G1 % mod; return id2;}
+		if (!id2) {x[id1].v = (ll)x[id1].v * G2 % mod; x[id1].mul = (ll)x[id1].mul * G2 % mod; return id1;}
+		int lc1 = x[id1].lc, rc1 = x[id1].rc, lc2 = x[id2].lc, rc2 = x[id2].rc;
+		push_down(id1, lc1, rc1); push_down(id2, lc2, rc2);
+		int lc1v = x[lc1].v, rc1v = x[rc1].v, lc2v = x[lc2].v, rc2v = x[rc2].v;
+		x[id1].lc = merge(lc1, lc2, (G1 + q * rc1v) % mod, (G2 + q * rc2v) % mod);
+		x[id1].rc = merge(rc1, rc2, (G1 + p * lc1v) % mod, (G2 + p * lc2v) % mod);
+		x[id1].v = (x[id1].lc[x].v + x[id1].rc[x].v) % mod;
+		return id1;
+	}
+
+	int adj(int id, int L, int R, int h) {
+		if (!id) id = ++cnt, x[id].v = 1;
+		if (L == R) return id;
+		int M = L + R - 1 &gt;&gt; 1;
+		h &lt;= M ? x[id].lc = adj(x[id].lc, L, M, h) : (x[id].rc = adj(x[id].rc, M + 1, R, h));
+		return id;
+	}
+	
+	int range(int id, int L, int R) {
+		if (L == R) return (ll)L * leaf[L] % mod * x[id].v % mod * x[id].v % mod;
+		push_down(id, x[id].lc, x[id].rc);
+		int M = L + R - 1 &gt;&gt; 1;
+		return (range(x[id].lc, L, M) + range(x[id].rc, M + 1, R)) % mod;
+	}
+}
+
+void dfs(int x) {
+	if (!lc[x]) {root[x] = ST::adj(root[x], 1, lcnt, rank[x]); return;}
+	dfs(lc[x]);
+	if (!rc[x]) {root[x] = root[lc[x]]; return;}
+	dfs(rc[x]);
+	ST::q = mod + 1 - (ST::p = w[x]);
+	root[x] = ST::merge(root[lc[x]], root[rc[x]], 0, 0);
+}
+
+int main() {
+	int i;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i)
+		scanf("%d", p + i), (lc[p[i]] ? rc[p[i]] : lc[p[i]]) = i;
+	for (i = 1; i &lt;= n; ++i) {
+		scanf("%d", w + i);
+		if (lc[i]) w[i] = w[i] * inv % mod;
+		else D[++lcnt] = pr(w[i], i);
+	}
+	sort(D + 1, D + (lcnt + 1));
+	for (i = 1; i &lt;= lcnt; ++i)
+		leaf[i] = D[i].first, rank[D[i].second] = i;
+	dfs(1);
+	printf("%d\n", ST::range(root[1], 1, lcnt));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

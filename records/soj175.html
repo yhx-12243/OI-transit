@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj175]轰炸</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>$n$ 座城市构成一棵有根树，其中根是 $1$ 号城市。树上的所有边的长度都为 1。$i$ 号城市的初始耐久度为 $D_i$ 。你需要维护以下两种操作：</p>
+		<ol>
+			<li><code>1 <em>A</em> <em>X</em></code>：表示对 $A$ 号城市进行了轰炸，$A$ 号城市的耐久度降低了 $X$。对于所有除了 $A$ 号城市以外的城市 $i$，耐久度降低 $\left \lfloor \dfrac X {2^{d_i}} \right \rfloor$，其中 $d_i$ 表示 $i$ 号城市到 $A$ 号城市的距离。</li>
+			<li><code>2 <em>B</em></code>：询问以 $B$ 号城市为根的子树中，有多少城市被完全破坏了 (即耐久度小于等于 $0$)。</li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^5$)，表示城市的数量。</p>
+		<p>第二行包含 $n$ 个正整数 $D_1, D_2, \cdots, D_n$ ($D_i \leq 10^9$)，分别表示每个城市的初始耐久度。</p>
+		<p>接下来 $n - 1$ 行，每行两个正整数 $u, v$，表示一条边。</p>
+		<p>接下来一行，包含一个整数 $m$ ($m \leq 10^5$)，表示操作数。</p>
+		<p>接下来 $m$ 行，每行描述一个操作，格式如描述所述，保证 $1 \leq X \leq 10^5$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个询问操作，输出一行一个整数，表示破坏的城市数。</p>
+
+		<h3>题解</h3>
+		<p>由于一共被破坏的城市不超过 $n$ 个，因此我们可以把询问离线，然后算出<strong>每个城市破坏的时间</strong> (在哪次轰炸操作后被破坏)，最后按照操作的顺序用树状数组维护哪些城市被破坏。</p>
+		<p>因此现在的任务就是算出对于<strong>每个城市，它被破坏的时间</strong>。</p>
+		<p>如果是单个城市，注意到一个城市的耐久度是随着操作的进行而<strong>单调递减</strong>的，因此可以使用二分来确定每个城市被破坏的时间。</p>
+		<p>那么有多个城市怎么办呢？整体二分！</p>
+		<p>和分治的思想类似，每次二分时，记录当前的操作区间，以及在这一轮轰炸中可能会被破坏的城市集合。</p>
+		<p>具体地，在主过程中，对当前<strong>前一半</strong>的操作，处理出在这些操作中<strong>已经被坏的城市集合</strong> $D$。然后递归，处理前一半操作和城市集合 $\bar D$，以及后一半操作和城市集合 $D$。</p>
+		<p>现在剩下的问题是，给定所有城市的耐久度和操作序列，如何得到每个城市最后的耐久度，或者说耐久度的改变量？</p>
+		<p>然而与城市 $A$ 的距离不超过 $\log_2 X$ 的点的个数可能会非常多，因此直接暴力处理可能会 TLE……那么有什么比较好的方法呢？</p>
+		<hr />
+		<p>用 $f_{i, v}$ 表示当前在点 $v$，(目标点) 与 $A$ 的距离为 $i$，耐久度的改变量。</p>
+		<p>这样就可以使用前缀和的思想了，此时，对于 $A$ 到根上的点，有 $f_{i, p_v} = f_{i+1, v}$，而对于其它点，$f_{i, v} = 0$。</p>
+		<p>因此，我们可以枚举最后的每个点 $v$，对于 $v \sim root$ 的所有点，以及对应的深度，加上 $f_{i, p_v} - f_{i+1, v}$。这样一来，只有<strong>与 $A$ 到根的路径第一次相交的点</strong> ($\mathrm{LCA}(v, A)$) 才会被计算到，其余均被清空。</p>
+		<p>因此，可以在 $O \left( n \log^2 X \right)$ 的时间内得到所有城市耐久度的改变量，从而算出有哪些城市在这轮轰炸中被破坏。</p>
+		<p>总时间复杂度 $O \left( n \log n \log^2 X \right)$ ($n \sim m$)，常数较小。</p>		
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define M 200010
+#define LN 18
+
+typedef std::vector &lt;int&gt; vec;
+
+struct request {
+	int op, ver, val;
+	request * read() {if (scanf("%d%d", &amp;op, &amp;ver), op == 1) scanf("%d", &amp;val); return this;}
+} qry[N];
+
+int n, E, q;
+int to[M], first[N], next[M], p[N];
+int dfn = 0, ord[N], id[N], end_id[N];
+int mod_cnt = 0, modify[N];
+int D[N], city[N], buf[M];
+int scx[LN][N];
+
+vec bomb[N];
+
+namespace BIT {
+	#define lowbit(x) (x &amp; -x)
+	int x[N];
+
+	void add(int h, int v) {for (; h &lt;= n; h += lowbit(h)) x[h] += v;}
+	int sum(int h) {int s = 0; for(; h; h -= lowbit(h)) s += x[h]; return s;}
+	inline int range(int l, int r) {return sum(r) - sum(l - 1);}
+}
+
+inline void addedge(int u, int v) {
+	to[++E] = v; next[E] = first[u]; first[u] = E;
+	to[++E] = u; next[E] = first[v]; first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y;
+	ord[++dfn] = x; id[x] = dfn;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x])
+			p[y] = x, dfs(y);
+	end_id[x] = dfn;
+}
+
+void partition(int qL, int qR, int *_beg, int *_end) {
+	if (qL + 1 == qR) return bomb[modify[qL]].assign(_beg, _end);
+	int qM = qL + qR &gt;&gt; 1, i, j, ver, val;
+	int *p0, *p1 = buf, *p2 = buf + N, *_mid;
+	for (i = qL; i &lt; qM; ++i) {
+		ver = qry[modify[i]].ver; val = qry[modify[i]].val;
+		for (; ver &amp;&amp; val; ver = p[ver], val &gt;&gt;= 1)
+			for (j = 0; val &gt;&gt; j; ++j) scx[j][ver] += val &gt;&gt; j;
+	}
+	for (p0 = _beg; p0 != _end; ++p0) {
+		val = D[*p0];
+		for (ver = *p0, j = i = 0; ver &amp;&amp; j + 1 &lt; LN &amp;&amp; val &gt; 0; ++j, ver = p[i = ver])
+			val -= scx[j][ver] - scx[j + 1][i];
+		val &gt; 0 ? (*p2++ = *p0, D[*p0] = val) : (*p1++ = *p0);
+	}
+	for (i = qL; i &lt; qM; ++i) {
+		ver = qry[modify[i]].ver; val = qry[modify[i]].val;
+		for (; ver &amp;&amp; val; ver = p[ver], val &gt;&gt;= 1)
+			for (j = 0; val &gt;&gt; j; ++j) scx[j][ver] = 0;
+	}
+	_mid = _beg + (p1 - buf);
+	memcpy(_beg, buf, (_mid - _beg) * sizeof(int));
+	memcpy(_mid, buf + N, (_end - _mid) * sizeof(int));
+	partition(qL, qM, _beg, _mid);
+	partition(qM, qR, _mid, _end);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", D + i);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1);
+	scanf("%d", &amp;q);
+	for (i = 0; i &lt; q; ++i)
+		if (qry[i].read()-&gt;op == 1)
+			modify[mod_cnt++] = i;
+	for (i = 0; i &lt; n; ++i) city[i] = i + 1;
+	modify[mod_cnt++] = q;
+	partition(0, mod_cnt, city, city + n);
+	for (i = 0; i &lt; q; ++i)
+		if (qry[i].op == 1)
+			for (int x : bomb[i]) BIT::add(id[x], 1);
+		else
+			printf("%d\n", BIT::range(id[qry[i].ver], end_id[qry[i].ver]));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意要在最后加一个虚拟轰炸操作，将没有被破坏的城市都放在最后一步破坏。</p>
+		<p><strong>坑2：</strong>在分治过程中，对于不在 $D$ 中的城市，需要改变它的耐久度，从而为下一轮分治做准备。</p>
+	</body>
+</html>
