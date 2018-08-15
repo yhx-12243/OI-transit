@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4584][lg3643][uoj204][loj2567][APIO2016]Boat</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在首尔城中，汉江横贯东西。在汉江的北岸，从西向东星星点点地分布着 $N$ 个划艇学校，编号依次为 $1$ 到 $N$。每个学校都拥有若干艘划艇。同一所学校的所有划艇颜色相同，不同的学校的划艇颜色互不相同。颜色相同的划艇被认为是一样的。每个学校可以选择派出一些划艇参加节日的庆典，也可以选择不派出任何划艇参加。如果编号为 $i$ 的学校选择派出划艇参加庆典，那么，派出的划艇数量可以在 $a_i$ 至 $b_i$ 之间任意选择 ($a_i \leq b_i$)。</p>
+		<p>值得注意的是，编号为 $i$ 的学校如果选择派出划艇参加庆典，那么它派出的划艇数量必须<strong>大于</strong>任意一所编号小于它的学校派出的划艇数量。</p>
+		<p>输入所有学校的 $a_i, b_i$ 的值，求出参加庆典的划艇有多少种可能的情况，必须有至少一艘划艇参加庆典。两种情况不同当且仅当有参加庆典的某种颜色的划艇数量不同。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个整数 $N$ ($N \leq 500$)，表示学校的数量。</p>
+		<p>接下来 $N$ 行，每行包含两个正整数，用来描述一所学校。其中第 $i$ 行包括的两个正整数分别表示 $a_i, b_i$ ($1 \leq a_i \leq b_i \leq 10^9$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有可能的派出划艇的方案数除以 $10^9 + 7$ 得到的余数。</p>
+
+		<h3>题解</h3>
+		<p>划艇那么多，显然先离散化一波。</p>
+		<p>离散化完以后，所有的划艇范围就分成了 $O(2N)$ 个区间，每个学校的可行划艇数范围，就是若干个连续区间的并。</p>
+		<p>考虑对区间 DP。设 $f_{i, j}$ 表示前 $i$ 所学校，其中第 $i$ 所学校派出了划艇，且派出的划艇数在第 $j$ 个区间的合法方案数。</p>
+		<p>边界为 $f_{0, 0} = 1$，答案为所有 $i &gt; 0$ 的 DP 值的和 (注意空集是不被允许的)。</p>
+		<p>考虑 $f_{i, j}$ 的转移。我们枚举上一所<strong>派出划艇数在前 $j-1$ 个区间</strong>的学校 $k$ (如果没有则为 $0$)。则这部分的系数是一个二重和式：$\displaystyle \sum_{k &lt; i} \sum_{l &lt; j} f_{k, l}$，容易发现，后面的部分和 $l$ 并没有关系，因此可以对第二维 ($j$ 那一维) 使用<strong>前缀和优化</strong>。</p>
+		<p>接下来，我们要来计算<strong>编号从 $k+1$ 到 $i$ 的学校</strong>，要么不派出划艇，要么派出的划艇数在第 $j$ 个区间，且<strong>学校 $i$ 必须派出划艇</strong>，这样合法的方案数。</p>
+		<p>先枚举有 $y$ ($1 \leq y \leq A_k$) 个学校派出了划艇，那它们的值域应该在 $[l_j, r_j)$ 中。设 $s = r_j - l_j$ 为区间大小，则从 $s$ 个值中取一个长为 $y$ 的单调序列共有 $\dbinom sy$ 种方案，当然，还要从前面 $A_k-1$ 所 (可能派出划艇的) 学校中选择 $y-1$ 所学校，因此还要乘以 $\dbinom {A_k-1} {y-1}$，故总方案数为</p>
+		<p>$$ \sum_{y=1}^{A_k} \binom sy \binom {A_k-1} {y-1} = \sum_{y=1}^{A_k} \binom sy \binom {A_k-1} {A_k-y} = \binom {s+A_k-1} {A_k} $$</p>
+		<p>其中最后一步运用了 Vandermonde 卷积公式。</p>
+		<p>所以最后的 DP 方程即为：</p>
+		<p>$$ f_{i, j} = \sum_{k &lt; l} \left( \sum_{l &lt; j} f_{k, l} \right) \binom {s_j + A_k - 1} {A_k} = \sum_{k &lt; l} F_{k, j-1} \binom {s_j + A_k - 1} {A_k} $$</p>
+		<p>其中 $F_{i, j} = \sum\limits_{k \leq j} f_{i, k}$。</p>
+		<p>注意到这个组合数中的 $s_j$ 可以很大，因此难以预处理，不过没关系，由<strong>吸收恒等式</strong>，这个二项式系数的递推式很容易的。因此我们可以<strong>从大到小</strong>枚举 $k$，逐一检验该学校能否派出划艇 (即区间 $j$ 包含在它们的可行区间内)，从而动态更新 $A_k$ 和组合数。</p>
+		<p>总时间复杂度为 $O \left( n^3 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 510
+#define M 1020
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef long long ll;
+const ll mod = 1000000007;
+
+int n, m;
+int l[N], r[N], rg[M];
+int f[N][M], sf[N][M];
+int inv[N], F[M];
+pr D[M];
+
+inline void add(int &amp;x, const int y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+
+int Discretize(int n) {
+	int i, cnt = 0;
+	std::sort(D, D + n);
+	for (i = 0; i &lt; n; ++i)
+		if (i &amp;&amp; D[i].first == D[i - 1].first)
+			F[D[i].second] = cnt - 1;
+		else
+			F[D[i].second] = cnt, D[cnt++] = D[i];
+	return cnt;
+}
+
+int main() {
+	int i, j, k, u, v, ans = 0; ll cur;
+	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = (mod - mod / i) * inv[mod % i] % mod; 
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i)
+		scanf("%d%d", &amp;u, &amp;v), D[i] = pr(u, i), D[n + i] = pr(++v, n + i);
+	m = Discretize(n &lt;&lt; 1);
+	for (i = 0; i &lt; n; ++i) l[i + 1] = F[i] + 1, r[i + 1] = F[n + i] + 1;
+	for (i = 1; i &lt; m; ++i) rg[i] = D[i].first - D[i - 1].first;
+	for (j = 0; j &lt; m; ++j) f[0][j] = 1;
+	for (i = 1; i &lt;= n; ++i) {
+		for (j = l[i]; j &lt; r[i]; ++j) {
+			cur = u = rg[j]; v = 1;
+			for (k = i - 1; k &gt;= 0; --k) {
+				add(f[i][j], f[k][j - 1] * cur % mod);
+				if (l[k] &lt;= j &amp;&amp; j &lt; r[k])
+					cur = cur * ++u % mod * inv[++v] % mod;
+			}
+		}
+		for (j = std::max(l[i], 1); j &lt; m; ++j) add(f[i][j], f[i][j - 1]);
+	}
+	for (i = 1; i &lt;= n; ++i) add(ans, f[i][m - 1]);
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于代码中有 <code>f[k][j - 1]</code>，因此 $j$ 要从 $1$ 开始编号，以避免下标越界。</p>
+	</body>
+</html>

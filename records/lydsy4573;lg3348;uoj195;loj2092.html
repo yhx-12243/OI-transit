@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4573][lg3348][uoj195][loj2092][ZJOI2016]大森林</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 200005
+
+struct request {
+	int ver, id, x, y;
+	request (int vertex = 0, int _id = 0, int _x = 0, int _y = 0) : ver(vertex), id(_id), x(_x), y(_y) {}
+	inline bool operator &lt; (const request &amp;B) const {return ver &lt; B.ver || (ver == B.ver &amp;&amp; id &lt; B.id);}
+} oper[N * 4];
+
+int n, q;
+int growth, w[N];
+int cnt = 0, L[N], R[N];
+int V = 0, id[N];
+int op_cnt = 0;
+int ans[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace LCT {
+	#define pa p[nd]
+
+	struct node {int v, c[2], p;} nd[N];
+
+	inline int dir(int x) {return !x[nd].p ? -1 : x == x[nd].pa.c[0] ? 0 : x == x[nd].pa.c[1] ? 1 : -1;}
+
+	void update(int x) {nd[x].v = nd[x].c[0][nd].v + nd[x].c[1][nd].v + w[x];}
+
+	void rotate(int x) {
+		int y = x[nd].p, d = !dir(x);
+		nd[y[nd].c[!d] = x[nd].c[d]].p = y;
+		x[nd].p = y[nd].p;
+		if(~dir(y)) y[nd].pa.c[dir(y)] = x;
+		nd[x[nd].c[d] = y].p = x;
+		update(y); update(x);
+	}
+
+	void splay(int x) {for(; ~dir(x); rotate(x))
+		if(~dir(nd[x].p)) rotate(dir(x) ^ dir(nd[x].p) ? x : nd[x].p);}
+
+	int access(int x) {int y = 0; for (; x; y = x, x = nd[x].p) {splay(x); nd[x].c[1] = y; update(x);} return y;}
+
+	void link(int x, int y) {splay(x); nd[x].p = y;}
+
+	void cut(int x) {access(x); splay(x); int &amp;y = nd[x].c[0]; y = nd[y].p = 0;}
+}
+
+int main() {
+	int i, j = 0, op, l, r, u, v, x, lca;
+	scanf("%d%d", &amp;n, &amp;q);
+	w[++V] = 1; w[++V] = 0; LCT::link(2, 1);
+	L[++cnt] = 1; R[cnt] = n; id[cnt] = 1;
+	growth = 2;
+	for (i = 0; i &lt; q; ++i)
+		switch (scanf("%d", &amp;op), op) {
+			case 0: {
+				++cnt;
+				scanf("%d%d", L + cnt, R + cnt);
+				w[++V] = 1; id[cnt] = V;
+				oper[op_cnt++] = request(0, INT_MIN + i, V, growth);
+				break;
+			}
+			case 1: {
+				scanf("%d%d%d", &amp;l, &amp;r, &amp;x);
+				up(l, L[x]); down(r, R[x]);
+				if (l &gt; r) break;
+				w[++V] = 0;
+				oper[op_cnt++] = request(0, INT_MIN + i, V, growth);
+				oper[op_cnt++] = request(l, INT_MIN + i, V, id[x]);
+				oper[op_cnt++] = request(r + 1, INT_MIN + i, V, growth);
+				growth = V;
+				break;
+			}
+			case 2: {
+				scanf("%d%d%d", &amp;x, &amp;u, &amp;v);
+				oper[op_cnt++] = request(x, i, id[u], id[v]);
+				break;
+			}
+		}
+	std::sort(oper, oper + op_cnt);	
+	memset(ans, -1, sizeof ans);
+	for (i = 0; i &lt;= n; ++i)
+		for (; j &lt; op_cnt &amp;&amp; oper[j].ver == i; ++j) {
+			u = oper[j].x; v = oper[j].y;
+			if (oper[j].id &gt;= 0) {
+				LCT::access(u); LCT::splay(u); x = LCT::nd[u].v;
+				lca = LCT::access(v); LCT::splay(v); x += LCT::nd[v].v;
+				LCT::access(lca); LCT::splay(lca); x -= LCT::nd[lca].v * 2;
+				ans[oper[j].id] = x;
+			} else
+				LCT::cut(u), LCT::link(u, v);
+		}
+	for (i = 0; i &lt; q; ++i)
+		if (~ans[i]) printf("%d\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>
