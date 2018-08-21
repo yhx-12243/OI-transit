@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4574][lg3352][uoj196][loj2093][ZJOI2016]线段树</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<!--script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script-->
+		<script src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>scx 遇到了一个题目：有一个序列 $a_1, a_2, \cdots, a_n$，$q$ 次操作，每次把一个区间内的数改成区间内的最大值，问最后每个数是多少。scx 很快地就使用了线段树解决了这个问题。</p>
+		<p>于是充满智慧的 scx 想，如果操作是随机的，即在这 $q$ 次操作中每次等概率随机地选择一个区间 $[l, r]$ ($1 \leq l \leq r \leq n$)，然后将这个区间内的数改成区间内最大值 (注意这样的区间共有 $\dfrac {n(n+1)} 2$ 个)，最后每个数的期望大小是多少呢？</p>
+		<p>scx 非常热爱随机，所以她给出的输入序列也是随机的。</p>
+		<p>对于每个数，输出它的期望乘 $\left( \dfrac {n(n+1)} 2 \right)^q$ 再对 $10^9 + 7$ 取模后的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($n, q \leq 400$)，表示序列里数的个数和操作的个数。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_1, a_2, \cdots, a_n$ ($0 \leq a_i \leq 10^9$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n$ 个整数，表示每个数最终的答案模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>题意即每个位置上的数在求所有方案 (共 $\left( \dfrac {n(n+1)} 2 \right)^q$ 种方案) 下最终的值的和 。</p>
+		<p>注意到答案只和这些数的相对大小有关 (比如变成第 $k$ 小)，因此我们可以将原序列<strong>离散化</strong>为一个 <strong>$1 \sim n$ 的排列</strong>，然后对位置 $i = 1, 2, \cdots, n$ 以及 $k = 1, 2 \cdots, n$，有多少种方案可以将它变为 $k$ (即原序列的第 $k$ 小)。最后求个加权的和即可。</p>
+		<p>我们先设 $g_{i, j}$ 表示位置 $i$ 上的数最终变为 $j$ (即原序列的第 $j$ 小) 的方案数。那么第 $i$ 个位置上的答案即为 $\displaystyle \sum_{j=1}^n g_{i, j} w_j$，其中 $w_j$ 为第 $j$ 小的数的值。</p>
+		<p>考虑固定 $j$，$g_{i, j}$ 在哪些位置上可能出现。设 $j$ 出现的位置为 $x$，则设 $l_j, r_j$ 为 $x$ 左端和右端<strong>第一个值 $&gt; j$ 的位置</strong>，则只有当 $l_j &lt; i &lt; r_j$ 时 $g_{i, j} &gt; 0$。</p>
+		<p>因此我们枚举每个 $v$ 对应的 $l_v, r_v$，进行 DP。</p>
+		<p>这时轮数就要参与进来了。设 $f_{k, i, j}$ 表示 $k$ 轮后，区间 $[i, j]$ 的数<strong>都不超过 $j$</strong> 的方案数。</p>
+		<p>(scx: 为什么不是刚好等于 $j$ 的方案数呢？)</p>
+		<p>由于刚好等于 $j$ 的范围可以扩大，也可以缩小。故无法知道两边的数是比它小的 (即扩大的) 还是比它大的 (即缩小的)，因此无法转移。</p>
+		<p>然而我们维护不超过 $j$ 的范围，那么两边的数<strong>一定是比它大的</strong>。因此转移<strong>一定是缩小型的</strong> (外界的大数改进来)，而<strong>不会是扩大型的</strong>。</p>
+		<p>考虑每一轮的转移，设当前一轮随机的区间为 $[l, r]$。那么有如下三种情况：</p>
+		<ol>
+			<li><p>$[l, r] \cup [i, j] = \varnothing \vee [l, r] \subseteq [i, j]$。</p>
+			<p>在这种情况下，区间的数不超过 $j$ 的范围是不变的。</p>
+			<p>而这样的 $[l, r]$ 有 $\dbinom i2 + \dbinom {j-i+2} 2 + \dbinom {n-j+1} 2$ 个，因此 (伪) 方程如下：</p>
+			<p>$$ f_{k+1, i, j} \gets f_{k, i, j} \cdot \left( \binom i2 + \binom {j-i+2} 2 + \binom {n-j+1} 2 \right) $$</p>
+			<p>其中 $a \gets b$ 表示 <code>a += b</code>。</p></li>
+			<li><p>$i &lt; l \leq j &lt; r$。</p>
+			<p>在这种情况下，不超过 $j$ 的区间从 $[i, j]$ 变为 $[i, l - 1]$，而 $r$ 共有 $n - j$ 种情况，因此方程如下：</p>
+			<p>$$ f_{k+1, i, l} \gets f_{k, i, j} \cdot (n-j) $$</p>
+			<p>注意这个方程是跟 $l$ 有关的，可以用<strong>前缀和优化</strong>变为和情形 1 一样的 $O \left( n^2 \right)$。</p></li>
+			<li><p>$l &lt; i \leq r &lt; j$。</p>
+			<p>在此种情况下，$[i, j] \to [r + 1, j]$，因此共有 $l$ 有 $i - 1$ 种情况，和情形 2 对称。转移方程略。</p></li>
+			<li><p>$[i, j] \subseteq [l, r]$。</p>
+			<p>这种请况下，$[i, j] \to \varnothing$。因此直接<strong>不转移</strong>即可。</p></li>
+		</ol>
+		<p>最后考虑计算 $g_{i, j}$。由于我们维护的是<strong>不超过 $j$</strong> 的信息，因此我们考虑先求 $g_{i, j}$ 的前缀和 $\displaystyle G_{i, j} = \sum_{k \leq j} g_{i, k}$。</p>
+		<p>由于位置 $i$ 上的数不超过 $j$，因此最终的那个区间要包含 $i$，因此</p>
+		<p>$$ G_{i, j} = \sum_{l \leq i \leq r} f_{q, l, r} $$</p>
+		<p>使用前缀和优化，$O \left( n^2 \right)$。</p>
+		<p>最终差分得到 $g_{i, j}$ 后，代入上式即得答案。</p>
+		<p>由于<strong>输入序列的随机性</strong>，故 $\sum \left( r_j - l_j \right) = O \left( n \log n \right)$，因此总时间复杂度为 $O \left( q n^2 \right) \cdot O \left( n \log n \right) = O \left( q n^3 \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 510
+
+typedef long long ll;
+const ll mod = 1000000007;
+
+int n, q;
+int v[N], o[N], a[N];
+int C2[N], f[N][N];
+int dp[2][N][N], (*cur)[N] = *dp, (*nxt)[N] = dp[1];
+
+inline void add(int &amp;x, const int y) {x = (x + y &gt; mod ? x + y - mod : x + y);}
+
+inline bool cmp(const int A, const int B) {return v[A] &lt; v[B];}
+
+void solve(int l, int r, int id) {
+	int i, j, v = a[id], t, round;
+	memset(nxt, 0, sizeof *dp); nxt[l][r] = 1;
+	for (round = 0; round &lt; q; ++round) {
+		std::swap(cur, nxt);
+		for (i = l; i &lt;= r; ++i) // right transfer
+			for (t = 0, j = r; j &gt;= i; --j)
+				nxt[i][j] = t, add(t, (ll)cur[i][j] * (n - j) % mod);
+		for (j = r; j &gt;= l; --j) // left transfer
+			for (t = 0, i = l; i &lt;= j; ++i)
+				add(nxt[i][j], t), add(t, (ll)cur[i][j] * (i - 1) % mod);
+		for (i = l; i &lt;= r; ++i) // no effect
+			for (j = i; j &lt;= r; ++j)
+				add(nxt[i][j], ((ll)C2[i - 1] + C2[j - i + 1] + C2[n - j]) * cur[i][j] % mod);
+	}
+	for (i = l; i &lt;= r; ++i)
+		for (t = 0, j = r; j &gt;= i; --j)
+			add(t, nxt[i][j]), add(f[j][v], t);
+}
+
+int main() {
+	int i, j, l, r, ans;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", v + i), o[i] = i;
+	std::sort(o + 1, o + (n + 1), cmp);
+	for (i = 1; i &lt;= n; ++i) a[o[i]] = i, C2[i] = C2[i - 1] + i;
+	for (i = 1; i &lt;= n; ++i) {
+		for (l = i - 1; l &amp;&amp; a[l] &lt; a[i]; --l);
+		for (r = i + 1; r &lt;= n &amp;&amp; a[r] &lt; a[i]; ++r);
+		solve(++l, --r, i);
+	}
+	for (i = 1; i &lt;= n; ++i) {
+		ans = 0;
+		for (j = 1; j &lt;= n; ++j)
+			if (f[i][j]) add(ans, (ll)(f[i][j] - f[i][j - 1] + mod) * v[o[j]] % mod);
+			else f[i][j] = f[i][j - 1];
+		printf("%d%c", (int)(ans % mod), i == n ? 10 : 32);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意这里的每一段的方案数为 $1 + 2 + \cdots + s = \dfrac {s (s + 1)} 2 = \dbinom {s + 1} 2$，而不是 $\dbinom s2$，预处理时不要写错了。</p>
+		<p><strong>坑2：</strong>注意并不是所有的 $G_{i, j}$ 都是可以得到的，比如对于在 $[l_j, r_j]$ 之外的 $G_{i, j}$ 就不会被任何过程更新。这代表，位置 $i$ 上的数<strong>不可能等于 $j$</strong>。因此，此时 $g_{i, j} = 0$，故 $G_{i, j} = G_{i, j-1}$。故要对 $G_{i, j} = 0$ 的 $j$ 设置成 $G_{i, j-1}$。</p>
+		<p>与此同时，$G_{i, j}$ 可能<strong>在模意义下等于 $0$</strong>，因此，可以像<a href="lydsy1063.html" target="_blank">这道题</a>一样，用 <code>mod</code> 来表示模后为 $0$ 的值。这样就可以正确区分 $0$ 和 "模意义下为 $0$"，以便不同处理。</p>
+	</body>
+</html>

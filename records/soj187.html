@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj187]01 序列</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<!--script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script-->
+		<script src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个以 $1$ 开头，$0$ 结尾的 $01$ 序列 (即只包含 $0$ 和 $1$ 的序列) $S$，令 $f(S)$ 表示序列 $S$ 中包含的 $10$ 交错的子序列的个数，$10$ 交错子序列是指 $1$ 和 $0$ 交错出现且第一个字符是 $1$ 最后一个字符是 $0$ 的子序列 (即形如 $1010 \cdots 10$ 的子序列)。</p>
+		<p>例如 $f(1100) = 4$，因为有 $4$ 个 $10$ 交错子序列，他们的位置分别为 $\{1, 3\}$、$\{1, 4\}$、$\{2, 3\}$ 和 $\{2, 4\}$。$f(1010) = 4$，他们的位置分别为 $\{1, 4\}$、$\{1, 2\}$，$\{3, 4\}$，$\{1, 2, 3, 4\}$。</p>
+		<p>现在给定 $S$，你需要通过修改 $S$ 中的某些位置的字符 (把 $1$ 改为 $0$ 或把 $0$ 改为 $1$) 得到 $T$，使得 $T$ 也是一个以 $1$ 开头，$0$ 结尾的 $01$ 序列，且 $f(T) = X$。求是否有解，如果有解，输出需要至少修改几个字符。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10$)，表示数据组数。</p>
+		<p>对于每组数据，第一行一个以 $1$ 开头，$0$ 结尾的 $01$ 序列表示 $S$ ($2 \leq \left| S \right| \leq 32$)，第二行一个正整数表示 $X$ ($1 \leq X \leq 10^6$)。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，如果有解，输出 <samp>YES</samp>，并在第二行中输出至少修改几个字符。如果无解，输出 <samp>NO</samp>。</p>
+
+		<h3>题解</h3>
+		<p>考虑给定一个以 $1$ 开头、<strong>不一定</strong>以 $0$ 结尾的二进制串 $s$，求它的 <code>10</code> 交错子序列 <dfn>(称为 E 型子序列)</dfn> 的个数。</p>
+		<p>我们考虑 DP。设 $f_i$ 表示 $s$ 的前 $i$ 位的 E 型子序列个数 $+ 1$ (这个 $+ 1$ 是为了转移方便，在实际意义上指的是空的子序列)，$f_1 = 1$。</p>
+		<p>如果 $s_i = 1$，那么最后一个 $1$ <strong>不会对 E 型子序列产生任何贡献</strong>，故 $f_i = f_{i-1}$。</p>
+		<p>如果 $s_i = 0$。那么有两种情况：</p>
+		<ol>
+			<li><p>最后一个 $0$ 不参与贡献，此时有 $f_{i-1}$ 个。</p></li>
+			<li><p>最后一个 $0$ 参与贡献，因此我们需要得到 $s$ 的前 $i - 1$ 位的 <code>1010...1</code> 的子序列 <dfn>(暂且称为 O 型子序列)</dfn> 的个数。</p></li>
+			<p>因此我们还要令 $g_i$ 表示前 $i$ 位的 O 型子序列个数，故 $g_1 = 1$ (注意 $s_1 \equiv 1$)。</p>
+			<p>那么 $f_i = f_{i-1} + g_{i-1}$。</p>
+			<p>$g_i$ 的转移了类似，当 $s_i = 1$ 时，$g_i = f_{i-1} + g_{i-1}$，否则 $g_i = g_{i-1}$。</p></li>
+		</ol>
+		<p>那么对于最终的 01 序列，由于它以 $0$ 结尾，所以一定有 $f_n &gt; g_n$。</p>
+		<p>注意到这个转移是<strong>可逆的</strong>，即如果你知道 $f_i, g_i$，你就可以<strong>反推出</strong> $f_{i-1}, g_{i-1}$ 以及 $s_i$。</p>
+		<p>这样一来，由于我们知道最终 $f_n$ 的值 ($= X + 1$)，因此我们可以枚举 $g_n$ ($\in [1, f_n - 1]$)，然后用类似 Euclid 辗转相除的方法来获取 $f_i, g_i$，当然还有最重要的 $s_i$。</p>
+		<p>由于 $f, g$ 满足初值 $f_1 = g_1 = 1$，因此如果中途哪一步 $f_i = g_i$ 或最终的 $f_1, g_1 \neq 1$，那么这种方案就是<strong>无效的</strong>。</p>
+		<p>最后对所有有效方案的花费值取 <code>min</code> 即得答案。</p>
+		<p>单组数据时间复杂度 $O \left( X \min \{ \log X, n \} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+void work() {
+	char s[50];
+	int i, j, x, n, ans = INT_MAX;
+	int A, B, cur;
+	scanf("%s%d", s, &amp;x); n = strlen(s);
+	for (i = 1; i &lt;= x; ++i) {
+		A = x + 1; B = i; cur = 0;
+		for (j = n - 1; j &amp;&amp; A != B; --j)
+			A &gt; B ? (A -= B, cur += s[j] &amp; 1) : (B -= A, cur += !(s[j] &amp; 1));
+		if (!j &amp;&amp; A == 1 &amp;&amp; B == 1) down(ans, cur);
+	}
+	ans == INT_MAX ? puts("NO") : printf("YES\n%d\n", ans);
+}
+
+int main() {
+	int T;
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于初值是 $f_1 = g_1 = 1$，因此只需<strong>逆着转移 $n - 1$ 步</strong>而不是<strong> $n$ 步</strong>。</p>
+	</body>
+</html>

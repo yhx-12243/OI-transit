@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj183]旋转</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<!--script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script-->
+		<script src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>墙壁上挂着 $n$ 个钟，这些钟只有时针，没有分针。这些钟的时钟指向 $3, 6, 9, 12$ 这四个数字中的一个，用 $a_i$ 表示第 $i$ 个钟指向的数字。</p>
+		<p>小 R 会一种魔法，他施展一次这种魔法可以使得一段连续编号的种的时针顺时针旋转 $90$ 度。</p>
+		<p>现在小 R 希望改变这些钟指向的数字，其中他想把第 $i$ 个时针指向的数字变成 $b_i$。求他至少要施展多少次魔法。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^5$)。</p>
+		<p>第二行包含 $n$ 个整数 $a_i$ ($0 \leq a_i \leq 3$)，$a_i = 0$ 表示指向 $3$，$a_i = 1$ 表示指向 $6$，$a_i = 2$ 表示指向 $9$，$a_i = 3$ 表示指向 $12$。</p>
+		<p>第三行 $n$ 个整数 $b_i$ ($0 \leq b_i \leq 3$)，用与 $a_i$ 同样的方式输入第 $i$ 个钟的目标数字。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示答案。</p>
+
+		<h3>题解</h3>
+		<p>将两个序列相减并差分后，原题转化成了这样一个模型：</p>
+		<p>你需要在一个长度为 $n$ 的区间内添加若干 <code>(</code> 和 <code>)</code>，同一个位置可以放多个<strong>同类型括号</strong>或不放，且需要满足是一个合法括号匹配 (i.e. 即<strong>任意一个前缀</strong>的左括号数不少于右括号数)。</strong>
+		<p>并且给定<strong>每个位置上的括号数</strong>的<strong>代数值</strong> (即 <code>(</code> 的个数，或 <code>)</code> 的个数的相反数) 模 $4$ 为 $c_i$。求至少有多少对括号。</p>
+		<p>首先，所有的 $c_i \equiv 0 \pmod 4$ 不影响答案，故先将它们去掉。</p>
+		<p>我们从前往后加括号，首先贪心地让 <code>(</code> 的个数 - <code>)</code> 的个数尽可能少 (即尽可能向 $0$ 靠)。当然，由于 $c_i \equiv 3 \pmod 4$ 的存在，这样并不一定是最优的，比如 <code>[)))] [(((]</code> 就比 <code>[(] [)]</code> 要劣。</p>
+		<p>因此，如果一个位置上只有 <code>)</code>，我们对这个位置打个 $c_i$ 的标记，代表以后可以将这里的 <code>)</code> 换成 $c_i$ 个 <code>(</code> 以备不时之需。</p>
+		<p>这样，当遇到一个 $2$ 或 $3$ 时，如果前面储备的 <code>(</code> 不够了，我们就可以取这样最小的标记，就能将前面的 <code>)</code> 换成 <code>(</code>，由于多出了 $4$ 的储备，因此就可以使用 <code>)</code> 啦。</p>
+		<p>因此这道题的总体思路就是，首先，将 $0$ 去掉，然后每次遇到一个数后，贪心地填 <code>)</code>，然后将多余的 <code>(</code> 预先放到后面的位置，作为储备。如果储备够了，直接 <code>)</code> 回来，<strong>并打上标记</strong>，否则直接取最小的标记 (并与 $c_i$ 取 $\min$)，将前面的 <code>)</code> 换成 <code>(</code>，从而使这里变成 <code>)</code>。</p>
+		<p>总时间复杂度 $O(n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+
+int n, a[N], r[N], buf[4];
+
+inline int get() {return buf[0] ? (--buf[0], 0) : buf[1] ? (--buf[1], 1) : buf[2] ? (--buf[2], 2) : (--buf[3], 3);}
+
+int main() {
+	int i, j = 0, x, cur, ans = 0;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", &amp;x), a[i] = x - a[i] &amp; 3;
+	for (i = n; i; --i) a[i] = a[i] - a[i - 1] &amp; 3;
+	for (i = 1; i &lt;= n; ++i) a[i] ? a[++j] = a[i] : 0; n = j; j = 0;
+	for (i = 1; i &lt;= n; ++i)
+		if (++buf[a[i]], (cur = a[i] + r[i]) &amp; 3) {
+			ans += x = get();
+			for (j = std::max(j, i + 1); cur &amp;&amp; j &lt;= n; ++j)
+				x = std::min(cur, 4 - a[j] - r[j]), r[j] += x, cur -= x;
+		}
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意这组数据：$c_1 = c_2 = \cdots = c_{n/2} = 1; c_{n/2+1} = c_{n/2+2} = \cdots = c_n = 3$，可以发现这组数据的<strong>唯一最优解</strong>是前面 $\dfrac n2$ 个 <code>(</code>，后面 $dfrac n2$ 个 <code>)</code>。这说明了，在前缀中，<code>(</code> 的个数减去 <code>)</code> 的个数可以达到 $O(n)$ 级别。但是本题解中就会打上 $O(n)$ 个标记，在后面一个一个释放。</p>
+		<p><strong>坑2：</strong>这道题对任意模 (即不是模 $4$) 也是可以做的，因为我们用到模 $4$ 的任何性质 <del>(如果你非要说 <code>&amp; 3</code> 比 <code>% 4</code> 快我也不反对)</del>。而对于相对比较大的模，我们可以用 <code>std::multiset</code> 或 <code>std::map</code> 来存储标记。当然用堆也可以。</p>
+	</body>
+</html>

@@ -1,41 +1,25 @@
-(function (win, und){
-	
+(function (win, und) {
+
 	'use strict';
-	
+
 	var
-		recArr, memArr,
-		strBack, xmlBack, nowId, tFrag;
+		recArr, memArr, okay;
 
 	const
 		failed = '今天运气不怎么好，和 scx 喝口茶再试试吧';
 
 	// ---------------- Records ---------------- //
-	win.LoadRecords = function (){
-		strBack = '';
-		xhr.onreadystatechange = function (){
-			if(xhr.readyState === 4){
-				if(xhr.status === 200 || xhr.status === 0){
-					strBack = xhr.responseText;
-					DecRecords(); pageDeals();
-				}else
-					alert(failed);
-			}
-		}
-		xhr.open('GET', 'records/tot.cfg', true);
-		xhr.send(null);
-	}
-
-	function DecRecords(){
+	win.parseRecords = function (strBack) {
 		var i, nm, info, count = 0, recnum = 0, tnm;
 		var $R, $C, $A;
 		Rows = []; recArr = strBack.split('\n');
-		for(i = 0; i < recArr.length; ++i)
-			if(recArr[i]){
+		for (i = 0; i < recArr.length; ++i)
+			if (recArr[i]) {
 				info = recArr[i].replace(/[\f\n\r\v]/g, '').split('|');
-				if(info.length !== 5) continue; // invalid record
+				if (info.length !== 5) continue; // invalid record
 				++recnum;
 				tnm = OJMatch(curLocation, nm = info[0]);
-				if(tnm){
+				if (tnm) {
 					$R = $('<tr />');
 					$R.append($C = $('<td />').data('id', recnum - 1));
 					$R.append($C = $('<td />').html(tnm));
@@ -49,11 +33,11 @@
 					++count;
 				}
 			}
-		for(i = 0; i < Rows.length; ++i){
+		for (i = 0; i < Rows.length; ++i) {
 			$C = $(Rows[i].cells[0]);
 			$C.html(recnum - $C.data('id')).removeData();
 		}
-		if(curROrder === 'nr') tableReverse();
+		if (curROrder === 'nr') tableReverse();
 		else if(curROrder !== 'n') sortTable(curROrder);
 		$('#recTable').append(Rows.slice((curPage - 1) * RECORDS_PER_PAGE, curPage * RECORDS_PER_PAGE));
 		$('#recTotal').html('scx: ' + (count ? (curLocation ? '当前筛选下' : '') + '共有 ' + count + ' 条记录' : '怎么一道题都还没有啊，快点做题了！'));
@@ -61,58 +45,37 @@
 	}
 
 	// ---------------- Templates ----------------- //
-	win.LoadTemplates = function (){
-		strBack = '';
-		xhr.onreadystatechange = function (){
-			if(xhr.readyState === 4){
-				if(xhr.status === 200 || xhr.status === 0){
-					strBack = xhr.responseText;
-					DecTemplate(); nowId = 0; tFrag = [];
-					OpenTemplate();
-				}else
-					alert(failed);
-			}
+	win.getTemplates = function (strBack) {
+		tmpArr = strBack.split('\n'); titleArr = []; okay = [];
+		var i, t;
+		for (i in tmpArr) {
+			t = tmpArr[i] = tmpArr[i].replace(/[\f\n\r\v]/g, '');
+			if (!t.length) return;
+			$.ajax('templates/' + t + '.xml', {
+				type: 'GET',
+				dataType: 'xml',
+				id: parseInt(i),
+				success: parseTemplate
+			});
 		}
-		xhr.open('GET', 'templates/tot.cfg', true);
-		xhr.send(null);
 	}
 
-	function DecTemplate(){
-		var i;
-		tmpArr = strBack.split('\n'); titleArr = [];
-		for(i in tmpArr)
-			tmpArr[i] = tmpArr[i] && tmpArr[i].replace(/[\f\n\r\v]/g, '');
-	}
-
-	function OpenTemplate(){
-		if(nowId >= tmpArr.length) return $('#templates').append(tFrag), tFrag = [];
-		var f = tmpArr[nowId];
-		if(!f) return $('#templates').append(tFrag), tFrag = [];
-		xhr.onreadystatechange = function (){
-			if(xhr.readyState === 4){
-				if(xhr.status === 200 || xhr.status === 0){
-					xmlBack = xhr.responseXML;
-					if(xmlBack) Analyze();
-					++nowId; OpenTemplate();
-				}else
-					alert(failed);
-			}
+	function parseTemplate(data) {
+		var i = this.id, j, inner, $header, $text;
+		titleArr[i] = $('title', data).text();
+		$header = $('<h3 />').attr('id', tmpArr[i]).html(titleArr[i] + ' [#' + tmpArr[i] + ']:')
+		inner = $('pre', data).prop('outerHTML');
+		$text = $('<div />').html(inner).attr('data-id', i);
+		for (j = i - 1; j >= 0; --j)
+			if (okay[j]) break;
+		if (j == -1) {
+			$('#templates > div.cen').after($text).after($header);
+			console.log('A:', j);
+		} else {
+			$('#templates > div[data-id=' + j + ']').after($text).after($header);
+			console.log('B:', j);
 		}
-		f = 'templates/' + f + '.xml';
-		xhr.open('GET', f, true);
-		xhr.send(null);
-		return und;
-	}
-
-	function Analyze(){
-		var code, inner;
-		var E0, E1;
-
-		titleArr[nowId] = $('title', xmlBack).text();
-		tFrag.push($('<h3 />').attr('id', tmpArr[nowId]).html(titleArr[nowId] + ' [#' + tmpArr[nowId] + ']:').get(0));
-		
-		inner = $('pre', xmlBack).prop('outerHTML');
-		tFrag.push($('<div />').html(inner).get(0));
+		okay[i] = true;
 	}
 
 	// ---------------- Memos ---------------- //

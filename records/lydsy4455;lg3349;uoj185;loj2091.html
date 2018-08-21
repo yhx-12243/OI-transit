@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4455][lg3349][uoj185][loj2091][ZJOI2016]小星星</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<!--script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script-->
+		<script src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>scx 是一个心灵手巧的女孩子，她喜欢手工制作一些小饰品。她有 $n$ 颗小星星，用 $m$ 条彩色的细线串了起来，每条细线连着两颗小星星。有一天她发现，她的饰品被破坏了，很多细线都被拆掉了。这个饰品只剩下了 $n-1$ 条细线，但通过这些细线，这颗小星星还是被串在一起，也就是这些小星星通过这些细线形成了树。</p>
+		<p>scx 找到了这个饰品的设计图纸，她想知道现在饰品中的小星星对应着原来图纸上的哪些小星星。如果现在饰品中两颗小星星有细线相连，那么要求对应的小星星原来的图纸上也有细线相连。</p>
+		<p>scx 想知道有多少种可能的对应方式。只有你告诉了她正确的答案，她才会把小饰品做为礼物送给你呢。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 17; m \leq \dbinom n2$)，表示原来的饰品中小星星的个数和细线的条数。</p>
+		<p>接下来 $m$ 行，每行包含两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，表示原来的饰品中小星星 $u$ 和 $v$ 通过细线连了起来。这里的小星星从 $1$ 开始标号。保证每对小星星之间最多只有一条细线相连。</p>
+		<p>接下来 $n - 1$ 行，每行包含两个正整数 $u, v$ $(1 \leq u, v \leq n; u \neq v$)，表示现在的饰品中小星星 $u$ 和 $v$ 通过细线连了起来。保证这些小星星通过细线可以串在一起。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示可能的对应方式的数量。如果不存在可行的对应方式则输出 $0$。</p>
+
+		<h3>题解</h3>
+		<p>题目即求，一棵树 $T$ 和一张图 $G$ 有多少种 "同构" 的方式 (排列方式)，使得 $T$ 是 $G$ 的子图。</p>
+		<p>注意到 $n$ 很小，就尝试使用状态压缩 DP 吧。</p>
+		<p>设 $f_{i, j, S}$ ($i \in T; j \in G; \left| S \right| = \mathrm{size}[i]$) 表示 $i \leftrightarrow j$，且 $T$ 中以 $i$ 为根的子树中的所有点组成的集合 $T[i] \leftrightarrow S$ 这样的配对方案数。</p>
+		<p>接下来考虑转移。对于子树 $T[x]$，考虑它的一个新的子节点 $y$，则有</p>
+		<p>$$ f_{x, i, S} \gets \sum_{(i, j) \in G} \sum_{\quad S' \subseteq S \\ \left| S' \right| = \mathrm{size}[j]} f_{x, i, S \setminus S'} f_{y, j, S'} $$</p>
+		<p>发现这个不好处理。如果我们<strong>扩大 $f_{i, j, S}$ 的定义 (数列延拓)</strong>，使得当 $|S| &gt; \mathrm{size}[i]$ 时也有定义，比如为 $0$。那么转移方程就化为</p>
+		<p>$$ f_{x, i, S} \gets \sum_{(i, j) \in G} \sum_{U \cup V = S} f_{x, i, U} f_{y, j, V} $$</p>
+		<p><strong>注意这里的 $\gets$ 是更新</strong>，即有可能之前 $f_{x, i, S}$ 非 $0$，而更新之后变为 $0$。</p>
+		<p>可以发现这是一个<strong>集合并卷积</strong>！因此我们可以参考<a href="vijos%20%234.html" target="_blank">这道题</a>，使用<strong>快速 Möbius 变换</strong> (FMT) 加速。</p>
+		<p>具体地，在代码中，我们用 $F_{i, j, S}$ 表示 $\displaystyle \sum_{T \subseteq S} f_{i, j, T}$ 的值，从而转移方程就变为了</p>
+		<p>$$ F_{x, i, S} \gets \sum_{(i, j) \in G} F_{x, i, U} F_{y, j, V} $$</p>
+		<p>最后的答案即为 $\displaystyle \sum_{j \in G} f_{1, j, G}$。</p>
+		<p>对于每个 $f_{1, j, G}$，由于是单个点值，可以通过 Möbius 逆变换的<strong>公式形式</strong>在 $O \left( 2^n \right)$ 时间直接计算，而没有必要使用快速 Möbius 逆变换。</p>
+		<p>总时间复杂度即为 $O \left( 2^n \cdot n m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 20
+#define N2 132000
+#define parity __builtin_parity
+
+typedef long long ll;
+
+int n, m, ALL;
+ll f[N][N][N2], buf[N2];
+int G[N][N], T[N][N];
+
+void dfs(int x, int px = -1) {
+	int y, v, i, j, li; ll *_cur, *_last;
+	for (i = 0; i &lt; n; ++i)
+		for (j = v = 1 &lt;&lt; i; j &lt;= ALL; j = j + 1 | v) f[x][i][j] = 1;
+	for (y = 0; y &lt; n; ++y)
+		if (T[x][y] &amp;&amp; y != px) {
+			dfs(y, x);
+			for (i = 0; i &lt; n; ++i) {
+				memset(buf, 0, sizeof buf);
+				for (li = 0; li &lt; n; ++li)
+					if (G[i][li]) {
+						v = 1 &lt;&lt; i | 1 &lt;&lt; li; _last = f[y][li];
+						for (j = v; j &lt;= ALL; j = j + 1 | v) buf[j] += _last[j];
+					}
+				_cur = f[x][i];
+				for (j = v = 1 &lt;&lt; i; j &lt;= ALL; j = j + 1 | v)
+					_cur[j] *= buf[j];
+			}
+		}
+}
+
+int main() {
+	int i, j, u, v; ll ans = 0;
+	scanf("%d%d", &amp;n, &amp;m); ALL = ~(-1 &lt;&lt; n);
+	for (i = 0; i &lt; m; ++i) scanf("%d%d", &amp;u, &amp;v), --u, --v, G[u][v] = G[v][u] = 1;
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), --u, --v, T[u][v] = T[v][u] = 1;
+	dfs(0);
+	for (i = 0; i &lt; n; ++i)
+		for (j = 0; j &lt;= ALL; ++j)
+			parity(ALL ^ j) ? ans -= f[0][i][j] : ans += f[0][i][j];
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 Möbius 逆变换中的指数为 $|G| - |S|$，因此最后不要符号搞反了。</p>
+	</body>
+</html>

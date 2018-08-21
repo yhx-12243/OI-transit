@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj235][IOI2016]molecules</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<!--script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script-->
+		<script src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>彼得在一家公司工作，这家公司已经制造了一台检测分子的机器。每个分子的重量都是正整数。这台机器的检测范围是 $[l, u]$，这里 $l$ 和 $u$ 都是正整数。这台机器能够检测一个分子集合当且仅当这个集合包含了一个子集，这个子集的分子的重量属于机器的检测范围。</p>
+		<p>考虑 $n$ 个分子，重量记为 $w_0, \ldots, w_{n - 1}$。如果存在一个下标的集合 (并且该集合中的下标都不相同) $I = \{i_1, \ldots, i_m\}$ 使得 $l \leq w_{i_1} + \cdots + w_{i_m} \leq u$，那么检测就会成功。</p>
+		<p>由于机器的细节，$l$ 和 $u$ 之间的差距要保证会大于等于最重分子和最轻分子之间的差距，即 $u - l \geq w_\max - w_\min$，其中 $w_\max = \max \left\{ w_0, \ldots, w_{n - 1} \right\}$，$w_\min = \min \left\{ w_0, \ldots, w_{n - 1} \right\}$。</p>
+		<p>你的任务是写一个程序，该程序能找到一个子集，使得该子集的总重量属于检测范围，或者判定没有这样的子集存在。</p>
+
+		<h3>实现细节</h3>
+		<p>你应该实现一个函数 (方法)：</p>
+		<ul>
+			<li><code>std::vector&lt;int&gt; find_subset(int l, int u, std::vector&lt;int&gt; w)</code>
+			<ul>
+				<li>$l$ 和 $u$ ($1 \leq l \leq u \leq 2^{31} - 1$)：分别表示检测范围的两个端点，</li>
+				<li>$w$ ($1 \leq w \leq 2^{31} - 1; 1 \leq n \leq 2 \times 10^5$)：分子的重量。</li>
+				<li>如果存在符合要求的子集，该函数应该返回一个数组，数组中的元素代表符合要求的子集中的分子的下标。如果存在多个正确答案，返回任何一个子集即可。</li>
+				<li>如果不存在符合要求的子集，该函数应该返回一个空数组。</li>
+			</ul></li>
+		</ul>
+		<p>你的程序可以将分子的下标以任何顺序写入返回的数组中。</p>
+		<p>请使用提供的模板文件，参考关于你所使用的编程语言的实现细节。</p>
+
+		<h3>题解</h3>
+		<p>不妨设 $w_0 \leq w_1 \leq \cdots w_{n-1}$ (具体实现时注意细节)，再令 $s_i = \displaystyle \sum_{k &lt; i} w_k$ ($i = 0, 1, 2, \cdots, n$)，$S_{i, j} = \displaystyle \sum_{i \leq k \leq j} w_{k-1} = s_j - s_{i-1}$。</p>
+		<p>那么题目条件即，$w_{n-1} - w_0 \leq u - l$。</p>
+		<p>我们设 $p$ 为最大的 $i$，满足 $s_i \leq u$。如果连 $s_1$ 都大于 $u$，那么 $w_0 &gt; u$，显然就无解啦。</p>
+		<p>由于 $w_i$ 单调递增，所以序列 $\left\{ s_{i+p} - s_i \right\}$ 单调递增，即 $\left\{ S_{i+1, i+p} \right\}$ 单调递增。</p>
+		<p>如果 $s_n - s_{n-p} &lt; l$，结合 $s_{p+1} &gt; u$ 以及 $w_i$ 的单调性，那么我们可以得到如下结论：</p>
+		<p><strong>在 $w$ 中，任意 $p$ 个数之和小于 $l$，任意 $p+1$ 个数之和大于 $u$</strong>。</p>
+		<p>所以还是无解啦。</p>
+		<p>否则，$s_n - s_{n-p} \geq l$。所以一定存在整数 $i \in [0, n-p]$，使得 $s_{i+p} - s_i \geq l$。设 $q$ 为最小的一个。</p>
+		<p>那么有 $s_{q+p-1} - s_{q-1} &lt; l; s_{q+p} - s_q \geq l$。</p>
+		<p>由于 $\left( s_{q+p} - s_q \right) - \left( s_{q+p-1} - s_{q-1} \right) = w_{q+p-1} - w_{p-1} \leq w_{n-1} - w_0 \leq u-l$，所以</p>
+		<p>$$ s_{q+p} - s_q = s_{q+p-1} - s_{q-1} + \left( s_{q+p} - s_q + s_{q+p-1} - s_{q-1} \right) &lt; l + (u - l) = u $$</p>
+		<p>即 $l \leq s_{q+p} - s_q = S_{q+1, q+p} \leq u$。</p>
+		<p>所以令 $I = \left\{ q, q+1, q+2, \cdots, q+p-1 \right\}$ 满足要求。</p>
+		<p>时间复杂度 $O(n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#include "molecules.h"
+#define N 200005
+
+typedef long long ll;
+typedef std::vector &lt;int&gt; vec;
+
+int n, o[N];
+ll s[N];
+vec *_w;
+
+inline bool cmp(const int A, const int B) {return (*_w)[A] &lt; (*_w)[B];}
+
+vec find_subset(int l, int u, vec w) {
+	int i, p;
+	n = w.size(); _w = &amp;w;
+	for (i = 0; i &lt; n; ++i) o[i] = i;
+	std::sort(o, o + n, cmp);
+	for (i = 0; i &lt; n; ++i) s[i + 1] = s[i] + w[o[i]];
+	p = std::upper_bound(s + 1, s + (n + 1), u) - s - 1;
+	if (!p || s[n] - s[n - p] &lt; l) return vec();
+	for (i = 0; i &lt;= n - p; ++i)
+		if (s[i + p] - s[i] &gt;= l) 
+			return vec(o + i, o + (i + p));
+	return vec();
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意对下标的处理。可以另外开一个 <code>o[]</code> 数组进行排序。因为 <code>w</code> 是局部变量，因此可以开一个全局指针变量指向这个 <code>vector</code>。</p>
+	</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4456][lg3350][uoj184][loj2090][ZJOI2016]旅行者</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<!--script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script-->
+		<script src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>scx 来到了一个新的城市旅行。她发现了这个城市的布局是网格状的，也就是有 $n$ 条从东到西的道路和 $m$ 条从南到北的道路，这些道路两两相交形成 $n \times m$ 个路口 $(i, j)$ ($1 \leq i \leq n; 1 \leq j \leq m$)。</p>
+		<p>她发现不同的道路路况不同，所以通过不同的路口需要不同的时间。通过调查发现，从路口 $(i, j)$ 到路口 $(i, j+1)$ 需要时间 $r_{i, j}$，从路口 $(i, j)$ 到路口 $(i+1, j)$ 需要时间 $c_{i, j}$。注意这里的道路是双向的，也就是从路口 $(i, j + 1)$ 到路口 $(i, j)$ 需要时间同样是 $r_{i, j}$。</p>
+		<p>scx 有 $q$ 个询问，她想知道从路口 $(x_1, y_1)$ 到路口 $(x_2, y_2)$ 最少需要花多少时间。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \times m \leq 20000$)，表示城市的大小。</p>
+		<p>接下来 $n$ 行，每行包含 $m - 1$ 个正整数，第 $i$ 行第 $j$ 个正整数表示从一个路口到另一个路口的时间 $r_{i, j}$ ($1 \leq r_{i, j} \leq 10^4$)。</p>
+		<p>接下来 $n - 1$ 行，每行包含 $m$ 个整数，第 $i$ 行第 $j$ 个正整数表示从一个路口到另一个路口的时间 $c_{i, j}$ ($1 \leq c_{i, j} \leq 10^4$)。</p>
+		<p>接下来一行，包含一个正整数 $q$ ($q \leq 10^5$)，表示 scx 的询问个数。</p>
+		<p>接下来 $q$ 行，每行包含四个正整数 $x_1, y_1, x_2, y_2$ ($1 \leq x_1, x_2 \leq n; 1 \leq y_1, y_2 \leq m$)，表示两个路口的位置。</p>
+
+		<h3>输出格式</h3>
+		<p>输出共 $q$ 行，每行包含一个整数，表示从一个路口到另一个路口最少需要花的时间。</p>
+
+		<h3>题解</h3>
+		<p>容易看出这是一个最短路模型。但是对于多组询问怎么办呢？</p>
+		<p>如果暴力的话，那么时间复杂度至少是 $O \left( q \left| V \right| \right)$ 的 (其中 $\left| V \right| = n \times m$)，是跑不过去的。</p>
+		<p>既然在线算法不好搞，我们来考虑将询问离线。</p>
+		<p>考虑使用分治，我们用一条线 $l$ 将原网格图一分为二，那么对于两端点在两个不同块中的询问，<strong>所有的路径必须经过线 $l$</strong>，从而我们可以<strong>枚举 $l$ 上的点</strong>，使用 <code>Dijkstra</code> (或 SPFA) 跑最短路后将两端结果相加即可。</p>
+		<p>如果询问的两个端点在同一块，那么分两种情况：</p>
+		<ol>
+			<li>如果最短路经过线 $l$，则它一定会在这一轮被更新到。</li>
+			<li>否则，最短路一定在那个块内，可以发现它已经变成了原问题的一个子问题，因此递归解决即可。</li>
+		</ol>
+		<p>总之，我们要把<strong>该轮中所有的询问</strong>均用这些答案更新，然后将剩下一些<strong>两个端点在同一块的询问</strong>分别递归处理。</p>
+		<p>由于是分治，因此分得一定要尽量均匀，于是我们每次取矩形的一条中线分割。</p>
+		<p>至于是水平中线还是垂直中线，注意到每次我们要对<strong>所有</strong> $l$ 上的点跑 <code>Dijkstra</code>，因此当然要选择<strong>较短的中线</strong>啦。</p>
+		<p>接下来来分析一波时间复杂度。</p>
+		<p>第 $k$ 次分治，顶点数为 $O \left( \dfrac {\left| V \right|} {2^k} \right)$，因此 $l$ 的长度 $|l|$ 不超过 $O \left( \sqrt{ \dfrac {\left| V \right|} {2^k} } \right)$。
+		<p>由于 Dijkstra 的复杂度为 $O \left( \left| E \right| \log \left| V \right| \right)$，且网格图中 $\left| E \right| = O \left( \left| V \right| \right)$，因此每次 Dijkstra 的复杂度为 $O \left( \dfrac {\left| V \right|} {2^k} \log \dfrac {\left| V \right|}  {2^k} \right) = O \left( \dfrac {\left| V \right|} {2^k} \log \left| V \right| \right)$。</p>
+		<p>由于第 $k$ 层分治一共会出现 $2^k$ 次，因此第 $k$ 层分治对总复杂度的贡献为</p>
+		<p>$$ O \left( 2^k \cdot \sqrt{ \frac {\left| V \right|} {2^k} } \cdot \frac {\left| V \right|} {2^k} \log \left| V \right| \right) = O \left( \frac {\left| V \right|^{3/2} \log \left| V \right|} {2^{k/2}} \right) $$</p>
+		<p>对 $k$ 求和，分母由<strong>无穷递缩等比数列</strong>可知为一常数，故总的时间复杂度即为 $O \left( \left| V \right|^{3/2} \log \left| V \right| \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100020
+
+const int INF = 0x3f3f3f3f;
+
+struct request {
+	int r1, c1, r2, c2;
+	request * read() {scanf("%d%d%d%d", &amp;r1, &amp;c1, &amp;r2, &amp;c2); return this;}
+} qry[N];
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[N];
+
+int R, C, E, q;
+
+int first[N], next[N];
+int ord[N], buf[N * 2];
+int ans[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int join(int r, int c) {return (r - 1) * C + c;}
+inline void split(int id, int &amp;r, int &amp;c) {r = --id / C + 1; c = id % C + 1;}
+
+inline void addedge(int u, int v, int w) {
+	e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+	e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+}
+
+namespace SP {
+	struct node {
+		int to, dist;
+		node (int _to = 0, int _dist = 0) : to(_to), dist(_dist) {}
+		inline bool operator &lt; (const node &amp;B) const {return dist &gt; B.dist;}
+	};
+
+	using PQ = std::priority_queue &lt;node&gt;;
+
+	int minR, maxR, minC, maxC;
+	int d[N];
+	PQ pq;
+
+	inline void setBound(int rL, int rR, int cL, int cR) {minR = rL; maxR = rR; minC = cL; maxC = cR;}
+
+	void Dijkstra(int s) {
+		int i, j, x, y, r, c; node t;
+		for (i = minR; i &lt;= maxR; ++i)
+			for (j = minC; j &lt;= maxC; ++j)
+				d[join(i, j)] = INF;
+		d[s] = 0; pq.push(node(s, 0));
+		for (; !pq.empty(); ) {
+			t = pq.top(); pq.pop();
+			if (d[x = t.to] &lt; t.dist) continue;
+			for (i = first[x]; i; i = next[i]) {
+				split(y = e[i].v, r, c);
+				if (minR &lt;= r &amp;&amp; r &lt;= maxR &amp;&amp; minC &lt;= c &amp;&amp; c &lt;= maxC &amp;&amp; d[x] + e[i].w &lt; d[y = e[i].v]) {
+					d[y] = d[x] + e[i].w;
+					pq.push(node(y, d[y]));
+				}
+			}
+		}
+	}
+}
+
+void Partition(int rL, int rR, int cL, int cR, int *_beg, int *_end) {
+	if (rL &gt; rR || cL &gt; cR || _beg == _end) return;
+	int u, v, *p, *p1 = buf, *p2 = buf + N, *_scx, *_fy;
+	if (rR - rL &gt;= cR - cL) { // row split
+		int rM = rL + rR &gt;&gt; 1, c;
+		for (c = cL; c &lt;= cR; ++c) {
+			SP::setBound(rL, rR, cL, cR);
+			SP::Dijkstra(join(rM, c));
+			for (p = _beg; p != _end; ++p) {
+				u = join(qry[*p].r1, qry[*p].c1);
+				v = join(qry[*p].r2, qry[*p].c2);
+				down(ans[*p], SP::d[u] + SP::d[v]);
+			}
+		}
+		for (p = _beg; p != _end; ++p)
+			if (qry[*p].r1 &lt; rM &amp;&amp; qry[*p].r2 &lt; rM) *p1++ = *p;
+			else if (qry[*p].r1 &gt; rM &amp;&amp; qry[*p].r2 &gt; rM) *p2++ = *p;
+		_scx = _beg + (p1 - buf);
+		_fy = _scx + (p2 - (buf + N));
+		memcpy(_beg, buf, (_scx - _beg) * sizeof(int));
+		memcpy(_scx, buf + N, (_fy - _scx) * sizeof(int));
+		Partition(rL, rM - 1, cL, cR, _beg, _scx);
+		Partition(rM + 1, rR, cL, cR, _scx, _fy);
+	} else { // column split
+		int cM = cL + cR &gt;&gt; 1, r;
+		for (r = rL; r &lt;= rR; ++r) {
+			SP::setBound(rL, rR, cL, cR);
+			SP::Dijkstra(join(r, cM));
+			for (p = _beg; p != _end; ++p) {
+				u = join(qry[*p].r1, qry[*p].c1);
+				v = join(qry[*p].r2, qry[*p].c2);
+				down(ans[*p], SP::d[u] + SP::d[v]);
+			}
+		}
+		for (p = _beg; p != _end; ++p)
+			if (qry[*p].c1 &lt; cM &amp;&amp; qry[*p].c2 &lt; cM) *p1++ = *p;
+			else if (qry[*p].c1 &gt; cM &amp;&amp; qry[*p].c2 &gt; cM) *p2++ = *p;
+		_scx = _beg + (p1 - buf);
+		_fy = _scx + (p2 - (buf + N));
+		memcpy(_beg, buf, (_scx - _beg) * sizeof(int));
+		memcpy(_scx, buf + N, (_fy - _scx) * sizeof(int));
+		Partition(rL, rR, cL, cM - 1, _beg, _scx);
+		Partition(rL, rR, cM + 1, cR, _scx, _fy);
+	}
+}
+
+int main() {
+	int i, j, n, w;
+	scanf("%d%d", &amp;R, &amp;C);
+	for (n = i = 1; i &lt;= R; ++i, ++n)
+		for (j = 1; j &lt; C; ++j, ++n)
+			scanf("%d", &amp;w), addedge(n, n + 1, w);
+	for (n = i = 1; i &lt; R; ++i)
+		for (j = 1; j &lt;= C; ++j, ++n)
+			scanf("%d", &amp;w), addedge(n, n + C, w);
+	scanf("%d", &amp;q);
+	for (i = 0; i &lt; q; ++i) qry[i].read(), ord[i] = i;
+	memset(ans, 63, q * sizeof(int));
+	Partition(1, R, 1, C, ord, ord + q);
+	for (i = 0; i &lt; q; ++i) printf("%d\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>要注意即使询问的两个端点在同一块，也要更新答案，因为有可能最短路就是要跨过线 $l$ 的。</p>
+		<p><strong>坑2：</strong>Dijkstra 注意只需跑到分治的边界，跑出去复杂度就不能保证了。</p>
+		<p style="color: red"><strong>坑3：</strong><del><code>__gnu_pbds</code> 的 <code>priority_queue</code> 简直就是个废物，用它被卡常了，还是用 <code>std::priority_queue</code> 保平安……</del></p>
+	</body>
+</html>

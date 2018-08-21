@@ -1,15 +1,15 @@
 var
 	curLocation, curPage, totPage, curROrder,
-	Rows, tmpArr, titleArr, xhr;
+	Rows, tmpArr, titleArr;
 
 const
 	RECORDS_PER_PAGE = 50,
 	MEMOS_PER_PAGE = 50;
 
 (function (win, und){
-	
+
 	'use strict';
-	
+
 	var
 		DisplayDict = {'': '全部', 'Luogu': '洛谷', 'SPOJ': 'Sphere OJ', 'SOJ': 'Simple OJ/Stupid OJ', 'Local': '本地', "Unknown": "这些题的 OJ 太高级了，连 scx 都不知道，快去问一问大佬们吧"},
 		NormDict = {'lydsy': 'Lydsy', 'lg': 'Luogu', 'vijos': 'Vijos', 'hdu': 'HDU', 'poj': 'POJ', 'uoj': 'UOJ', 'loj': 'LibreOJ', 'simpleoj': 'SOJ', 'soj': 'SOJ', 'cf': 'Codeforces', 'cc': 'Codechef', 'spoj': 'SPOJ'},
@@ -22,14 +22,12 @@ const
 			'uoj': [[/\d+/], 'http://uoj.ac/problem/@0'],
 			'loj': [[/\d+/], 'https://loj.ac/problem/@0'],
 			'simpleoj': [[/\d+/], 'http://10.49.27.23/problem?id=@0'],
-			'soj': [[/\d+/], 'http://10.49.27.7/problem/@0'],
+			'soj': [[/\d+/], 'http://61.153.16.137:8001/problem/@0'],
 			'cf': [[/\d+/, /[A-Z]\d*/], 'http://codeforces.com/contest/@0/problem/@1'],
 			'cc': [[/\w+/], 'https://www.codechef.com/problems/@0/'],
 			'spoj': [[/\w+/], 'http://www.spoj.com/problems/@0/']
 		};
-	
-	win.xhr = new XMLHttpRequest(),
-	//win.xs = new XMLSerializer();
+
 	win.getStorage = localStorage.getItem.bind(localStorage);
 	win.setStorage = localStorage.setItem.bind(localStorage);
 

@@ -7,12 +7,43 @@
 		<title>[lydsy4573][lg3348][uoj195][loj2092][ZJOI2016]大森林</title>
 		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
 		<script src="../additional_files/sh_main.min.js"></script>
-		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<!--script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script-->
+		<script src="https://cdn.bootcss.com/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 	</head>
 	<body>
 		<h3>题目描述</h3>
+		<p>scx 家里有一个大森林，里面有 $n$ 棵树，编号从 $1$ 到 $n$。一开始这些树都只是树苗，只有一个节点，标号为 $1$。这些树都有一个特殊的节点，我们称之为生长节点，这些节点有生长出子节点的能力。</p>
+		<p>scx 掌握了一种魔法，能让第 $l$ 棵树到第 $r$ 棵树的生长节点长出一个子节点。同时她还能修改第 $l$ 棵树到第 $r$ 棵树的生长节点。 </p>
+		<p>她告诉了你她使用魔法的记录，你能不能管理她家的森林，并且回答她的询问呢？ </p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 10^5; m \leq 2 \times 10^5$)，表示共有 $n$ 棵树和 $m$ 个操作。</p>
+		<p>接下来 $m$ 行，每行包含若干非负整数表示一个操作，操作格式如下：</p>
+		<ol>
+			<li><code>0 <em>l</em> <em>r</em></code> 表示将第 $l$ 棵树到第 $r$ 棵树的生长节点下面长出一个子节点，子节点的标号为上一个 $0$ 号操作叶子标号加 $1$ (例如，第一个 $0$ 号操作产生的子节点标号为 $2$)，$l$ 到 $r$ 之间的树长出的节点标号都相同。保证 $1 \leq l \leq r \leq n$。 </li>
+			<li><code>1 <em>l</em> <em>r</em> <em>x</em></code> 表示将第 $l$ 棵树到第 $r$ 棵树的生长节点改到标号为 $x$ 的节点。对于区间内的每棵树，如果标号 $x$ 的点不在其中，那么这个操作对该树不产生影响。保证 $1 \leq l \leq r \leq n$，$x$ 不超过当前所有树中节点最大的标号。</li>
+			<li><code>2 <em>x</em> <em>u</em> <em>v</em></code> 询问第 $x$ 棵树中节点 $u$ 到节点 $v$ 的距离，也就是在第 $x$ 棵树中从节点 $u$ 和节点 $v$ 的最短路上边的数量。保证 $1 \leq x \leq n$，这棵树中节点 $u$ 和节点 $v$ 存在。</li>
+		</ol>
+
+		<h3>输出格式</h3>
+		<p>输出包括若干行，按顺序对于每个 scx 的询问，输出一个整数表示答案。</p>
 
 		<h3>题解</h3>
+		<p>注意到每次操作涉及到的树为一个区间，因此相邻两棵树之间的形态应该是非常接近的。因此我们可以考虑对询问离线，从 $1$ 到 $n$ 一棵一棵树求答案。</p>
+		<p>我们考虑三种操作会对不同的数之间有什么影响。</p>
+		<ol>
+			<li><p>生长一个新节点。</p>
+			<p>由于询问时是对某棵树的特定两个点进行的，且保证这两个点存在，因此可以<strong>假设</strong>所有树都生长出了一个编号为当前 <code>cnt</code> 的点。</p></li>
+			<li><p>更改生长节点。</p>
+			<p>由于每个节点 $x$ 只会增加一次，因此它出现的范围一定是<strong>一段连续的区间</strong>。由于我们当初假设<strong>所有的树都生长出了编号为 $x$ 的节点</strong>，因此我们要对当前的 $[l, r]$ 对当时产生该节点时的 $[l_x, r_x]$ 取交，得到区间 $R$，才是真正需要换生长节点的树的集合。</p>
+			<p>注意到每一个生长节点管辖着它后面所加的所有点，因此更改一个生长节点后，它后面的所有点都会随着更改。因此我们可以对生长节点建立虚点，将后面所加的所有点连向当前的生长节点。</p>
+			<p>如果生长节点更改，则只需<strong>新建一个生长节点</strong>，然后 (对于 $R$ 中的树) 将新的生长节点连向点 $x$ 即可。</p></li>
+			<li><p>查询最短路。</p>
+			<p>这个应该就是 Link-Cut Tree 基本模型了。由于我们已经将问题离线，因此此时得到的树 (如果去掉虚点) 就是这棵树最终的形态。</p>
+			<p>因此我们只需统计从 $u$ 到 $v$ 的路径中，非虚点的个数 (再减 $1$)。可以通过 <code>access</code> 操作找到 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>，然后在 Splay 上记录信息 (当前重链长度，即辅助树的大小) 即可。</p></li>
+		</ol>
+		<p>最后要注意的是，由于整个树结构是有根的，因此实现时需要使用<a href="lydsy2555.html" target="_blank"><strong>有根动态树</strong></a>。</p>
+		<p>总时间复杂度 $O \left( m \log n \right)$。</p>
 
 		<h3>代码</h3>
 
@@ -116,5 +147,6 @@ int main() {
 </pre></div>
 
 		<h3>坑</h3>
+		<p><strong>坑1：</strong>在 <code>access</code> 中，可以返回最后辅助树的根节点 (即代码中的 <code>y</code> 节点)，它是最后一次切换轻重链的点。如果两个点分别进行 <code>access</code> 操作，则后面一次 <code>access</code> 返回值就是 LCA 节点。</p>
 	</body>
 </html>
