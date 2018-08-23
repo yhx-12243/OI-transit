@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj246]套路</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n$ 个正整数 $a_1, a_2, \cdots, a_n$。定义一个区间 $[l, r]$ 的<dfn style="color: blue">安全值</dfn>为 $s(l, r) \cdot (r - l)$，其中 $s(l, r)$ 表示 $a_l, a_{l+1}, \cdots, a_r$ 这 $r - l + 1$ 个数中<strong>最接近的两个数的差值</strong> (的绝对值，即两数之差的绝对值的最小值)。</p>
+		<p>你需要选出一个长度 (元素个数) 至少为 $k$ 的区间，使得它的安全值最大。你只需要输出最大的安全值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, k$ ($n, m \leq 2 \times 10^5; 2 \leq k \leq n$)。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($1 \leq a_i \leq m$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最大的安全值。</p>
+
+		<h3>题解</h3>
+		<p>让安全值最大，我们可以考虑对于每个<strong>区间长度</strong> $r - l$，得到关于每个区间长度的最大 $s(l, r)$ (mingap)，记作 $\mathrm{ans}_{r-l}$。</p>
+		<p>然后枚举 $\geq k$ 的区间长度，与 mingap 对应相乘取 $\max$ 即可。</p>
+		<p>因此问题转化为，对于所有 $1 \leq k \leq n-1$，求出长度为 $k$ 的区间的最大 mingap (注：区间 $[l, r]$ 的长度定义为 $r - l$)。
+		<p>先考虑通过 DP 维护一个区间的 mingap。</p>
+		<p>设 $f_{i, j}$ 表示区间 $[i, j]$ 的 mingap，则 $f_{0, 0} = + \infty$。转移很显然：</p>
+		<p>$$ f_{i, j} = \min \{ \left| a_i - a_j \right|, f_{i, j - 1}, f_{i + 1, j} \} $$</p>
+		<p>最后只需用 $f_{i, j}$ 去更新 $\mathrm{ans}_{j-i}$。</p>
+		<p>不过可以发现，这个 DP 是 $O \left( n^2 \right)$ 的。</p>
+		<p>确切地说，这个 DP 是 $O \left( n k \right)$ 的。其中 $k$ 是<strong>最大的区间长度</strong>。</p>
+		<p>因此，我们可以对较小的 $k$，使用 DP 来维护 $\mathrm{ans}_k$，而对于较大的 $k$，尝试发掘一下更多的性质。</p>
+		<p>注意到所有的数都在范围 $[1, m]$ 中。而在这些数中，任意取 $k+2$ 个数 (长度 $&gt; k$ 的区间至少有 $k+2$ 个数)，由平均值原理，mingap 值<strong>一定不超过 $\dfrac m {k + 1}$</strong>。</p>
+		<p>因此我们可以枚举<strong>区间右端点</strong>和当前的<strong>mingap</strong>值，来限制左端点，得到左端点的<strong>最小可能值</strong>，从而最大化<strong>区间长度</strong>，更新答案。</p>
+		<p>具体地，用 $r_i$ 表示值为 $i$ 的数的最后出现的位置，然后对 $a_i \pm j$ 寻找对应的位置，用 $f_j$ 表示 mingap 为 $j$ 的<strong>目前</strong>最左可能位置，更新即可。</p>
+		<p>因此这部分的复杂度为 $O \left( n \cdot \dfrac m {k+1} \right)$。</p>
+		<p>对两部分使用阈值放缩，得到 $k = O \left( \sqrt m \right)$，总时间复杂度 $O \left( n \sqrt m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 200005
+
+int n, m, k, th;
+int a[N], r[N], f[N];
+int ans[N];
+int dp[2][N], *cur = *dp, *nxt = dp[1];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(int x, const int y, const int z) {down(x, y); return x &lt; z ? x : z;}
+
+int main() {
+	int i, j, l;
+	scanf("%d%d%d", &amp;n, &amp;m, &amp;k); --k; th = sqrt(m);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	memset(nxt, 63, sizeof *dp);
+	for (i = 1; i &lt;= th; ++i) {
+		std::swap(cur, nxt); memset(nxt, 63, sizeof *dp);
+		for (j = 1; j &lt;= n - i; ++j)
+			nxt[j] = min(abs(a[j] - a[j + i]), cur[j], cur[j + 1]), up(ans[i], i * nxt[j]);
+	}
+	for (i = 1; i &lt;= n; r[a[i]] = i, ++i)
+		for (l = j = 0; j * (th + 1) &lt;= m; ++j) {
+			up(ans[i - l - 1], (i - l - 1) * j);
+			up(f[j], r[std::max(0, a[i] - j)]);
+			up(f[j], r[std::min(m + 1, a[i] + j)]);
+			up(l, f[j]);
+		}
+	printf("%d\n", *std::max_element(ans + k, ans + (n + 1)));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>记得一开始把 <code>f[]</code> 数组置为 $+ \infty$，以便转移方便。</p>
+	</body>
+</html>

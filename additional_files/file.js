@@ -42,6 +42,7 @@
 		$('#recTable').append(Rows.slice((curPage - 1) * RECORDS_PER_PAGE, curPage * RECORDS_PER_PAGE));
 		$('#recTotal').html('scx: ' + (count ? (curLocation ? '当前筛选下' : '') + '共有 ' + count + ' 条记录' : '怎么一道题都还没有啊，快点做题了！'));
 		win.totPage = Math.ceil(count / RECORDS_PER_PAGE);
+		pagination();
 	}
 
 	// ---------------- Templates ----------------- //
@@ -79,7 +80,7 @@
 	}
 
 	// ---------------- Memos ---------------- //
-	window.LoadMemos = function (){
+	win.LoadMemos = function (){
 		strBack = '';
 		xhr.onreadystatechange = function (){
 			if(xhr.readyState === 4){
