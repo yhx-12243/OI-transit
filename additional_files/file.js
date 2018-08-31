@@ -61,7 +61,7 @@
 		}
 	}
 
-	win.parseTemplate = function (data) {
+	function parseTemplate(data) {
 		var i = this.id, j, inner, $header, $text;
 		titleArr[i] = $('title', data).text();
 		$header = $('<h3 />').attr('id', tmpArr[i]).html(titleArr[i] + ' [#' + tmpArr[i] + ']:')

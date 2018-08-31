@@ -11,7 +11,7 @@ const
 	'use strict';
 
 	var
-		DisplayDict = {'': '全部', 'Luogu': '洛谷', 'SPOJ': 'Sphere OJ', 'SOJ': 'Simple OJ/Stupid OJ', 'Local': '本地', 'Unknown': "一些看似不是很知名的 OJ，快去问一问大佬们吧"},
+		DisplayDict = {'': '全部', 'Luogu': '洛谷', 'SPOJ': 'Sphere OJ', 'SOJ': 'Simple OJ/Stupid OJ', 'Local': '本地', 'Unknown': '一些看似不是很知名的 OJ，快去问一问大佬们吧'},
 		NormDict = {'lydsy': 'Lydsy', 'lg': 'Luogu', 'vijos': 'Vijos', 'hdu': 'HDU', 'poj': 'POJ', 'uoj': 'UOJ', 'loj': 'LibreOJ', 'simpleoj': 'SOJ', 'soj': 'SOJ', 'cf': 'Codeforces', 'cc': 'Codechef', 'spoj': 'SPOJ'},
 		SiteDict = {
 			'lydsy' : [[/\d+/], 'https://www.lydsy.com/JudgeOnline/problem.php?id=@0'],
@@ -31,7 +31,7 @@ const
 			'bestFy' : 'http://bestfy.cnblogs.com/',
 			'lych_cys' : 'https://blog.csdn.net/lych_cys/',
 			'miaom' : 'https://mioam.github.io/',
-			'mrsrz' : 'https://mrsrz.cnblogs.com/'.
+			'mrsrz' : 'https://mrsrz.cnblogs.com/',
 			'qiqi20021026' : 'https://bomb-chicken.github.io/',
 			'shaochengxi' : 'http://scx117.cnblogs.com/',
 			'skylee' : 'http://skylee03.cnblogs.com/',
@@ -40,7 +40,7 @@ const
 			'wzf2000' : 'https://wzf2000.zhzx-oier.top/',
 			'ZhangZisu' : 'https://blog.zhangzisu.cn/#/' 
 		};
-		
+
 	persons = ['bestFy', '_ChenKerui', 'ddpag', 'lbn187', 'lych_cys', 'lyx_cjz', 'miaom', 'mrsrz', 'nbdhhzh', 'qiqi20021026', 'shaochengxi', 'skylee', 'twinkle_', 'wanglichao1121', 'Wonderrr', 'wzf2000', 'ZhangZisu'];
 	win.getStorage = localStorage.getItem.bind(localStorage);
 	win.setStorage = localStorage.setItem.bind(localStorage);
