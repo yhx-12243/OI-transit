@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<!-- version 3.0 -->
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="additional_files/bootstrap.simplify.min.css">
+		<link type="text/css" rel="stylesheet" href="additional_files/sh_typical.min.css">
+		<link type="text/css" rel="stylesheet" href="additional_files/pgmain.min.css">
+		<link type="text/css" rel="stylesheet" href="additional_files/rating.min.css">
+		<title>OI 中转站 - 小工具</title>
+		<script src="additional_files/jquery.min.js"></script>
+		<script src="additional_files/basic.min.js"></script>
+		<script src="additional_files/file.min.js"></script>
+		<script src="additional_files/sort.min.js"></script>
+		<script>
+			// document loaded
+			$(document).ready(function (){
+				updTime(); setInterval(updTime, 250);
+				if(getStorage('marquee') === 'on') $("#intro").show().get(0).start();
+
+				$('#btnMarquee').click(function () {
+					var $mar = $('#intro');
+					if ($mar.is(':hidden')) {$mar.show().get(0).start(); setStorage('marquee', 'on');}
+					else {$mar.hide(); setStorage('marquee', 'off');}
+				});
+
+				function MulMod(a, b, m) {
+					var ah = a >> 16, al = a & 0xffff, bh = b >> 16, bl = b & 0xffff;
+					var H = ah * bh % m, M = (ah * bl + al * bh) % m, L = al * bl % m;
+					return ((H * 0x10000 % m + M) * 0x10000 % m + L) % m;
+				}
+
+				function PowerMod(a, n, m) {
+					var c = 1;
+					for (a %= m; n; n >>= 1, a = MulMod(a, a, m))
+						if (n & 1) c = MulMod(c, a, m);
+					return c;
+				}
+
+				function valPowerMod(a, n, m) {
+					if (!$.isNumeric(a)) return "a is not a valid integer";
+					if (a = parseFloat(a), Math.floor(a) !== a) return "a is not a valid integer";
+					if (a < 0 || a > 0x7fffffff) return "a is not in range [0, 2^31)";
+					if (!$.isNumeric(n)) return "n is not a valid integer";
+					if (n = parseFloat(n), Math.floor(n) !== n) return "n is not a valid integer";
+					if (n < 0 || n > 0x7fffffff) return "n is not in range [0, 2^31)";
+					if (!$.isNumeric(m)) return "m is not a valid integer";
+					if (m = parseFloat(m), Math.floor(m) !== m) return "n is not a valid integer";
+					if (m < 1 || m > 0x7fffffff) return "m is not in range [1, 2^31)";
+					return PowerMod(a, n, m).toString();
+				}
+
+				$('#calc-power-mod').click(function () {
+					var a = $('#div-power-mod > input[name="a"]').val();
+					var n = $('#div-power-mod > input[name="n"]').val();
+					var m = $('#div-power-mod > input[name="m"]').val();
+					result = valPowerMod(a, n, m);
+					$('#div-power-mod input[name="result"]').val(result);
+				});
+
+				$('.sortlink').click(function () {
+					var t = $(this.parentNode).index(), s = 'R' + getSortChar2(t);
+					$('#rankTable > tbody').empty();
+					console.log(s);
+					sortTable(s);
+					$('#rankTable').append(Rows);
+				});
+
+				$.ajax('http://codeforces.com/api/user.info?handles=' + persons.join(';'), {
+					type: 'GET',
+					crossDomain: true,
+					dataType: 'jsonp',
+					jsonp: 'jsonp',
+					success: parseRanklist
+				});
+
+				$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
+			});
+		</script>
+	</head>
+	<body>
+		<div class="title">
+			<div class="opacity-3 flex" style="height: 160px">
+				<div style="width: 100%">
+					<h2 class="cen">OI 中转站 - 小工具</h2>
+					<p class="cen" id="dispTime">当前时间: 2018-7-31 12:00:00</p>
+					<p class="ri" id="motto" style="opacity: 0; margin-top: -20px">adenine, guanine, cytosine, thymine.</p>
+				</div>
+			</div>
+		</div>
+		<div class="dmarquee" style="height: 25px">
+			<button class="button" id="btnMarquee" style="float: left">开启/关闭字幕</button>
+			<div style="overflow: hidden">
+				<marquee id="intro" scrollamount="1000" style="color: #999; display: none;">bestFy is the cutest !</marquee>
+			</div>
+		</div>
+		<div class="main">
+			<div class="opacity-4 padding" style="min-height: 1344px">
+				<div class="cen big-button">
+					<button onclick="location.href='index.html'">做题记录</button><button>小工具</button><button onclick="location.href='templates.html'">模板</button><button onclick="location.href='memos.html'">便笺</button>
+				</div>
+				<fieldset>
+					<legend>小工具</legend>
+					<div class="border-tool padding-1" id="div-power-mod">
+						<p>快速幂 (幂模运算，计算 <em>a<sup>n</sup></em> mod <em>m</em>):</p>
+						<label><em>a</em>: </label><input name="a" placeholder="a" class="cen text-input" />
+						<label><em>n</em>: </label><input name="n" placeholder="n" class="cen text-input" />
+						<label><em>m</em>: </label><input name="m" placeholder="m" class="cen text-input" />
+						<button class="big-button" id="calc-power-mod">计算</button>
+						<p>结果: <input name="result" placeholder="result" readonly="readonly" class="cen text-input" style="width: 250px" /></p>
+					</div>
+					<div class="border-tool padding-1" id="div-primality-test">
+						<p>质数判定</p>
+					</div>
+					<div class="border-tool padding-1" id="div-ranklist">
+						<p>Rating 排行榜 (Codeforces, Links)</p>
+						<table class="cen main-table" id="rankTable" style="width: 100%">
+							<thead>
+								<tr>
+									<th style="width: 14%"><span class="sortlink">Username</span></th>
+									<th style="width: 10%"><span class="sortlink">First Name</span></th>
+									<th style="width: 10%"><span class="sortlink">Last Name</span></th>
+									<th style="width: 9%"><span class="sortlink">Rating</span></th>
+									<th style="width: 9%"><span class="sortlink">Max Rating</span></th>
+									<th style="width: 18%"><span class="sortlink">Last Online Time</span></th>
+									<th style="width: 30%"><span class="sortlink">Personal Blog Link</span></th>
+								</tr>
+							</thead>
+							<tbody>
+							</tbody>
+						</table>
+					</div>
+				</fieldset>
+			</div>
+		</div>
+	</body>
+</html>

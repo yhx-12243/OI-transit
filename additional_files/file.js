@@ -6,7 +6,7 @@
 		recArr, memArr, okay;
 
 	const
-		failed = '今天运气不怎么好，和 scx 喝口茶再试试吧';
+		failed = '今天运气不怎么好，码个动态仙人掌再试试吧';
 
 	// ---------------- Records ---------------- //
 	win.parseRecords = function (strBack) {
@@ -40,7 +40,7 @@
 		if (curROrder === 'nr') tableReverse();
 		else if(curROrder !== 'n') sortTable(curROrder);
 		$('#recTable').append(Rows.slice((curPage - 1) * RECORDS_PER_PAGE, curPage * RECORDS_PER_PAGE));
-		$('#recTotal').html('scx: ' + (count ? (curLocation ? '当前筛选下' : '') + '共有 ' + count + ' 条记录' : '怎么一道题都还没有啊，快点做题了！'));
+		$('#recTotal').html('统计：' + (count ? (curLocation ? '当前筛选下' : '') + '共有 ' + count + ' 条记录' : '怎么一道题都还没有啊，快点做题了！'));
 		win.totPage = Math.ceil(count / RECORDS_PER_PAGE);
 		pagination();
 	}
@@ -61,7 +61,7 @@
 		}
 	}
 
-	function parseTemplate(data) {
+	win.parseTemplate = function (data) {
 		var i = this.id, j, inner, $header, $text;
 		titleArr[i] = $('title', data).text();
 		$header = $('<h3 />').attr('id', tmpArr[i]).html(titleArr[i] + ' [#' + tmpArr[i] + ']:')
@@ -69,38 +69,17 @@
 		$text = $('<div />').html(inner).attr('data-id', i);
 		for (j = i - 1; j >= 0; --j)
 			if (okay[j]) break;
-		if (j == -1) {
-			$('#templates > div.cen').after($text).after($header);
-			console.log('A:', j);
-		} else {
-			$('#templates > div[data-id=' + j + ']').after($text).after($header);
-			console.log('B:', j);
-		}
+		$('#templates>div' + (~j ? '[data-id=' + j + ']' : '.cen')).after($text).after($header);
 		okay[i] = true;
 	}
 
 	// ---------------- Memos ---------------- //
-	win.LoadMemos = function (){
-		strBack = '';
-		xhr.onreadystatechange = function (){
-			if(xhr.readyState === 4){
-				if(xhr.status === 200 || xhr.status === 0){
-					strBack = xhr.responseText;
-					DecMemos(); //pageDeals();
-				}else
-					alert(failed);
-			}
-		}
-		xhr.open('GET', 'memos/tot.cfg', true);
-		xhr.send(null);
-	}
-
-	function DecMemos(){
+	win.parseMemos = function (strBack) {
 		var i, j, nm, info, count = 0;
 		var $R, $C, $A;
 		Rows = []; memArr = strBack.split('\n');
-		for(i = 0; i < memArr.length; ++i)
-			if(memArr[i]){
+		for (i = 0; i < memArr.length; ++i)
+			if (memArr[i]) {
 				info = memArr[i].replace(/[\f\n\r\v]/g, '').split('|');
 				if(info.length !== 4) continue; // invalid memo
 				nm = info[0];
@@ -124,8 +103,35 @@
 		Rows.sort(function(a, b) {return $(b).data('priority') - $(a).data('priority');});
 		for(i = 0; i < Rows.length; ++i) $(Rows[i]).removeData();
 		$('#memTable').append(Rows.slice((curPage - 1) * MEMOS_PER_PAGE, curPage * MEMOS_PER_PAGE));
-		$('#memTotal').html('scx: 共 ' + count + ' 份便笺');
+		$('#memTotal').html('统计: 共 ' + count + ' 份便笺');
 		win.totPage = Math.ceil(count / RECORDS_PER_PAGE);
+		pagination();
 	}
-	
+
+	// ---------------- Ranklist ---------------- //
+	win.parseRanklist = function (data) {
+		var i, j, $R, $C, $A;
+		if (data.status === 'OK') {
+			data = data.result; Rows = [];
+			for (i in data) {
+				$R = $('<tr />');
+				j = data[i].rating;
+				$A = $('<a class="user ' +
+					(j >= 3000 ? 'legendary' : j >= 2400 ? 'red' : j >= 2100 ? 'orange' : j >= 1900 ? 'violet' : j >= 1600 ? 'blue' : j >= 1400 ? 'cyan' : j >= 1200 ? 'green' : 'gray')
+					+ '" href="http://codeforces.com/profile/' + data[i].handle + '" target="_blank">' + data[i].handle + '</a>');
+				$R.append($C = $('<td />').append($A));
+				$R.append($C = $('<td />').html(data[i].firstName));
+				$R.append($C = $('<td />').html(data[i].lastName));
+				$R.append($C = $('<td />').html(data[i].rating));
+				$R.append($C = $('<td />').html(data[i].maxRating));
+				j = new Date(data[i].lastOnlineTimeSeconds * 1e3);
+				$R.append($C = $('<td />').html(dateFormat(j)));
+				$A = ((j = getFL(data[i].handle)) ? $('<a href="' + j + '" target="_blank">' + j + '</a>') : null);
+				$R.append($C = $('<td />').append($A));
+				Rows.push($R.get(0));
+			}
+			$('#rankTable').append(Rows);
+		}
+	}
+
 })(window ? window : this);

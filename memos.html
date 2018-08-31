@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-cn">
 	<head>
-		<!-- version 2.0 -->
+		<!-- version 3.0 -->
 		<meta charset="utf-8">
 		<link type="text/css" rel="stylesheet" href="additional_files/bootstrap.simplify.min.css">
 		<link type="text/css" rel="stylesheet" href="additional_files/sh_typical.min.css">
@@ -16,37 +16,60 @@
 				updTime(); setInterval(updTime, 250);
 				if(getStorage('marquee') === 'on') $("#intro").show().get(0).start();
 
-				curPage = 1;
-				LoadMemos();
+				curPage = parseInt(parseSearch('page', '1'));
+				$.get('memos/tot.cfg', parseMemos);
 
-				// adjust marquee
 				$('#btnMarquee').click(function (){
 					var $mar = $('#intro');
-					if($mar.is(':hidden')) {$mar.show().get(0).start(); setStorage('marquee', 'on');}
+					if ($mar.is(':hidden')) {$mar.show().get(0).start(); setStorage('marquee', 'on');}
 					else {$mar.hide(); setStorage('marquee', 'off');}
 				});
+
+				$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
 			});
+
+			function pagination() {
+				if (totPage <= 1) return $('#form2').hide();
+				$('#selPage').val(curPage).attr('max', totPage);
+				$('#pgN1').val(curPage + 1);
+				$('#pgN2').val(curPage + 2);
+				$('#pgN3').val(curPage + 3);
+				$('#pgP1').val(curPage - 1);
+				$('#pgP2').val(curPage - 2);
+				$('#pgP3').val(curPage - 3);
+				if (curPage <= 3) $('#pgP3').hide();
+				if (curPage <= 2) $('#pgP2').hide();
+				if (curPage <= 1) $('#pgP1, #pgPrev, #pgFirst').hide();
+				if (curPage >= totPage - 2) $('#pgN3').hide();
+				if (curPage >= totPage - 1) $('#pgN2').hide();
+				if (curPage >= totPage) $('#pgN1, #pgNext, #pgLast').hide();
+			}
 		</script>
 	</head>
-	<body class="main-body">
-		<div class="title" style="height: 160px">
-			<h2>OI 中转站 - 便笺</h2>
-			<p id="dispTime">当前时间: 2018-3-21 12:00:00</p>
+	<body>
+		<div class="title">
+			<div class="opacity-3 flex" style="height: 160px">
+				<div style="width: 100%">
+					<h2 class="cen">OI 中转站 - 便笺</h2>
+					<p class="cen" id="dispTime">当前时间: 2018-7-31 12:00:00</p>
+					<p class="ri" id="motto" style="opacity: 0; margin-top: -20px">aluminium hydroxide, the amphoteric hydroxide.</p>
+				</div>
+			</div>
 		</div>
 		<div class="dmarquee" style="height: 25px">
 			<button class="button" id="btnMarquee" style="float: left">开启/关闭字幕</button>
 			<div style="overflow: hidden">
-				<marquee id="intro" scrollamount="1334" style="display: none;">注：(字幕修改，版本 1.2)</marquee>
+				<marquee id="intro" scrollamount="1000" style="color: #999; display: none;">bestFy is the cutest !</marquee>
 			</div>
 		</div>
 		<div class="main">
-			<div class="opacity" style="min-height: 1344px">
+			<div class="opacity-4 padding" style="min-height: 1344px">
 				<div class="cen big-button">
-					<button id="btnRecord" onclick="location.href='index.html'">做题记录</button><button id="btnTools">小工具</button><button id="btnTemplate" onclick="location.href='templates.html'">模板</button><button id="btnMemo">便笺</button>
+					<button onclick="location.href='index.html'">做题记录</button><button onclick="location.href='tools.html'">小工具</button><button onclick="location.href='templates.html'">模板</button><button>便笺</button>
 				</div>
 				<fieldset>
 					<legend>便笺</legend>
-					<table class="main-table" id="memTable" style="width: 100%">
+					<table class="cen main-table" id="memTable" style="width: 100%">
 						<thead>
 							<tr>
 								<th style="width: 10%">便笺编号</th>
@@ -59,15 +82,14 @@
 						<tbody>
 						</tbody>
 					</table>
-					<p id="memTotal" class="cen">请稍等，和 scx 喝喝茶就加载完毕啦！</p>
-					<!--form id="form2"><p>页码：
-						<input id="page1" value="&laquo;" type="button" onclick="pgSubmit(1)" /><input id="pagela" value="&lt;" type="button" onclick="pgSubmit(pageO - 1)" /><input id="pagela3" value="-2" type="button" onclick="pgSubmit(pageO - 3)"><input id="pagela2" value="-1" type="button" onclick="pgSubmit(pageO - 2)" /><input id="pagela1" value="0" type="button" onclick="pgSubmit(pageO - 1)" />
-						<input id="selPage" name="page" value="1" type="number" min="1" max="170734" class="cen" style="width: 64px" onkeypress="return ptSubmit()" />
-						<input id="pagene1" value="2" type="button" onclick="pgSubmit(pageO + 1)" /><input id="pagene2" value="3" type="button" onclick="pgSubmit(pageO + 2)" /><input id="pagene3" value="4" type="button" onclick="pgSubmit(pageO + 3)" /><input id="pagene" value="&gt;" type="button" onclick="pgSubmit(pageO + 1)" /><input id="pageN" value="&raquo;" type="button" onclick="pgSubmit(pageC)" />
-					</p></form-->
+					<p id="memTotal" class="cen">请稍等，写个酱油记就加载完毕啦！</p>
+					<form id="form2"><p>页码：<input name="curLoc" type="hidden" value="">
+						<input id="pgFirst" value="&laquo;" type="button" /><input id="pgPrev" value="&lt;" type="button" /><input id="pgP3" value="-2" type="button" /><input id="pgP2" value="-1" type="button" /><input id="pgP1" value="0" type="button" />
+						<input id="selPage" name="page" value="1" type="number" min="1" max="1000000" class="cen" style="width: 50px; height: 21px" />
+						<input id="pgN1" value="2" type="button" /><input id="pgN2" value="3" type="button" /><input id="pgN3" value="4" type="button" /><input id="pgNext" value="&gt;" type="button" /><input id="pgLast" value="&raquo;" type="button" />
+					</p></form>
 				</fieldset>
 			</div>
 		</div>
-		<script>if(console) console.log("scx: 这下可找到你了！哈哈哈~");</script>
 	</body>
 </html>
