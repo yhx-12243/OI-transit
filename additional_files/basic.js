@@ -23,25 +23,26 @@ const
 			'loj' : [[/\d+/], 'https://loj.ac/problem/@0'],
 			'simpleoj' : [[/\d+/], 'http://10.49.27.23/problem?id=@0'],
 			'soj' : [[/\d+/], 'http://61.153.16.137:8001/problem/@0'],
-			'cf' : [[/\d+/, /[A-Z]\d*/], 'http://codeforces.com/contest/@0/problem/@1'],
+			'cf' : [[/\d+/, /[A-Z]\d*/], 'https://codeforces.com/contest/@0/problem/@1'],
 			'cc' : [[/\w+/], 'https://www.codechef.com/problems/@0/'],
 			'spoj' : [[/\w+/], 'http://www.spoj.com/problems/@0/']
 		},
 		FLDict = {
-			'bestFy' : 'http://bestfy.cnblogs.com/',
+			'bestFy' : 'https://bestfy.cnblogs.com/',
+			'daklqw' : 'https://daklqw.cnblogs.com/',
 			'lych_cys' : 'https://blog.csdn.net/lych_cys/',
 			'miaom' : 'https://mioam.github.io/',
 			'mrsrz' : 'https://mrsrz.cnblogs.com/',
 			'qiqi20021026' : 'https://bomb-chicken.github.io/',
-			'shaochengxi' : 'http://scx117.cnblogs.com/',
-			'skylee' : 'http://skylee03.cnblogs.com/',
+			'shaochengxi' : 'https://scx117.cnblogs.com/',
+			'skylee' : 'https://skylee03.cnblogs.com/',
 			'wanglichao1121' : 'https://wanglichao1121.coding.me/',
 			'Wonderrr' : 'https://www.karriganasta.xyz/',
 			'wzf2000' : 'https://wzf2000.zhzx-oier.top/',
 			'ZhangZisu' : 'https://blog.zhangzisu.cn/#/' 
 		};
 
-	persons = ['bestFy', '_ChenKerui', 'ddpag', 'lbn187', 'lych_cys', 'lyx_cjz', 'miaom', 'mrsrz', 'nbdhhzh', 'qiqi20021026', 'shaochengxi', 'skylee', 'twinkle_', 'wanglichao1121', 'Wonderrr', 'wzf2000', 'ZhangZisu'];
+	persons = ['bestFy', '_ChenKerui', 'daklqw', 'ddpag', 'lbn187', 'lych_cys', 'lyx_cjz', 'miaom', 'mrsrz', 'nbdhhzh', 'qiqi20021026', 'shaochengxi', 'skylee', 'twinkle_', 'wanglichao1121', 'Wonderrr', 'wzf2000', 'ZhangZisu'];
 	win.getStorage = localStorage.getItem.bind(localStorage);
 	win.setStorage = localStorage.setItem.bind(localStorage);
 

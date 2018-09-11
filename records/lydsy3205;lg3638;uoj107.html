@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3205][lg3638][uoj107][APIO2013]ROBOTS</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p><abbr title="Voltron 机器人学会">VRI</abbr> 的工程师建造了 $n$ 个机器人。任意两个兼容的机器人站在同一个格子时可以合并为一个复合机器人。</p>
+		<p>我们把机器人用 $1$ 至 $n$ 编号 ($n \leq 9$)。如果两个机器人的编号是连续的，那么它们是兼容的，可以合并成一个复合机器人。最初这 $n$ 个机器人各自都只有唯一的编号。而一个由两个或以上的机器人合并构成的复合机器人拥有两个编号，分别是构成它的所有机器人中最小和最大的编号。</p>
+		<p>例如，$2$ 号机器人只可以与 $1$ 号或 $3$ 号机器人合并。若 $2$ 号机器人与 $3$ 号机器人合并，可构成编号为 $2-3$ 的复合机器人。如果编号为 $2-3$ 的复合机器人与编号为 $4-6$ 的复合机器人合并，可构成编号为 $2-6$ 的复合机器人。当所有机器人合并以后则构成 $1-n$ 复合机器人。</p>
+		<p>工程师把这 $n$ 个机器人放在了一个封闭的房间中，房间四周均是墙。该房间被划分成 $w \times h$ 个方格。有些方格有障碍物，机器人不可经过或停留；其余方格允许多个机器人停留，同时允许机器人经过。任何时候一个机器人只占用一个方格。初始时刻,所有机器人均在不同的方格中。</p>
+		<p>这些原始的机器人不会自发地移动。它们只有被工程师沿 $x$ 轴或 $y$ 轴推动后，才会沿推动的方向不断向前直线移动，直至碰到障碍物或墙停止移动。停止移动后，它会扫描当前的格子是否存在可以与它合并的机器人，如果有，则合并并继续检查，直至不能再合并为止。工程师只能沿水平向左、水平向右、竖直向上、竖直向下四个方向推动机器人，并且，在机器人尚未停止移动时，不允许推动其它机器人，因此任何时刻，房间中都只能有一个机器人移动。</p>
+		<p>为了帮助机器人转向，工程师在一些格子中放置了转向器。具体地说，转向器分为顺时针转向器 (右转器) 和逆时针转向器 (左转器)，顺时针转向器可以使到达该格子的机器人沿顺时针方向转向 $90^\circ$；逆时针转向器可以使到达该格子的机器人沿逆时针方向转向 $90^\circ$。</p>
+		<p>现在，我们将告诉你初始时刻房间内的信息。请你计算工程师最少共计需要推动机器人多少次，才能把所有的 $n$ 个机器人全部合并 (如果可能的话)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, w, h$ ($n \leq 9; w, h \leq 500$)。</p>
+		<p>接下来的 $h$ 行描述初始时刻房间内的信息，每行包含 $w$ 个字符。</p>
+		<p>这 $w \times h$ 个字符中每一个表示房间中的一个格子，意义如下:</p>
+		<ul>
+			<li><code>1</code> 至 <code>9</code>：表示该方格中有一个机器人，编号为这个数字；</li>
+			<li><code>x</code>：表示该方格有障碍物；</li>
+			<li><code>A</code>：表示该方格中有一个逆时针转向器；</li>
+			<li><code>C</code>：表示该方格中有一个顺时针转向器；</li>
+			<li><code>.</code>：表示该方格为空地。</li>
+		</ul>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最少需要推动的次数。若不能使所有机器人全部合并，输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>其实是一个 Steiner 树的模型~</p>
+		<p>首先还是容易建立一个 DP 模型。</p>
+		<p>设 $f_{i, j, x, y}$ 表示 $i \sim j$ 号机器人合并到 $(i, j)$ 所需的最少次数。</p>
+		<p>则转移分两种情况：</p>
+		<p>第一种，机器人的合并。设 $i \sim j$ 由 $i \sim k$ 与 $k+1 \sim j$ ($i \leq k &lt; j$) 合并而成，则两部分肯定要先到达一个指定点 $(x_0, y_0)$ 并已预先合并好，因此有：</p>
+		<p>$$ f_{i, j, x, y} \downarrow f_{i, k, x, y} + f_{k+1, j, x, y} \quad (i \leq k &lt; j) $$</p>
+		<p>其中 $a \downarrow b$ 表示 <code>a = min(a, b)</code>。</p>
+		<p>第二种，机器人的一般移动，对于每个各自 $(x, y)$，可以预处理出从 $(x, y)$ 通过四个方向 $d$ 移动所能到达的最终位置。设为 $dest(d, x, y)$。则转移有：</p>
+		<p>$$ f_{i, j, dest(d, x, y).x, dest(d, x, y).y} \downarrow f_{i, j, x, y} + 1 \quad (d \in \{\texttt L, \texttt U, \texttt R, \texttt D\}) $$</p>
+		<p>主题转移部分介绍完了，接下来就是转移的顺序问题。</p>
+		<p>对于第一种转移比较简单，我们可以最外层枚举 $j - i$，第二层枚举 $i$。这样计算 $f_{i, j, x, y}$ 时 $f_{i, k, x, y}$ 和 $f_{k+1, j, x, y}$ 均已知，因此可以完成。</p>
+		<p>主要是第二种转移。如果我们将 $(x, y)$ 和 $dest(d, x, y)$ 看作点，在它们之间连一条长度为 $1$ 的边，则这个转移可以看作对于边 $u \to v$，有 $f_{i, j, v} \downarrow f_{i, j, u} + 1$。可以发现这是一个<strong>最短路模型</strong>，且所有边的长度均为 $1$。</p>
+		<p>因此对 $f_{i, j}$。我们进行完所有的第一种转移后，相当于已经有<strong>若干个点</strong>具有 dist 值了。我们要通过这些 dist 值和所谓的边来进行转移，得到所有的 $f_{i, j}$。</p>
+		<p>由于边权均为 $1$，因此不需要用神马 Dijkstra 或 SPFA 等高深玩意儿，只需使用 <strong>bfs</strong> 就可以做到。</p>
+		<p>由于是 bfs，根据它的性质，有每一次搜索的一定是 dist 值相同的节点，即只有所有 $\mathrm{dist} = k$ 的节点遍历完毕，再去更新 $\mathrm{dist} = k + 1$ 的节点。</p>
+		<p>注意到可能会有多个点同时具有 dist 值 (即 "多源" 最短路，但其实还是单源的)，因此需要一些处理技巧。不过这个处理方法非常多，这里讲如下几种：</p>
+		<ol>
+			<li><p>对每个固定的 dist 值开个有序表 (比如链表)，将原来的那些点插入到对应的 dist 值中，更新时也是插入。然后遍历时只需按照 dist 从小到大的顺序遍历每个有序表即可。</p></li>
+			<li><p>先对原来的那些点<strong>按照 dist 值排序</strong>，放到另一个 (双向) 队列 $Q_0$ 中，然后就照常地 bfs 下来。当 bfs 到 dist 等于队首的 dist 值，把队首加入队头 (或者之前就加入队尾)。注意如果 $Q_0$ 中的元素被<strong>提前</strong>加入 bfs 队列，则需要将它从 $Q_0$ 中删除，具体实现可以打标记。</p></li>
+		</ol>
+		<p>(注：下面代码用的是第 2 种实现)</p>
+		<p>于是我们成功能实现了第二种转移，从而得到所有的 $f_{i, j, x, y}$。很明显，由于题目要求全部合并，因此最终的答案 $\displaystyle \mathrm{ans} = \min_{x, y} f_{1, n, x, y}$。</p>
+		<p>总时间复杂度 $O \left( n^3 w h \right)$。<p/>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 10
+#define M 510
+#define Z 4000005
+#define _r first
+#define _c second
+
+typedef int matrix[M][M], (*pmatrix)[M];
+typedef std::pair &lt;int, int&gt; pr;
+
+const int INF = 0x3f3f3f3f;
+const int dr[4] = {0, -1, 0, 1}, dc[4] = {-1, 0, 1, 0};
+
+char map[M][M];
+int n, W, H, hcnt, tcnt;
+matrix hash[4], f[N][N];
+pmatrix ptr;
+pr ro[N], dest[4][M][M];
+pr que[Z], fy[M * M];
+
+inline int nxt(int x) {return ++x == Z ? 0 : x;}
+inline int prv(int x) {return (x ? x : Z) - 1;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline bool cmp(const pr &amp;x, const pr &amp;y) {return ptr[x._r][x._c] &lt; ptr[y._r][y._c];}
+
+pr dfs(int r, int c, int d) {
+	pr &amp;ret = dest[d][r][c];
+	if (ret._r) return ret;
+	if (hash[d][r][c] == hcnt) return ret = pr(-1, -1); hash[d][r][c] = hcnt;
+	int nd = (unsigned)map[r][c] - 64u &lt; 4u ? (d - map[r][c]) &amp; 3 : d, nr = r + dr[nd], nc = c + dc[nd];
+	return ret = (map[nr][nc] == 120 ? pr(r, c) : dfs(nr, nc, nd));
+}
+
+void bfs(pmatrix dist, int tot) {
+	int h = 0, t = 0, i = 0, d; pr u, v;
+	for (; i &lt; tot || h != t; h = nxt(h)) {
+		u = que[h];
+		if (h == t || (i &lt; tot &amp;&amp; dist[fy[i]._r][fy[i]._c] &lt; dist[u._r][u._c])) que[h = prv(h)] = u = fy[i++];
+		for (d = 0; d &lt; 4; ++d) {
+			v = dest[d][u._r][u._c];
+			if (~v._r &amp;&amp; dist[v._r][v._c] &gt; dist[u._r][u._c] + 1) {
+				dist[v._r][v._c] = dist[u._r][u._c] + 1;
+				que[t] = v; t = nxt(t);
+			}
+		}
+	}
+}
+
+int main() {
+	int i, j, k, d, id, r, c, ans = INF;
+	pmatrix f1, f2;
+	scanf("%d%d%d", &amp;n, &amp;W, &amp;H);
+	memset(map, 120, sizeof map);
+	memset(f, 63, sizeof f);
+	for (i = 1; i &lt;= H; ++i) {
+		scanf("%s", map[i] + 1); map[i][W + 1] = 120;
+		for (j = 1; j &lt;= W; ++j)
+			if (isdigit(map[i][j]))
+				id = map[i][j] &amp; 15, ro[id] = pr(i, j), f[id][id][i][j] = 0;
+	}
+	for (i = 1; i &lt;= H; ++i)
+		for (j = 1; j &lt;= W; ++j)
+			if (map[i][j] != 120)
+				for (d = 0; d &lt; 4; ++d)
+					++hcnt, dest[d][i][j] = dfs(i, j, d);
+	for (i = 1; i &lt;= n; ++i) fy[0] = ro[i], bfs(f[i][i], 1);
+	for (d = 1; d &lt; n; ++d)
+		for (i = 1; i &lt;= n - d; ++i) {
+			j = i + d; ptr = f[i][j];
+			for (k = i; k &lt; j; ++k) {
+				f1 = f[i][k]; f2 = f[k + 1][j];
+				for (r = 1; r &lt;= H; ++r)
+					for (c = 1; c &lt;= W; ++c)
+						down(ptr[r][c], f1[r][c] + f2[r][c]);
+			}
+			tcnt = 0;
+			for (r = 1; r &lt;= H; ++r)
+				for (c = 1; c &lt;= W; ++c)
+					if (ptr[r][c] &lt; INF) fy[tcnt++] = pr(r, c);
+			sort(fy, fy + tcnt, cmp);
+			bfs(ptr, tcnt);
+		}
+	for (r = 1; r &lt;= H; ++r)
+		for (c = 1; c &lt;= W; ++c) down(ans, f[1][n][r][c]);
+	printf("%d\n", ans &lt; INF ? ans : -1);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意如果使用第 2 种实现的话，一定要<strong>对 dist 值排序</strong>！否则一个点可能会被更新 $O \left( N^2 \right)$ 次导致 TLE！</p>
+		<p><strong>坑2：</strong>dfs 时注意使用 <code>visit</code> 标记 (最好用 hash 实现)，因为有可能出现移动后停不下来的情况。</p>
+	</body>
+</html>
