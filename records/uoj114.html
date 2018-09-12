@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj114]信息的交换</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>由于电信技术的发展，信息的交换变得十分方便。</p>
+		<p>现在有 $n$ 个人，依次编号为 $1, 2, \cdots, n$。初始时第 $i$ 个人手机里存储着编号为 $i$ 的气泡熊表情。由于对自己的表情并不十分满意，他们计划进行一次大交换。</p>
+		<p>这 $n$ 个人中有一些朋友关系，可以抽象为一个简单无向图 $G$。简单无向图即无重边无自环的无向图。</p>
+		<p>每个人有三种状态：不满，激动，满意。初始时均为不满。</p>
+		<p>有一个神秘人，操纵他们按如下方式行动：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">function dfs(v)
+	v 变为激动状态
+	for u &#8592; 1 to n
+		if (v 和 u 是朋友) &#8743; (u 处于不满状态)
+			交换 v 和 u 的手机中的气泡熊表情
+			dfs(u)
+    v 变为满意状态
+
+for v &#8592; 1 to n
+	if v 处于不满状态:
+		dfs(v)
+</code></pre>
+		<p>一万万年后，一位考古学家调查了最终每个手机中存储的气泡熊表情的编号，想要复原出朋友关系图 $G$。然而这几乎是不可能的，所以他想知道有多少种可能的 $G$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 500$)。</p>
+		<p>第二行包含 $n$ 个整数 $a_1, a_2, \cdots, a_n$，表示最终第 $i$ 个人的手机上存储的气泡熊表情编号。保证 $a_1, a_2, \cdots, a_n$ 是一个 $1$ 到 $n$ 的排列。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $G$ 的数量。你只用输出答案对 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 取模后的结果。</p>
+
+		<h3>题解</h3>
+		<p>首先容易发现，最终 $a_1, a_2, \cdots, a_n$ 这个排列 (即每个人的表情编号) <strong>只和原图 $G$ 的 dfs 树有关</strong>。(注：这个 dfs 树指的是多个子节点时优先进入编号小的点)</p>
+		<p>当然，图 $G$ 的 dfs 树 $T(G)$ 可能不是连通的，它可能由多个连通块构成。但是每个连通块必定是一个树，因此我们先考虑对于一棵给定的树，最终得到的排列会是什么样子。</p>
+		<p>由于 dfs 的方式<strong>只和编号的相对大小有关</strong>，与绝对大小无关。因此我们可以不妨假设编号为 $1, 2, \cdots, m$。</p>
+		<p>设最后得到的排列为 $a_1, a_2, \cdots, a_m$，于是我们得到了一个置换 $\sigma = \begin{pmatrix}
+1 & 2 & \cdots & m \\
+a_1 & a_2 & \cdots & a_m
+\end{pmatrix}$。</p>
+		<p>先考虑第一步，易知 $1$ 号节点一定是根节点，那么最后 $a_1$ 会变成多少呢？设 $1$ 的子节点为 $c_1 &lt; c_2 &lt; \cdots &lt; c_k$，则 $c_k$ 一定是最后一次被访问到的节点，因此它会把数 $c_k$ 给 $1$。因此 $a_1 = c_k$。</p>
+		<p>然后你会发现，这个推理对于所有<strong>非叶节点</strong>都是成立的，因此对于非叶节点 $v$，$a_v$ 等于<span style="color: red">它的子节点中编号最大的那个</span>。</p>
+		<p>接下来考虑一个叶节点 $v$。可见它一定是由 $p_v$ 转化而来的，因此我们只需知道 $p_v$ 在之前的值是多少。</p>
+		<p>若 $v$ 有比它小的兄弟节点，设 $v$ 的前趋兄弟为 $u$，则 $u$ 会把自己的值给 $p_v$，再传递到 $v$，故 $a_v = u$。</p>
+		<p>反之，则 $v$ 为最小的兄弟节点，则可以知道 $a_v$ 为 "把 $v$ 看成平衡树" 后的前趋。</p>
+		<P>我们将 $\sigma$ 写成循环的形式，即 $\sigma = \left( 1 a_1 a_{a_1} \cdots \right) \left( b_1 b_2 \cdots \right) \cdots$，考虑带 $1$ 的那个循环，设为 $\sigma' = \left( 1 c_1 c_2 \cdots c_x \right)$。可以发现，后面一个元素为前面一个元素的 dfs 序的后继，但是这里的 dfs 序为<strong>多个子节点时优先进入编号大的点</strong>。</p>
+		<p>因此 $1, c_1, c_2, \cdots, c_x$ 为这棵树的<strong>一种 dfs 序</strong>。因此 $\sigma$ <strong>由单个循环</strong>构成。即一棵树对应一个循环。</p>
+		<p>因此，可以设题中排列所得到的置换 $\sigma_0$ 可以拆解成 $k$ 个循环，则得到原图的 dfs 树 $T(G)$ 是个由 $k$ 棵树构成的森林。</p>
+		<p>显然树与树之间不可能连边，因此每个树的答案是独立的，最后相乘即可。因此现在只需考虑对于每个 dfs 树，有多少种还原的方式。</p>
+		<p>考虑区间 DP。设 $f_{i, j}$ 表示在 dfs 序中让区间 $[i, j]$ 成为一个森林 (即一棵或多棵树) 的方案数，那么，$f_{i+1, j}$ 就表示在 dfs 序中使区间 $[i, j]$ 成为一棵树的方案数，记为 $t_{i, j}$。</p>
+		<p>边界为 $f_{i, i} = t_{i, i} = 1$，答案即为 $t_{1, m}$。</p>
+		<p>由 dfs 树的性质，无向图的 dfs 树<strong>不存在横叉边</strong>，故只存在树边和返祖边。我们考虑返祖边会在什么时候出现。</p>
+		<p>设有返祖边 $(u, p_v)$，其中 $\mathrm{depth}(u) &gt; \mathrm{depth}(v)$，$p_v$ 为 $v$ 的父节点，$v$ 为 $u$ 的祖先节点。那么在 $p_v$ 节点进行 (小序) dfs 时，它会先选择 $v$ 而不是 $u$，因此可以说明 $v$ 的编号比 $u$ 小。</p>
+		<p>因此以 $v$ 为根的子树中，可以作为返回 $p_v$ 的返祖边的个数，即为这个子树中<strong>编号比 $v$ 大的节点个数</strong>。</p>
+		<p>因此可以设 $r_{i, j}$ 表示区间 $[i, j]$ 中<strong>大于</strong> $a_i$ 的数的个数，可以在 $O \left( n^2 \right)$ 时间内得到。</p>
+		<p>现在考虑转移 $f_{i, j}$。有如下几种情况 ($a \uparrow b$ 表示 <code>a += b</code>)：</p>
+		<ol>
+			<li><p>单独成为一棵树。注意考虑返祖边，转移方程如下：</p>
+			<p>$$ f_{i, j} \uparrow t_{i, j} \cdot 2^{r_{i, j}} $$</p></li>
+			<li><p>$[i, k]$ ($i \leq k &lt; j$) 为一棵树，剩下的还是森林。</p>
+			<p>要注意这是大序 dfs，因此 $i$ 的编号要大于 $k+1$ 的编号，即<strong>只有当 $a_i &gt; a_{k+1}$ 时</strong>，才能进行如下转移：</p>
+			<p>$$ f_{i, j} \uparrow t_{i, k} \cdot f_{k+1, j} \cdot 2^{r_{i, j}} \quad \left( i \leq k &lt; j; a_i &gt; a_{k+1} \right) $$</p></li>
+		</ol>
+		<p>这样就可以在 $O \left( m^3 \right)$ 时间内，得到所有的 DP 值，从而求出大小为 $m$ 的树的方案数。于是总的复杂度即为 $O \left( \sum m^3 \right) \leq O \left( \left( \sum m \right)^3 \right) = O \left( n^3 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 510
+
+typedef long long ll;
+const ll mod = 998244353;
+
+bool used[N];
+int n, a[N], c[N];
+int ri[N][N];
+ll pw2[N], f[N][N];
+
+ll solve(int n) {
+	int i, j, k, d;
+	if (n == 1) return 1;
+	for (i = 1; i &lt;= n; ++i) {
+		f[i][i] = 1; ri[i][i] = 0;
+		for (j = i + 1; j &lt;= n; ++j)
+			ri[i][j] = ri[i][j - 1] + (c[j] &gt; c[i]);
+	}
+	for (d = 1; d &lt; n; ++d)
+		for (i = 1; i &lt;= n - d; ++i) {
+			j = i + d;
+			f[i][j] = f[i + 1][j] * (pw2[ri[i][j]] + (c[i + 1] &lt; c[i])) % mod;
+			for (k = i + 1; k &lt; j; ++k)
+				if (c[k + 1] &lt; c[i])
+					f[i][j] = (f[i][j] + f[i + 1][k] * f[k + 1][j] % mod * pw2[ri[i][k]]) % mod;
+		}
+	return f[2][n];
+}
+
+int main() {
+	int i, j, cnt; ll ans = 1;
+	scanf("%d", &amp;n);
+	for (*pw2 = i = 1; i &lt;= n; ++i) scanf("%d", a + i), pw2[i] = pw2[i - 1] * 2 % mod;
+	for (i = 1; i &lt;= n; ++i)
+		if (!used[i]) {
+			cnt = 0;
+			for (j = i; !used[j]; j = a[j]) used[c[++cnt] = j] = true;
+			ans = ans * solve(cnt) % mod;
+		}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>具体实现时，可以不用到 $t$ 数组，不过要注意对 $m = 1$ 特判或令 $f_{i+1, i} = 1$。</p>
+	</body>
+</html>

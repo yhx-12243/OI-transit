@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3243][lg1224][uoj121][loj2664][NOI2013]向量内积</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>两个 $d$ 维向量 $A = \left[ a_1, a_2, \cdots, a_d \right]$ 与 $B = \left[ b_1, b_2, \cdots, b_d \right]$ 的内积为其相对应维度的权值的乘积和，即：</p>
+		<p>$$ A \cdot B = \sum_{i=1}^d a_i b_i = a_1 b_1 + a_2 b_2 + \cdots + a_d b_d $$</p>
+		<p>现在有 $n$ 个 $d$ 维向量 $x_1, x_2, \dots, x_n$，小喵喵想知道是否存在两个向量的内积为 $k$ 的倍数。请帮助她解决这个问题。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, d, k$ ($n \leq 10^5; d \leq 100; k \in \{2, 3\}$)，分别表示向量的个数，维数以及待检测的倍数。</p>
+		<p>接下来 $n$ 行，每行有 $d$ 个非负整数，其中第 $i$ 行的第 $j$ 个整数表示向量 $x_i$ 的第 $j$ 维权值 $x_{i, j}$ ($0 \leq x_{i, j} \leq 10$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含两个整数，用空格隔开。</p>
+		<p>如果存在两个向量 $x_p, x_q$ 的内积为 $k$ 的整数倍，则输出两个向量的编号 $p$ 与 $q$ (要求 $p &lt; q$)。如果存在多组这样的向量组合，输出其中任意一组即可。</p>
+		<p>若不存在这样的向量组合，则输出两个 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>注意到 $k \in \{2, 3\}$，可以发现这应该是一个突破口。</p>
+		<p>先考虑 $k = 2$ 的情形。</p>
+		<p>假设不存在满足条件的向量组合，即任意两个向量的内积 $\mathbf x_i \cdot \mathbf x_j \equiv 1 \pmod 2$。那么对于任意的 $i \in [1, n]$，就有</p>
+		<p>$$ \left( \mathbf x_1 + \mathbf x_2 + \cdots + \mathbf x_{i-1} \right) \cdot \mathbf x_i = \mathbf x_1 \cdot \mathbf x_i + \mathbf x_2 \cdot \mathbf x_i + \cdots + \mathbf x_{i-1} \cdot \mathbf x_i \equiv 1 + 1 + \cdots + 1 \equiv i - 1 \pmod 2 $$</p>
+		<p>因此，如果<strong>存在 $i$，使得</strong> $\left( \mathbf x_1 + \mathbf x_2 + \cdots + \mathbf x_{i-1} \right) \cdot \mathbf x_i \not\equiv i - 1 \pmod 2$，则说明 $\mathbf x_1 \cdot \mathbf x_i, \mathbf x_2 \cdot \mathbf x_i, \cdots, \mathbf x_{i-1} \cdot \mathbf x_i$ 中<strong>至少有一个</strong>是 $2$ 的倍数，暴力枚举即可。</p>
+		<p>当然，这种情况有一定概率 (最坏情况下约为 $\dfrac 12$) 找不到解，比如 $\mathbf x_1 = (1, 1, 0), \mathbf x_2 = (0, 1, 1), \mathbf x_3 = (1, 1, 1)$。这时，我们需要<strong>打乱向量原有的顺序</strong>，即作 <code>std::random_shuffle</code> 多运行几次，降低判错的概率。($5$ 次左右大概就足够了)</p>
+		<p>分析一下时间复杂度，前面需要 $n$ 次向量的加法和内积运算，这部分为 $O \left( n d \right)$，后面的枚举也是 $O \left( n d \right)$ 的，大概再乘上一个 $5$ 的常数左右。</p>
+		<hr />
+		<p>再来考虑 $k = 3$ 的时候。由于这个时候内积不等于 $0$ 就可以有 $\{1, 2\}$ 两种可能了，因此直接相加可能得不到任何结论。</p>
+		<p>不过我们可以发现，若一个数 $x$ 模 $3$ 不为 $0$，则 $x^2 \equiv 1 \pmod 3$，因此我们可以计算向量内积的<strong>平方和</strong>，即</p>
+		<p>$$ \left( \mathbf x_1 \cdot \mathbf x_i \right)^2 + \left( \mathbf x_2 \cdot \mathbf x_i \right)^2 + \cdots + \left( \mathbf x_{i-1} \cdot \mathbf x_i \right)^2 $$</p>
+		<p>注意到两个向量内积拆开后会有 $d^2$ 项，可以发现这里的每一项依然可以<strong>求部分和</strong>，因此只需多花一个 $O(d)$ 来得到内积平方和，如果它不等于 $i - 1 \pmod 3$，则说明存在解，剩下的还是暴力枚举。</p>
+		<p>这部分的时间复杂度为 $O \left( n d^2 \right)$，由于 $k = 3$ 时 $n, d$ 较小，因此可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define D 105
+#define IP(u, v) (std::inner_product(u, u + d, v, 0) % k)
+
+typedef unsigned long long ull;
+typedef int vec[D], *pvec;
+const int MOD3[7] = {0, 1, 2, 0, 1, 2, 0};
+
+int n, d, k;
+int ord[N];
+vec v[N], cur, Cur[D];
+
+int calc(int id) {
+	int ret = IP(cur, v[id]), i;
+	for (i = 0; i &lt; d; ++i) cur[i] ^= v[id][i];
+	return ret % k;
+}
+
+int calcSqr(int id) {
+	int ret = 0, i, j;
+	for (i = 0; i &lt; d; ++i)
+		for (j = 0; j &lt; d; ++j)
+			ret += Cur[i][j] * v[id][i] * v[id][j],
+			Cur[i][j] = MOD3[Cur[i][j] + v[id][i] * v[id][j]];
+	return ret % k;
+}
+
+inline int print(int u, int v) {
+	if (u &gt; v) std::swap(u, v);
+	return printf("%d %d\n", u + 1, v + 1), 0;
+}
+
+int main() {
+	int i, j, Times;
+	scanf("%d%d%d", &amp;n, &amp;d, &amp;k);
+	for (i = 0; i &lt; n; ++i)
+		for (ord[i] = i, j = 0; j &lt; d; ++j) scanf("%d", v[i] + j), v[i][j] %= k;
+	for (Times = 1; Times &lt;= 5; ++Times) {
+		std::random_shuffle(ord, ord + n);
+		k == 2 ? memset(cur, 0, d &lt;&lt; 2) : memset(Cur, 0, sizeof Cur);
+		for (i = 0; i &lt; n; ++i)
+			if ((k == 2 ? calc(ord[i]) : calcSqr(ord[i])) != i % k)
+				for (j = 0; j &lt; i; ++j)
+					if (!IP(v[ord[j]], v[ord[i]]))
+						return print(ord[j], ord[i]);
+	}
+	puts("-1 -1");
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在 <code>std::random_shuffle</code> 时注意不要对整个向量进行打乱，可以对下标打乱。</p>
+	</body>
+</html>
