@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4585][lg3642][uoj205][loj2568][APIO2016]Fireworks</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>烟花表演是最引人注目的节日活动之一。在表演中，所有的烟花必须同时爆炸。为了确保安全，烟花被安置在远离开关的位置上，通过一些导火索与开关相连。</p>
+		<p>导火索的连接方式形成一棵树，烟花是树叶，如图所示。火花从开关出发，沿导火索移动。每当火花抵达一个分叉点时，它会扩散到与之相连的所有导火索，继续燃烧。</p>
+		<p>导火索燃烧的速度是一个固定常数。图中展示了六枚烟花 $\left\{ E_1, E_2, \cdots, E_6 \right\}$ 的连线布局，以及每根导火索的长度。图中还标注了当在时刻 $0$ 从开关点燃火花时，每一发烟花的爆炸时间。</p>
+		<img class="center-block" src="http://img.uoj.ac/problem/205/1.png" style="width: 300px" alt="图 1" />
+		<p>Hyunmin 为烟花表演设计了导火索的连线布局。不幸的是，在他设计的布局中，烟花不一定同时爆炸。我们希望修改一些导火索的长度，让所有烟花在同一时刻爆炸。</p>
+		<p>例如，为了让图中的所有烟花在时刻 $13$ 爆炸，我们可以像下图中左边那样调整导火索长度。类似地，为了让图中的所有烟花在时刻 $14$ 爆炸，我们可以像下图中右边那样调整长度。</p>
+		<img class="center-block" src="http://img.uoj.ac/problem/205/2.png" style="width: 600px" alt="图 2" />
+		<p>修改导火索长度的代价等于修改前后长度之差的绝对值。例如，将上面那副图中布局修改为下面那副图的左边布局的总代价为 $6$，而修改为右边布局的总代价为 $5$。</p>
+		<p>导火索的长度可以被减为 $0$，同时保持连通性不变。</p>
+		<p>给定一个导火索的连线布局，你需要编写一个程序，去调整导火索长度，让所有的烟花在同一时刻爆炸，并使得代价最小。</p>
+
+		<h3>输入格式</h3>
+		<p>所有的输入均为正整数。令 $N$ 代表分叉点的数量，$M$ 代表烟花的数量。分叉点从 $1$ 到 $N$ 编号，编号为 $1$ 的分叉点是开关。烟花从 $N + 1$ 到 $N + M$ 编号。</p>
+		<p>第一行包含两个正整数 $N, M$ ($N, M \leq 3 \times 10^5$)。</p>
+		<p>接下来 $N + M - 1$ 行，第 $i$ 行包含两个整数 $P_{i + 1}, C_{i + 1}$ ($1 \leq P_i &lt; i; 1 \leq C_i \leq 10^9$)，其中 $P_i$ 代表和分叉点或烟花 $i$ 相连的分叉点，$C_i$ 代表连接它们的导火索长度。除开关外，每个分叉点和多于 $1$ 条导火索相连，而每发烟花恰好与 $1$ 条导火索相连。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示调整导火索长度，让所有烟花同时爆炸，所需要的最小代价。</p>
+
+		<h3>题解</h3>
+		<p>容易看出点和烟花组成一个树形结构，且以 $1$ 号点 ($S$) 为根。</p>
+		<p>对于一个点 $v$，定义函数 $f_v (t)$ 表示将<strong>以 $v$ 为根的子树</strong>中的点同时在时刻 $t$ 爆炸 (即子树中所有叶子到 $v$ 的距离都等于 $t$) 所需的最小代价。</p>
+		<p>容易归纳得到，对于所有的 $v$，$f_v (t)$ 是线性分段的下凸函数，即它的导数 (斜率) 递增。</p>
+		<p>现在我们考虑如何从 $f_v (t)$ 转移到 $f_{p_v} (t)$，其中 $p_v$ 为 $v$ 的父节点。</p>
+		<p>设使得 $f'_v(t) = 0$ 的极大区间为 $[L, R]$ (可能 $L = R$)，由函数的凸性知当 $L \leq t \leq R$ 时，$f_v (t)$ 取到最小值。</p>
+		<p>设 $w = \mathrm{dist}(v, p_v)$，则我们设最后这条边的长度变为了 $a$，则有：</p>
+		<p>$$ f_{p_v} (a + t) \downarrow f_v (t) + |w - a| $$</p>
+		<p>其中 $a \downarrow b$ 表示 <code>a = min(a, b)</code>。</p>
+		<p>为了去掉绝对值，分两种情况讨论：</p>
+		<ol>
+			<li><p>$0 \leq a \leq w$。</p>
+			<p>此时，上式变为 (以 $t - a$ 代 $t$)：</p>
+			<p>$$ f_{p_v} (t) \downarrow f_v (t - a) + w - a $$</p>
+			<p>由于 $a$ 可以在 $\left[ 0, \min \{t, w\} \right]$ 之间任意取值，因此有</p>
+			<p>$$ f_{p_v} (t) \downarrow \min_{0 \leq a \leq \min \{t, w\}} f_v (t - a) + w - a $$</p>
+			<ol>
+				<li><p>若 $0 \leq t &lt; L$，则 $f_v (t) - f_v (t + 1) \geq 1$，因此有 $f_v (t - (a + 1)) - (a + 1) \geq f_v (t - a) - a$。故上式右端在 $a = 0$ 处取得最小值，故更新为</p>
+				<p>$$ f_{p_v} (t) \downarrow f_v (t) + w $$</p></li>
+				<li><p>若 $L \leq t &lt; L + w$，则上式右端在 $a = t - L$ 时取极值，故更新为</p>
+				<p>$$ f_{p_v} (t) \downarrow f_v (L) + w - t + L $$</p></li>
+				<li><p>若 $L + w \leq t$，则上式右端在 $a = w$ 时取极值，故更新为</p>
+				<p>$$ f_{p_v} (t) \downarrow f_v (t - w) $$</p></li>
+			</ol></li>
+			<li><p>$a &gt; w$。</p>
+			<p>此时，上式变为：</p>
+			<p>$$ f_{p_v} (t) \downarrow f_v (t - a) + a - w $$</p>
+			<p>注意到 $a$ 可以再 $(w, t]$ 之间取值，因此有</p>
+			<p>$$ f_{p_v} (t) \downarrow \min_{w &lt; a \leq t} f_v (t - a) + a - w $$</p>
+			<p>和上面一样类似分析，可以得到：</p>
+			<ol>
+				<li><p>若 $w &lt; t \leq R + w$，则上式右端在 $a \to w$ 时取得极值，即</p>
+				<p>$$ f_{p_v} (t) \downarrow f_v (t - w) $$</p></li>
+				<li>若 $R + w &lt; t$，则上式右端在 $a = t - R$ 时取极值，即</p>
+				<p>$$ f_{p_v} (t) \downarrow f_v (R) + t - R - w $$</p></li>
+			</ol>
+		</ol>
+		<p>将上面所有的讨论综合一下，得到下面的结论 (即 $f_{p_v} (t)$ 的封闭形式)：</p>
+		<p>$$ f_{p_v} (t) = \begin{cases} f_v (t) + w &amp; 0 \leq t &lt; L \\ f_v (L) + w - t + L &amp; L \leq t &lt; L + w \\ f_v (t - w) \left( = f_v (L) \right) &amp; L + w \leq t &lt; R + w \\ f_v (R) + t - R - w &amp; R + w \leq t \end{cases} $$</p>
+		<p>因此，我们对于 $t$，我们考虑维护 $f_v(t)$ 的<strong>斜率变化点</strong>，记为 $S_v$。当然，如果经过一个 $t_0$ 时，斜率变化多次，则 $t_0$ 应该在 $S_v$ 中出现多次。(因此 $S_v$ 是一个多重集)</p>
+		<p>现在我们根据上面的递推式 (分段函数) 来得到 $S_v$ 和 $S_{p_v}$ 之间的关系。</p>
+		<p>当 $0 \leq t &lt; L$ 时，$f_{p_v} (t)$ 比 $f_v (t)$ 恰好多一个常数，因此这些段里面的斜率变化点直接原封不动地照抄下来即可。</p>
+		<p>当 $L \leq t &lt; L + w$ 时，$f_{p_v} (t)$ 为关于 $t$ 的，斜率为 $-1$ 的一次函数，因此中间<strong>没有</strong>斜率变化点。当然，如果在 $t = L$ 左侧函数 $f_v (t)$ 的斜率 $\leq -2$ 的话，那么还是有一个斜率变化点的。也即，$S_{p_v}$ 中的 $L$ 会比 $S_v$ 中的 $L$ 少一个。</p>
+		<p>当 $L + w \leq t &lt; R + w$ 时，$f_{p_v} (t)$ 为常函数，都等于 $f_v (L)$。因此这部分只有一个斜率变化点，即 $L + w$。</p>
+		<p>当 $R + w \leq t$ 时，$f_{p_v} (t)$ 为关于 $t$ 的，斜率为 $1$ 的一次函数。因此这部分也只有一个斜率变化点，即 $R + w$。</p>
+		<p>综上，我们对于 $S_v$，我们要找到这样一个区间 $[L, R]$ (如上定义)，然后删除大于等于 $L$ 的<strong>所有斜率变化点</strong> (其中 $L$ 只删一个)，然后插入斜率变化点 $L + w$ 和 $R + w$。</p>
+		<p>现在的问题是，由于我们只维护了集合 $S_v$，该如何找到这对 $L, R$。我们可以发现，当 $t \to + \infty$ 时，$f_v (t)$ 的斜率为 <strong>$v$ 的 (直接) 子节点个数</strong>，因此，若 $v$ 有 $d(v)$ 个子节点，我们只需去掉前 $d(v) - 1$ 个<strong>斜率变化点</strong>，集合中剩下的两个最大元即为 $L$ 和 $R$。</p>
+		<p>由于我们只用到了集合的最大元的性质，因此可以用<strong>优先队列 (堆)</strong>来维护即可。</p>
+		<p>至于复制原先的元素 (斜率变化点)，那么可以用<strong>可并堆</strong>来维护这个操作。</p>
+		<p>考虑最后计算答案。注意到 $f_1 (0)$ 即让所有点到根的距离都为 $0$ 的代价，当然是所有边的边权和。因此计算 $f_1 (t)$ 的最小值，又由于斜率变化点已知，因此每个点的斜率已知，故可以计算出最后的最小值。事实上，它等于 $f_1 (0)$ 减去所有不超过 $L$ 的斜率变化点之和。</p>
+		<p>时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#include &lt;ext/pb_ds/priority_queue.hpp&gt;
+#define N 600005
+#define M 1200005
+
+typedef long long ll;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+typedef __gnu_pbds::priority_queue &lt;ll&gt; PQ;
+
+int V, V1, V2, E;
+int p[N], deg[N], first[N], next[M];
+PQ f[N]; // x-coordinate where slope changes
+ll ans = 0;
+
+inline void addedge(int u, int v, int w) {e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;}
+
+void dfs(int x) {
+	int i, y;
+	if (x &gt; V1) {f[x].push(0); f[x].push(0); return;}
+	for (i = first[x]; i; i = next[i]) {
+		dfs(y = e[i].v);
+		f[x].push(f[y].top() + e[i].w); f[y].pop();
+		f[x].push(f[y].top() + e[i].w); f[y].pop();
+		f[x].join(f[y]);
+	}
+	for (i = 1; i &lt; deg[x]; ++i) f[x].pop();
+}
+
+int main() {
+	int i, w;
+	scanf("%d%d", &amp;V1, &amp;V2); V = V1 + V2;
+	for (i = 2; i &lt;= V; ++i) {
+		scanf("%d%d", p + i, &amp;w); ans += w;
+		++deg[p[i]]; addedge(p[i], i, w);
+	}
+	dfs(1);
+	for (f[1].pop(); !f[1].empty(); f[1].pop()) ans -= f[1].top();
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意弹出时是弹出 $d(v) - 1$ 个，而不是 $d(v)$ 个。</p>
+	</body>
+</html>

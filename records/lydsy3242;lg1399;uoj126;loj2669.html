@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3242][lg1399][uoj126][loj2669][NOI2013]快餐店</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 T 打算在城市 C 开设一家外送快餐店。送餐到某一个地点的时间与外卖店到该地点之间最短路径长度是成正比的，小 T 希望快餐店的地址选在离最远的顾客距离最近的地方。</p>
+		<p>快餐店的顾客分布在城市 C 的 $N$ 个建筑中，这 $N$ 个建筑通过恰好 $N$ 条双向道路连接起来，不存在任何两条道路连接了相同的两个建筑。任意两个建筑之间至少存在一条由双向道路连接而成的路径。小 T 的快餐店可以开设在任一建筑中，也可以开设在任意一条道路的某个位置上 (该位置与道路两端的建筑的距离不一定是整数)。</p>
+		<p>现给定城市 C 的地图 (道路分布及其长度)，请找出最佳的快餐店选址，输出其与最远的顾客之间的距离。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 10^5$)，表示城市 C 中的建筑和道路数目。</p>
+		<p>接下来 $N$ 行，每行 $3$ 个整数，$A_i, B_i, L_i$ ($1 \leq i \leq N; L_i &gt; 0$)，表明一条道路连接了建筑 $A_i$ 与 $B_i$，其长度为 $L_i$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，四舍五入保留恰好一位小数，表示最佳快餐店选址距离最远用户的距离。</p>
+
+		<h3>题解</h3>
+		<p>由连通性，可以得到 $C$ 为一棵基环树。我们需要找一个点 $v$ 使得它到最远点的距离最小。</p>
+		<p>那么此时，一定有至少两个<strong>最远点</strong>，它们<strong>与 $v$ 等距</strong>。反之，若距离 $v$ 最远的点只有一个 $u$，我们将 $v$ 向 $u$ 的方向稍稍移动 $\epsilon &gt; 0$，则它到最远点 $u$ 的距离变小了，而到其它点的距离依然不超过 $\mathrm{dist}(u, v)$。</p>
+		<p>设 $a, b$ 为距离 $v$ 最远的点 (如果多于两个则任取两个)，我们分以下几种情况讨论：</p>
+		<ol>
+			<li><p>$a, b$ 在基环树 $C$ 的<strong>同一个外向树 $T$ 上</strong>。</p>
+			<p>下面我们说明，$v \in T$。反之，若 $v$ 在 $T$ 外，我们可以将 $v$ 朝 "$T$ 的根" 的方向稍稍移动 $\epsilon$，若到最远点的距离没有变小，说明在其它树上还有最远点，转化为情况 2。</p>
+			<p>因此我们可以假设其它地方 ($C \setminus T$ 中) 没有最远点，因此最大距离减小，答案更优。</p>
+			<p>这种情况只需考虑树的直径，即取 $T$ 的任意一条直径的中点 (可以证明是唯一的)，则最大距离为直径的一半，即 $\dfrac 12 \mathrm{diam}(T)$。</p></li>
+			<li><p>$a, b$ 在不同的外向树上。</p>
+			<p>这种情况，由于经过 $a \leadsto v \leadsto b$ <strong>一定经过基环树 $C$ 的环 $\Phi$</strong>，且不经过 $\Phi$ 的所有边。设入环的点为 $p$，出环的点为 $q$，则 $a \leadsto p$ 为 $p$ 对应的外向树的最深的路径 (即从 $p$ 出发的最长路)，同理 $b \leadsto q$ 为 $q$ 对应的外向树的最深的路径。</p>
+			<p>由于 $p \leadsto q$ 不经过 $\Phi$ 的所有边，因此可以去掉 $\Phi$ 中的一条边 $e$，这个时候，$a \leadsto b$ 就应该是剩下的<strong>树</strong>的直径。</p>
+			<p>此时，我们可以枚举去掉哪一条边，维护出每次树的直径，最后取个 $\min$ 即可。</p></li>
+		</ol>
+		<p>最后对上述两种情况取较大的那个即为最终情况。</p>
+		<hr />
+		<p>现在来讲一下实现细节。</p>
+		<p>在第一种情况，即求单个树的直径时，两次 dfs 固然是可以的，但是最好使用 DP 为后面作铺垫。</p>
+		<p>DP 时只需记 $f_i$ 表示以 $i$ 为根的子树的最深的路径长度即可。可以用类似 <a href="lydsy1023.html" target="_blank">[SHOI2008]仙人掌图</a> 的方法，<strong>一边转移一边更新答案</strong>。</p>
+		<p>这样我们顺便也得到了对于每个外向树的根 $r$，在 $r$ 对应的外向树中，从 $r$ 出发的最长路。</p>
+		<p>再考虑第二种情况，我们<strong>破环为链</strong>，设链为 $c_1, c_2, \cdots, c_l$。用 $F_i$ 表示 (断掉 $(c_1, c_l)$ 后) <strong>前 $i$ 棵外向树到 $c_1$ 的最长路径</strong>，故 $F_1 = f_{c_1}, F_i = \max \left\{ F_{i-1}, f_{c_i} + \mathrm{dist}(c_1, c_i) \right\}$。</p>
+		<p>再用 $G_i$ 表示 (断掉 $(c_1, c_l)$ 后) <strong>前 $i$ 棵外向树与 $i-1$ 个连接边 (环边) 构成的新树的直径</strong>，则 $\displaystyle G_1 = 0, G_i = \max \left\{ G_{i-1}, \max_{1 \leq j \leq i} \left( f_{c_i} + f_{c_j} + \mathrm{dist}(c_i, c_j) \right) \right\}$。</p>
+		<p>注意到右边的 $\max$ 中，将 $\mathrm{dist}$ 拆成前缀和相减后，关于 $j$ 的项是可分离的。因此由单调性可以用一个变量维护 $f_{c_j} - \mathrm{dist}(c_1, c_j)$ 的最大值。</p>
+		<p>同理，一样可以维护出后 $i$ 棵外向树到 $c_l$ 的最长路径，记作 $F'_{l-i+1}$，以及后 $i$ 棵外向树与 $i-1$ 个连接边构成的新树的直径，记作 $G'_{l-i+1}$。</p>
+		<p>接下来我们就可以枚举断掉的边，计算剩下的树的直径。</p>
+		<p>先来考虑断掉 $(c_1, c_l)$ 这一及其特殊的情形。此时的答案我们已经得到，它就是 $G_l$ 或 $G'_1$。</p>
+		<p>接下来考虑断掉 $(c_i, c_{i+1})$ ($1 \leq i &lt; l$) 的一般情形。我们以直径是否经过 $(c_1, c_l)$ 分为两类：</p>
+		<ol>
+			<li><p>直径不过 $(c_1, c_l)$。</p>
+			<p>因此此时的答案就是两端的直径相加，即 $\max \left\{ G_i, G'_{i+1} \right\}$。</p></li>
+			<li><p>直径过 $(c_1, c_l)$。</p>
+			<p>此时由于直径经过了 $c_1$ 和 $c_l$ 这两个点，因此此时的答案为 $F_i + \mathrm{dist}(c_1, c_l) + F'_{i+1}$。</p>
+		</ol>
+		<p>因此这个时候的直径为 $\max \left\{ G_i, G'_{i+1}, F_i + \mathrm{dist}(c_1, c_l) + F'_{i+1} \right\}$。</p>
+		<p>最后取最小的那个值即可，总时间复杂度 $O(n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define M 200010
+#define ad(x) ((x - 1 ^ 1) + 1)
+
+typedef long long ll;
+const ll INF = 0x3f3f3f3f3f3f3f3f;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int n, E = 0;
+int first[N], next[M], p[N];
+int cnt = 0, o[N], id[N];
+int cyc_cnt = 0, cyc[N], cycid[N], cycw[N];
+// cycw[i] = dist(cyc[i], cyc[i + 1])
+ll fy, ans = 0, dep[N], f[N];
+ll fl[N], fr[N], gl[N], gr[N];
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+inline ll Max(ll x, const ll y, const ll z) {return up(x, y), x &lt; z ? z : x;}
+
+inline void addedge(int u, int v, int w) {
+	e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+	e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+}
+
+void dfsC(int x) {
+	int i, y;
+	o[++cnt] = x; id[x] = cnt;
+	for (i = first[x]; i; i = next[i])
+		if (!id[y = e[i].v])
+			p[y] = x, dep[y] = dep[x] + e[i].w, dfsC(y);
+		else if (y != p[x] &amp;&amp; id[y] &gt; id[x]) { // cycle
+			for (; y != x; y = p[y]) cyc[++cyc_cnt] = y, cycid[y] = cyc_cnt, cycw[cyc_cnt] = dep[y] - dep[p[y]];
+			cyc[++cyc_cnt] = x; cycid[x] = cyc_cnt; fy = e[i].w;
+		}
+}
+
+void dfs(int x, int px = 0) {
+	int i, y;
+	for (i = first[x]; i; i = next[i])
+		if (!cycid[y = e[i].v] &amp;&amp; y != px) {
+			dfs(y, x);
+			up(ans, f[x] + f[y] + e[i].w);
+			up(f[x], f[y] + e[i].w);
+		}
+}
+
+int main() {
+	int i, u, v, w; ll cur = 0, sum = 0, max = 0, min;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), addedge(u, v, w);
+	dfsC(1);
+	for (i = 1; i &lt;= cyc_cnt; ++i) dfs(cyc[i]);
+	for (i = 1; i &lt;= cyc_cnt; ++i) {
+		sum += cycw[i - 1]; cur = f[cyc[i]] + sum;
+		up(fl[i] = fl[i - 1], cur);
+		up(gl[i] = gl[i - 1], cur + max);
+		up(max, f[cyc[i]] - sum);
+	}
+	sum = max = 0;
+	for (i = cyc_cnt; i; --i) {
+		sum += cycw[i]; cur = f[cyc[i]] + sum;
+		up(fr[i] = fr[i + 1], cur);
+		up(gr[i] = gr[i + 1], cur + max);
+		up(max, f[cyc[i]] - sum);
+	}
+	min = gr[1]; // cut (1, n)
+	for (i = 1; i &lt; cyc_cnt; ++i) // cut (i, i + 1)
+		down(min, Max(gl[i], gr[i + 1], fl[i] + fr[i + 1] + fy));
+	up(ans, min);
+	printf(ans &amp; 1 ? "%lld.5" : "%lld.0", ans / 2);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意边权不为 $1$，因此计算 <code>dep</code> 数组的时候要加 <code>e[i].w</code>。</p>
+	</body>
+</html>
