@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj138]开学前的涂鸦</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>红包是一个有艺术细胞的男孩子。</p>
+		<p>红包由于 NOI 惨挂心情不好，暑假作业又多，于是他开始在作业本上涂鸦。</p>
+		<p>一开始，他在纸上画了一棵 $n$ 个节点的树。但是他觉得这样的画太简单了，体现不出他高超的绘画功底，于是他又额外画上了 $k$ 条边。</p>
+		<p>然而他觉得这样画面太复杂，于是想删去一些边使得这个无向图仍然是连通的。</p>
+		<p>请帮红包求出删边的方案数。两个方案被认为是不同的当且仅当存在一条边在其中一组中被删而另一组中没有。(什么边都不删也算一种方案)</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, k$ ($1 \leq n \leq 10^5; 0 \leq k \leq 10$)。</p>
+		<p>接下来 $n - 1$ 行，描述了红包最开始画的那颗树。每行两个整数 $v, u$ ($1 \leq v, u \leq n; v \neq u$) 表示 $v$ 和 $u$ 之间有一条无向边。</p>
+		<p>接下来 $k$ 行，描述了红包后来加的边。每行两个整数 $v, u$ ($1 \leq v, u \leq n; v \neq u$) 表示红包在 $v$ 和 $u$ 之间又加上了一条边。数据保证树中原有的边不会被再添加一次。</p>
+
+		<h3>输出格式</h3>
+		<p>一个整数，表示方案数。你只用输出答案对 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 取模后的值。</p>
+
+		<h3>题解</h3>
+		<p>通过<a href="lydsy3237%3Blydsy3569.html" target="_blank">这道题</a>的积累，相信你们都对删边后的图的连通性有了一个新的认识了吧！</p>
+		<p>类似地，在一个连通图中，我们给每条边一个合适的权值，这样删掉 $E$ 中边后图连通，当且仅当 $E$ 中边的权值线性无关。</p>
+		<p>但是在这张图中，可以删的边<strong>不止 $k$ 条，而有 $n + k - 1$ 条</strong>。因此如果暴力枚举判断的话，时间可能会不够。</p>
+		<p>首先可以注意到，原树的这 $n - 1$ 条边和后面新加的 $k$ 条边是<strong>没有本质区别</strong>的，其实题目就是给了一张边数<strong>略多于</strong>点数的连通图。</p>
+		<p>类似地，通过 dfs 得到原图的一棵生成树 $T$，则我们得到了 $k$ 条非树边，且它们均为返祖边 <span style="color: blue">(注意这 $k$ 条边可能与题中的 $k$ 条边不同)</span>。</p>
+		<p>此时，我们把 $k$ 条边标记为 $\{1\}$ (<code>1000...</code>)，$\{2\}$ (<code>0100...</code>)，……，$\{k\}$ (<code>000...01</code>)；树边的标号和那道题相同，即为所有 "跨越" 它的非树边的标号的异或和。</p>
+		<p>可以发现，$E$ 中所有的边的标号一共只有<strong>不超过 $2k$ 种情况</strong>。</p>
+		<p>因此，我们可以枚举边集 $E$ 中这 $2k$ 种标号情况的边是否出现。可以证明，若两种边集 $E$ 所含标号的集合相同，则最终的连通性一定是相同的。</p>
+		<p>对于这种相同的情形，我们可以记录标号为 $i$ 的边的数量 $\mathrm{count}_i$，最后用一种方案乘以对应的数量即可。</p>
+		<p>这样以来，时间复杂度就是 $O \left( 2^{2k} k \right)$ 了。具体实现时，可以使用记忆化搜索，即每新增一种编号就插入到线性基中判断合法，这样可以减少不少的不合法状态。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100100
+#define K 13
+#define K2 1050
+
+typedef long long ll;
+const int mod = 998244353;
+
+int V, E, Es = 0, ans = 0;
+int to[N * 2], first[N], next[N * 2];
+int cnt = 0, id[N];
+int back = 0, val[N], count[K2];
+int Ep = 0, fy[K2];
+int linear_base[K];
+
+inline void add(int &amp;x, const int y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+inline void addedge(int u, int v) {
+	to[++Es] = v; next[Es] = first[u]; first[u] = Es;
+	to[++Es] = u; next[Es] = first[v]; first[v] = Es;
+}
+
+bool insert(int x, int *lb) {
+	for (int i = K - 1; i &gt;= 0; --i)
+		if (x &gt;&gt; i &amp; 1) {
+			if (lb[i]) x ^= lb[i];
+			else return lb[i] = x, true;
+		} else if (!x) return false;
+	return false;
+}
+
+void dfs(int x, int px = 0) {
+	int i, y; id[x] = ++cnt;
+	for (i = first[x]; i; i = next[i])
+		if (!id[y = to[i]])
+			dfs(y, x), val[x] ^= val[y];
+		else if (y != px &amp;&amp; id[x] &gt; id[y])
+			val[x] |= 1 &lt;&lt; back, val[y] |= 1 &lt;&lt; back, ++count[1 &lt;&lt; back++];
+	++count[val[x]];
+}
+
+void solve(int dep, int cur, int *lb) {
+	if (dep &gt;= Ep) return add(ans, cur);
+	solve(dep + 1, cur, lb);
+	int _lb[K];
+	memcpy(_lb, lb, sizeof _lb);
+	if (insert(fy[dep], lb)) solve(dep + 1, (ll)cur * count[fy[dep]] % mod, lb);
+	memcpy(lb, _lb, sizeof _lb);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d%d", &amp;V, &amp;E); E += V - 1;
+	for (i = 1; i &lt;= E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1); assert(back == E - V + 1);
+	for (i = 1; i &lt; 1 &lt;&lt; back; ++i) if (count[i]) fy[Ep++] = i;
+	solve(0, 1, linear_base);
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>统计 $\mathrm{count}_i$ 时还是可以用差分和部分和，不过不要忘记对<strong>非树边</strong>的统计。</p>
+	</body>
+</html>

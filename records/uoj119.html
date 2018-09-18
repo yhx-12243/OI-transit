@@ -1,0 +1,169 @@
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj119]决战圆锥曲线</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个随机数产生器，有个内部变量 $x$ 初始时为 $x_0$，每次产生随机数时它会将 $x$ 变为 $\left( 100\,000\,005 x + 20\,150\,609 \right) \bmod 998\,244\,353$，然后返回 $\left \lfloor \dfrac x {100} \right \rfloor$。($a \bmod b$ 表示 $a$ 除以 $b$ 的余数，该运算的优先级高于加减法。$\lfloor \alpha \rfloor$ 表示 $\alpha$ 向下取整后的结果)</li>
+		<p>初始时有 $n$ 个点，分别编号为 $1, \cdots, n$，按编号从小到大顺序生成第 $i$ 个点的坐标：</p>
+		<ul>
+			<li>把横坐标赋为 $i$。</li>
+			<li>产生一个随机数 $\hat y$，把纵坐标赋为 $\hat y \bmod 100001$。</li>
+		</ul>
+		<p>有 $m$ 个操作，操作共有三种：</p>
+		<ul>
+			<li><code>C</code>：按顺序产生随机数 $\hat p, \hat y$，令 $p = \hat p \bmod n + 1, y = \hat y \bmod 100001$，然后把第 $p$ 个点的纵坐标修改为 $y$。</li>
+			<li><code>R</code>：按顺序产生随机数 $\hat p, \hat q$，令 $p = \min \left\{ \hat p \bmod n + 1, \hat q \bmod n + 1 \right\}, q = \max \left\{ \hat p \bmod n + 1, \hat q \bmod n + 1 \right\}$，把编号大于等于 $p$ 小于等于 $q$ 的点的纵坐标 $y$ 改为 $100000 - y$。</li>
+			<li><code>Q <em>a</em> <em>b</em> <em>c</em></code>：查询操作。按顺序产生随机数 $\hat p, \hat q$，令 $p = \min \left\{ \hat p \bmod n + 1, \hat q \bmod n + 1 \right\}, q = \max \left\{ \hat p \bmod n + 1, \hat q \bmod n + 1 \right\}$。求最小的整数 $t$ 使得：对于所有编号大于等于 $p$ 小于等于 $q$ 的点 $(x, y)$ 都满足 $ax + by + cxy \leq t$。其中 $a, b, c$ 均为非负整数。</li>
+		</ul>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, m, x_0$ ($1 \leq n \leq 10^5; 1 \leq m \leq 10^6; 0 \leq x_0 &lt; 998244353$)。</p>
+		<p>接下来的 $m$ 行，每行表示一个操作，格式如前所述。保证 $0 \leq a, b \leq 10^6; 0 \leq c \leq 40$，记共有 $q$ 个操作 <code>Q</code>，则 $q \leq 10^5$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个查询操作，输出一行一个整数，表示最小的 $t$。</p>
+
+		<h3>题解</h3>
+		<p>令 $f(x, y) = a x + b y + c x y$，则 $f(x, y)$ 满足如下性质：对于 $x_1 \leq x_2 \wedge y_1 \leq y_2$，有 $f(x_1, y_1) \leq f(x_2, y_2)$。</p>
+		<p>因此，若 $x_1, x_2$ 均在给定区间内，则无论 $a, b, c$ 如何，点 $(x_1, y_1)$ 都不会对答案产生贡献。</p>
+		<p>注意到题目中所有的数据都是随机出来的，而不是给定的出来的。这启发我们使用某些对于随机数据复杂度比较优秀的做法。</p>
+		<p>由于在随机数据中，有大量满足上述性质 ($x_1 \leq x_2, y_1 \leq y_2$) 的点，因此实际上对答案有贡献的点并不多，约为 $O \left( \log n \right)$。</p>
+		<p>因此使用线段树，用一个区间 $[L, R]$ 维护它的最大值 $V_{L, R}$。当递归到子节点时，先判断 $f \left( R, V_{M+1, R} \right)$ 是否大于当前的 $ans$，如果是，则递归，否则就放弃。同理对左子节点也先判断 $f \left( M, V_{L, M} \right)$ 是否大于当前 $ans$ 值而讨论。</p>
+		<p>来分析一下复杂度，来计算它需要计算多少个<strong>叶节点</strong>。由于递归的方式，因此每个<strong>叶节点</strong>必然会对答案产生贡献。而对答案有直接贡献的点是 $O \left( n \log n \right)$ 的，因此单次询问的复杂度为 $O \left( n \log^2 n \right)$。</p>
+		<p>对于修改操作，首先 <code>C</code> 没什么好说的，至于 <code>R</code>，是一个经典的套路，即对于一个点既要维护 $\max$ 又要维护 $\min$，然后翻转时令 $(\min, \max) \gets (10^5 - \max, 10^5 - \min)$，然后<strong>打上翻转标记</strong>即可。</p>
+		<p>总时间复杂度 $O \left( (n + m) \log n + q \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+#define ID isdigit(c = *next++)
+
+struct Istream {
+	char *next, buf[20030731];
+	void init(FILE *f = stdin) {fread(buf, 1, sizeof buf, f); next = buf;}
+	Istream &amp; operator &gt;&gt; (int &amp;x) {
+		int c; x = 0;
+		for (; !ID; ) if (!~c) return *this;
+		for (x = c &amp; 15; ID; x = x * 10 + (c &amp; 15)) if (!~c) break;
+		return *this;
+	}
+	Istream&amp; operator &gt;&gt; (char &amp;x) {int c; for(; (c = *next++) &lt;= ' '; ) if (!~c) return *this; return x = c, *this;}
+} cin;
+
+struct Ostream {
+	char *next, buf[20030731], _buf[34];
+	Ostream () {next = buf;}
+	void flush(FILE *f = stdout) {fwrite(buf, 1, next - buf, f); next = buf;}
+	Ostream &amp; operator &lt;&lt; (long long x) {
+		if (!x) return put(48), *this;
+		int i;
+		for (i = 0; x; x /= 10) _buf[++i] = x % 10 | 48;
+		for (; i; --i) put(_buf[i]);
+		return *this;
+	}
+	Ostream &amp; operator &lt;&lt; (char c) {return put(c), *this;}
+	void put(char c) {*next++ = c;}
+} cout;
+
+typedef long long ll;
+const ll mod = 998244353;
+
+struct random {
+	ll seed;
+	static const ll multiplier = 0x5f5e105ll;
+	static const ll addend = 0x1337951;
+
+	void set_seed(ll _seed) {seed = _seed;}
+
+	int next() {
+		seed = (seed * multiplier + addend) % mod;
+		return seed / 100;
+	}
+} rnd;
+
+struct node {int min, max; bool opp;} x[N * 4];
+
+int n, q, A, B, C;
+ll ans;
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+inline ll cone(int x, int y) {return (ll)A * x + (B + (ll)C * x) * y;}
+inline void update(int id, int lc, int rc) {x[id].min = std::min(x[lc].min, x[rc].min); x[id].max = std::max(x[lc].max, x[rc].max);}
+inline void fy(int id) {std::swap(x[id].min, x[id].max); x[id].min = 100000 - x[id].min; x[id].max = 100000 - x[id].max; x[id].opp ^= 1;}
+inline void push_down(int id, int lc, int rc) {if (x[id].opp) fy(lc), fy(rc), x[id].opp = false;}
+
+void build(int id, int L, int R) {
+	if (L == R) {x[id].min = x[id].max = rnd.next() % 100001; return;}
+	segc; build(lc, L, M); build(rc, M + 1, R);
+	update(id, lc, rc);
+}
+
+void adj(int id, int L, int R, int h, int v) {
+	if (L == R) {x[id].min = x[id].max = v; return;}
+	segc; push_down(id, lc, rc);
+	h &lt;= M ? adj(lc, L, M, h, v) : adj(rc, M + 1, R, h, v);
+	update(id, lc, rc);
+}
+
+void opposite(int id, int L, int R, int ql, int qr) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) return fy(id);
+	segc; push_down(id, lc, rc);
+	if (ql &lt;= M) opposite(lc, L, M, ql, std::min(qr, M));
+	if (qr &gt; M) opposite(rc, M + 1, R, std::max(ql, M + 1), qr);
+	update(id, lc, rc);
+}
+
+void range(int id, int L, int R, int ql, int qr) {
+	if (L == R) return up(ans, cone(L, x[id].min));
+	segc; push_down(id, lc, rc);
+	if (qr &gt; M &amp;&amp; cone(R, x[rc].max) &gt; ans) range(rc, M + 1, R, std::max(ql, M + 1), qr);
+	if (ql &lt;= M &amp;&amp; cone(M, x[lc].max) &gt; ans) range(lc, L, M, ql, std::min(qr, M));
+}
+
+int main() {
+	int i, p, q, y; char op;
+	cin.init(); cin &gt;&gt; n &gt;&gt; ::q &gt;&gt; i;
+	rnd.set_seed(i);
+	build(1, 1, n);
+	for (; ::q; --::q)
+		switch (cin &gt;&gt; op, op) {
+			case 67: {
+				p = rnd.next() % n + 1; y = rnd.next() % 100001;
+				adj(1, 1, n, p, y);
+				break;
+			}
+			case 81: {
+				cin &gt;&gt; A &gt;&gt; B &gt;&gt; C;
+				p = rnd.next() % n + 1; q = rnd.next() % n + 1;
+				if (p &gt; q) std::swap(p, q);
+				ans = 0, range(1, 1, n, p, q);
+				cout &lt;&lt; ans &lt;&lt; '\n';
+				break;
+			}
+			case 82: {
+				p = rnd.next() % n + 1; q = rnd.next() % n + 1;
+				if (p &gt; q) std::swap(p, q);
+				opposite(1, 1, n, p, q);
+				break;
+			}
+		}
+	cout.flush();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在嵌套循环中变量不要混用。</p>
+		<p><strong>坑2：</strong>线段树询问时最好先询问右子树，这样可以尽早让 <samp>ans</samp> 值变大。</p>
+	</body>
+</html>

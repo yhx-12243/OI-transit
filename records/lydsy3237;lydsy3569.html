@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3237][AHOI2013]连通图/[lydsy3569]DZY Loves Chinese Ⅱ</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $n$ 个点，$m$ 条边构成的连通无向简单图 $G$。现在有 $q$ 组询问，每组询问给出若干条边，询问将 $G$ 删去这些边后是否连通。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 10^5; m \leq 5 \times 10^5$)，表示 $G$ 中的点数和边数。</p>
+		<p>接下来的 $m$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，依次表示描述 $G$ 中的每一条边。</p>
+		<p>紧跟着一行，包含一个正整数 $q$ ($q \leq 50000$)，表示询问的数量。</p>
+		<p>接下来的 $q$ 行，每行描述一组询问。其中第一个整数 $k$ ($1 \leq k \leq 15$)，表示要删去的边数，后跟 $k$ 个正整数 $c_1, c_2, \cdots, c_k$ ($1 \leq c_i \leq m$) 分别表示要删去的边的编号 (按照输入顺序，从 $1$ 开始)。</p>
+		<p>为了体现强制在线，<span style="color: red">每一轮的询问中，$c_1, c_2, \cdots, c_k$ 均需要<strong>异或</strong>之前所有回答中为 "<samp>Connected</samp>" 的个数</strong>。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行，若删去边后图仍然连通，则输出 "<samp>Connected</samp>"，否则输出 "<samp>Disconnected</samp>"。</p>
+
+		<h3>题解</h3>
+		<p>注意到直接维护连通性可能需要用到连通图的一些技巧，并不是很方便，因此这里给出一个基于随机化的<strong>权值算法</strong>。</p>
+		<p>首先，我们对原图 dfs，得到一棵生成树 $T$。</p>
+		<p>若一个图删去若干边 (删的边集记为 $E'$) 后得到的图 $G \setminus E'$ 不连通，则 $E' \cap T \neq \varnothing$。否则 $G$ 中的点依然可以通过 $E$ 相连。</p>
+		<p>由于 $G \setminus E'$ 不连通，因此在 $T$ 中存在一条 (被删掉的) 边 $e$，满足对于 $\forall f \in G \setminus T$，若 $f$ 的两个端点分别属于 $T \setminus \{e\}$ 的两个连通分量，则 $f \in E'$。</p>
+		<p>通俗地讲，即存在一条被删除的树边，使得所有 (在生成树上) "跨越" 它的边均被删除。</p>
+		<p>因此这个时候，我们就可以得到一个算法，即在每条树边 $e$ 上标记一个<strong>集合</strong> $C(e)$，表示所有 (在生成树上) "跨越" 它的边的集合。即</p>
+		<p>$$ C(e) = \left\{ f \mid f = (u, v) \in G \setminus T; u, v \; 在 \; T \setminus \{e\} \; 中不连通 \right\} $$</p>
+		<p>注意到集合可以使用 <code>std::bitset</code> 存储，于是最终判断的时候，只需判断给定的这些边对应的 <code>std::bitset</code> 是否<strong>线性无关</strong>。其中非树边 $f$ 的集合 $C(f)$ 是它本身。</p>
+		<p>下面证明：$G \setminus E'$ 不连通的充分必要条件是，存在 $E'$ 的子集 $F$，$\displaystyle \bigoplus_{e \in F} C(e) = \varnothing$。</p>
+		<p>必要性：如果图不连通，设得到了两个 (或更多) 连通分量 $G_1, G_2$，则 "跨越" $G_1$ 和 $G_2$ 的所有边对应的集合的异或和 (对称差) 为空 (考虑每条边的贡献)。</p>
+		<p>充分性：如果存在 $E'$ 的子集 $F$，使得 $F$ 中所有边对应的集合的对称差为空，我们证明 $G \setminus F$ 不连通。</p>
+		<p>反之，如果它连通，则边数大于等于点数 $1$，故一定存在一个非树边 $e$，它与树边形成的 (唯一) 环上被删掉了 $1$ 条边 (可以由连通图边数 $\geq $ 点数 $- 1$ 证明)。因此 $e$ 对对称差的贡献不为空，矛盾。</p>
+		<p>因此结论成立。至于判断是否存在线性相关的非空子集，可以使用线性基完成。</p>
+		<p>时间复杂度 $O \left( n + m + q \cdot k n^2 \right)$，肯定要 TLE。</p>
+		<p>接下来考虑如何优化。</p>
+		<p>注意到 $k$ 并不是很大，因此我们给非树边 $f$ 确定的集合 $C(f)$ 不需要为 $\{1\}, \{2\}, \{3\}$ (<code>1000...</code>, <code>0100...</code>, <code>0010...</code>)，而可以<strong>随机一个 $64$ 位 (或 $32$ 位) 权值</strong>。然后令树边 $e$ 的集合 $C(e)$ 为所有 "跨越" 它的边 $f$ 的集合 $C(f)$ 的异或和 (对称差)。</p>
+		<p>此时，只要保证这 $k$ ($k \leq 15$) 条边中的非树边的集合 (<code>std::bitset</code>) 本身<strong>线性无关</strong> (从而也构成一组基)，由线性代数的基本知识可知，也是当且仅当存在线性相关的非空子集时，$G \setminus E'$ 不连通。</p>
+		<p>而我们的所有权值在 $64$ 位整数范围中随机，因此它们冲突 (线性相关) 的概率约为 $1.8 \times 10^{-15}$，几乎可以忽略。</p>
+		<p>这样，我们就把时间复杂度降为了 $O \left( n + m + q \cdot k \omega^2 \right)$，其中 $\omega \in \{32, 64\}$ 为字长，可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define M 1000005
+#define ad(x) (((x - 1) ^ 1) + 1)
+
+typedef unsigned long long ull;
+
+struct edge {
+	int u, v; ull w;
+	edge (int u0 = 0, int v0 = 0, ull w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int V, E, Es;
+int n, q, con_cnt = 0;
+int p[N], first[N], next[M];
+ull weight[N];
+ull lb[70];
+
+inline ull Rand() {return (ull)rand() &lt;&lt; 31 | rand();}
+
+bool insert(ull x) {
+	for (int i = 63; i &gt;= 0; --i)
+		if (x &gt;&gt; i &amp; 1) {
+			if (lb[i]) x ^= lb[i];
+			else return lb[i] = x, true;
+		}
+	return false;
+}
+
+inline void addedge(int u, int v){
+	e[++Es] = edge(u, v); next[Es] = first[u]; first[u] = Es;
+	e[++Es] = edge(v, u); next[Es] = first[v]; first[v] = Es;
+}
+
+void dfs(int x) {
+	int i, y;
+	for (i = first[x]; i; i = next[i])
+		if (!p[y = e[i].v])
+			p[y] = x, e[ad(i)].w = e[i].w = (ull)-1, dfs(y);
+}
+
+void dfs2(int x) {
+	int i, y;
+	for (i = first[x]; i; i = next[i])
+		if (p[y = e[i].v] == x)
+			dfs2(y), weight[x] ^= weight[y], e[ad(i)].w = e[i].w = weight[y];
+}
+
+int main() {
+	int i, u, v; ull w; bool connected;
+	char *_ptr = new char;
+	srand(time(NULL) + (ull)_ptr); delete _ptr;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 1; i &lt;= E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	p[1] = -1; dfs(1);
+	for (i = 1; i &lt;= Es; i += 2)
+		if (~e[i].w) { // not tree edge
+			e[i].w = e[ad(i)].w = w = Rand();
+			weight[e[i].u] ^= w; weight[e[i].v] ^= w;
+		}
+	dfs2(1);
+	for (scanf("%d", &amp;q); q; --q) {
+		connected = true; memset(lb, 0, sizeof lb);
+		for (scanf("%d", &amp;n); n; --n) {
+			scanf("%d", &amp;i); i ^= con_cnt;
+			connected = connected &amp;&amp; insert(e[i * 2].w);
+		}
+		puts(connected ? "Connected" : "Disconnected");
+		con_cnt += connected;
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意边是从 $1$ 开始标号的，而不是从 $0$ 开始，不要被样例迷惑了。</p>
+		<p><strong>坑2：</strong>在维护 $C(e)$ 的过程时，可以用 <a href="lydsy4424%3Bcf19E.html" target="_blank">Fairy</a> 这道题的技巧，用异或的差分与部分和技巧解决。</p>
+
+		<h4>番外篇</h4>
+		<p>Q: 如果 $k$ 很大这个算法是不是就废了啊？</p>
+		<p>A: 如果 $k$ 很大，那么上面的算法就凉了，<strong>因为你几乎不能保证这些非树边的值是线性无关的</strong>。</p>
+		<p>Q: 所以该怎么办啊？</p>
+		<p>A: 如果是离线的话 (<a href="https://www.lydsy.com/JudgeOnline/problem.php?id=3237" target="_blank">lydsy3237</a>)，可以使用离线方法，对询问进行陈丹琦分治。</p>
+		<p>Q: 如果是强制在线呢？</p>
+		<p>A: 那目前有的方法只有<strong>动态图连通性</strong>了，右转 <a href="https://loj.ac/problem/122" target="_blank">[loj122]动态图连通性</a> 不谢……</p>
+	</body>
+</html>

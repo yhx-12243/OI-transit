@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj140]被粉碎的数字</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>已知整数 $x$ 满足：</p>
+		<ol>
+			<li>已知整数 $R$，有 $1 \leq x \leq R$</li>
+			<li>定义函数 $f(x)$ 为 $x$ 的各位数字之和，例如 $f(13) = 4, f(233) = 8$。已知整数 $k$，有 $f(x) = f \left( k \times x \right)$</li>
+		</ol>
+		<p>你需要知道满足这两个条件的整数有多少个。</p>
+
+		<h3>输入格式</h3>
+		<p>输入共一行，包含两个正整数 $R, k$ ($R \leq 10^{18}; k &lt; 1000$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示可能的整数 $x$ 有多少个。</p>
+
+		<h3>题解</h3>
+		<p>容易看出这需要<strong>数位 DP</strong>。</p>
+		<p>传统的数位 DP 会使用 $bounded$ 变量记录边界情况—— $bounded = 1$ 时，第 $i$ 位需要相等，$bounded = 0$ 时，第 $i$ 为需要稍小一些。</p>
+		<p>这当然可以做，但未免会有些繁琐。下面讲一个稍微有改动的方法，来更灵活地处理<strong>数位 DP 的边界问题</strong>。</p>
+		<p>我们用 $f_{i, j, c, b}$ 表示：当前 DP 到从低到高第 $i$ 位 (或者说<strong>只考虑前 $i$ 位</strong>)；<br />此时 $f \left( x \bmod 10^i \right) - f \left( k x \bmod 10^i \right) = j$ (为什么要 $\bmod 10^i$ 在后面说)；<br />这 $i$ 位计算 $k x$ 时，向前面的进位为 $c$；<br /><strong>$b$ 表示 $x$ 与 $R \bmod 10^i$ 的大小关系</strong>，即 $x &gt; R \bmod 10^i$ 时 $b = 1$，否则 $b = 0$。这样的 $x \in \left[ 0, 10^i \right)$ 的个数。</p>
+		<p>先来说明 $j$ 部分为什么要 $\bmod 10^i$。首先声明，不 $\bmod 10^i$ 其实也可以做，但是或许会有点繁。由于 $k &lt; 1000$，因此进位 $c$ 可能会有三位 (十进制下)。也就是说，在计算 $j$ 的时候需要减掉三个数码的贡献再加上另外三个数码的贡献，这就显得累赘。</p>
+		<p>因此，我们一位一位去对最终的 $j$ 产生贡献。此时。我们要对 $R$ 进行<strong>扩充</strong>，即补几个前导 $0$，确保最终 $k x$ 的所有数位均对 $j$ 产生贡献。</p>
+		<p>接下来就是 DP 过程。边界为 $f_{0, 0, 0, 0} = 1$，答案为 $\displaystyle \sum_{c=0}^{k-1} f_{n, 0, c, 0}$。转移时，设当前位为 $d$，则</p>
+		<p>$$ i' \gets i + 1; j' \gets j + d - (k \cdot d + c) \bmod 10; c' \gets \left \lfloor \frac {k \cdot d + c} {10} \right \rfloor; b' = \begin{cases} 0 &amp; d &lt; R_i \\ b &amp; d = R_i \\ 1 &amp; d &gt; R_i \end{cases} $$
+		<p>(注：$R_i$ 为 $R$ 的从低到高第 $i$ 位，$\bmod$ 运算的优先级和 $\times, \div$ 相同)</p>
+		<p>具体的为什么我就不讲了，相信大家都懂。最后来分析一下时间复杂度。</p>
+		<p>第一维的 $i$，显然是 $O \left( \log R \right)$。</p>
+		<p>第二维的 $j$，由于 $f(x), f(k x) \in [0, 9 \log R]$，因此这部分大小约为 $O \left( 18 \log R \right)$。</p>
+		<p>第三维的 $c$，它是进位，因此范围为 $[0, k)$，大小为 $k$。<p/>
+		<p>第四维的 $b$，是布尔变量 $0, 1$。</p>
+		<p>因此总的复杂度为 $O \left( 2 \cdot 18 \cdot k \log^2 R \right)$，轻松通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define MK 1005
+#define LN 25
+
+typedef long long ll;
+
+int n, K;
+char s[LN];
+ll f[LN][20 * LN][MK][2];
+// f[i][j][carry][bounded] : position = i, f(i) - f(k i) = j
+
+int main() {
+	int i, j, k, l, nj, nk, nl, d;
+	ll ans = -1;
+	scanf("%s%d", s, &amp;K); n = strlen(s); std::reverse(s, s + n);
+	for (n += 4, i = 0; i &lt; n; ++i) s[i] &amp;= 15;
+	f[0][200][0][0] = 1;
+	for (i = 0; i &lt; n; ++i)
+		for (j = -199; j &lt;= 199; ++j)
+			for (k = 0; k &lt; K; ++k)
+				for (l = 0; l &lt; 2; ++l)
+					if (f[i][j + 200][k][l])
+						for (d = 0; d &lt; 10; ++d) {
+							nj = j + d - (d * K + k) % 10;
+							nk = (d * K + k) / 10;
+							nl = (d == s[i] ? l : d &gt; s[i]);
+							f[i + 1][nj + 200][nk][nl] += f[i][j + 200][k][l];
+						}
+	for (i = 0; i &lt; K; ++i) ans += f[n][200][i][0];
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>最后不要忘记把 $x = 0$ 这个不合法答案减掉。</p>
+		<p><strong>坑2：</strong>注意到 $j$ 可以使负的，因此实际实现的时候可以用数组平移的技巧。</p>
+	</body>
+</html>
