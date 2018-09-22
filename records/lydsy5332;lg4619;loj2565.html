@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5332][lg4619][loj2565][SDOI2018]旧试题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>时光匆匆，转眼间又是一年省选季……
+		<p>这是小 Q 同学第二次参加省队选拔赛。今年，小 Q 痛定思痛，不再冒险偷取试题，而是通过练习旧试题提升个人实力。可是旧试题太多了，小 Q 没日没夜地做题，却看不到前方的光明在哪里。</p>
+		<p>一天，因做题过度而疲惫入睡的小 Q 梦到自己在考场上遇到了一道好像做过的题目，却怎么也想不起曾经自己是怎么解决它的，直到醒来还心有余悸。</p>
+		<p>小 Q 眉头一皱，感觉事情不妙，于是他找到了你，希望你能教他解决这道题目。小 Q 依稀记得题目要计算如下表达式的值：</p>
+		<p>$$ \left( \sum_{i=1}^A \sum_{j=1}^B \sum_{k=1}^C d(i j k) \right) \bmod \left( 10^9 + 7 \right) \tag 1 \label 1 $$</p>
+		<p>其中 $d(i j k)$ 表示 $i \times j \times k$ 的约数个数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10$)，表示有 $T$ 组测试数据。</p>
+		<p>接下来 $T$ 行，每行描述一组测试数据，包含三个正整数 $A, B, C$ ($1 \leq A, B, C \leq 10^5$)，含义见题目描述。保证 $\sum \max \left( A, B, C \right) \leq 2 \times 10^5$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组测试数据，输出一行一个整数，表示所求表达式的值。</p>
+
+		<h3>题解</h3>
+		<p>还记得三年前的那道二维求和的题吗？回忆一下当时我们第一步是怎么做的。</p>
+		<p>对了，当时我们使用了如下结论：</p>
+		<p>$$ d (i j) = \sum_{u \mid i} \sum_{v \mid j} [u \perp v] $$</p>
+		<p>其中 $u \perp v \Leftrightarrow (u, v) = 1$。</p>
+		<p>证明：设 $i \cdot j = p_1^{\alpha_1} p_2^{\alpha_2} \cdots p_l^{\alpha_l}$，则 $d (i j) = \displaystyle \prod_{k=1}^l \left( 1 + \alpha_k \right)$，考虑右端的和式，对于每一个素因子 $p$，必须有 $v_p (u) = 0$ 或 $v_p (v) = 0$ (注：$v_p (a)$ 表示 $a$ 中因子 $p$ 的幂次)。</p>
+		<p>因此对于每个素因子 $p_k$，在右端都有 $v_{p_k} (i) + v_{p_k} (j) + 1$ 种方案。由乘法原理，共有 $\displaystyle \prod_{k=1}^l \left( 1 + \alpha_k \right)$ 种方案，故等式两端相等。</p>
+		<p>其实这个结论对于三元的也是成立的。不过此时要求的是 <strong>$u, v, w$ 两两互素</strong>。</p>
+		<p>因此，有 $$ d(i j k) = \sum_{u \mid i} \sum_{v \mid j} \sum_{w \mid k} [u \perp v] [v \perp w] [w \perp u] $$</p>
+		<p>代入 $\eqref 1$ 式，得到</p>
+		<p>$$ \sum_{i=1}^A \sum_{j=1}^B \sum_{k=1}^C d(i j k) = \sum_{i=1}^A \sum_{j=1}^B \sum_{k=1}^C \sum_{u \mid i} \sum_{v \mid j} \sum_{w \mid k} [u \perp v] [v \perp w] [w \perp u] = \sum_u \sum_v \sum_w [u \perp v] [v \perp w] [w \perp u] \left \lfloor \frac Au \right \rfloor \left \lfloor \frac Bv \right \rfloor \left \lfloor \frac Cw \right \rfloor $$</p>
+		<p>我们考虑如何处理右边这个和式。由各种筛的思想，尝试使用<strong>记忆化搜索</strong> (动态规划) 的形式来处理。</p>
+		<p style="color: red">设 $f_{i, A, B, C}$ 表示对于所有满足下列条件的三元组 $(u, v, w)$，式 $\left \lfloor \dfrac Au \right \rfloor \left \lfloor \dfrac Bv \right \rfloor \left \lfloor \dfrac Cw \right \rfloor$ 的求和：</p>
+		<p>其中 $u, v$ 的<strong>所有公共素因子不小于 $p_i$</strong> (其中 $p_i$ 为第 $i$ 个素数，$p_0 = 2$)，$v, w$，$w, u$ 同理。</p>
+		<p>于是当 $i = 0$ 时，有 $$ f_{0, A, B, C} = \sum_u \sum_v \sum_w \left \lfloor \frac Au \right \rfloor \left \lfloor \frac Bv \right \rfloor \left \lfloor \frac Cw \right \rfloor = H(A) H(B) H(C) $$</p>
+		<p>其中 $H(n) = \displaystyle \sum_{i=1}^n \left \lfloor \dfrac ni \right \rfloor$。</p>
+		<p>考虑转移 (对 $f_{i, A, B, C}$)。先考虑对于 $f_{i-1, A, B, C}$，它分为两部分：一部分是 $u, v$ 等的公共素因子均不小于 $p_i$；另一种是 $u, v$ 的公共素因子有 $p_{i-1}$。</p>
+		<p>由于有 $(u, v), (v, w), (w, u)$ 三种三元组，因此可以使用容斥原理：</p>
+		<p>先减掉 $p_{i-1} \mid u; p_{i-1} \mid v$ 的情形。</p>
+		<p>此种情况可以重合 $u = u_1 p_{i-1}; v = v_1 p_{i-1}$。于是被求和项就化为</p>
+		<p>$$ \left \lfloor \frac Au \right \rfloor \left \lfloor \frac Bv \right \rfloor \left \lfloor \frac Cw \right \rfloor = \left \lfloor \frac A {u_1 p_{i-1}} \right \rfloor \left \lfloor \frac B {v_1 p_{i-1}} \right \rfloor \left \lfloor \frac Cw \right \rfloor = \left \lfloor \frac {\lfloor A / p_{i-1} \rfloor} {u_1} \right \rfloor \left \lfloor \frac {\lfloor B / p_{i-1} \rfloor} {v_1} \right \rfloor \left \lfloor \frac Cw \right \rfloor $$</p>
+		<p>即为 $f_{i-1, \lfloor A / p_{i-1} \rfloor, \lfloor B / p_{i-1} \rfloor, C}$。同理，$p_{i-1} \mid (v, w)$ 和 $p_{i-1} \mid (w, u)$ 的情况类似。</p>
+		<p>这样就会注意到 $p_{i-1} \mid (u, v, w)$ 的情况会被算到多次，系数为 $1 - 3 = -2$，因此还要补上<strong>两倍</strong>的 $f_{i-1, \lfloor A / p_{i-1} \rfloor, \lfloor B / p_{i-1} \rfloor, \lfloor C / p_{i-1} \rfloor}$。</p>
+		<p>最后的答案就是 $f_{n, A, B, C}$，其中 $n$，满足 $p_n &gt; \max \{A, B, C\}$。</p>
+		<p>具体搜索的时候可以使用记忆化，将 $i, A, B, C \leq 60$ 的情况记录下来。</p>
+		<p>于是需要递推的状态数小于 $1.47 \times 10^8$，可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1000005
+#define G 101
+#define X 60
+#define FFF for (i = 1; i &lt; G; ++i) for (j = 1; j &lt; G; ++j) for (k = 1; k &lt; G; ++k)
+
+typedef long long ll;
+const int mod = 1000000007;
+
+int A, B, C;
+int pn, c[N], d[N], fy[N], p[80000];
+int H[N], f[X][X][X][X], s[G][G][G];
+
+inline void add(int &amp;x, const int y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+
+void sieve(int n) {
+	int i, j, k, v;
+	H[1] = d[1] = 1;
+	for (i = 2; i &lt;= n; ++i) {
+		if (!c[i]) p[pn++] = i, d[i] = 2, fy[i] = 1;
+		for (j = 0; j &lt; pn; ++j) {
+			if ((v = i * p[j]) &gt; n) break;
+			c[v] = p[j];
+			if (i % p[j]) d[v] = d[i] * 2, fy[v] = d[i];
+			else {d[v] = d[i] + fy[i], fy[v] = fy[i]; break;}
+		}
+		add(H[i] = H[i - 1], d[i]);
+	}
+	FFF s[i][j][k] = d[i * j * k];
+	FFF add(s[i][j][k], s[i][j][k - 1]);
+	FFF add(s[i][j][k], s[i][j - 1][k]);
+	FFF add(s[i][j][k], s[i - 1][j][k]);
+}
+
+int solve(int id, int A, int B, int C) {
+	if (!(A &amp;&amp; B &amp;&amp; C)) return 0;
+	if (!id) return (ll)H[A] * H[B] % mod * H[C] % mod;
+	if (A &gt; B) std::swap(A, B); if (B &gt; C) std::swap(B, C); if (A &gt; B) std::swap(A, B);
+	if (id &lt; X &amp;&amp; C &lt; X &amp;&amp; ~f[id][A][B][C]) return f[id][A][B][C];
+	int ret, q;
+	if (C &lt; G &amp;&amp; C &lt; p[id]) ret = s[A][B][C];
+	else {
+		ret = solve(id - 1, A, B, C), q = p[id - 1];
+		if (A &gt;= q &amp;&amp; B &gt;= q) add(ret, mod - solve(id - 1, A / q, B / q, C));
+		if (A &gt;= q &amp;&amp; C &gt;= q) add(ret, mod - solve(id - 1, A / q, B, C / q));
+		if (B &gt;= q &amp;&amp; C &gt;= q) add(ret, mod - solve(id - 1, A, B / q, C / q));
+		if (A &gt;= q &amp;&amp; B &gt;= q &amp;&amp; C &gt;= q) add(ret, solve(id - 1, A / q, B / q, C / q) * 2 % mod);
+	}
+	if (id &lt; X &amp;&amp; C &lt; X) f[id][A][B][C] = ret;
+	return ret;
+}
+
+void work() {
+	int i;
+	scanf("%d%d%d", &amp;A, &amp;B, &amp;C);
+	for (i = pn - 1; i &gt;= 0 &amp;&amp; p[i] &gt; A &amp;&amp; p[i] &gt; B &amp;&amp; p[i] &gt; C; --i); ++i;
+	printf("%d\n", solve(i, A, B, C));
+}
+
+int main() {
+	int T; memset(f, -1, sizeof f); sieve(N - 1);
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>这题的常数还是<strong>略微有点紧的</strong> (虽然我这边还好)，将几个常数优化点：</p>
+		<ol>
+			<li><p>尽量减少递归次数。</p>
+			<p>比如在 <code>solve()</code> 过程中，我们判断了当 <code>A == 0 || B == 0 || C == 0</code> 时 <code>return 0;</code>，那么其实可以在进入 <code>solve()</code> 前判一下，可以加快速度。</p></li>
+			<li><p>保持 $A, B, C$ 有序 (强制令 $A \leq B \leq C$)。</p>
+			<p>这样对于判断条件和记忆化搜索存储状态时会有较大的帮助。</p></li>
+		</ol>
+	</body>
+</html>

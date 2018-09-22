@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj152]汉诺塔</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>我现在使用巴拉拉能量造了三根柱子 (编号分别为 $1$ 到 $3$) 以及 $n$ 块颜色不同的圆盘 (编号为 $1$ 到 $n$)。最开始我给定一个 $1$ 到 $n$ 的排列 $A_1, A_2, \cdots, A_n$，我会用巴拉拉能量把这些圆盘放到编号为 $1$ 的柱子上，使得从上到下第 $i$ 块圆盘的编号是 $A_i$。</p>
+		<p>接着你可以进行若干次操作，每一次操作用两个整数 $a, b$ ($1 \leq a, b \leq 3; a \neq b$) 来描述，表示这次操作你将会把第 $a$ 根柱子最上面的圆盘取出，并放到第 $b$ 根柱子上去 (如果当前第 $a$ 根柱子上不存在圆盘，这次操作将会被小魔仙们忽略)。最终你要使得这 $n$ 块圆盘在同一根柱子上，且从上到下编号依次递增 (最终状态下所有圆盘可以在任意一根柱子上)。</p>
+		<p>小魔仙们虽然善良，但是他们的耐心并不是无限的，所以你必须在 $10^6$ 次操作内完成任务。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10000$)。</p>
+		<p>第二行为一个 $1$ 到 $n$ 的排列 $A_1, A_2, \cdots, A_n$，相邻数字之间恰有一个空格隔开。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $K$ ($0 \leq K \leq 10^6$)。</p>
+		<p>接下来 $K$ 行每行两个整数 $a_i, b_i$，按照顺序依次描述你的每一次操作。</p>
+		<p>如果有多种方案，输出任意一种即可。</p>
+
+		<h3>题解</h3>
+		<p>可以发现，题目要求的就是一个在汉诺塔上的<strong>排序问题</strong>。</p>
+		<p>如果使用选择排序，则将每一根柱子上的数转移到另一根柱子，取出最大数放到第三根柱子。那样的复杂度是 $O \left( n^2 \right)$ 的，无法接受。</p>
+		<p>注意到 Hanoi 塔中有两个 buffer (缓冲区)，因此可以想到用二进制的<strong>基数排序</strong>。</p>
+		<p>即第一轮，我们把所有的偶数放到第 $2$ 根柱子，所有的奇数放到第 $3$ 根柱子。然后将第 $3$ 根柱子上的所有圆盘 (奇数) 依次取回到第 $1$ 根圆盘，再将第 $2$ 根柱子上的所有圆盘 (偶数) 依次取回第 $1$ 根柱子。</p>
+		<p>类似地，对于第 $i$ 轮，我们只需将二进制展开式中<strong>右数第 $i$ 位为 $0$ 的</strong> (<code>(x >> i - 1 & 1) == 0</code>) 转移到柱子 $2$，其余地到注意 $3$。然后按照 $3 - 2$ 的顺序合并时即完成了基数排序的<storng>第 $i$ 轮</strong>。</p>
+		<p>这样下去，由于 $A_i \leq 10^4$，且基数排序是稳定的，因此在 $\log_2 n$ 轮排序后就完成了对原序列的排序。</p>
+		<p>每一轮排序需要 $2n$ 次操作，因此总操作数为 $2 n \log_2 n \leq 20000 \times \log_2 10000 &lt; 2.8 \times 10^5$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef std::vector &lt;int&gt; vec;
+
+vec a[4];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+inline void move(const int x, const int y) {printf("%d %d\n", x, y), a[y].push_back(a[x].back()), a[x].pop_back();}
+
+int main() {
+	int i, j, n, ln;
+	scanf("%d", &amp;n); ln = lg2(n); printf("%d\n", 2 * n * (ln + 1));
+	for (i = 0; i &lt; n; ++i) scanf("%d", &amp;j), a[1].push_back(j);
+	std::reverse(a[1].begin(), a[1].end());
+	for (i = 0; i &lt;= ln; ++i) {
+		for (; !a[1].empty(); ) move(1, 2 + (a[1].back() &gt;&gt; i &amp; 1));
+		for (; !a[3].empty(); ) move(3, 1);
+		for (; !a[2].empty(); ) move(2, 1);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意题中圆盘的顺序是<strong>自顶而下</strong>，因此读入后需要 <code>std::reverse</code> 一下。</p>
+	</body>
+</html>

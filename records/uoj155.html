@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj155][清华集训2015]遥远的星系</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 M 的星系中有 $n$ 颗有人居住的星球。起初这些星球之间的距离过于遥远，一个人无法在有生之年到达另一个星球，移民往往是几代人接力完成，旅游、看望族裔更是无从谈起。</p>
+		<p>后来，五维生物为人们建立了空间翘曲轨道。穿越轨道的人会感觉自己瞬间便到达了目的地，但对于外界来说，时间已经发生了巨大的变化，可能过去了几千年，也可能倒退几千年。</p>
+		<p>形式化地讲，可以用 $3$ 个数描述一条轨道：$u, v, w$，表示这条轨道连接了星球 $u$ 和星球 $v$，若从 $u$ 穿过轨道到达 $v$，时间会改变 $w$；若从 $v$ 穿过轨道到达 $u$，时间会改变 $-w$。注意到 $w$ 可正可负，当时间改变为正时，表示会经过这么长时间；为负值时，表示会倒流这么长时间；为零则表示时间不会变化。</p>
+		<p>有了轨道以后，人们便可以实现到其他星球的短期旅行，但同时也催生了新的需求：希望在特定时间到达某个星球，以看到特定的人或看到特定的历史事件。为了达到这一需求，人们可以经过任意多条轨道，在穿越多个星球以后到达目的地。</p>
+		<p>形式化地讲，可以用 $3$ 个数描述一条需求：$u, v, w$，表示希望从星球 $u$ 出发，到达星球 $v$，与出发时间相比，中途的时间改变为 $w$ (注意这里的 $w$ 也可正可负)。</p>
+		<p>现在的问题是，给出轨道的建立过程和过程中所有的需求，问每条需求是否能得到满足。</p>
+		<p>具体地，你将依次得到 $m$ 条操作，每条操作为建立一条轨道或一条需求。若为一条需求，你需要回答只使用需求之前的所有轨道，"能" 还是 "不能" 完成这个需求。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个非负整数 $n, m, k, t$ ($1 \leq n \leq 10^5; 1 \leq m \leq 10^6; k, t \in \{0, 1, 2, 3\}$)，其中 $n, m$ 如前文所述，$k, t$ 为跟数据格式相关的参数。</p>
+		<p>接下来 $m$ 行，每行包含 $6$ 个非负整数 $p, \hat u, \hat v, w, x, y$ ($p \in \{0, 1\}; 1 \leq \hat u, \hat v \leq n; \left| w \right| \leq 10^{12}; 0 \leq x, y \leq 2^{30}$)。</p>
+		<p>其中 $p$ 表示操作的类型，$0$ 表示新建轨道，$1$ 表示一条需求，剩余 $3$ 个变量意义如前文所述。</p>
+		<p>注意 $u, v$ 是经过加密的。你需要维护一个变量 $mask$，初值为 $0$。每次询问时，令</p>
+		<p>$$ u = \left( \hat u + (x \mathbin{\&} mask) - 1 \right) \bmod n + 1; v = \left( \hat v + (y \mathbin{\&} mask) - 1 \right) \bmod n + 1$$</p>
+		<p>其中 $\&$ 代表<strong>按位与</strong>运算。</p>
+		<p>每次输出时，设你输出的答案为 result，则令 <code>mask = (mask &lt;&lt; 1 | result) & 0x3fffffff</code>。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每条需求，你需要输出一行一个整数 $result$，如果能完成需求，则输出 $1$，如果不能完成需求，则输出 $0$。</p>
+
+		<h3>题解</h3>
+		<p>由于旅行的轨迹是一条<strong>途径 (walk)</strong> (即可以经过重复边，定义戳<a href="ac2657%3Barc078F.html" target="_blank">这里</a>)，且反着走一条边提供相反的权值。因此与 "异或" 的 <a href="http://10.49.27.23/problem?id=282" target="_blank">[SimpleOJ282]防御阵</a> 一样，如果 $u, v$ 连通，则 $u$ 到 $v$ 的所有途径的边权和，等于其中任意一条途径的边权和，加上若干个环的边权和的线性组合。</p>
+		<p>其中 "异或" 运算的线性组合可以用 <strong>(异或) 线性基</strong>来刻画，那 "加法" 运算的线性组合呢？</p>
+		<p>是的，$a_1, a_2, \cdots, a_n$ 对于加法运算的线性组合就是<strong>由 $d$ 生成的主理想</strong>，即由所有 $d$ 的整数倍数构成。其中 $d = \gcd \left( a_1, a_2, \cdots, a_n \right)$，可以使用 B&#233;zout 定理证明。</p>
+		<p>如果这道题是离线的，那很好办。跟那道题的思路一样，先取出最终图的一个生成树 $T$ (如果不连通则取生成森林 $F$)，这样就得到了两点之间的连通性和<strong>其中一条途径的边权和 $w_0$</strong> (树上前缀和)。然后维护出<strong>一个连通块中所有环的边权和的最大公约数 $d$</strong>，然后只需判断 $w - w_0$ 是不是 $d$ 的倍数即可。<p/>
+		<p>那如果强制在线该怎么办呢？想想如何动态维护一张<strong>只有加边</strong>的距离关系图？</p>
+		<p>对！就是并查集！<strong>带权的</strong>并查集！</p>
+		<p>像<a href="lydsy1202%3Blg2294.html" target="_blank">这道题</a>一样，用带权并查集维护<strong>当前图的一个生成森林 $F$ 的两点之间的距离</strong>，以及<strong>每个连通块中所有环的边权和的 gcd</strong>。</p>
+		<p>这些都是可以用带权并查集<del>轻松</del>维护的，具体过程这里就不细讲了，可以看上面那篇题解。</p>
+		<p>判定时也是类似地，如果 $u, v$ 不连通，显然无解。否则，在该连通块中得到 $w_0 = \mathrm{dist}(u, v)$ 和该连通块的 "所有环的边权和的 gcd" $d$，那么有解当且仅当 $d \mid w - w_0$。</p>
+		<p>加边时，如果 $u, v$ 连通，则直接更新环上 $\gcd$ (原来的 $\gcd$ 与加边前的 $\mathrm{dist}(u, v)$ 再取一遍 $\gcd$)。若不连通，则解一个方程更新 $w_i$，然后合并 $\gcd$。</p>
+		<p>总时间复杂度 $O \left( n + m \log w \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+
+typedef long long ll;
+const int mask = 0x3fffffff;
+
+int n, q, ans;
+int p[N], st[N];
+ll w[N], g[N];
+
+inline ll gcd(ll x, ll y) {return llabs(std::__gcd(x, y));}
+
+int ancestor(int x) {
+	int i = 0;
+	for (; x != p[x]; st[++i] = x, x = p[x]);
+	for (st[i + 1] = x; i; p[st[i]] = x, --i) w[st[i]] += w[st[i + 1]];
+	return x;
+}
+
+int main() {
+	int i, op, u, v, _x, _y, success; ll wt, diff;
+	scanf("%d%d%*d%*d", &amp;n, &amp;q);
+	for (i = 1; i &lt;= n; ++i) p[i] = i;
+	for (; q; --q) {
+		scanf("%d%d%d%lld%d%d", &amp;op, &amp;u, &amp;v, &amp;wt, &amp;_x, &amp;_y);
+		ancestor(u = (u + (_x &amp; ans) - 1) % n + 1);
+		ancestor(v = (v + (_y &amp; ans) - 1) % n + 1);
+		diff = w[u] - w[v] + wt; u = p[u]; v = p[v];
+		if (op) {
+			success = u == v &amp;&amp; !(g[u] ? diff % g[u] : diff);
+			putchar(48 | success); putchar(10);
+			ans = (ans &lt;&lt; 1 | success) &amp; mask;
+		} else
+			if (u == v) g[u] = gcd(g[u], diff);
+			else w[v] = diff, g[u] = gcd(g[u], g[v]), p[v] = u;
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p style="color: red"><strong>坑1：</strong>注意 <code>abs()</code> 函数只适用于 <code>int</code> 类型，如果要对 <code>long long</code> 使用则要用 <code>llabs()</code>！</p>
+	</body>
+</html>

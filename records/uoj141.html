@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj141]量子态的棋盘</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>已知一个棋盘的大小是 $n \times m$ ，每一个格子的权值都是 $1$ 或者 $-1$ 。这个棋盘左上角格子的上方是入口，下边界和右边界是出口。</p>
+		<p>当 Picks 博士从左上角上方放入一个小球的时候，这个小球在这个棋盘中会以如下的方式运行：</p>
+		<p>如果当前小球所在的格子的权值是 $1$，那么小球将会从这个格子的右边界出去，否则它会从这个格子的下边界出去。在小球离开这个格子之后，这个格子的权值会变成原来的相反数，即 $1$ 变成 $-1$，$-1$ 变成 $1$。</p>
+		<p>Picks 博士的实验中的一步是这样的：他会依次往棋盘的左上角放入 $K$ 个小球，每一个小球都是在前一个小球离开棋盘后再放入。当小球离开棋盘后，它会直接掉到地上。为了避免满地小球的情况，Picks 在一些出口下面挂了篮子，如果小球从挂了篮子的出口处离开棋盘，那么它会被篮子接住，否则它还是会掉到地上。</p>
+		<p>Picks 博士进行了 $Q$ 次这样的试验，为了避免麻烦，任意两次实验的棋盘大小，放入小球个数，篮子的位置都是完全一样，他只更改了初始棋盘上的数字。但是因为实验结果被打杂的 jiry_2 吃掉了，所以他现在只记得第 $i$ 次试验接到的小球数目在区间 $[L_i, R_i]$ 内。</p>
+		<p>现在，Picks 博士告诉了你棋盘的大小，放入小球的个数，篮子的位置，以及每一次实验的 $L_i$ 和 $R_i$，他想要拜托你算出来每一次试验有多少种可能的棋盘是满足条件的。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, m, K$ ($1 \leq n, m \leq 10; 0 \leq K \leq 10^{18}$)，分别表示棋盘的行数、列数以及每一次实验放入的小球个数。</p>
+		<p>第二行包含一个长度为 $n$ 的 01 串，第 $i$ 个字符是 1 表示第 $i$ 行的最右端挂了一个篮子，否则表示没有篮子。</p>
+		<p>第三行包含一个长度为 $m$ 的 01 串，第 $i$ 个字符是 1 表示第 $i$ 列的最下端挂了一个篮子，否则表示没有篮子。</p>
+		<p>第四行包含一个正整数 $Q$ ($1 \leq Q \leq 10^5$)，表示实验的次数。</p>
+		<p>接下来 $Q$ 行，每行两个整数 $L_i, R_i$ ($0 \leq L_i \leq R_i \leq K$)，表示 Picks 博士提供的试验的结果。</p>
+
+		<h3>输出格式</h3>
+		<p>共 $Q$ 行，对于每一次试验你都需要输出一个整数，表示满足实验结果的不同棋盘的个数。两个棋盘时不同的当且仅当存在$i,j$使得两个棋盘第 $i$ 行第 $j$ 列的权值不同。</p>
+		<p>答案可能很大，你只需要输出答案对 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 取模后的结果。</p>
+
+		<h3>题解</h3>
+		<p>这题小球的数量很多，看似无从下手，其实小球的数量只是来吓人的。</p>
+		<p>具体地讲，若一个格子中有偶数个球，设为 $2k$。则不管它的权值是 $1$ 还是 $-1$，最终都是右边 $k$ 个球，下面 $k$ 个球。</p>
+		<p>因此，对每个格子，我们先取其中最多的偶数的球，向右、向下转移，那么那个格子最后只会剩下 $0$ 或 $1$ 个球。</p>
+		<p>如果我们将所有格子都转移一遍，则最后每个格子都只会剩下 $0$ 或 $1$ 个球。且我们还知道了除了最后留在棋盘中的哪些球 $B$ 外，其它的球有多少个 (一定) 会落入篮子。</p>
+		<p>既然这样，那么最终只有 $B$ 中的球落入篮子的状态是未知，其它的球落入篮子的状态都是已知的。因此最后落入篮子的球数是一个长度不超过的 $n \cdot m$ 的区间 $\left[ F, F + n \cdot m \right]$。</p>
+		<p>因此，如果我们对这个区间中的每个数 $i$，求出有多少种棋盘的方案使得落入篮子的球数为 $i$，又已知区间外的答案均为 $0$。这样，我们就可以对每个询问 $O(1)$ 回答了 (也就是说这题和 $Q$ 没什么关系)。</p>
+		<p>首先我们进行一个 $O \left( n \cdot m \right)$ 的 DP，得到每个篮子<strong>一定能接收到的球数</strong> (即下界 $F$) 与每个格子最终剩下 $1$ 个球还是 $0$ 个球。</p>
+		<p>接下来我们就考虑另一个问题：在一个 $n \times m$ 的棋盘中，有若干个格子中有一个球，其它的格子没有球，每个格子有一个为 $\pm 1$ 的权值。按照题目描述的方法移动小球，求对于每个 $i \in [0, n \cdot m]$，篮子总计接到 $i$ 个球的方案数。</p>
+		<p>考虑轮廓线 DP (插头 DP)，设 $f_{i, j, c, l, \mathbf u}$ 表示当前扫描到第 $i$ 行第 $j$ 个格子，已经有 $c$ 个球落入篮子，左边过来的球有 $i$ 个，上面过来的球数的 $m$ 维向量为 $\mathbf u$ (因为有 $m$ 列)。</p>
+		<p>转移的时候，统计<strong>该位置</strong>从左边过来的、从上面过来的球总数以及该格是否有球，就可以对下一个状态进行转移了，具体的方程在这里就不写了。</p>
+		<p>最后来讲一下状态的存储。首先，可以证明同一个格子至多得到 $51$ 个球 (反之，若得到了至少 $52$ 个球，设有 $x$ 个从左边转移来，$y$ 个从上面转移来，有 $x + y \geq 52$。那么左边原来的球数至少为 $2x - 1$，上面同理，那么有 $(2x - 1) + (2y - 1) = 2(x + y) - 2 \geq 102 &gt; 100 \geq n \cdot m$，矛盾)。</p>
+		<p>因此，它可以用 <strong>$6$ 个二进制位</strong>来表示，$10$ 列需要用 $60$ 个二进制位，刚好可以用 <code>long long</code> 存下。</p>
+		<p>而 $c, l$ 都是一个字节即可存下的。因此每个状态的大小为 $10$ 个字节。</p>
+		<p>因此可以使用<strong>散列映射</strong> (就是通常所说的 Hash 表) 来存储 DP 状态。</p>
+		<p>最后分析一下复杂度，经过程序验证，所有的状态数不会超过 $5 \times 10^5$，因此总时间复杂度为 $O \left( 5 \times 10^5 \cdot n m + Q \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 13
+#define N2 1050
+
+typedef long long ll;
+typedef unsigned char byte;
+const ll mod = 998244353;
+
+struct data {
+	byte count, left; int val; ll top;
+	data (byte _count = 0, byte _left = 0, ll _top = 0) : count(_count), left(_left), val(0), top(_top) {}
+};
+
+struct hash_map {
+	static const int M = 4000037, S = 666666;
+	int cnt, first[M], next[S]; data z[S];
+	inline int getHash(const data &amp;d) {return ((d.count * 20030731ll + d.left) * 20030321ll + d.top) % M;}
+
+	hash_map () : cnt(0) {}
+	void clear() {for (; cnt; --cnt) first[getHash(z[cnt])] = 0;}
+
+	data * get(byte count, byte left, ll top, bool inserted = true) {
+		data t = data(count, left, top);
+		int x = getHash(t), i;
+		for (i = first[x]; i; i = next[i]) if (z[i].count == count &amp;&amp; z[i].left == left &amp;&amp; z[i].top == top) return z + i;
+		if (!inserted) return NULL;
+		z[++cnt] = t; next[cnt] = first[x]; first[x] = cnt;
+		return z + cnt;
+	}
+} HM[2], *cur = HM, *nxt = HM + 1;
+
+char ri[N], bo[N];
+int R, C, q;
+int ans[N * N];
+ll n, initial = 0;
+ll f[N][N];
+
+inline void add(int &amp;x, const int y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+
+void init_matrix() {
+	int i, j;
+	f[1][1] = n;
+	for (i = 1; i &lt;= R; ++i)
+		for (j = 1; j &lt;= C; ++j)
+			f[i + 1][j] += f[i][j] / 2, f[i][j + 1] += f[i][j] / 2, f[i][j] &amp;= 1;
+	for (i = 1; i &lt;= R; ++i) initial += -(ri[i] &amp;= 1) &amp; f[i][C + 1];
+	for (j = 1; j &lt;= C; ++j) initial += -(bo[j] &amp;= 1) &amp; f[R + 1][j];
+}
+
+void dp() {
+	int i, j, l, u, all, offset; ll nu; data *it, *r;
+	nxt-&gt;get(0, 0, 0)-&gt;val = 1;
+	for (i = 1; i &lt;= R; ++i) {
+		for (j = 1, offset = 0; j &lt;= C; ++j, offset += 6) {
+			std::swap(cur, nxt); nxt-&gt;clear();
+			for (it = cur-&gt;z + 1; it != cur-&gt;z + (cur-&gt;cnt + 1); ++it) {
+				l = it-&gt;left; u = it-&gt;top &gt;&gt; offset &amp; 63;
+				all = l + u + (int)f[i][j];
+				if (all &amp; 1) {
+					// right prefer
+					nu = (it-&gt;top &amp; ~(63ll &lt;&lt; offset)) | all / 2ll &lt;&lt; offset;
+					add(nxt-&gt;get(it-&gt;count, (all + 1) / 2, nu)-&gt;val, it-&gt;val);
+					// bottom prefer
+					nu = (it-&gt;top &amp; ~(63ll &lt;&lt; offset)) | (all + 1ll) / 2ll &lt;&lt; offset;
+					add(nxt-&gt;get(it-&gt;count, all / 2, nu)-&gt;val, it-&gt;val);
+				} else {
+					nu = (it-&gt;top &amp; ~(63ll &lt;&lt; offset)) | all / 2ll &lt;&lt; offset;
+					r = nxt-&gt;get(it-&gt;count, all / 2, nu);
+					add(r-&gt;val, it-&gt;val); add(r-&gt;val, it-&gt;val);
+				}
+			}
+		}
+		std::swap(cur, nxt); nxt-&gt;clear();
+		for (it = cur-&gt;z + 1; it != cur-&gt;z + (cur-&gt;cnt + 1); ++it)
+			add(nxt-&gt;get(it-&gt;count + (ri[i] ? it-&gt;left : 0), 0, it-&gt;top)-&gt;val, it-&gt;val);
+	}
+	for (it = nxt-&gt;z + 1; it != nxt-&gt;z + (nxt-&gt;cnt + 1); ++it) {
+		all = it-&gt;count;
+		for (j = 1, offset = 0; j &lt;= C; ++j, offset += 6)
+			bo[j] ? all += it-&gt;top &gt;&gt; offset &amp; 63 : 0;
+		add(ans[all + 1], it-&gt;val);
+	}
+	for (i = 1; i &lt;= R * C; ++i) add(ans[i + 1], ans[i]);
+}
+
+int main() {
+	int res; ll u, v;
+	scanf("%d%d%lld%s%s", &amp;R, &amp;C, &amp;n, ri + 1, bo + 1);
+	init_matrix(); dp();
+	for (scanf("%d", &amp;q); q; --q) {
+		scanf("%lld%lld", &amp;u, &amp;v);
+		if (v &lt; initial || u &gt; initial + R * C) {putchar(48); putchar(10); continue;}
+		res = ans[std::min(v - initial, (ll)R * C) + 1] - ans[std::max(u - initial, 0ll)];
+		printf("%d\n", res + (res &gt;&gt; 31 &amp; (int)mod));
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p style="color: red"><strong>坑1：</strong>注意散列函数的选择方式！比如这道题中，绝对不能使用 <strong>"模 $2$ 的幂次"</strong> 这种情况，因为在这里状态使用二进制位存储的，如果模一个 $2$ 的幂次就会把高位的状态都 "模" 掉了，会导致严重的散列冲突！</p>
+		<p><strong>坑2：</strong>注意左移时需要<strong>先转 <code>long long</code> 后移位</strong>。</p>
+	</body>
+</html>

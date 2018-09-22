@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj2476][互测2018]蒜头的奖杯</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定长度为 $n$ 的六个序列 $A, B, C, D, E, F$，求：</p>
+		<p>$$ \sum_{i=1}^n \sum_{j=1}^n \sum_{k=1}^n A_i B_j C_k D_{\gcd(i, j)} E_{\gcd(i, k)} F_{\gcd(j, k)} $$</p>
+		<p>由于答案太大，你只要输出其对 $2^{64}$ 取模的结果即可。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^5$)。</p>
+		<p>接下来的 $6$ 行，每行 $n$ 个非负整数，分别表示序列 $A, B, C, D, E, F$。保证输入序列中的数不会超过 $10^{18}$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示上式的值模 $2^{64}$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>和<a href="lydsy5332%3Blg4619%3Bloj2565.html" target="_blank">上一道题</a>一样，三元不会怎么办？<strong>三元不会做两元！<strong></p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define P 9600
+#define gcd std::__gcd
+#define ID isdigit(c = *next++)
+
+typedef unsigned long long ull, vec[N], *pvec;
+typedef std::pair &lt;int, int&gt; pr;
+
+struct Istream {
+	int size; char *next, buf[20030731];
+	Istream &amp; init(FILE *f = stdin) {fread(buf, 1, sizeof buf, f); next = buf; return *this;}
+	Istream &amp; operator &gt;&gt; (ull &amp;x) {
+		int c; x = 0;
+		for (; !ID; ) if (!~c) return *this;
+		for (x = c &amp; 15; ID; x = x * 10 + (c &amp; 15)) if (!~c) break;
+		return *this;
+	}
+	Istream &amp; operator &gt;&gt; (int &amp;x) {ull t; *this &gt;&gt; t; x = (int)t; return *this;}
+	Istream &amp; operator &gt;&gt; (pvec a) {for (int i = 1; i &lt;= size; ++i) *this &gt;&gt; a[i]; return *this;}
+} cin;
+
+int n;
+vec A, B, C, D, E, F, Y, S, X;
+vec a, b, c, d, e, f, y, s, x;
+int pn = 0, cc[N], p[P];
+int Fy, fy[P];
+
+inline ull lcm(int a, int b) {return (ull)a / gcd(a, b) * b;}
+
+void sieve(int n) {
+	int i, j, v;
+	for (i = 2; i &lt;= n; ++i) {
+		if (!cc[i]) p[pn] = cc[i] = i, fy[pn++] = n / i;
+		for (j = 0; j &lt; pn &amp;&amp; (v = i * p[j]) &lt;= n &amp;&amp; p[j] &lt;= cc[i]; ++j)
+			cc[v] = p[j];
+	}
+	Fy = pn;
+}
+
+void DS(pvec A) { // Dirichlet Partial Sum
+	int i, j, k, l;
+	for (l = 0; l &lt; Fy; ++l)
+		for (j = 1, k = i = p[l]; j &lt;= fy[l]; ++j, k += i)
+			A[k] += A[j];
+}
+
+void MI(pvec A) { // Mobius Inversion
+	int i, j, k, l;
+	for (l = 0; l &lt; Fy; ++l)
+		for (j = fy[l], i = p[l], k = j * i; j; --j, k -= i)
+			A[k] -= A[j];
+}
+
+void RDS(pvec A) { // Reversed Dirichlet Partial Sum
+	int i, j, k, l;
+	for (l = 0; l &lt; Fy; ++l)
+		for (j = fy[l], i = p[l], k = j * i; j; --j, k -= i)
+			A[j] += A[k];
+
+}
+
+void SC(pvec dest, pvec src, int ratio) { // Scale
+	for (int i = 1, j = ratio; j &lt;= n; ++i, j += ratio) dest[i] = src[j];
+}
+
+ull solve(int n) {
+	int i, u, v, nu; ull ret = 0;
+	for (i = 0; i &lt; pn &amp;&amp; p[i] &lt;= n; ++i) fy[i] = n / p[i];
+	Fy = i; MI(d);
+	for (u = 1; u * u &lt;= n; ++u) {
+		memset(Y, 0, (n + 1) &lt;&lt; 3); memset(y, 0, (n + 1) &lt;&lt; 3); nu = n / u;
+		for (i = u; i &lt;= n; i += u) Y[i] = a[i], y[i] = b[i];
+		RDS(Y); RDS(y);
+		for (i = 1; i &lt;= n; ++i) S[i] = d[i] * Y[i], s[i] = d[i] * y[i];
+		DS(S); DS(s);
+		for (i = 1; i &lt;= n; ++i) X[i] = b[i] * S[i], x[i] = a[i] * s[i];
+		RDS(X); RDS(x);
+		for (v = u + 1; v &lt;= nu; ++v)
+			if (gcd(u, v) == 1)
+				ret += (X[v] * e[u] * f[v] + x[v] * e[v] * f[u]) * c[u * v];
+		if (u == 1) ret += X[1] * e[1] * f[1] * c[1];
+	}
+	return ret;
+} 
+
+int main() {
+	int i; ull ans = 0;
+	cin.init() &gt;&gt; n; cin.size = n; sieve(n);
+	cin &gt;&gt; A &gt;&gt; B &gt;&gt; C &gt;&gt; D &gt;&gt; E &gt;&gt; F; RDS(C); MI(E); MI(F);
+	for (i = 1; i &lt;= n; ++i) {
+		SC(a, A, i); SC(b, B, i); SC(c, C, i); SC(d, D, i); SC(e, E, i); SC(f, F, i); 
+		ans += solve(n / i);
+	}
+	printf("%llu\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

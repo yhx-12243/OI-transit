@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5115][uoj161][清华集训2015]园子里</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>ns 在园子里过着快乐而充实的生活。突然有一天，从天而降 $n$ 根柱子，这 $n$ 根柱子在学堂路上排成一排，第 $i$ 根柱子高度为 $h_i$ (即 $h_i$ 为原始高度) 米，然而，当有人站在第 $i$ 根柱子上的时候，第 $i$ 根柱子的高度会下降 $t_i$ (即当有人在上面时候 $h_i - t_i$ 就是当前高度) 米，离开之后又会恢复。</p>
+		<p>ns 对这些柱子非常感兴趣，他可以从一根柱子跳到任意一个 (包括他原本站着的柱子) 原始高度不超过他所在柱子当前高度的柱子上，如果有多个柱子都满足，他会随机等概率地跳到一个满足条件的柱子上，如果没有柱子满足，他就会跳到地上。</p>
+		<p>ns 想知道，如果他从第 $i$ 个柱子开始，期望跳多少次可以跳到地上。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^6$)，表示柱子的数量。</p>
+		<p>第二行包含 $n$ 个空格隔开的正整数 $h_i$ ($h_i \leq 10^5$)，表示每根柱子的高度 (单位：米)。</p>
+		<p>第三行包含 $n$ 个空格隔开的非负整数 $t_i$ ($0 \leq t_i \leq h_i$)，表示有人站在第 $i$ 根柱子上的时候高度会下降 $t_i$ 米。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行 $n$ 个浮点数，每两个浮点数用一个空格隔开，第 $i$ 个数表示 ns 从第 $i$ 根柱子开始，期望跳多少步可以跳到地上，<strong>如果期望步数为无穷</strong>，输出 $0$。</p>
+		<p>如果你输出的每个浮点数与标准答案的误差 (此处误差定义为你的答案与标准答案差的绝对值) 均不超过 $0.001$ ，你的答案将被视为正确。</p>
+
+		<h3>题解</h3>
+		<p>注意到跳柱子形成的关系像一个 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，因此尝试使用期望 DP 来完成。</p>
+		<p>设 $f_i$ 表示从柱子 $i$ 开始跳回地面的期望步数，再记 $h'_i = h_i - t_i$ 为有人在上面时的高度，则如果 $h'_i &lt; h_i$ 时就有</p>
+		<p>$$ f_i = 1 + \dfrac {\displaystyle \sum_{h_j \leq h'_i} f_j} {\displaystyle \sum_{h_j \leq h'_i} 1} $$</p>
+		<p>当然，如果不存在 $h_j \leq h'_i$ 的 $j$，则 $f_i = 1$ (不存在满足条件的柱子，就会跳到地上)。</p>
+		<p>但是，对于 $h'_i = h_i$ 的柱子，就有可能自己跳到自己上面，从而造成循环转移。那该怎么处理呢？</p>
+		<p>正确的思路是，<strong>对所有的 $h'_i = h_i$ 且高度相同的柱子，一起处理</strong>。设一共有 $k$ 个这样的柱子，设期望步数为 $f$，则</p>
+		<p>$$ f = 1 + \dfrac {\displaystyle \sum_{\substack {h_j \leq h_i \\ h'_j &lt; h_i}} f_j + k \cdot f} {\displaystyle \sum_{h_j \leq h_i} 1} $$</p>
+		<p>设 $A = \displaystyle \sum_{\substack {h_j \leq h_i \\ h'_j &lt; h_i}} f_j$，$B = \displaystyle \sum_{h_j \leq h_i} 1$。则有方程 $f = 1 + \dfrac {A + k \cdot f} B$，解之，得 $f = \dfrac {A + B} {B - k}$。</p>
+		<p>当然，如果 $B = k$，则此时<strong>所有高度不超过 $h_i$ 的柱子</strong>的高度均为 $h_i$ 且 $h'_i = h_i$。因此这种情况永远跳不到地上，故此时 $f = + \infty$。</p>
+		<p>最后讲一下枚举顺序，可以发现，我们应该<strong>按照 $h_i$ 从小到大</strong>进行枚举，先处理 $h'_i &lt; h_i$ 的，最后统一处理 $h'_i = h_i$ 的。记得在处理的过程中维护 $\sum_j f_j$ 和高度不超过 $h_i$ 的柱子个数。</p>
+		<p>总时间复杂度 $O \left( n + h_i \right)$ (计数排序) 或 $O \left( n \log n \right)$ (其它排序)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1000005
+#define M 100005
+#define x first
+#define y second
+#define ID isdigit(c = *next++)
+
+struct Istream {
+	char *next, buf[20030731];
+	void init(FILE *f = stdin) {fread(buf, 1, sizeof buf, f); next = buf;}
+	Istream &amp; operator &gt;&gt; (int &amp;x) {
+		int c; x = 0;
+		for (; !ID; ) if (!~c) return *this;
+		for (x = c &amp; 15; ID; x = x * 10 + (c &amp; 15)) if (!~c) break;
+		return *this;
+	}
+} cin;
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;pr&gt; vec;
+
+int n;
+int H[N], h[N], sc[M];
+double f[N], sf[M];
+vec A[M];
+
+int main() {
+	int i, j; double r;
+	cin.init(); cin &gt;&gt; n;
+	for (i = 1; i &lt;= n; ++i) cin &gt;&gt; H[i];
+	for (i = 1; i &lt;= n; ++i) {
+		cin &gt;&gt; j; h[i] = H[i] - j;
+		A[H[i]].emplace_back(h[i], i);
+	}
+	for (i = 1; i &lt;= 100000; ++i) {
+		sc[i] = sc[i - 1] + (int)A[i].size();
+		sf[i] = sf[i - 1]; j = 0;
+		for (pr t : A[i])
+			t.x &lt; i ? (void)(sf[i] += f[t.y] = (sc[t.x] ? sf[t.x] / (double)sc[t.x] : 0.0) + 1.0, sf[i]) : (void)(++j);
+		r = (j == sc[i] ? INFINITY : (sf[i] + (double)sc[i]) / (double)(sc[i] - j));
+		for (pr t : A[i])
+			if (t.x == i) sf[i] += f[t.y] = r;
+	}
+	for (i = 1; i &lt;= n; ++i)
+		printf("%.8lg%c", std::isfinite(f[i]) ? f[i] : 0.0, i == n ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意变量 $A$ 维护的是对于 $h_j \leq h_i; h'_j &lt; h_i$ 的 $f_j$ 求和，故最好在处理 $h'_i &lt; h_i$ 的柱子时计算好，不要漏算或多算了。</p>
+	</body>
+</html>
