@@ -8,11 +8,16 @@
 		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
 		<script src="../additional_files/sh_main.min.js"></script>
 		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style type="text/css">
+			.red-text {color: red}
+			.blue-text {color: blue}
+			.fuchsia-text {color: fuchsia}
+		</style>
 	</head>
 	<body>
 		<h3>题目描述</h3>
 		<p>给定长度为 $n$ 的六个序列 $A, B, C, D, E, F$，求：</p>
-		<p>$$ \sum_{i=1}^n \sum_{j=1}^n \sum_{k=1}^n A_i B_j C_k D_{\gcd(i, j)} E_{\gcd(i, k)} F_{\gcd(j, k)} $$</p>
+		<p>$$ \sum_{i=1}^n \sum_{j=1}^n \sum_{k=1}^n A_i B_j C_k D_{\gcd(i, j)} E_{\gcd(i, k)} F_{\gcd(j, k)} \tag 1 \label 1 $$</p>
 		<p>由于答案太大，你只要输出其对 $2^{64}$ 取模的结果即可。</p>
 
 		<h3>输入格式</h3>
@@ -23,7 +28,48 @@
 		<p>输出一行一个整数，表示上式的值模 $2^{64}$ 的结果。</p>
 
 		<h3>题解</h3>
-		<p>和<a href="lydsy5332%3Blg4619%3Bloj2565.html" target="_blank">上一道题</a>一样，三元不会怎么办？<strong>三元不会做两元！<strong></p>
+		<p>和<a href="lydsy5332%3Blg4619%3Bloj2565.html" target="_blank">上一道题</a>一样，三元不会怎么办？<strong>三元不会做两元！</strong></p>
+		<p>其实，这个题在<strong>二元</strong>的情况下就是一道 <strong><del>"Möbius 反转变换入门练习题"</del></strong>。</p>
+		<p>为什么这么说呢？我们来看一下这个和式 <span class="red-text">(注：以下我们把<strong>数论函数</strong> (定义域为正整数的函数) 和<strong>数列</strong>看成同一个东西，运算规则 (如卷积等) 是相同定义的)</span>：</p>
+		<p>$$ \sum_{i=1}^n \sum_{j=1}^n A_i B_j C_{(i, j)} $$</p>
+		<p>由于遇到了 $\gcd(i, j)$，我们就考虑 <strong>Möbius 反转变换</strong>，<span class="fuchsia-text">设 $C = X \ast \mathbf 1$，则 $X = C \ast \mu$</span>。</p>
+		<p>则可以做如下变换：</p>
+		<p>$$ \sum_{i=1}^n \sum_{j=1}^n A_i B_j C_{(i, j)} = \sum_{i=1}^n \sum_{j=1}^n A_i B_j \sum_{d \mid i, d \mid j} X_d = \sum_{d=1}^n X_d \left( \sum_{d \mid i, i \leq n} A_i \right) \left( \sum_{d \mid j, j \leq n} B_j \right) $$</p>
+		<p><span class="fuchsia-text">设 $\displaystyle P_d = \sum_{d \mid i, i \leq n} A_i$，即令 <strong>$P$ 为 $A$ 的 Dirichlet 后缀和</strong></span> (整除偏序意义下的后缀和)，$Q$ 为 $B$ 的 Dirichlet 后缀和，则式子就变成了 $\displaystyle \sum_{d=1}^n X_d P_d Q_d$，从而可以 $O(n)$ 计算。</p>
+		<p>至于对一个数列求 Dirichlet 前缀和 (Möbius 变换)，Dirichlet 后缀和以及 Möbius 反转变换，均可以在 $O \left( n \log \log n \right)$ 的时间内完成。主要思路是使用<strong>素数的多维前缀和</strong>。具体见 <a href="http://61.153.16.137:8001/problem/112" target="_blank">[soj112]Dirichlet 前缀和</a>。</p>
+		<p>因此，二元问题的时间复杂度为 $O \left( n \log \log n \right)$。</p>
+		<hr />
+		<p>回到原题，先声明一个符号，我们用 $RDS(A)$ 表示函数 (序列) $A$ 的 Dirichlet 后缀和。Dirichlet 前缀和以及 Möbius 反转变换的符号和原来一样，为 $A \ast \mathbf 1$ 和 $A \ast \mu$。</p>
+		<p>类似地，我们<strong>将 $E, F$</strong> 进行 Möbius 反转变换，<span class="fuchsia-text">设 $E = E' \ast \mathbf 1; F = F' \ast \mathbf 1$</span> (或者说 $E' = E \ast \mu; F' = F \ast \mu$)，代入 $\eqref 1$ 式，有</p>
+		<p>$$ \sum_{i=1}^n \sum_{j=1}^n \sum_{k=1}^n A_i B_j C_k D_{(i, j)} E_{(i, k)} F_{(j, k)} = \sum_{i=1}^n \sum_{j=1}^n \sum_{k=1}^n A_i B_j C_k D_{(i, j)} \left( \sum_{e \mid i, e \mid k} E'_e \right) \left( \sum_{f \mid j, f \mid k} F'_f \right) = \sum_e E'_e \sum_f F'_f \left( \sum_{[e, f] \mid k} C_k \right) \sum_{e \mid i} \sum_{f \mid j} A_i B_j D_{(i, j)} \tag 2 \label 2 $$</p>
+		<p><span class="fuchsia-text">设 $C' = RDS(C)$</span>，则式子右端的整个括号就化为 $C' \left( [e, f] \right)$。</p>
+		<p>注意到存在项 $C' \left( [e, f] \right)$，故要求 $[e, f] \leq n$。事实上，$[e, f] \leq n$ 的有序二元组共有 $O \left( n \log^2 n \right)$ 个，在一个可接受的范围内，<strong>但是这些数对 $(e, f)$ 不好枚举 <sup>(注：这些数对是可以在 $O \left( n \log^2 n \right)$ 的时间内枚举完成的)</sup>，更重要的是，它们对后续的式子的处理比较繁琐</strong>，因此我们需要<strong>继续枚举 $[e, f]$ 的最大公因数 $d$</strong>，代入 $\eqref 2$ 式，得</p>
+		<p>$$ \sum_d \sum_{d \mid e} \sum_{d \mid f} \left[ \frac ed \perp \frac fd \right] \cdot E'_e \cdot F'_f \cdot C'_{ef / d} \sum_{e \mid i} \sum_{f \mid j} A_i B_j D_{(i, j)} = \sum_d \sum_u \sum_v \left[ u \perp v \right] \cdot E'_{ud} \cdot F'_{vd} \cdot C'_{uvd} \cdot \sum_{u d \mid i} \sum_{v d \mid j} A_i B_j D_{(i, j)} = \sum_d \sum_u \sum_v \left[ u \perp v \right] E'_{ud} \cdot F'_{vd} \cdot C'_{uvd} \cdot \sum_x \sum_y A_{xud} \cdot B_{yvd} \cdot D_{(xu, yv) d} \tag 3 \label 3 $$</p>
+		<p>我们考虑对每个 $d$ 及 $(u, v)$ 计算答案。由于存在项 $C'_{uvd}$，故 $u \cdot v \cdot d \leq n$。<span class="fuchsia-text">设 $m = \left \lfloor \dfrac nd \right \rfloor$，则 $u v \leq m$</span>。</p>
+		<p>我们将对 $u, v$ 求和拆为三部分，一部分满足 $u &lt; v$，一部分满足 $u &gt; v$，还有一部分为 $u = v = 1$。如果每一部分都能够在可接受的时间内求和，那么问题就得以解决。</p>
+		<p>先来考虑对第一部分的求和。因为 $u &lt; v$ 且 $u \cdot v \leq m$。故<strong>一定有 $u \leq \left \lfloor \sqrt m \right \rfloor$，这给我们创造了一个很重要的条件</strong>。</p>
+		<hr />
+		<p>考虑 $\eqref 3$ 式右端对 $x, y$ 的求和。<span class="fuchsia-text">设 $a_i = A_{id}; b_i = B_{id}, d_i = D_{id}$</span>，代入得</p>
+		<p>$$ \sum_x \sum_y a_{xu} \cdot b_{yv} \cdot d_{(xu, yv)} $$</p>
+		<p>对 $d$ 进行 Möbius 反转变换，<span class="fuchsia-text">设 $d = G \ast \mathbf 1$</span>，即 $G = d \ast \mu$。则</p>
+		<p>$$ \sum_x \sum_y a_{xu} \cdot b_{yv} \cdot d_{(xu, yv)} = \sum_x \sum_y a_{xu} \cdot b_{yv} \cdot \sum_{j \mid xu, j \mid yv} G_j = \sum_j G_j \left( \sum_{j \mid xu} a_{xu} \right) \left( \sum_{j \mid yv} b_{yv} \right) = \sum_y b_{yv} \sum_{j \mid yv} G_j \sum_{j \mid xu} a_{xu} \tag 4 \label 4 $$</p>
+		<p>其中 $\eqref 4$ 式最右端的三个和式是<strong>分别对 $j, y, x$ 求和</strong>。</p>
+		<p>设 $s = xu$，则求和的条件有 $j \mid s$ 和 $u \mid s$。注意到 $u$ 是常量，因此可以<span class="fuchsia-text">令 $Y(s) = a(s) \cdot \left[ u \mid s \right] = \begin{cases} a(s) &amp; u \mid s \\ 0 &amp; u \nmid s \end{cases}$</span>。</p>
+		<p>代入 $\eqref 4$ 式，得</p>
+		<p>$$ \sum_y b_{yv} \sum_{j \mid yv} G_j \sum_{j \mid xu} a_{xu} = \sum_y b_{yv} \sum_{j \mid yv} G_j \sum_{j \mid s} Y_s = \sum_y b_{yv} \sum_{j \mid yv} G_j \left( RDS(Y) \right) (j) \tag 5 \label 5 $$</p>
+		<p><del>自然地</del>，<span class="fuchsia-text">令 $S = G \cdot RDS(Y)$</span>，代入 $\eqref 5$ 就有</p>
+		<p>$$ \sum_y b_{yv} \sum_{j \mid yv} G_j \left( RDS(Y) \right) (j) = \sum_y b_{yv} \sum_{j \mid yv} S_j = \sum_y b_{yv} \cdot \left( S \ast \mathbf 1 \right) (yv) \tag 6 \label 6 $$</p>
+		<p>类似地，<span class="fuchsia-text">令 $X = b \cdot \left( S \ast \mathbf 1 \right)$</span>，代入 $\eqref 6$ 式得到</p>
+		<p>$$ \sum_y b_{yv} \cdot \left( S \ast \mathbf 1 \right) (yv) = \sum_y X_{yv} = \sum_{v \mid z, z \leq m} X_z = \left( RDS(X) \right) (v) $$</p>
+		<p>于是乎，终于大功告成啦！我们只需<span class="fuchsia-text">求出 $RDS(X)$</span>，这样，$\eqref 3$ 式的右端就是个关于 $v$ 的<strong>单点函数值</strong>啦！</p>
+		<p>我们只需枚举所有的 $u \in \left[ 1, \left \lfloor \sqrt m \right \rfloor \right]$，对序列做<span class="fuchsia-text">粉色字</span>描述的变换，再枚举 $v$ 就可以计算出 $\eqref 3$ 的一部分啦！</p>
+		<hr />
+		<p>同理，$u &gt; v$ 的部分也可以用类似的方法求，只需要在 $\eqref 4$ 式的最后一步交换求和次序，即把 $\sum\limits_x$ 提到最前面。</p>
+		<p>$u = v = 1$ 的情况我就不多说了，留给读者自己思考 <del>(我是不会告诉你就是一开始的二元栗子的)</del></p>
+		<p>最后来分析一下时间复杂度。对于固定的 $d$，枚举 $u$ 的复杂度为 $O \left( \sqrt m \right)$，这其中需要做常数遍三大变换 (Dirichlet 前缀和，Dirichlet 后缀和，Möbius 反转变换)，因此单次变换的复杂度 $O \left( m \log \log m \right)$，总的即为 $O \left( m \sqrt m \log \log m \right)$。</p>
+		<p>至于对一个 $u$，枚举 $v$ 的复杂度，由于 $u v \leq m$，因此这里的复杂度是 $O \left( m \log m \right) &lt; O \left( m \sqrt m \log \log m \right)$。</p>
+		<p>因此对于固定的 $d$，计算答案的复杂度为 $O \left( m \sqrt m \log \log m \right)$，其中 $m = \left \lfloor \dfrac nd \right \rfloor$。</p>
+		<p>故总时间复杂度为 $\displaystyle O \left( \sum_{d=1}^n \frac nd \sqrt {\frac nd} \log \log \frac nd \right) = O \left( n^{3/2} \log \log n \right)$ (可以用积分等近似计算)。</p>
 
 		<h3>代码</h3>
 
@@ -128,5 +174,7 @@ int main() {
 </pre></div>
 
 		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在执行<strong>三大变换</strong>时素数不要 <code>for</code> 满，应该在每次调用 <code>solve</code> 时计算要用多少素数。</p>
+		<p><strong>坑2：</strong>不要忘记 $(u, v) = 1$ 的条件，以及要使用 <code>unsigned long long</code>。在各种变换时数组名称不要记错了。</p>
 	</body>
 </html>

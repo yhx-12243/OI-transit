@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj169]元旦老人与数列</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有两个长度为 $n$ 的完全相同的数列 $A$ 和 $B$，接下来有 $m$ 次操作，每一次操作都是以下的四种之一：</p>
+		<ol>
+			<li>对于所有的 $i \in [l, r]$，将 $A_i$ 变成 $A_i+c$。</li>
+			<li>对于所有的 $i \in [l, r]$，将 $A_i$ 变成 $\max \left( A_i, d \right)$。</li>
+			<li>对于所有的 $i \in [l, r]$，询问 $A_i$ 的最小值。</li>
+			<li>对于所有的 $i \in [l, r]$，询问 $B_i$ 的最小值。</li>
+		</ol>
+		<p>在每一次操作结束之后，都会进行一次<strong>更新</strong>：对于所有的 $i \in [1, n]$，将 $B_i$ 变成 $\min \left( B_i, A_i \right)$。</p>
+		<p>然而留给元旦老人的时间已经所剩无几了，情急之下，他决定向你寻求帮助：你能帮他回答这些问题吗？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 5 \times 10^5$)。</p>
+		<p>第二行包含 $n$ 个整数 $A_i$ ($-10^9 \leq A_i \leq 10^9$，最开始 $B_i = A_i$)。</p>
+		<p>接下来 $m$ 行中，第 $i$ 行的第一个整数 $t_i$ 表示操作类型：</p>
+		<p>若 $t_i = 1$，则接下来三个整数 $l_i, r_i, c_i$ ($-2000 \leq c_i \leq 2000$)，表示操作一。</p>
+		<p>若 $t_i = 2$，则接下来三个整数 $l_i, r_i, d_i$ ($-10^9 \leq d_i \leq 10^9$)，表示操作二。</p>
+		<p>若 $t_i = 3$，则接下来两个整数 $l_i, r_i$，表示操作三。</p>
+		<p>若 $t_i = 4$，则接下来两个整数 $l_i, r_i$，表示操作四。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个询问操作，输出一行一个整数表示答案。</p>
+
+		<h3>题解</h3>
+		<p>先来考虑没有操作二怎么做。</p>
+		<p>你们是不是一定会觉得很模板啊？就像 <a href="uoj164.html" target="_blank">[uoj164]V</a> 一样。</p>
+		<p>使用线段树解决，对每个节点，维护如下信息：</p>
+		<ol>
+			<li>$v$ (value): 当前区间最小值；</li>
+			<li>$h$ (history value): 历史区间最小值；</li>
+			<li>$t$ (addition tag): 当前区间加标记；</li>
+			<li>$ht$ (history tag): "历史区间加标记"，即 $t$ 值在一段时间内的最小值 (并与 $0$ 取 $\min$)。 </li>
+		</ol>
+		<p>这样，就可以维护出所有信息 (任意区间最小值和历史区间最小值) 了。</p>
+		<p>只要记得带 $h$ 的变量<strong>只能 <code>down</code></strong>，而不带 $h$ 的变量要直接赋值 (或 <code>+=</code> 诸如此类)。</p>
+		<hr />
+		<p>现在增加了一个<strong>对常数取 $\max$</strong> 的操作，又该怎么办呢？</p>
+		<p>如果是单点询问，那么就可以像<a href="uoj164.html" target="_blank">那道题</a>一样维护 $x = \max \left\{ x_0 + a, b \right\}$ 这类信息。但是区间询问由于 $x_0$ 的不一致性，就造成了操作上的困难。</p>
+		<p>其实我们可以考虑一个稍稍暴力点的做法：</p>
+		<p>我们希望 $d$ 很小，如果 $d$ 比一个区间的最小值 $v$ 小，这样这个操作就可以不干了。</p>
+		<p>当然这只是做梦，我们需要降低一点要求。因为如果 $d$ 很大，再怎么样的区间都没戏。</p>
+		<p>如果 $d$ 比一个区间的最小值 $v$ 大，比次小值 (第二小的值) 小呢？</p>
+		<p>这时我们要做的，就是<strong>将该区间中，所有值为 $v$ 的变为 $d$</strong> (其中 $v &lt; d$)。</p>
+		<p>这看起来也不错。但是这个条件 ($d$ 比次小值小) 容易实现吗？</p>
+		<p>在不论复杂度的情况下，这至少是可行的。<strong>因为长度为 $1$ 的区间没有次小值，因此可以将次小值设为 $+ \infty$。此时 $d &lt; + \infty$，因此效果就是把最小值 (那唯一的值) 设为 $d$</strong>。</p>
+		<p>诶，这样我们是不是就得到了一个算法了啊！</p>
+		<p>我们对每个区间多维护一个<strong>次小值</strong> $s$ (second least value)。这样，对于每个<strong>对常数取 $\max$</strong> 的操作，我们把 $d$ 拿去跟 $v$ 和 $s$ 作比较，如果 $d \leq v$，则直接 <code>return;</code>；如果 $v &lt; d &lt; s$，打一个 "让该区间的最小值增加 $d - v$" 的标记，否则，<strong>继续向子树递归</strong>。由于长度为 $1$ 的区间没有次小值，因此这个递归一定可以终止。</p>
+		<hr />
+		<p>接下来将一下具体实现。</p>
+		<p>我们需要多维护 $3$ 个信息：</p>
+		<ol start="5">
+			<li>$s$ (second least value): 区间次小值；</li>
+			<li>$st$ (second addition tag): 区间次小值的 "加" 标记。</li>
+			<li>$hst$ (history second tag): 一段时间内 $st$ 的最小值，不超过 $0$。(注：$st$ 与 $hst$ 的关系可以类比 $t$ 与 $ht$ 的关系)</li>
+		</ol>
+		<p>接下来是线段树的三大基本操作 (一上、一下、加修改)：</p>
+		<ol>
+			<li><p><code>update(ret, a, b)</code>:</p>
+			<p>在 <code>update</code> 过程中，当前点以及两个子节点的标记均已下传，因此只需关注 $v, h, s$ 三个值。</p>
+			<p>这些值还是比较好维护的。$v$ 和 $h$ 直接取两个子树的 $\min$，$s$ 直接根据左右子树的 $v$ 分类讨论一下即可。</p></li>
+			<li><p><code>push_down(id, lc, rc)</code>:</p>
+			<p>先不看历史标记，我们有两个标记：$t$ 和 $st$。分别表示该区间的最小值要增加多少，以及次小值 (和其它值) 要增加多少。</p>
+			<p>因此下传时，不能一概而论，要搞清楚两个子树中是否有 (当前子树的) 最小值。</p>
+			<p>如果子树中有最小值，那么把 $t$ 和 $st$ 都传给它，否则，<strong>只把 $st$ 传给它</strong>。</p>
+			<p>历史标记很简单，记住一句话，<strong>历史标记只能 <code>down</code></strong>，那就不停地 <code>down</code> 下去吧。当然，传的时候也要注意子树中是否有最小值。</p></li>
+			<li><p><code>add()</code>: (区间加)</p>
+			<p>这个也不难，把值和所有的历史标记加上 $v$ 以后，然后历史标记对应的 <code>down</code> 下去即可。</p></li>
+			<li><p><code>max()</code>: (区间对常数取 $\max$)</p>
+			<p>这个只需在 $v &lt; d &lt; s$ 时，更新一下<strong>最小值</strong>和<strong>最小值的 "加" 标记</strong>即可。</p></li>
+		</ol>
+		<p>询问的过程应该就不用讲了吧，扫一遍即可。</p>
+		<p>最后就是时间复杂度分析环节：</p>
+		<p>直观感受一下，这个时间复杂度应该靠谱。因为如果某一次更改量比较大是话 (那肯定是对常数取 $\max$ 的操作)，那么就会有大量值相同，导致 "整个序列的势能降低"，从而下面的操作就会比较快。接下来我们来分析一波。</p>
+		<p>我们可以定义半不变量 (势能函数) $K(s) = \sum\limits_u \left( \left[ u.v \neq u.lc.v \right] + \left[ u.v \neq u.rc.v \right] \right)$，这样每次对常数取 $\max$ 的操作至少使 $K(s)$ 减小 $2$。故时间复杂度<strong>上界</strong>为 (均摊) $O \left( m \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 500005
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+
+const int INF = 0x7f7f7f7f;
+
+struct node {
+	/*
+		v: least value
+		s: second least value
+		t: addition tag
+		st: second addition tag
+		h: history minimum value
+		ht: history minimum tag
+		hst: history minumum second tag
+	*/
+	int v, s, t, st, h, ht, hst;
+} x[N * 4];
+
+int n, q;
+int a[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int m(const int x, const int y) {return x &lt; y ? x : y;}
+inline int z(const int x, const int y) {return x &lt; y ? y : x;}
+
+void update(node &amp;ret, node a, node b) {
+	if (a.v == b.v) ret.v = a.v, ret.s = m(a.s, b.s);
+	else if (a.v &lt; b.v) ret.v = a.v, ret.s = m(a.s, b.v);
+	else ret.v = b.v, ret.s = m(a.v, b.s);
+	ret.h = m(a.h, b.h);
+}
+
+void give(node &amp;x, node p, bool include_min) {
+	if (!include_min) p.t = p.st, p.ht = p.hst;
+	down(x.h, x.v + p.ht);
+	down(x.ht, x.t + p.ht);
+	down(x.hst, x.st + p.hst);
+	x.v += p.t; x.t += p.t;
+	x.s += p.st; x.st += p.st;
+	down(x.s, INF);
+}
+
+void push_down(int id, int lc, int rc) {
+	bool left_min = x[lc].v &lt;= x[rc].v, right_min = x[lc].v &gt;= x[rc].v; // mind it !!!
+	give(x[lc], x[id], left_min);
+	give(x[rc], x[id], right_min);
+	x[id].t = x[id].st = x[id].ht = x[id].hst = 0;
+}
+
+void build(int id, int L, int R) {
+	if (L == R) {x[id].h = x[id].v = a[L]; x[id].s = INF; return;}
+	segc; build(lc, L, M); build(rc, M + 1, R);
+	update(x[id], x[lc], x[rc]);
+}
+
+void add(int id, int L, int R, int ql, int qr, int v) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) {
+		x[id].v += v; x[id].t += v;
+		x[id].s += v; x[id].st += v;
+		down(x[id].h, x[id].v);
+		down(x[id].ht, x[id].t);
+		down(x[id].hst, x[id].st);
+		down(x[id].s, INF);
+		return;
+	}
+	segc; push_down(id, lc, rc);
+	if (ql &lt;= M) add(lc, L, M, ql, m(qr, M), v);
+	if (qr &gt; M) add(rc, M + 1, R, z(ql, M + 1), qr, v);
+	update(x[id], x[lc], x[rc]);
+}
+
+void max(int id, int L, int R, int ql, int qr, int v) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr &amp;&amp; v &lt; x[id].s) {
+		if (v &gt; x[id].v) x[id].t += v - x[id].v, x[id].v = v;
+		return;
+	}
+	segc; push_down(id, lc, rc);
+	if (ql &lt;= M) max(lc, L, M, ql, m(qr, M), v);
+	if (qr &gt; M) max(rc, M + 1, R, z(ql, M + 1), qr, v);
+	update(x[id], x[lc], x[rc]);
+}
+
+int range(int id, int L, int R, int ql, int qr, bool history = false) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) return history ? x[id].h : x[id].v;
+	segc, s = INF; push_down(id, lc, rc);
+	if (ql &lt;= M) down(s, range(lc, L, M, ql, m(qr, M), history));
+	if (qr &gt; M) down(s, range(rc, M + 1, R, z(ql, M + 1), qr, history));
+	return s;
+}
+
+int main() {
+	int i, l, r, v, op;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	build(1, 1, n);
+	for (; q; --q)
+		switch(scanf("%d%d%d", &amp;op, &amp;l, &amp;r), op) {
+			case 1: scanf("%d", &amp;v); add(1, 1, n, l, r, v); break;
+			case 2: scanf("%d", &amp;v); max(1, 1, n, l, r, v); break;
+			case 3:
+			case 4: printf("%d\n", range(1, 1, n, l, r, op == 4)); break;
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在 <code>max()</code> 中注意 <code>tag</code> 值是 <code>+=</code> 而不是 <code>=</code>。</p>
+		<p><strong>坑2：</strong>注意更新的先后顺序。在 <code>add()</code> 中是先更新普通值再去 <code>down</code> 历史值，而在 <code>push_down()</code> 中应该先 (用父节点的历史值) 更新历史值再更新一般值，否则会被覆盖。</p>
+		<p>当然，如果在 <code>add()</code> 中先更新历史值不是不可以，<del>只是多打几个加号的缘故吧</del>。</p>
+		<p style="color: red"><strong>坑3：</strong>和 <a href="loj2537.html" target="_blank">[loj2537]Minimax</a> 一样，在 <code>push_down()</code> 时应该提前算好两个子树 (原先) 的最小值，不然 <code>give()</code> 完一个子树时最小值就会被改变。</p>
+	</body>
+</html>

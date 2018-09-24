@@ -100,7 +100,7 @@
 			$A = $('<a href="memos/' + j + '.html" target="_blank">链接</a>');
 			$C.append($A);
 		}
-		Rows.sort(function(a, b) {return $(b).data('priority') - $(a).data('priority');});
+		Rows.sort(function(a, b) {return $(b).data('priority') - $(a).data('priority') || (+b.cells[0].innerText) - (+a.cells[0].innerText);});
 		for(i = 0; i < Rows.length; ++i) $(Rows[i]).removeData();
 		$('#memTable').append(Rows.slice((curPage - 1) * MEMOS_PER_PAGE, curPage * MEMOS_PER_PAGE));
 		$('#memTotal').html('统计: 共 ' + count + ' 份便笺');

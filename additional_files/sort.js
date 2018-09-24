@@ -57,12 +57,12 @@
 
 			'Rf': function (a, b) {
 				var A = a.cells[1].innerText.toLowerCase(), B = b.cells[1].innerText.toLowerCase();
-				return A < B ? -1 : A == B ? 0 : 1;
+				return A < B ? -1 : A == B ? sortFunc.Ru(a, b) : 1;
 			},
 
 			'Rl': function (a, b) {
 				var A = a.cells[2].innerText.toLowerCase(), B = b.cells[2].innerText.toLowerCase();
-				return A < B ? -1 : A == B ? 0 : 1;
+				return A < B ? -1 : A == B ? sortFunc.Ru(a, b) : 1;
 			},
 
 			'Rr': function (a, b) {return (+b.cells[3].innerText) - (+a.cells[3].innerText);},
@@ -73,7 +73,7 @@
 
 			'Rb': function (a, b) {
 				var A = a.cells[6].innerText, B = b.cells[6].innerText;
-				return A < B ? -1 : A == B ? 0 : 1;
+				return A < B ? -1 : A == B ? sortFunc.Ru(a, b) : 1;
 			}
 		}
 
