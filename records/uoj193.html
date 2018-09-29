@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj193]人类补完计划</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $n$ 个点，$m$ 条边的无向简单图 $G = (V, E)$，对于 $E$ 的子集 $S$，我们把所有与 $E$ 中<strong>至少</strong>一条边相邻的点构成的集合称为 $V(S)$，$S$ 被称为<strong>好的</strong>当且仅当：</p>
+		<ol>
+			<li>$\left| S \right| = \left| V(S) \right|$；</p>
+			<li>对于 $V(S)$ 中任意两个不同的点 $x, y$，存在一条从 $x$ 到 $y$ 的路径，使得路径中的边都属于 $S$。</li>
+		</ol>
+		<p>设所有与 $S$ 中<strong>大于</strong>一条边相邻的点的数量为 $w$，那么边集 $S$ 的<strong>权值</strong>为 $2^w$。</p>
+		<p>现在，你需要对 $E(G)$ 的所有子集，求出所有<strong>好的</strong>子集的权值和。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 16; m \leq \dbinom n2$)，含义如题意所述。</p>
+		<p>接下来的 $m$ 行，第 $i$ 行包含两个整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq n; x_i \neq y_i$)，表示 $x_i$ 与 $y_i$ 之间有一条无向边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示这张基因图的权值对 $998244353$ 取模的值。</p>
+
+		<h3>题解</h3>
+		<p>先来分析什么样的边集 $S$ 是<em>好的</em>边集。</p>
+		<p>由性质 2，$S$ 导出的子图 $G[S]$ 必须是<strong>连通</strong>的。否则，在不同的连通块取点，就不存在所有边都在 $S$ 中的路径。</p>
+		<p>又由性质 1，$S$ 导出的子图具有相等的点数和边数。</p>
+		<p>因此，图 $G' = \left( V(S), S \right)$ 为一个<strong>具有相等的点数和边数</strong>的<strong>连通图</strong>，从而得知，$G$ 是<strong>基环树</strong>。</p>
+		<p>对于一个<em>好的</em>边集 $E$ (即 $G$ 的子基环树 $B$)，它的权值又等于多少呢？</p>
+		<p>在 $B$ 中，只与一条边相邻的顶点，即度为 $1$ 的节点，一定是 $B$ 的<em>外向树</em>的<em>叶节点</em>。因此 $w$ 就等于 $B$ 中<strong>非叶节点</strong>的节点数，然后权值即为 $2^w$。</p>
+		<p>注意到基环树不像树一样可以直接 DP，它首先有一个环。我们先考虑如何处理掉这个环。</p>
+		<p>注意到环上的节点<strong>不可能是叶节点</strong>，因此对于答案之和<strong>构成环的是哪些点</strong>有关，与<strong>这些点内部是如何连接的</strong>无关。因此只要确定了构成环的点集，接下来的事情就与环内部无关了。</p>
+		<p>因此，第一个问题是，给定一个点集 $V_0$，如何求出<strong>由 $V_0$ 中所有点</strong>构成的环的数目。你需要对所有 $V_0 \subseteq V$ 给出答案。</p>
+		<p>对，就是<strong>环计数问题</strong>，<del>状态压缩 DP 入门练习题</del>。具体做法我就不再赘述了，可以参考 <a href="cf11D.html" target="_blank">[Codeforces11D]A Simple Task</a>，通过<strong>最小数原理</strong>进行 DP。</p>
+		<p>最后，如果 $c &gt; 2$ 且链的两端连通，就可以说明集合 $V_0$ 中就有对应数量的环。记得最后别忘记将 $\mathrm{cycle}(V)$ 乘 $\dfrac 12$。</p>
+		<hr />
+		<p>接下来，我们来考虑对于给定的 (构成环的) 节点集合 $V_0$，如何统计这些基环树的权值和。</p>
+		<p>发现直接做不好做，因此我们先从统计基环树的数量开始，然后再来计算权值和。</p>
+		<p>由于放到一起统计的必须要有相同的权值和，于是它们的<strong>非叶节点数</strong>要相同。因此我们不妨设<strong>点集</strong> $V$ 和<strong>叶节点集</strong> $L$ 都相同，这样就可以放到一起统计了。故我们把 $V$ 和 $L$ 作为两维状态，用 $f_{V, L}$ 表示<strong>点集为 $V$，叶节点集为 $L$</strong> 的基环树个数。</p>
+		<p>这样答案就等于 $\displaystyle \sum_{A \subseteq V} \sum_{L \subseteq A} f_{A, L} 2^{|A| - |L|}$。</p>
+		<p>但是如何取计算 $f_{V, L}$ 呢？</p>
+		<p>首先能够注意到，如果 $L = \varnothing$，即一个基环树 $B$ <strong>没有叶节点</strong>，可以推知 $B$ 就是一个<strong>环</strong>。而我们刚才已经求得 (对于一个点集) 环的个数，因此有 $f_{V, \varnothing} = \mathrm{cycle}(V)$，其中 $\mathrm{cycle}(V)$ 即为由 $V$ 中的点构成的环的数量。</p>
+		<p><span style="color: blue">再令 $T_V$ 表示点集为 $V$ 的基环树个数</span>。我们考虑如何转移 $f_{V, L}$ ($L \neq \varnothing$)</p>
+		<p>由于 $L$ 中的点一定是叶节点，因此它们一定<strong>唯一地</strong>连向 $V \setminus L$ 中的一个节点。</p>
+		<p>而这个方案数由乘法原理，等于 $L$ 中每个点 $v$ 连向集合 $V \setminus L$ 的方案数 $\mathrm{cross} \left( v, V \setminus L \right)$，是比较好求得的。</p>
+		<p>因此，把基环树中的这些叶节点 ($L$ 中的点) 去掉，就得到了它的一个子基环树。但是，在这个子基环树中，有些点可能又变回了叶节点，但也有可能没变会叶节点，再加上有些点可能本来就是叶节点。于是，这个数和 $T_V$ 的关系并不好处理。这给我们的 DP 带来了致命的阻碍。</p>
+		<p>那怎么办呢？看起来并没有什么好的办法处理。因此，像<a href="lydsy4574%3Blg3352%3Buoj196%3Bloj2093.html" target="_blank">这道题</a>一样，我们需要<strong>改变状态</strong>。</p>
+		<p>如果我们令 $F_{V, L}$ 表示<span style="color: red">点集为 $V$，其中 $L$ 中的点<strong>一定</strong>是叶节点，$V \setminus L$ 中的点<strong>可能</strong>是叶节点</span>，这样的基环树的个数。</p>
+		<p>也就是说，令 $$ F_{V, L} = \sum_{L \subseteq I} f_{V, I} $$</p>
+		<p>由容斥原理 (或快速 Möbius 逆变换)，可以得到 $f_{V, L}$ 关于 $F_{V, L}$ 的表达式：</p>
+		<p>$$ f_{V, L} = \sum_{L \subseteq I} (-1)^{|I| - |L|} F_{V, I} \tag 1 \label 1 $$</p>
+		<p>于是，我们的目标从转移 $f$ 变成了转移 $F$。</p>
+		<p>首先，由于 $L$ 中的点一定是叶节点，因此这里的方案数还是 $\displaystyle \prod_{v \in L} \mathrm{cross} \left( v, V \setminus L \right)$。</p>
+		<p>接下来，我们还是要把 $L$ 中的点去掉。现在就好办了，这样得到的剩下的基环树，就<strong>恰好是点集是 $V \setminus L$ 的所有基环树</strong>，于是，我们就得到了转移方程：</p>
+		<p>$$ F_{V, L} = T_{V \setminus L} \cdot \prod_{v \in L} \mathrm{cross} \left( v, V \setminus L \right) \tag 2 \label 2 $$</p>
+		<p>注意到这个方程并不是完备的，因为当 $L = \varnothing$ 时，$F_{V, L}$ 和 $T_V$ 之间存在<strong>循环转移</strong> (事实上它是一个恒等式)。</p>
+		<p>但是，我们注意到等式 $f_{V, \varnothing} = \mathrm{cycle}(V)$ 还没用过呢，将其代入 $\eqref 1$ 式，即可得到</p>
+		<p>$$ \mathrm{cycle}(V) = \sum_{I \subseteq V} (-1)^{|I|} F_{V, I} $$</p>
+		<p>将 $F_{V, \varnothing}$ 提到左边，即可得到</p>
+		<p>$$ F_{V, \varnothing} = \mathrm{cycle}(V) - \sum_{I \subseteq V; I \neq \varnothing} (-1)^{|I|} F_{V, I} \tag 3 \label 3 $$</p>
+		<p>由 $\eqref 2, \eqref 3$ 式，就可以作一个完整的转移了。</p>
+		<p>注意到 $T_V = F_{V, \varnothing}$，因此我们考虑直接转移 $T_V$。</p>
+		<p>将 $\eqref 2$ 代入 $\eqref 3$，得到</p>
+		<p>$$ T_V = \mathrm{cycle}(V) - \sum_{I \subseteq V; I \neq \varnothing} (-1)^{|I|} T_{V \setminus I} \cdot \mathrm{Cross} \left( I, V \setminus I \right) $$</p>
+		<p>可知复杂度是 $O \left( 3^n \right)$ 的 (枚举子集)。</p>
+		<p>但这里还有一个遗留问题，就是 $\displaystyle \mathrm{Cross} \left( I, V \setminus I \right) = \prod_{v \in I} \mathrm{cross} \left( v, V \setminus I \right)$ 该如何处理，这决定了我们该使用<strong>填表法</strong>还是<strong>刷表法</strong>。</p>
+		<p>观察等式右边的乘积式，我们发现，当 $V \setminus I$ 固定时，这个 $\mathrm{Cross}$ 值就非常有利于我们递推，因为可以对所有的点 $v \notin V \setminus I$，计算出 $\mathrm{cross} \left( v, V \setminus I \right)$ 的值。</p>
+		<p>所以说，在这道题中，我们应该使用<big><strong>刷表法</strong></big>！枚举 $V \setminus I$，去更新对应的 $T_V$！</p>
+		<p>这里面更新的具体过程在这里就略去了，还是比较好写的。可以在 $O \left( 3^n \right)$ 的时间内完成。</p>
+		<hr />
+		<p>别忘了，到这里我们的问题还没结束呢，我们还需要来<strong>计算答案</strong>啊！</p>
+		<p>注意到我们得到的是 $F_{V, L}$ 而不是 $f_{V, L}$。如果我们此时暴力<em>快速 Möbius 逆变换</em>的话，时间复杂度就会升到 $O \left( 3^n \cdot n \right)$，很可能超时，因此我们需要对答案的式子进行化简。</p>
+		<p>将 $\eqref 1$ 式和 $\eqref 2$ 式分别代入，可得</p>
+		<p>$$ \sum_{A \subseteq V} \sum_{L \subseteq A} f_{A, L} \cdot 2^{|A| - |L|} = \sum_{A \subseteq V} \sum_{L \subseteq A} 2^{|A| - |L|} \sum_{L \subseteq I \subseteq A} (-1)^{|I| - |L|} F_{A, I} = \sum_{A \subseteq V} \sum_{L \subseteq A} 2^{|A| - |L|} \sum_{L \subseteq I \subseteq A} (-1)^{|I| - |L|} \cdot T_{A \setminus I} \cdot \mathrm{Cross} \left( I, A \setminus I \right) $$</p>
+		<p>将枚举 $I$ 放入最外层，得</p>
+		<p>$$ \sum_{I \subseteq V} 2^{|A| - |I|} \cdot T_{A \setminus I} \cdot \mathrm{Cross} \left( I, A \setminus I \right) \cdot \sum_{L \subseteq I} (-2)^{|I| - |L|} = \sum_{I \subseteq V} 2^{|A| - |I|} \cdot T_{A \setminus I} \cdot \mathrm{Cross} \left( I, A \setminus I \right) \cdot (-1)^{|I|} $$</p>
+		<p>注意这里还是涉及到量 $\mathrm{A \setminus I}$，故可以通过枚举 $A \setminus I$ 计算答案，我们可以在转移、计算 $\mathrm{Cross} \left( I, A \setminus I \right)$ 的时候顺便更新答案。</p>
+		<p>当然，最后不要忘记 $I = \varnothing$ 时的情况，因为这里<strong>没有</strong>限制 $I \neq \varnothing$。</p>
+		<p>总时间复杂度 $O \left( 3^n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 20
+#define N2 65560
+#define popc __builtin_popcount
+#define parity __builtin_parity
+#define ctz __builtin_ctz
+
+typedef long long ll;
+const int mod = 998244353, half_mod = 499122177;
+
+int V, E, ALL;
+int G[N][N];
+int f[N2][N], cyc[N2], fy[N];
+int cross[N2];
+
+inline void add(int &amp;x, const int y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+
+int main() {
+	int i, j, k, u, v, c, tot; ll cur, ans = 0;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 1; i &lt;= E; ++i)
+		scanf("%d%d", &amp;u, &amp;v), --u, --v, G[u][v] = G[v][u] = 1;
+	for (i = 0; i &lt; V; ++i) f[1 &lt;&lt; i][i] = 1;
+	ALL = ~(-1 &lt;&lt; V); *cross = 1;
+	for (i = 1; i &lt;= ALL; ++i) {
+		u = ctz(i); c = popc(i); tot = 0;
+		for (v = 0; v &lt; V; ++v)
+			if (f[i][v]) {
+				if (G[u][v] &amp;&amp; c &gt; 2) add(tot, f[i][v]);
+				for (j = u + 1; j &lt; V; ++j)
+					if (!(i &gt;&gt; j &amp; 1) &amp;&amp; G[v][j])
+						add(f[i | 1 &lt;&lt; j][j], f[i][v]);
+			}
+		tot = (tot &gt;&gt; 1) + (-(tot &amp; 1) &amp; half_mod);
+		add(cyc[i], tot); ans += (ll)cyc[i] &lt;&lt; c;
+		for (u = 0; u &lt; V; ++u)
+			if (!(i &gt;&gt; u &amp; 1))
+				for (fy[u] = v = 0; v &lt; V; ++v)
+					fy[u] += (i &gt;&gt; v &amp; 1) &amp;&amp; G[u][v];
+		for (j = (i + 1) | i; j &lt;= ALL; j = (j + 1) | i) {
+			u = ctz(k = j - i);
+			cross[k] = (ll)cross[k ^ 1 &lt;&lt; u] * fy[u] % mod;
+			cur = (ll)(parity(k) ? cyc[i] : mod - cyc[i]) * cross[k] % mod;
+			add(cyc[j], (int)cur);
+			ans -= cur &lt;&lt; c;
+		}
+	}
+	printf("%lld\n", ans % mod + (ans &gt;&gt; 63 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在更新 <code>ans</code> 移位时不要忘记先将操作数转 <code>long long</code>。</p>
+	</body>
+</html>

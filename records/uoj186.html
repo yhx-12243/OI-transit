@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj186]Yist</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在屏幕上显示出了一个<strong>排列</strong> $A$ 以及它的一个<strong>非空子序列</strong> $B$，picks 博士需要给出一个 $x$ 并进行若干次操作，每一次操作他都需要在 $A$ 中选择一个<strong>长度恰好为 $x$</strong> 的区间并删除它的<strong>最小值</strong>。</p>
+		<p>如果在操作结束以后剩下的数组恰好是 $B$，那么 picks 博士就可以得到 $x$ 分，否则得到 $0$ 分。求现在 picks 博士最多可以拿到多少分。</p>
+		<p>值得注意的是有 $q$ 道题目，这 $q$ 道题目中的 $A$ 数组是完全一样的，但是选出的子序列 $B$ 却不一定相同，现在 AcrossTheSky 希望你能够把每一道题的答案都告诉他。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^6$)，表示排列 $A$ 的长度。</p>
+		<p>第二行包含 $n$ 个数，表示排列 $A$。</p>
+		<p>接下来一行，包含一个正整数 $q$ ($q \leq 10$)。</p>
+		<p>接下来 $q$ 行，每行一个长度为 $n$ 的 <samp>01</samp> 串，如果第 $i$ 个位置是 $1$，则说明 $A$ 的第 $i$ 个位置的数出现在了 $B$ 中。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行一个整数，表示对每一道题目，picks 博士能够获得的最高分。</p>
+
+		<h3>题解</h3>
+		<p>首先，容易证明，<strong>从小到大</strong>删数更有助于获得更大的分数。</p>
+		<p>因此，可以想到这样一种贪心思路：</p>
+		<p>选择原序列<strong>最大的被删除的</strong>数，往两边找到第一个<strong>比它小的且不被删除的</strong>数，统计这段区间中有多少个<strong>不被删除的</strong>数，作为答案 $x$ 值。</p>
+		<p>然后这样就能过掉所有样例了，但是，这个方法却是错误的。</p>
+		<p>构造很容易，比如 $[1, 101, 102, \color{red}{103}, 104, 105, 2, 3, \color{red}{10}, 4, \cdots]$ 中，其中<span style="color: red">红色</span>的数是<strong>要被删除的</strong>。这样由 $103$ 更新出来的答案是 $x = 3$，然而这个例子中 $x$ 只能等于 $1$，否则 $10$ 就无法被删除。</p>
+		<p>因此又该如何处理呢？</p>
+		<p>由贪心的思想，其实我们只需对每个数进行像刚才那样的操作，最后将 $x$ 值取个 $\min$ 就可以了。这个正确性比较好说明，这里就略去了。</p>
+		<p>但是这样有一个明显的问题，就是复杂度会升到 $O \left( n^2 \right)$，那该怎么优化呢？</p>
+		<p>首先，我们可以从大到小枚举每个<strong>被删除的</strong>的数，向两端扩展，找到第一个比它小的且不被删除的数。</p>
+		<p>由于要保证复杂度，我们需要对枚举次数作适当的减少。</p>
+		<p>我们发现，由于是从大到小枚举的。因此，如果一个数被扩展到两次，设分别被 $u, v$ ($u &gt; v$ 扩展，那么 $u, v$ 显然是<strong>被删除的数</strong>，那么，<strong>当 $u$ 扩展时所允许的所有数，都是 $\geq u$ 的，或是已经删掉的</strong>。</p>
+		<p>如果是 $\geq u$ 的，则它一定也 $&gt; v$，因此是可行的，如果是被删掉的，则它要么 $\geq u$，要么已经被删掉，因此也是可行的。</p>
+		<p>因此，<strong>$v$ 能扩展得到的数的数量，一定不少于 $u$ 所能扩展到的</strong>，因此 $v$ 的扩展可以直接 <code>continue;</code> 掉。</p>
+		<p>这么一来，每个数<strong>至多被访问到一次</strong>，因此时间复杂度就成功由 $O \left( n^2 \right)$ 优化到了 $O(n)$。</p>
+		<p>这样以来，这些 $x$ 值的最小值就是所求的答案。总时间复杂度 $O \left( q n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1000005
+
+int n;
+int A[N], a[N];
+char s[N];
+bool used[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+void work() {
+	int i, l, r, v, cnt, ans = n;
+	scanf("%s", s + 1);
+	for (i = 1; i &lt;= n; ++i) used[i] = false, s[i] &amp;= 1;
+	for (v = n; v; --v)
+		if (!s[i = a[v]]) {
+			cnt = 1;
+			for (l = i - 1; l; --l) {
+				if (used[l]) {cnt = INT_MAX; break;}
+				if (A[l] &lt; v) {if (s[l]) break;}
+				else ++cnt; used[l] = true;
+			}
+			if (cnt == INT_MAX) continue;
+			for (r = i + 1; r &lt;= n; ++r) {
+				if (used[r]) {cnt = INT_MAX; break;}
+				if (A[r] &lt; v) {if (s[r]) break;}
+				else ++cnt; used[r] = true;
+			}
+			down(ans, cnt);
+		}
+	printf("%d\n", ans);
+}
+
+int main() {
+	int i, T;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", A + i), a[A[i]] = i;
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>可以提前存储 $A$ 的逆置换 $A'$，这样就方便枚举 "被删除的数" 的过程，而省去了排序。</p>
+	</body>
+</html>

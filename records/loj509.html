@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj509]动态几何问题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n, m$，求有多少个 (有序) 二元组 $i, j$ 满足 $1 \leq i \leq n; 1 \leq j \leq m$ 且 $i \cdot j$ 为完全平方数。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, m$ ($n, m \leq 1.5 \times 10^{16}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示二元组的个数。</p>
+
+		<h3>题解</h3>
+		<p>我们定义一个数 $n$ 的<a href="loj6438.html" target="_blank"><strong>平方特征</strong></a> $\xi(n)$，为 $n$ 除以 $d$ 所得的商，其中 $d$ 为最大的整除它的平方数。用等式表示即为，</p>
+		<p>$$ \xi(n) = n \cdot \left( \max_{d^2 \mid n} d^2 \right)^{-1} = \prod_{p \in \mathbb P, 2 \nmid v_p(n)} p^{v_p(n)} $$</p>
+		<p>由定义，一个正整数<strong>平方特征</strong>一定是<strong>平方松</strong> (square-free) 的，即它不能被任何一个平方数所整除。</p>
+		<p>接下来我们证明：$i \cdot j$ 为完全平方数的充分必要条件为 $\xi(i) = \xi(j)$，即 <strong>$i, j$ 具有相同的平方特征</strong> <del>(其实这是显然滴有木有)</del>。</p>
+		<p>充分性：设 $\xi(i) = \xi(j) = d; i = d x^2; j = d y^2$，则 $i j = \left( d x^2 \right) \cdot \left( d y^2 \right) = \left( d x y \right)^2$。</p>
+		<p>必要性：设 $\xi(i) = d; \xi(j) = e; i = d x^2; j = e y^2$。由于 $i j = d e (x y)^2$ 为完全平方数，则 $d e$ 为完全平方数。又 $d, e$ 均为平方松的，因此 $d = e$。</p>
+		<p>那么我们就有一种算法了。我们可以枚举<strong>平方松</strong>的整数 $d$，计算有多少对 $(i, j)$ 满足 $\xi(i) = \xi(j) = d$。</p>
+		<p>设 $i = d x^2 \leq n$，所以 $\xi(i) = d$ 的 $i$ 个数就是满足 $d x^2 \leq n$ 的 $x$ 的个数，为 $\sqrt {\left \lfloor \dfrac nd \right \rfloor}$。</p>
+		<p>同理，$\xi(j) = d$ 的 $j$ 的个数即为 $\sqrt {\left \lfloor \dfrac md \right \rfloor}$。</p>
+		<p>又 $d$ 是平方松的充分必要条件为，$\mu(d) \neq 0$，等价地 $\mu^2 (d) = 1$。</p>
+		<p>因此答案不就在眼前了吗？(不妨设 $n \leq m$) $$ \mathrm{ans} = \sum_{d=1}^n \mu^2 (d) \cdot \sqrt {\left \lfloor \frac nd \right \rfloor} \cdot \sqrt {\left \lfloor \frac md \right \rfloor} \tag 1 \label 1 $$</p>
+		<p>我们来<strong>使用整除分块</strong>解决。</p>
+		<p>先考虑 $\sqrt {\lfloor n/d \rfloor}$ 在 $1 \leq d \leq n$ 中有多少种取值。</p>
+		<p>当 $1 \leq d \leq \sqrt[3]{n}$ 时，共有 $O \left( \sqrt[3]{n} \right)$ 种取值。</p>
+		<p>当 $\sqrt[3]{n} &lt; d \leq n$ 时，$\sqrt {\lfloor n/d \rfloor} \leq \sqrt[3]{n}$，共有 $O \left( \sqrt[3]{n} \right)$ 种取值。</p>
+		<p>因此 $\sqrt {\lfloor n/d \rfloor}$ 在 $d = [1, n]$ 中共有 $O \left( \sqrt[3]{n} \right)$ 种取值。同理，$\sqrt {\lfloor m/d \rfloor}$ 在 $d = [1, m]$ 中共有 $O \left( \sqrt[3]{m} \right)$ 种取值。</p>	
+		<p>因此，枚举右边的数对 $\left( \sqrt {\left \lfloor \dfrac nd \right \rfloor}, \sqrt {\left \lfloor \dfrac md \right \rfloor} \right)$，共有 $O \left( \sqrt[3]{n} + \sqrt[3]{m} \right)$ 种，接下来的任务是，对于每一个确定的 $\left( \sqrt {\left \lfloor \dfrac nd \right \rfloor}, \sqrt {\left \lfloor \dfrac md \right \rfloor} \right)$，对 $\mu^2(d)$ 求和。</p>
+		<hr />
+		<p>接下来，就是求 $\mu^2$ 的前缀和的问题了。即，给定一个 $n$，如何快速求 $\displaystyle \sum_{i=1}^n \mu^2 (i)$？</p>
+		<p><del>杜教筛？不存在的</del> <big><strong>容斥原理</strong></big>！</p>
+		<p>$\displaystyle \sum_{i=1}^n \mu^2 (i)$ 的实际意义就是 $1 \sim n$ 的<strong>平方松</strong>的数的数目，那我们可以使用容斥原理，即所有的数，减去被 $2^2$ 整数的，减去被 $3^2$ 整除的，……，减去被 $p_1^2$ 整除的，……</p>
+		<p>再加回被 $2^2 3^2$ 整除的，……，被 $p_1^2 p_2^2$ 整数的，在减去被 $2^2 3^2 5^2$ 整除的，……如此往复。</p>
+		<p>注意到里面的数也是平方松的，再算上容斥系数，于是我们就得到了</p>
+		<p>$$ \sum_{i=1}^n \mu^2 (i) = \sum_{i=1}^{\left \lfloor \sqrt n \right \rfloor} \mu(i) \cdot \left \lfloor \frac n {i^2} \right \rfloor $$ (注：另一种证明见 "<a href="#pf2">坑</a>")</p>
+		<p>简单分析可以得到，$\left \lfloor \dfrac n {i^2} \right \rfloor$ 的值域也是 $O \left( \sqrt[3]{n} \right)$ 的，$\mu(i)$ 的前缀和可以通过线性筛得到。因此这部分计算的时间复杂度为 $O \left( \sqrt[3] {n} \right)$。</p>
+		<hr />
+		<p>因此总体思路就是，预处理 $O \left( \sqrt n \right)$ 内的 $\mu$ 和 $\mu^2$ 的前缀和，然后在 $O \left( \sqrt[3] {n} \right)$ 的时间内计算 $\mu^2$ 的前缀和，再用整除分块计算 $\eqref 1$ 式的值。</p>
+		<p>最后就是<del>喜闻乐见的</del>复杂度分析时间啦！</p>
+		<p><del>(论数论题的时间复杂度分析都怪怪的有木有)</del></p>
+		<p>不妨设 $n = m$。否则对 $n &lt; m$，我们恒有 $T(n, m) = O \left( T(n, n) \right)$。</p>
+		<p>线性筛的时间复杂度为 $O \left( \sqrt n \right)$。</p>
+		<p>考虑计算 $\mu^2(k)$ 的前缀和。我们只需计算 $k &gt; \sqrt n$ 时的值，此时，有 $\sqrt {\left \lfloor \dfrac nd \right \rfloor} \in \left[ 1, n^{1/4} \right]$。因此这部分的复杂度为</p>
+		<p>$$ \int_1^{n^{1/4}} \left( \frac n {x^2} \right)^{1/3} \mathrm dx = O \left( n^{5/12} \right) $$</p>
+		<p>至于最外层的整除分块，时间复杂度为 $O \left( n^{1/3} \right)$。</p>
+		<p>因此总时间复杂度就是<strong>线性筛</strong>的复杂度，即 $O \left( \sqrt n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 122474500
+
+typedef long long ll;
+
+ll n, m, fy;
+int p[6974500], *_p = p, mu2[N];
+short mu[N];
+
+inline ll max(const ll x, const ll y) {return x &lt; y ? y : x;}
+
+void sieve(int n) {
+	int i, *j; fy = n;
+	mu[0] = mu2[0] = 0; mu[1] = mu2[1] = 1;
+	for (i = 2; i &lt;= n; ++i) {
+		if (!mu2[i]) mu2[i] = *_p++ = i, mu[i] = -1;
+		for (j = p; i * *j &lt;= n &amp;&amp; *j != mu2[i]; ++j)
+			mu2[i * *j] = *j, mu[i * *j] = -mu[i];
+		if (i * *j &lt;= n) mu2[i * *j] = *j;
+		mu2[i] = mu2[i - 1] + !!mu[i], mu[i] += mu[i - 1];
+	}
+}
+
+ll sum_mu2(ll n) {
+	if (n &lt;= fy) return mu2[n];
+	ll i, j, x, ret = 0;
+	for (i = sqrt(n + .2); i; i = j) {
+		x = n / (i * i);
+		j = (i &lt; x ? i - 1 : sqrt(n / (x + 1) + .2));
+		ret += (ll)(mu[i] - mu[j]) * x;
+	}
+	return ret;
+}
+
+int main() {
+	ll i, j, u, v, la, cur, ans = 0;
+	scanf("%lld%lld", &amp;n, &amp;m); if (n &gt; m) std::swap(n, m);
+	sieve(sqrt(n) + 5);
+	la = sum_mu2(n);
+	for (i = n; i; i = j, la = cur) {
+		u = sqrt(n / i + .2); v = sqrt(m / i + .2);
+		j = (i &lt; v ? i - 1 : max(n / ((u + 1) * (u + 1)), m / ((v + 1) * (v + 1))));
+		cur = sum_mu2(j);
+		ans += (la - cur) * u * v;
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意线性筛既是时间复杂度瓶颈，又是空间复杂度的瓶颈。因此需要适当地注意一下常数，还有空间也不要爆了。</p>
+		<p id="pf2">花絮：求 $\displaystyle \sum_{i=1}^n \mu^2 (i)$ 的另一种方法：</p>
+		<p>注意到反演公式 $\displaystyle \mu^2 (n) = \sum_{d^2 \mid n} \mu(d)$ (证明：卷一个 $\mu$ 不就好了嘛)，则有</p>
+		<p>$$ \sum_{i=1}^n \mu^2 (i) = \sum_{i=1}^n \sum_{d^2 \mid i} \mu(d) = \sum_{d=1}^{\left \lfloor \sqrt n \right \rfloor} \mu(d) \sum_{d^2 \mid i} 1 = \sum_{d=1}^{\left \lfloor \sqrt n \right \rfloor} \mu(d) \cdot \left \lfloor \frac n {d^2} \right \rfloor $$</p>
+	</body>
+</html>

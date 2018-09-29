@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj192]最强跳蚤</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>跳蚤国王决定使用机器来帮助他创造跳蚤。他把它拥有的 $n$ 种属性放在了 $n$ 个容器中，然后他使用了 $n-1$ 条橡胶软管将这 $n$ 个容器连接成了<strong>一个树形结构</strong> (即任意两个容器之间有且只有一条简单路径)。</p>
+		<p>跳蚤国王的机器会使用这样的方式来创造跳蚤：跳蚤国王需要选择两个不同的容器 $u, v$ ($u \neq v$)，那么机器就会使用 $u$ 到 $v$ 的简单路径上的所有的橡胶软管将这条路上的所有属性汇聚到一起制造跳蚤。<strong>注意：这时只有 $u$ 到 $v$ 的简单路径上的橡胶软管被用到了</strong>。</p>
+		<p>每一条橡胶软管都有一个耐久度 $w_i$，<strong>跳蚤国王认为一个制造的方案是安全的，当且仅当所有被用到的橡胶软管的耐久度的乘积是完全平方数</strong>。</p>
+		<p>现在，跳蚤国王想要知道有多少种不同的制造方案是安全的。但是因为跳蚤国王日理万机，所以他让你——一个刚刚被抓来的人类俘虏来帮他计算答案。</p>
+		<p>两个制造方案是不同的当且仅当 $u$ 不同或者 $v$ 不同。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^5$)，表示容器的数目。</p>
+		<p>接下来 $n - 1$ 行，每行三个正整数 $u, v, w$ ($1 \leq u, v \leq n; 1 \leq w \leq 10^8$) 表示一条软管连接 $u, v$，耐久度为 $w$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示制造方案数。</p>
+
+		<h3>题解</h3>
+		<p>如果几个数的乘积为完全平方数，那么对于其中一个数，添加或者删除一个平方因子，不影响乘积是否为完全平方数的性质。</p>
+		<p>因此，可以对其中每个数 $w_i$，化为它的<strong>平方特征</strong> $w'_i = \xi \left( w_i \right)$，不影响结果。</p>
+		<p>注意到平方特征 $w'_i$ 一定是<strong>平方松</strong> (square-free) 的，因此对于每个素因子 $p$，在 $w'_i$ 中要么不出现，要么出现一遍。因此，对于一个 (平方松的) 数，它可以<strong>唯一对应到</strong>若干素数的集合 (当然可以空集)。</p>
+		<p>那么，对于其中一些 (平方松) 的数，它们的乘积为完全平方数的充要条件为，<strong>它们对应的集合 $F_1, F_2, \cdots, F_n$ 的对称差为空</strong>，即 $\displaystyle \bigoplus_{i=1}^n F_i = \varnothing$。</p>
+		<p>因此，对一个数，我们可以用一个 <code>std::bitset</code> 来存储集合 $F_i$，然后对于 (树上) 一条链，计算出链上所有边的集合的对称差 (<code>std::bitset</code> 的异或)，如果为空，说明这条链符合要求。</p>
+		<p>由异或的消去律，可以对原树进行一遍 dfs，求出这些 <code>std::bitset</code> 的<strong>前缀异或和</strong> $S_i$，然后链 $u - v$ 符合要求就等价于 $S_u = S_v$。故我们只需 dfs 后判断每种 <code>std::bitset</code> 出现了几次，如果出现了 $x$ 次，那么对答案的贡献就是 $2 \dbinom x2 = x (x-1)$ (由于不同的方向算不同的方案)。</p>
+		<p>但是由于素数的个数很多，因此时间复杂度是 $O \left( n^2 \log n \right)$ 的，这无法接受。因此有什么好的处理方法吗？</p>
+		<p>由之前题的经验，相信你们都猜到了，<strong>随机权值</strong>！判断一组向量是否线性有关、异或和是否为 $0$ 等问题都是可以用这种算法取解决的！</p>
+		<p>我们无序对每个素数使用 <code>std::bitset</code> 中的一个<em>位</em>去存储，可以随机一个 $64$ 位权值来表示对应的位。这样一来，只需判断异或和是否为 $0$ 即可 (即前缀异或和是否相等)，这样就能快许多了，其中的时间复杂度为 $O \left( n \right)$。</p>
+		<p>至于总时间复杂度，即为一开始分解素因数的复杂度。注意到 $w \leq 10^8$，因此可以预处理 $\sqrt w \leq 10^4$ 内的素数 (共 $\pi \left (\sqrt w \right) = 1229$ 个)，总的时间复杂度即为 $O \left( n \cdot \pi \left( \sqrt w \right) \right) \approx O \left( 1229 \cdot n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define M 200010
+#define X 10008
+
+typedef unsigned long long ull;
+typedef std::map &lt;int, ull&gt; map;
+
+struct edge {
+	int u, v; ull w;
+	edge (int u0 = 0, int v0 = 0, ull w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int n, E = 0;
+int first[N], next[M];
+int pn = 0, c[X], p[1234];
+ull wt[X], sum[N];
+map G;
+
+inline ull Rand() {return (ull)rand() &lt;&lt; 31 | rand();}
+
+inline void addedge(int u, int v, ull w) {
+	e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+	e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+}
+
+void sieve(int n) {
+	int i, j, v;
+	for (i = 2; i &lt;= n; ++i) {
+		if (!c[i]) c[i] = p[pn++] = i, wt[i] = Rand();
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; p[j] != c[i]; ++j) c[v] = p[j];
+		if (v &lt;= n) c[v] = p[j];
+	}
+}
+
+ull Factor(int n) {
+	int i, j; ull ret = 0;
+	for (i = 0; n != 1; )
+		if (n &gt; X) {
+			for (j = 0; p[i] * p[i] &lt;= n; ++i)
+				if (!(n % p[i])) {
+					for (; !(n % p[i]); n /= p[i], ++j);
+					if (j &amp; 1) ret ^= wt[p[i]]; break;
+				}
+			if (!j) {
+				map::iterator it = G.find(n); ull w;
+				return ret ^ (it == G.end() ? (G.emplace(n, w = Rand()), w) : it-&gt;second);
+			}
+		} else {
+			for (i = c[n], j = 0; !(n % i); n /= i, ++j);
+			if (j &amp; 1) ret ^= wt[i];
+		}
+	return ret;
+}
+
+void dfs(int x, int px = 0) {
+	int i, y;
+	for (i = first[x]; i; i = next[i])
+		if ((y = e[i].v) != px)
+			sum[y] = sum[x] ^ e[i].w, dfs(y, x);
+}
+
+int main() {
+	int i, j, u, v; ull ans = 0;
+	char *_ptr = new char; sieve(X - 1);
+	srand(time(NULL) + (ull)_ptr); delete _ptr;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt; n; ++i)
+		scanf("%d%d%d", &amp;u, &amp;v, &amp;j), addedge(u, v, Factor(j));
+	dfs(1);
+	std::sort(sum + 1, sum + (n + 1)); *sum = -1; j = n;
+	for (i = n - 1; i &gt;= 0; --i)
+		if (sum[i] != sum[j]) ans += (j - i - 1ll) * (j - i), j = i;
+	printf("%llu\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>分解素因数时注意判断大素数的情况，用一个 <code>std::map</code> 来维护<strong>大素数</strong>的权值。</p>
+	</body>
+</html>

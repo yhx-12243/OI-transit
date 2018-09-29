@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj181]密码锁</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张 $n$ 个点的<strong>完全图</strong>，其中每一条边旁边都写了一个数字。其中<strong>只有 $m$ 条边对应的数字不是 $5000$ (其他数字都是 $5000$)</strong>。</p>
+		<p>现在要给这个完全图的<strong>每一条边随机定向</strong>成一个有向图。对于一条边 $(i, j)$ ($i &lt; j$)，这条边的方向是 $i$ 到 $j$ 的概率是 $\dfrac{\mathrm{num}_{i, j}} {10000}$，$\mathrm{num}_{i, j}$ 指这条边旁边的数字，否则就是 $j$ 到 $i$。</p>
+		<p>在随机定向后，设这张有向图的<strong>强连通分量</strong>数目为 $x$，求 $x \times 10000^{n(n-1)}$ 的期望，可以证明该期望值一定是一个整数。因为答案可能很大，所以只需要求出这个答案对 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 取模后的结果。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 38; m \leq 19$)，含义如题意所述。</p>
+		<p>接下来的 $m$ 行，第 $i$ 行有三个整数 $u_i, v_i, w_i$ ($1 \leq u_i &lt; v_i \leq n; 0 \leq w_i \leq 10000$)，表示边 $(u_i, v_i)$ 上的数字是 $w_i$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，期望值对 $998244353$ 取模后的值。</p>
+
+		<h3>题解</h3>
+		<p>由于该题涉及到强连通分量，因此我们先来分析一下<strong>一张有向图</strong>进行 (<abbr title="Strongly-connected Component, 强连通分量">SCC</abbr>) 缩点后得到的图的性质。</p>
+		<p>注意到该图是一个竞赛图 (有向完全图)，因此它缩点后得到的必定是一条沿着拓扑序的<strong>有向链</strong> $v_1, v_2, \cdots, v_k$，且 $v_i \to v_j$ 之间右边当且仅当 $i &lt; j$。</p>
+		<p>因为可以设缩点后得到的 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> 的拓扑序为 $v_1, v_2, \cdots, v_k$，由于图为完全图，因此 $v_i$ 到 $v_{i+1}$ 之间有有向边 $\Rightarrow$ 缩点后的图为一个链和一些与链同向的边。</p>
+		<p>接下来考虑如何刻画一个图的<strong>强连通分量数目</strong>，最好把它拆成若干个随机变量的和，以使用<strong>期望的线性性质</strong>。</p>
+		<p>由之前的结论，竞赛图缩点后得到的是 "链"，因此强连通分量数目即为链长 (注：此处链长为链中<strong>点</strong>的个数)。</p>
+		<p>但是 "链长" 这种东西还是不怎么好处理，我们再将它转化一下：</p>
+		<p>设这个链为 $v_1 \to v_2 \to \cdots \to v_k$，$v_i$ 对应的强连通分量为 $V_i$。则原图可以描述为 $V_1 \Rightarrow V_2 \Rightarrow \cdots \Rightarrow V_k$。</p>
+		<p>注意到每一条边，如果它属于两个不同的 $V_i$，设它从 $V_i$ 中的点连向 $V_j$ 中的点，则有 $i &lt; j$。</p>
+		<p>故我们考虑具有如下性质的点集 $F \subseteq V(G)$：</p>
+		<p><strong style="color: red">对 $\forall u \in F, v \notin F$，都有边 $(u \to v) \in E(G)$。</strong></p>
+		<p>设这样的集合为 <span style="color: fuchsia">"芳香点集"</span>。</p>
+		<p>那么，可以得到 $\varnothing, V_1, V_1 \cup V_2, V_1 \cup V_2 \cup V_3, \cdots, V(G)$ 均为 "芳香点集"。</p>
+		<p>而且，容易证明，除了上述 $k + 1$ 个集合，其余的点集<strong>均不是</strong>芳香点集。</p>
+		<p>因此，<strong>"链长" 就等于 $G$ 的 <span style="color: fuchsia">"芳香点集"</span> 的数目</strong>。</p>
+		<p>这东西就好办多了啊！它就等于<strong>每个点集 ($V(G)$ 的子集) 为芳香点集的概！率！之！和！</strong></p>
+		<hr />
+		<p>现在考虑题中给定的<strong>无向图</strong> $G$，对于 $V(G)$ 的一个子集 $F$，我们来计算 <strong>$F$ 为 "芳香点集" 的概率</strong>。</p>
+		<p>我们考虑所有 "跨越" $F$ 和 $V \setminus F$ 的边 $e = (u, v)$，其中 $u \in F; v \notin F$。易知这样的 $e$ 共有 $|F| \cdot \left( n - |F| \right)$ 个。</p>
+		<p>由于 $F$ 为 "芳香点集"，因此所有这样的 $e$ 的定向均为 $u \to v$。</p>
+		<p>因此概率即为所有边对应的概率的乘积。</p>
+		<p>于是我们得到一个 $O \left( 2^n \cdot m \right)$ 的算法 —— 即枚举每个集合，判断它是否是 "芳香点集"。</p>
+		<p>但是 $n$ 比较大，是过不去的。那该如何优化呢？</p>
+		<p>注意到 $m$ 特别小，因此你在计算这个概率的时候，有大多数的概率都是 $\left( \dfrac 12 \right)^{|F| \cdot \left( n - |F| \right)}$。</p>
+		<p>因此我们只需对<strong>跨越边中包含题设的 $m$ 条边</strong>对应的 $F$，来单独计算概率即可。</p>
+		<p>设跨越 $F$ 和 $V \setminus F$、且在题设的 $m$ 条边中的边为 $(u_1, v_1), (u_2, v_2), \cdots, (u_k, v_k)$，它们定向为 $(u_i, v_i)$ 的概率的 $p_i$。则 $F$ 为 "芳香点集" 的概率为</p>
+		<p>$$ \left( \frac 12 \right)^{|F| \cdot \left( n - |F| \right) - k} \cdot p_1 p_2 \cdots p_k $$</p>
+		<p>即为一般的概率乘以 $\left( 2 p_1 \right) \left( 2 p_2 \right) \cdots \left( 2 p_k \right)$ (称作<strong>独立权值</strong>)。</p>
+		<p>因此，对于一个给定的 $n_0$，你需要求出对于所有的大小为 $n_0$ 的集合 $F$，的<strong>独立权值之和</strong>，这样对应相乘就好啦。</p>
+		<hr />
+		<p>那怎么求呢？我们考虑对这 $m$ 条边构成的若干个连通块。注意到在不同的连通块中，独立权值是可以直接相乘的。</p>
+		<p>因此我们分别算出<strong>在每个连通块中</strong>，对于每个 $F_0$ 的独立权值之和。然后<strong>使用背包 DP 的思想</strong>，合并这些独立权值。</p>
+		<p>注意到，<strong>有 $k$ 条边的连通图至多有 $k + 1$ 个节点</strong> (即为命题 "$k$ 个点的连通图至少有 $k - 1$ 条边" 的逆否命题)，因此每个连通块的大小不超过 $m + 1$。</p>
+		<p>枚举这个连通块的子集，暴力子集中的边，算出它的<strong>独立权值</strong>，对该子集大小的 DP 值产生贡献。</p>
+		<p>然后使用背包的方法，合并不同连通块中的<strong>独立权值</strong>。</p>
+		<p>最后直接枚举 $|F| = n_0$，直接计算答案即可。</p>
+		<p>总时间复杂度 $O \left( 2^{m+1} \cdot n + n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 42
+#define popc __builtin_popcountll
+
+typedef long long ll;
+const ll mod = 998244353, inv2 = 499122177, inv5k = 595552581;
+
+int V, E;
+ll to[N], G[N][N];
+ll f[N][N], g[N];
+// f: global, g: current
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void Floyd() {
+	int i, k;
+	for (k = 0; k &lt; V; ++k)
+		for (i = 0; i &lt; V; ++i)
+			to[i] |= to[k] &amp; -(to[i] &gt;&gt; k &amp; 1);
+}
+
+int main() {
+	int i, j, k, u, v, w, fy = 0;
+	ll c, used = 0, all, ans = -1;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 0; i &lt; V; ++i) to[i] = 1ll &lt;&lt; i;
+	for (i = 0; i &lt; E; ++i) {
+		scanf("%d%d%d", &amp;u, &amp;v, &amp;w); --u; --v; w = w * inv5k % mod;
+		to[u] |= 1ll &lt;&lt; v; to[v] |= 1ll &lt;&lt; u;
+		G[u][v] = (w ? w : mod); G[v][u] = (w &amp; -2 ? mod + 2 - w : 2 - w);
+	}
+	Floyd();
+	f[0][0] = 1;
+	for (i = 0; i &lt; V; ++i)
+		if (!(used &gt;&gt; i &amp; 1)) {
+			used |= all = to[i]; c = all;
+			memset(g, 0, sizeof g);
+			do {
+				w = 1;
+				for (u = 0; u &lt; V; ++u)
+					if (c &gt;&gt; u &amp; 1)
+						for (v = 0; v &lt; V; ++v)
+							if (G[u][v] &amp;&amp; !(c &gt;&gt; v &amp; 1))
+								w = w * G[u][v] % mod;
+				g[popc(c)] += w;
+				c = (c - 1) &amp; all;
+			} while (c != all);
+			++fy;
+			for (w = popc(all), j = 0; j &lt;= w; ++j) g[j] %= mod;
+			for (j = popc(used); j &gt;= 0; --j)
+				for (k = 0; k &lt;= j &amp;&amp; k &lt;= w; ++k)
+					f[fy][j] = (f[fy][j] + f[fy - 1][j - k] * g[k]) % mod;
+		}
+	for (i = 0; i &lt;= V; ++i) ans = (ans + PowerMod(inv2, i * (V - i), f[fy][i])) % mod;
+	printf("%lld\n", PowerMod(10000, V * (V - 1), ans));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>枚举连通块时，可以使用 <del>dfs、并查集</del>或者<big><strong>暴力 Floyd 传递闭包</strong></big>，用位运算 (<code>long long</code>) 优化。</p>
+		<p><strong>坑1：</strong>在计算传递闭包时，不要忘记一开始令 $f_{i, i} = 1$。</p>
+		<p><strong>坑2：</strong>计算独立权值时，不要忘记前面系数要乘 $2$，或者一开始读入的时候直接除以 $5000$ 即可。</p>
+	</body>
+</html>

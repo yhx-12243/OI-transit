@@ -297,14 +297,12 @@ function sh_highlightElement(a, b) {
 }
 
 function syntax_highlight() {
-	var c, d, e, f, g, h, b = document.getElementsByTagName("code");
+	var c, d, e, f, h, b = document.getElementsByTagName("code");
 	for(c = 0; c < b.length; c++){
 		d = b.item(c);
 		e = sh_getClasses(d);
 		for(f = 0; f < e.length; f++){
-			g = e[f].toLowerCase();
-			if("sh_" === g.substr(0, 3)){
-				h = g.substring(3),
+			if (e[f].toLowerCase() == 'sh_cpp') {
 				sh_highlightElement(d, syntax_highlight_cpp);
 				break;
 			}

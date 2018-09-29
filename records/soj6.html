@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj6]多项式求值</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个多项式 $\displaystyle A(x) = \sum_{i=0}^n a_i x^i$ 和 $m$ 个整数 $b_1, b_2, \cdots, b_m$，请你求出 $A \left( b_1 \right), A \left( b_2 \right), \cdots, A \left( b_m \right)$ 的值。由于答案可能会很大，所以你只需要求出答案关于 $998244353$ 取模后的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($0 \leq n, m \leq 10^5$)，分别表示多项式的次数和整数的个数。</p>
+		<p>第二行包含 $n + 1$ 个非负整数 $a_0, a_1, \cdots, a_n$ ($0 \leq a_i &lt; 998244353$)，依次表示多项式的系数。</p>
+		<p>第三行包含 $m$ 个非负整数 $b_1, b_2, \cdots, b_m$ ($0 \leq b_i &lt; 998244353$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $m$ 个整数，分别为 $A \left( b_1 \right), A \left( b_2 \right), \cdots, A \left( b_m \right)$ 模 $998244353$ 的值。</p>
+
+		<h3>题解</h3>
+		<p style="color: red">ps: 前置技能：<a href="../memos/8.html" target="_blank">多项式求逆</a>、多项式除法及取模。</p>
+		<p>这其实就是<strong>多项式多点求值</strong>的模板问题，如何解决它呢？</p>
+		<p>如果暴力解决的话，那么复杂度将是 $O \left( n m \right)$ 的，显然不可接受。</p>
+		<p>注意到我们在做 DFT 的时候，取了一组特殊的基 ($1, w, w^2, w^3, \cdots, w^{m-1}$)，于是可以在 $O \left( n \log n \right)$ 的时间内得到它们点值。当时我们使用了<strong>分治法</strong>，利用 $\left( w^i \right)^2 = \left( w_{m/2+i} \right)^2$ 的性质将问题规模减半。<del>(虽然说后来可以使用<strong>蝴蝶优化</strong>消除递归)</del></p>
+		<p>那么对于一般的一组数，我们是否也能用分治法来将问题规模减半呢？</p>
+		<p>答案是可以的。</p>
+		<p>首先，这个问题包含两个变量 $n, m$ (次数和点的个数)。我们可以不妨设 $n = m - 1$。</p>
+		<p>若 $n &lt; m - 1$，则可以在高次项补 $0$ 得到 "次数" 为 $m - 1$ 的多项式。</p>
+		<p>如果 $n &gt; m - 1$，则注意多项式 $P(x) = \left( x - b_1 \right) \left( x - b_2 \right) \cdots \left( x- b_m \right)$，则有 $P \left( b_i \right) = 0$，$i = 1, 2, \cdots, m$。因此我们可以将 $A(x)$ 对 $P(x)$ 取模，得到一个小于 $m$ 次的多项式 $C(x)$。且对于 $i = 1, 2, \cdots, m$，有 $A(x) = C(x)$。而这部分的时间是 $O \left( n \log^2 n \right)$ 的 (求 $P(x)$ 的分治 FFT 以及多项式除法)。</p>
+		<p>因此可设 $n = m - 1$。然而，分治法需要<strong>将 $n$ 和 $m$ 都减半</strong>，才算得到一个真正的子问题 (可以回想我们 DFT 时，将多项式的奇次项和偶次项分离，把点值也奇偶分离，得到 $n, m$ 均为原问题一般的一个子问题)。</p>
+		<p>由于点值的分布并无规律可循，因此我们可以将这些点值左右分成两份：</p>
+		<p>$$ B_1 = \left\{ b_1, b_2, \cdots, b_{\left \lfloor m/2 \right \rfloor} \right\}; B_2 = \left\{ b_{\left \lfloor m/2 \right \rfloor + 1}, b_{\left \lfloor m/2 \right \rfloor + 2}, \cdots, b_m \right\} $$</p>
+		<p>那如何才能将系数减半呢？</p>
+		<p>相信你们都猜到了。因为我们刚刚说过，在一个求值问题中，如果次数大于点值个数，则可以通过一次多项式取模来使次数和点值个数相同。</p>
+		<p>因此，令 $\displaystyle P_1 (x) = \prod_{c \in B_1} (x - c); P_2(x) = \prod_{c \in B_2} (x - c)$。则 $C_1(x) = A(x) \bmod P_1(x)$ 与点的集合 $B_1$；$C_2(x) = A(x) \bmod P_2(x)$ 与点的集合 $B_2$，就分别构成原问题的<strong>规模为 $\dfrac m2$ 的子问题</strong>。</p>
+		<p>递归终止条件为，$n = 0, m = 1$。即对一个常函数进行单点求值，此时直接返回常数项即可。</p>
+		<p>最后分析一下时间复杂度。</p>
+		<p>在第一遍递归过程中，可以使用分治 FFT 求出所有的 $P_i(x)$ (若干个一次项的乘积)，这部分的时间复杂度为 $O \left( n \log^2 n \right)$。</p>
+		<p>在第二遍递归时，对于 $n$ 的规模，需要做两次 $n$ 的多项式除法，以及两次规模为 $\dfrac n2$ 的子问题。由于多项式除法的时间复杂度为 $O \left( n \log n \right)$，因此 $T(n)$ 满足 $T(n) = 2 T \left( \dfrac n2 \right) + O \left( n \log n \right) \Rightarrow T(n) = O \left( n \log^2 n \right)$。</p>
+		<p>综上，总的时间复杂度为 $O \left( n \log^2 n \right)$，常数约为普通多项式乘法的 $10$ 倍左右。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 530000
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef int vec[N], *pvec;
+typedef long long ll;
+typedef std::vector &lt;int&gt; vector;
+const ll mod = 998244353, half_mod = 499122177, root = 31;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	using std::reverse;
+	int l, n;
+	vec rev, x, y;
+
+	// Input and output
+	void in(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) scanf("%d", f + i);}
+
+	void out(int deg, pvec f, const char *_name){
+		printf("%s(x) =", _name);
+		for (int i = 0; i &lt;= deg; ++i) printf(" %+d x^%d", (int)(f[i] - (mod &amp; -(f[i] &gt;= half_mod))), i);
+		putchar(10);
+	}
+
+	void series(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) printf("%d%c", f[i], i == deg ? 10 : 32);}
+
+	#define fy_out(deg, f) Poly::out(deg, f, #f)
+
+	// Fast Number Theory Transform
+	void NTT_init(int len){
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1; *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) {
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+
+	// Multiplication
+	vec B1;
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = PowerMod(n, mod - 2);
+		DNTT(a, c); DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c); reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+
+	// Inversion
+	vec B2, B3, B4;
+	void Inv(int deg, pvec a, pvec b) {
+		int len, i; ll iv = half_mod;
+		if (!*a) fputs("Inv::Calculate inverse of polynomial with constant term 0 !\n", stderr), abort();
+		*b = PowerMod(*a, mod - 2); b[1] = 0;
+		*B2 = *a; B2[1] = a[1];
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
+			NTT_init(len + 2);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B2[i] = 0;
+			DNTT(b, B3); DNTT(B2, B4);
+			for (i = 0; i &lt; n; ++i)
+				B3[i] = B3[i] * (2ll - (ll)B3[i] * B4[i] % mod) % mod, B3[i] += B3[i] &gt;&gt; 31 &amp; mod;
+			DNTT(B3, B4); reverse(B4 + 1, B4 + n);
+			iv = (iv &gt;&gt; 1) + (iv &amp; 1 ? half_mod : 0);
+			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B4[i] * iv % mod;
+			for (; i &lt; n; ++i) b[i] = 0, B2[i] = a[i];
+		}
+	}
+
+	// Division and Modulo Operation
+	vec B5, B6;
+	void DivMod(int degA, int degB, pvec a, pvec b, pvec q, pvec r) {
+		if (degA &lt; degB) {memcpy(r, a, degA + 1 &lt;&lt; 2); memset(r + (degA + 1), 0, degB - degA &lt;&lt; 2); return;}
+		int degQ = degA - degB, i, j = (degQ ? 1 &lt;&lt; lg2(degQ) + 2 : 4);
+		for (i = 0; i &lt;= degQ &amp;&amp; i &lt;= degB; ++i) B5[i] = b[degB - i];
+		for (; i &lt; j; ++i) B5[i] = 0;
+		Inv(degQ + 1, B5, B6);
+		for (i = 0; i &lt;= degQ; ++i) B5[i] = a[degA - i];
+		for (; i &lt; n; ++i) B5[i] = B6[i] = 0;
+		Mul(degQ * 2, B5, B6, q);
+		reverse(q, q + (degQ + 1));
+		NTT_init(lg2(degA) + 1);
+		for (i = degQ + 1; i &lt; n; ++i) q[i] = 0;
+		for (i = 0; i &lt;= degB; ++i) B5[i] = b[i];
+		for (; i &lt; n; ++i) B5[i] = 0;
+		Mul(degA, B5, q, r);
+		for (i = 0; i &lt; degB; ++i) r[i] = a[i] - r[i], r[i] += r[i] &gt;&gt; 31 &amp; mod;
+	}
+
+	// Multiplication with std::vector
+	vec B7, B8, B9;
+	void Mul(vector &amp;a, vector &amp;b, vector &amp;ret) {
+		int deg_a = a.size() - 1, deg_b = b.size() - 1;
+		if (!(deg_a || deg_b)) {ret.emplace_back((ll)a[0] * b[0] % mod); return;}
+		NTT_init(lg2(deg_a + deg_b) + 1);
+		memset(B7, 0, n &lt;&lt; 2); memcpy(B7, a.data(), deg_a + 1 &lt;&lt; 2);
+		memset(B8, 0, n &lt;&lt; 2); memcpy(B8, b.data(), deg_b + 1 &lt;&lt; 2);
+		Mul(deg_a + deg_b, B7, B8, B9);
+		ret.assign(B9, B9 + (deg_a + deg_b + 1));
+	}
+}
+
+int n, k, id;
+vec f, q, r;
+int cnt = 0, lc[N], rc[N];
+vector g[N], ans;
+
+int solve(int L, int R) {
+	if (L + 1 == R) return L;
+	int M = (L + R) / 2, id = cnt++, lp = solve(L, M), rp = solve(M, R);
+	Poly::Mul(g[lp], g[rp], g[id]);
+	return lc[id] = lp, rc[id] = rp, id;
+}
+
+// Polynomial evaluation
+void evaluation(int id, int L, int R, vector &amp;poly) {
+	if (L + 1 == R) {ans.emplace_back(poly.front()); return;}
+	int M = (L + R) / 2, lp = lc[id], rp = rc[id]; vector rem;
+	Poly::DivMod(R - L - 1, M - L, poly.data(), g[lp].data(), q, r);
+	rem.assign(r, r + (M - L));
+	evaluation(lp, L, M, rem);
+	Poly::DivMod(R - L - 1, R - M, poly.data(), g[rp].data(), q, r);
+	rem.assign(r, r + (R - M));
+	evaluation(rp, M, R, rem);
+}
+
+int main() {
+	int i, v; vector F;
+	scanf("%d%d", &amp;n, &amp;k); if (!k) return 0;
+	Poly::in(n, f);
+	for (i = 0; i &lt; k; ++i)
+		scanf("%d", &amp;v), g[i].emplace_back((!v - 1) &amp; (mod - v)), g[i].emplace_back(1);
+	cnt = k; id = solve(0, k);
+	Poly::DivMod(n, k, f, g[id].data(), q, r);
+	F.assign(r, r + k);
+	evaluation(id, 0, k, F);
+	Poly::series(k - 1, ans.data());
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在使用 <code>__builtin_clz</code> 求对数时，注意特判 $n = 0$ 的情况。</p>
+		<p><strong>坑2：</strong>在各个模板混用的时候，注意<strong>不要改变</strong>输入的数组 (多项式)，以及及时将高次项清零，避免 FFT 时出现杂项。</p>
+	</body>
+</html>

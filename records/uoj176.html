@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj176]新年的繁荣</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>零点的钟声敲响，猴年终于到来啦~</p>
+		<p>在这新年的第一天，猴族首领猴腮雷打算重新规划一下猴族领地的交通。</p>
+		<p>猴族领地中有 $n$ 个城市，其中第 $i$ 座城市的繁荣度为 $a_i$。猴族领地中任意两个城市之间都可以修建双向道路，在第 $i$ 座城市和第 $j$ 座城市之间修建道路可以给新的一年带来 $a_i \mathbin{\mathrm{and}} a_j$ 的繁荣度。其中 $\mathbin{\mathrm{and}}$ 表示按位与运算，例如 $2 \mathbin{\mathrm{and}} 3 = 2$，$1 \mathbin{\mathrm{and}} 0 = 0$，$1 \mathbin{\mathrm{and}} 1 = 1$。</p>
+		<p>为了彰显自己的功绩，猴族首领猴腮雷决定修建若干条道路，使得<strong>任意两个城市之间都可以只通过他新修建的道路直接或者间接到达</strong>，为了发扬节约精神，<strong>他决定修建恰好 $n - 1$ 条道路</strong>。一个修建方案的繁荣度是所有要修建的道路带来的繁荣程度之和。</p>
+		<p>作为一个英明的首领，猴腮雷决定在所有可行的方案中选择<strong>繁荣度最大</strong>的方案，现在他想要知道他选择的方案的繁荣度，但是因为他日理万机，没有时间来想这种简单的小问题，于是他就让你来帮忙啦。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 10^5; m \leq 18$)。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_1, a_2, \cdots, a_n$ ($0 \leq a_i &lt; 2^m$)。
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有方案中最大的繁荣度。</p>
+
+		<h3>题解</h3>
+		<p>先来考虑 $m = 1$ 时怎么做。</p>
+		<p>此时所有点的权值只有 $0$ 和 $1$，因此整张图中，如果 $e = (u, v)$ 的边权为 $1$，当且仅当 $w_u = w_v = 1$，即它两端的点权均为 $1$。</p>
+		<p>设图中有 $k$ 个点的权为 $1$，$n - k$ 个点的权为 $0$。则<strong>权为 $1$ 的边</strong>导出的图是<strong>完全图 $K_k$</strong>。因此，此时最大生成树的边权和应为 $k - 1$ ($K_k$ 的一个生成树)。</p>
+		<p>那对于一般的 $m$ 怎么做呢？</p>
+		<p>其实上面的算法给了一点启发：如果 $u, v$ 的点权相同，设 $w_u = w_v = w$。若 $u, v$ 在最大生成树中没有边相连，则取生成树中 $u - v$ 的一条路径 $u - a - \cdots - v$。则 $\mathrm{dist}(u, a) = w \mathbin{\&} w_a \leq w = w \mathbin{\&} w = \mathrm{dist}(u, v)$，因此可以断开 $(u, a)$ 连接 $(u, v)$ 使总权值不减。</p>
+		<p>因此接下来可以设 $(u, v) \in T_\max$。这样以来，由于 $w_u = w_v = w$，因此一切与 $v$ 相连的点都可以改接到 $u$ 使得总权值不变。此时 $v$ 就是叶子。因此对于权值相同的节点，每多出现一次就直接与之前的点相连，贡献总权值后删去。</p>
+		<p>接下来假设所有点的权值不同。</p>
+		<p>由 Kruskal 算法的思想，求最大生成树，就是边权<strong>从大到小添加</strong>，形成连通块。</p>
+		<p>我们从 $2^m - 1$ 到 $0$ 枚举边权，对于一个边权 $f_0$，考虑所有满足点权 $w \sqsubseteq f_0$ 的点 (注：二进制数 $a \sqsubseteq b$ 为将 $a, b$ 理解为集合后的子集关系，即 $a \mathbin{\&} b = a$)。</p>
+		<p>这些点连成的边就是<strong>此时边权最大的边</strong>，且<strong>边权均为 $f_0$</strong>。若还有边权更大的边，则它们已经在之前的几轮中被合并。故此时剩下的点的点权一定为 $f_0 \mid \sum 2^i$ 且 $\sum 2^i$ 部分互不相交。</p>
+		<p>因此，我们只需将这些点形成的连通块合并起来即可。</p>
+		<p>实现时，可以用一个数组 $a$ 存储当前边权所在的连通块 (的一个代表点)，合并好之后，将 $a \left[ f_0 \right]$ 置为该连通块中的一个点。</p>
+		<p>总时间复杂度 $O \left( n + m 2^m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100005
+#define M 262500
+
+int n, B;
+int a[M], p[N];
+
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+inline bool test(int x, int y, bool un = false) {
+	if ((x = ancestor(x)) == (y = ancestor(y))) return true;
+	if (un) p[x] = y; return false;
+}
+
+int main() {
+	int i, j, v; long long ans = 0;
+	scanf("%d%d", &amp;n, &amp;B);
+	for (i = 1; i &lt;= n; ++i) {
+		p[i] = i; scanf("%d", &amp;v);
+		a[v] ? ans += v : (a[v] = i);
+	}
+	for (i = ~(-1 &lt;&lt; B); i; --i) {
+		int &amp;u = a[i];
+		for (j = 0; j &lt; B &amp;&amp; !u; ++j) u = a[i | 1 &lt;&lt; j];
+		for (; j &lt; B; ++j)
+			if ((v = a[i | 1 &lt;&lt; j]) &amp;&amp; !test(u, v, true)) ans += i;
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在连接同一种权值的边时，不要忘记判断该点是否存在，以免对答案重复计算。</p>
+	</body>
+</html>
