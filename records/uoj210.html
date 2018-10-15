@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj210]寻找罪犯</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>通过一些不可描述的方式，妹滋滋算出了 $51 \%$ 的得票率，于是就她就把这个公开给了广大用户 —— UOJ 解散已成定局。</p>
+		<p>几个小时后，UOJ 创始人伏特跳蚤国王宣布辞职，即日起退出 UOJ 团队。</p>
+		<p>这两个消息在算法竞赛界引起了轩然大波，"UOJ 是什么" "废除 UOJ 有什么影响" 马上成为了网民们的搜索热点并出现在了各大搜索网站的首页上。</p>
+		<p>著名的大水群和三连击发源地 —— Universal OJ 用户群随之解散，导致大量 OI 水狗们无处可水。一段时间后，圈子里渐渐传出了恢复 UOJ 的呼声，更有一些人将这个烂摊子归咎于那些投票通过的用户 —— 他们决定找出这些人并加以指责。</p>
+		<p>经过一段时间的搜索，他们找到了 $n$ 个嫌疑人，编号为 $1$ 到 $n$，导致 UOJ 解散的犯人就在他们之间。严刑拷打之下，他们交代了一些供词，供词有两类：</p>
+		<ol>
+			<li>$x_i$ 说 $y_i$ 是犯人。</li>
+			<li>$x_i$ 说 $y_i$ 不是犯人。</li>
+		</ol>
+		<p>然而，让事情变得复杂的是，犯人们并不打算背锅，所以<strong>他们的供词不总是真的</strong>，同时，为了不闹乌龙暴露自己<strong>每一个犯人的所有供词最多有一句是假的，而不是犯人的嫌疑人的供词总是真的</strong>。</p>
+		<p>现在给出了全部的 $m$ 条供词，你需要找出哪些人是犯人。如果有多解，输出任何一组解即可。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 10^5$)，表示犯人数目与供词数目。</p>
+		<p>接下来 $m$ 行，每行三个整数 $x_i, y_i, t_i$ ($1 \leq x_i, y_i \leq n$)。其中 $t_i = 0$ 表示 $x_i$ 说 $y_i$ 是犯人，$t_i = 1$ 表示 $x_i$ 说 $y_i$ 不是犯人。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行一个整数 $c$ 表示犯人的数目。</p>
+		<p>第二行 $c$ 个整数 $p_i$，按照升序输出所有犯人的编号。</p>
+		<p>如果不存在一个犯人的集合使得供词满足条件，输出一行一个单词 <code>Impossible</code>。</p>
+
+		<h3>题解</h3>
+		<p>我们对每个人建立一个变量 $c_i$，表示这个人是否是罪犯；同理，对每条供词建立一个变量 $t_i$，表示它是否为真。</p>
+		<p>于是原题的所有条件都可以转化为关于这些变量的<strong>布尔条件</strong>，即它是一个<strong>满足性问题</strong> (Boolean Satisfiability Problem)。具体如下：</p>
+		<ol>
+			<li><p>对于一条供词 $t_i$，它可以推出一个人是否为罪犯。故有 $t_i \to c_j = \mathrm{true}$ 或 $t_i \to \neg c_k = \mathrm{true}$。</p>
+			<p>(注：$a \to b = \neg a \vee b$)</p></li>
+			<li><p>对于一个人，如果他不是犯人，则可以推出它说的所有话都是真的，即 $\neg c_i \to t_j = \mathrm{true}$，(对所有 $i$ 说的话 $j$)。</p>
+			<p>最麻烦的是，对于一个人，如果他是犯人，则他<strong>至多说一句假话</strong>，那怎么办呢？</p>
+			<p>首先，不管这个人是不是犯人，他说的话里面假话<strong>至多一句</strong>，(如果它不是烦人，由于有前面的约束，则不会产生问题)。</p>
+			<p>因此，如果它其中一句话 $t_i$ 是假的，则它说的其它所有话都<strong>必须是真的</strong>，即有 $\neg t_i \to t_j = \mathrm{true}$ ($j \neq i$)。</p></li>
+		</ol>
+		<p>于是，原问题就成功转化为一个 <strong>2-满足性问题</strong> (2-SAT)，</p>
+		<p>但是，这有一个致命的缺陷，即当一个人说了 $k$ 句话时，连的边数是 $\Theta \left( k^2 \right)$ 的！</p>
+		<p>那该怎么办呢？我们考虑，这些条件的形式，将它们按照分配率合并，有</p>
+		<p>$$ \left( t_i \vee \bigwedge_{j \neq i} t_j \right) = \mathrm{true} \tag 1 \label 1$$</p>
+		<p>此时，如果我们令布尔变量 $\displaystyle P_i = \bigwedge_{j \leq i} t_j, S_i = \bigwedge_{j \geq i} t_j$ (即部分和思想)，则式 $\eqref 1$ 就化为 <span style="color: red">(第 3 类边)</span></p>
+		<p>$$ t_i \vee P_{i-1} = \mathrm{true} \ (i &gt; 1) \quad t_i \vee S_{i+1} = \mathrm{true} \ (i &lt; n) $$</p>
+		<p>于是，就将这 $n$ 条边简化为了 $2$ 条边。</p>
+		<p>当然，这里还要连一些必要的边 <span style="color: red">(第 4 类边)</span>，比如 $P_i \to P_{i-1} = \mathrm{true}; P_i \to t_i = \mathrm{true}$ 等。</p>
+		<p>这样，总点数和边数都是 $O \left( n + m \right)$ 级别，只需跑一遍 2-SAT 即可找到一组解或判定无解。</p>
+		<p>2-SAT 的具体方法见 <a href="uoj317%3Bloj2305.html" target="_blank">[NOI2017]游戏</a>，记得对于一个条件连两条边不要忘记。</p>
+		<p>总时间复杂度当然就是 $O \left( n + m \right)$ 啦。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;pr&gt; vec;
+
+const int N = 100005;
+
+int n, m;
+vec a[N];
+int conflict[N * 10], col[N * 10];
+int cnt = 0, ans[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace Graph {
+	#define ad(x) ((x - 1 ^ 1) + 1)
+	const int N = ::N * 10, M = ::N * 20;
+
+	struct edge {
+		int u, v;
+		edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+	} e[M];
+
+	int V, E = 0, V1;
+	int first[N], next[M];
+	int cnt = 0, id[N], low[N];
+	int stc = 0, stack[N], top[N];
+	bool in_stack[N];
+	int deg[N], que[N];
+
+	inline void addedge(int u, int v) {e[++E] = edge(u, v); next[E] = first[u]; first[u] = E;}
+
+	inline void statement(int u, int v) {addedge(u, v); addedge(ad(v), ad(u));}
+
+	void dfs(int x) {
+		int i, y;
+		id[x] = low[x] = ++cnt; in_stack[x] = true; stack[stc++] = x;
+		for (i = first[x]; i; i = next[i])
+			if (!id[y = e[i].v])
+				dfs(y), down(low[x], low[y]);
+			else if (in_stack[y])
+				down(low[x], id[y]);
+		if (id[x] == low[x])
+			for (y = 0; y != x; )
+				y = stack[--stc], in_stack[y] = false, top[y] = x;
+	}
+
+	void shrink() {
+		int i, u, v;
+		memset(first, 0, sizeof first);
+		for (i = 1; i &lt;= E; ++i)
+			if ((u = top[e[i].u]) != (v = top[e[i].v]))
+				++deg[u], next[i] = first[v], first[v] = i, e[i] = edge(u, v);
+	}
+
+	void toposort() {
+		int h, t = 0, x, i;
+		for (i = 1; i &lt;= V; ++i) if (i == top[i] &amp;&amp; !deg[i]) que[t++] = i;
+		for (h = 0; h &lt; t; ++h)
+			for (i = first[x = que[h]]; i; i = next[i])
+				if (!--deg[e[i].u])
+					que[t++] = e[i].u;
+		V1 = t;
+	}
+
+	void final() {
+		int i, x;
+		for (i = 0; i &lt; V1; ++i)
+			if (!col[x = que[i]])
+				col[x] = 1, col[conflict[x]] = -1;
+	}
+}
+
+int main() {
+	int i, j, t, u, v, z, &amp;c = Graph::V;
+	scanf("%d%d", &amp;n, &amp;m); c = n * 2;
+	for (i = 0; i &lt; m; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;t), a[u].emplace_back(v, t);
+	for (i = 1; i &lt;= n; ++i) {
+		z = a[i].size();
+		for (j = 1; j &lt;= z; ++j) {
+			// non-crime are true
+			Graph::statement(i * 2, c + j * 2 - 1);
+			v = a[i][j - 1].first; t = a[i][j - 1].second;
+			// statement
+			Graph::statement(c + j * 2 - 1, v * 2 - !t);
+			Graph::statement(c + j * 2, v * 2 - t);
+			// prefix suffix to point
+			Graph::statement(c + z * 2 + j * 2 - 1, c + j * 2 - 1);
+			Graph::statement(c + z * 4 + j * 2 - 1, c + j * 2 - 1);
+			// prefix and suffix
+			if (j != 1)
+				Graph::statement(c + z * 2 + j * 2 - 1, c + z * 2 + j * 2 - 3),
+				Graph::statement(c + j * 2, c + z * 2 + j * 2 - 3);
+			if (j != z)
+				Graph::statement(c + z * 4 + j * 2 - 1, c + z * 4 + j * 2 + 1),
+				Graph::statement(c + j * 2, c + z * 4 + j * 2 + 1);
+		}
+		c += z * 6;
+	}
+	for (i = 1; i &lt;= c; ++i) if (!Graph::id[i]) Graph::dfs(i);
+	for (i = 1; i &lt;= c; i += 2) {
+		if ((u = Graph::top[i]) == (v = Graph::top[i + 1])) return puts("Impossible"), 0;
+		conflict[u] = v; conflict[v] = u;
+	}
+	Graph::shrink();
+	Graph::toposort();
+	Graph::final();
+	for (i = 1; i &lt;= n; ++i)
+		if (col[Graph::top[i * 2 - 1]] == 1)
+			ans[++cnt] = i;
+	printf("%d\n", cnt);
+	for (i = 1; i &lt;= cnt; ++i)
+		printf("%d%c", ans[i], i == cnt ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>其实这题还有一个更简单的建图方式：即在上面的建图过程中扔掉 $t_i$ 和 $S_i$。然后四类边分别转化为：</p>
+		<ol>
+			<li><p>$P_i \to c_j = \mathrm{true}$ (或 $P_i \to \neg c_k = \mathrm{true}$)。</p></li>
+			<li><p>$\neg c_i \to P_n = \mathrm{true}$ (某个人不是犯人，且说了 $n$ 句话)。</p></li>
+			<li><p>$\neg c_j \vee P_{i-1} = \mathrm{true}$ (或 $c_j \vee P_{i-1} = \mathrm{true}$，这里的 $\neg c_j$ 指的是某一句话是假话，那么前面的话必须得是真话)。</p>
+			<p>(此时，如果后面还有假话，则后面的布尔条件会<em>不满足</em>)</p></li>
+			<li><p>$P_i \to P_{i-1} = \mathrm{true}$ (<em>前缀和</em>和 "与" 运算的性质)。</p></li>
+		</ol>
+		<p>这样连边可以减少不少常数，具体实现见 <a href="http://uoj.ac/submission/289165" target="_blank">#289165</a>。</p>
+		<p><strong>坑1：</strong>注意后两类连边需要分别满足 $z &gt; 1$ 或 $z &lt; n$，不要多连边连到其它地方去了。</p>
+		<p><strong>坑2：</strong>缩点后拓扑排序注意要对<strong>是一个强连通分量的根</strong> (代表点) 的点进行排序，不要混入其它点。<del>(据说 2-SAT 中的 dfs 序就是拓扑序？)</del></p>
+	</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[hdu4929]Another Letter Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一棵 $n$ 个节点的树，树上每个节点都有一个字母。</p>
+		<p>再给定一个模板字符串。询问 $a$ 节点到 $b$ 节点的简单路径字符串中与模板字符串相同的子序列有多少种。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 5$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含两个正整数 $N, Q$ ($N, Q \leq 50000$)，表示树上有 $N$ 个节点和有 $Q$ 个询问。</p>
+		<p>接下来 $N - 1$ 行，每行包含两个正整数 $u, v$ ($1 \leq u, v \leq N$)，表示树中 $u$ 与 $v$ 节点相连。</p>
+		<p>接下来一行，输入 $n$ 个节点相对应的字母。</p>
+		<p>接下来一行，输入模板字符串 $S_0$ ($1 \leq \left| S_0 \right| \leq 30$)。</p>
+		<p>最后 $Q$ 行，每行输入两个正整数 $a, b$ ($1 \leq a, b \leq N$)，表示询问。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出 $Q$ 行，表示对应询问的答案，对 $10007$ 取模。</p>
+
+		<h3>题解</h3>
+		<p>注意到 $\left| S_0 \right|$ 比较小，我们可以考虑从这里下手。</p>
+		<p>根据树上问题的经典思想，我们令 $c = \mathrm{LCA}(a, b)$。我们把原问题拆成上升路径 $[a, c]$ 和下降路径 $[c, b]$ 上的问题。</p>
+		<p>因此，如果我们维护出了对于一个上升路径 $[a, b]$，每个 $S_0$ 的前缀在 $[a, b]$ 中出现的次数；以及对于每个下降路径 $[u, v]$，每个 $S_0$ 的后缀在 $[u, v]$ 中出现了多少次。这样我们就可以通过枚举 $S_0$ 中有多少个字符在 $[a, c]$ 上从而拼接答案。</p>
+		<p>因此，现在的任务是，对每个<strong>上升路径</strong> $[a, b]$，求出 $S_0$ 的前缀在 $[a, b]$ 中出现的次数。</p>
+		<p>由于它是上升路径，因此可以利用树上前缀和思想，即将这个问题转化为 $[a, r]$ 和 $(b, r]$ 上的问题 ($r$ 为树根)。</p>
+		<p>对于 $S_0$ 的某个前缀 $S_0[0..x]$，如果我们统计了它在 $[a, r]$ 和 $(b, r]$ 中的出现次数，直接相减，发现并不是我们所要的次数。</p>
+		<p>因为有可能 $S_0[0..x]$ 被拆成了两段，一段在 $[a, b]$ 中，还有一段在 $(b, r]$ 中，这部分并没有被统计到。</p>
+		<p>因此我们还需要把这部分多算的去掉。故我们需要知道 $S_0[0..x]$ 的一个前缀 (从而也是 $S_0$ 的前缀) 在 $[a, b]$ 中的出现次数，<strong>以及 $S_0[0..x]$ 的一个后缀 (因此可以是 $S_0$ 的任意子串) 在 $(b, r]$ 中的出现次数</strong>。</p>
+		<hr />
+		<p>这样，我们就得到了一个算法：先对原树 dfs 一遍，得到对于每个 $[a, r]$，$S_0$ 的所有子串在 $[a, r]$ 中的出现次数，以及在 $[r, b]$ 中的出现次数 (即为 $S_0^R$ 在 $[b, r]$ 中的出现次数)。</p>
+		<p>对于询问对 $(u, v)$，设 $c = \mathrm{LCA}(u, v)$，则我们可以通过 $[u, r]$ 和 $(c, r]$ 得到 $S_0$ 的<strong>每个前缀</strong>在 $[u, c]$ 中的出现次数。同理可以得到 $S_0$ 的每个后缀在 $(c, v]$ 中的出现次数。最后通过枚举有多少个字符在 $[u, c]$ 上直接拼接答案。</p>
+		<p>来分析一下时间复杂度。对于 dfs 中的转移，由于需要枚举所有子串，因此有 $O \left( \left| S_0 \right|^2 \right)$ 个状态 $O(1)$ 转移。</p>
+		<p>对于每次询问，处理前缀后缀，状态数和转移都是 $O \left( \left| S_0 \right| \right)$，最后的合并也是 $O \left( \left| S_0 \right| \right)$。</p>
+		<p>因此总的复杂度 (单组数据) 就为 $O \left( N \log N + (N + Q) \left| S_0 \right|^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100010
+#define LN 18
+#define lg2(x) (31 - __builtin_clz(x))
+#define ID isdigit(c = *next++)
+#define IS isspace(c = *next++)
+
+typedef long long ll;
+const int mod = 10007;
+
+struct Istream {
+	int size; char *next, buf[20030731];
+	Istream &amp; init(FILE *f = stdin) {fread(buf, 1, sizeof buf, f); next = buf; return *this;}
+	Istream &amp; operator &gt;&gt; (int &amp;x) {
+		int c; x = 0;
+		for (; !ID; ) if (!~c) return *this;
+		for (x = c &amp; 15; ID; x = x * 10 + (c &amp; 15));
+		return *this;
+	}
+	Istream &amp; operator &gt;&gt; (char *x) {
+		int c;
+		for (; IS; ) if (!~c) return *this;
+		for (*x++ = c; !IS; *x++ = c) if (!~c) break;
+		return *x = 0, *this;
+	}
+} cin;
+
+struct Ostream {
+	char *next, buf[20030731], _buf[34];
+	Ostream () {next = buf;}
+	void flush(FILE *f = stdout) {fwrite(buf, 1, next - buf, f); next = buf;}
+	Ostream &amp; operator &lt;&lt; (int x) {
+		if (!x) return put(48), *this;
+		int i;
+		for (i = 0; x; x /= 10) _buf[++i] = x % 10 | 48;
+		for (; i; --i) put(_buf[i]);
+		return *this;
+	}
+	Ostream &amp; operator &lt;&lt; (char c) {return put(c), *this;}
+	void put(char c) {*next++ = c;}
+} cout;
+
+struct node {
+	int c[30][30];
+	node () {memset(c, 0, sizeof c);}
+	node (const node &amp;B) {memcpy(c, B.c, sizeof c);}
+} D[N];
+
+int f[12][10005];
+
+char w[N], s[N];
+int n, q, l;
+
+inline void add(int &amp;x, const int y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+
+void merge(node &amp;ret, const node &amp;x, char c) {
+	int i, j; ret = x;
+	for (i = 0; i &lt; l; ++i)
+		for (j = 0; j &lt; l; ++j)
+			if (s[i] == c) {
+				if (i == j) add(ret.c[i][i], 1);
+				else if (i &lt; j) add(ret.c[i][j], x.c[i + 1][j]);
+				else add(ret.c[i][j], x.c[i - 1][j]);
+			}
+}
+
+void fy(ll *ret, const node &amp;x, const node &amp;y) {
+	int i, j;
+	for (i = 0; i &lt; l; ++i) {
+		ret[i] = x.c[0][i] - y.c[0][i];
+		for (j = 0; j &lt; i; ++j)
+			ret[i] -= ret[j] * y.c[j + 1][i];
+		ret[i] %= mod; ret[i] += ret[i] &gt;&gt; 63 &amp; mod;
+	}
+}
+
+void Fy(ll *ret, const node &amp;x, const node &amp;y) {
+	int i, j;
+	for (i = l - 1; i &gt;= 0; --i) {
+		ret[i] = x.c[l - 1][i] - y.c[l - 1][i];
+		for (j = i; j &lt; l - 1; ++j)
+			ret[i] -= ret[j + 1] * y.c[j][i];
+		ret[i] %= mod; ret[i] += ret[i] &gt;&gt; 63 &amp; mod;
+	}
+}
+
+namespace Tree {
+	int E = 0;
+	int to[N], first[N], next[N];
+	int p[N], dep[N];
+	int cnt = 0, id[N], st[LN][N], *ord = *st;
+
+	inline int dmin(const int &amp;x, const int y) {return dep[x] &lt; dep[y] ? x : y;}
+
+	inline void addedge(int u, int v) {
+		to[++E] = v; next[E] = first[u]; first[u] = E;
+		to[++E] = u; next[E] = first[v]; first[v] = E;
+	}
+
+	void dfs(int x) {
+		int i, y;
+		id[x] = cnt; ord[cnt++] = x;
+		for (i = first[x]; i; i = next[i])
+			if ((y = to[i]) != p[x]) {
+				p[y] = x; dep[y] = dep[x] + 1;
+				merge(D[y], D[x], w[y]);
+				dfs(y); ord[cnt++] = x;
+			}
+	}
+
+	void build_st_table() {
+		int *f, *g = ord, i, j, k = cnt;
+		for(j = 0; 1 &lt;&lt; (j + 1) &lt;= cnt; ++j){
+			f = g; g = st[j + 1]; k -= 1 &lt;&lt; j;
+			for(i = 0; i &lt; k; ++i)
+				g[i] = dmin(f[i], f[i + (1 &lt;&lt; j)]);
+		}
+	}
+
+	inline int LCA(int x, int y) {
+		int L = std::min(id[x], id[y]), R = (id[x] ^ id[y] ^ L) + 1, c = lg2(R - L);
+		return dmin(st[c][L], st[c][R - (1 &lt;&lt; c)]);
+	}
+}
+
+void work() {
+	int i, u, v, lca; ll U[31], V[31], res;
+	memset(Tree::first, 0, sizeof Tree::first); Tree::E = 0;
+	cin &gt;&gt; n &gt;&gt; q;
+	for (i = 1; i &lt; n; ++i) cin &gt;&gt; u &gt;&gt; v, Tree::addedge(u, v);
+	cin &gt;&gt; w + 1 &gt;&gt; s; l = strlen(s);
+	for (D[1] = node(), i = 0; i &lt; l; ++i) D[1].c[i][i] = w[1] == s[i];
+	Tree::cnt = 0; Tree::dfs(1); Tree::build_st_table();
+	for (; q; --q) {
+		cin &gt;&gt; u &gt;&gt; v; lca = Tree::LCA(u, v);
+		U[0] = 1, fy(U + 1, D[u], D[Tree::p[lca]]);
+		V[l] = 1, Fy(V, D[v], D[lca]);
+		for (res = i = 0; i &lt;= l; ++i) res += U[i] * V[i];
+		cout &lt;&lt; (int)(res % mod) &lt;&lt; '\n';
+	}
+}
+
+int main() {
+	int T;
+	for (cin.init() &gt;&gt; T; T; --T) work();
+	cout.flush();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意对 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 的处理，我这边的处理方法是令两个区间一闭一开，这样 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 节点就会恰好被统计到一次。</p>
+		<p><strong>坑2：</strong>注意取模时不要输出负数。</p>
+	</body>
+</html>

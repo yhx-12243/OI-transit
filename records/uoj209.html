@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj209]票数统计</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>妹滋滋是一个善于编程的女孩子。</p>
+		<p>但是某一天，她一不小心把 UOJ 后台的票数统计程序写错了。</p>
+		<p>本来嘛在这种根本没有什么用的功能上出了 bug 也没有什么大关系，但是又有某一天，UOJ 突然就开始搞全民公投了。</p>
+		<p>这可怎么办呢？如果这个消息让别人知道的话自己肯定会被查表，更不要说让所有用户重新来投一次票了。</p>
+		<p>作为一个要强的女孩子，妹滋滋决定自力更生。</p>
+		<p>通过一些奥妙重重的方式，妹滋滋知道了一些关于这次全民公投的信息。</p>
+		<ol>
+			<li>这次全民公投一共有 $n$ 位用户排队参加，编号为 $1$ 到 $n$。每一位用户要么投了通过，要么投了不通过。</li>
+			<li>有 $m$ 个二元组 $(x_i, y_i)$，每个二元组给出这样一个信息： "前 $x_i$ 位用户中，恰好 $y_i$ 位投了通过" 和 "后 $y_i$ 位用户中，恰好有 $x_i$ 位投了通过" 这两句话中，至少有一句是成立的。</li>
+		</ol>
+		<p>作为分析的第一步，她想要知道有多少种投票情况是满足她所得到的信息的。当然，可能所有投票情况都不满足条件。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 5$) 表示数据组数。</p>
+		<p>对于每组数据，第一行包含有两个空格隔开的正整数 $n, m$ ($n \leq 5000; m \leq 1000$)。</p>
+		<p>接下来 $m$ 行每行两个空格隔开的正整数 $x_i, y_i$ ($0 \leq x_i, y_i \leq n$ 且 $x_i, y_i$ 不全为 $0$)。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示答案。由于答案可能很大，故只需输出答案对 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 取模后的值。</p>
+
+		<h3>题解</h3>
+		<p>注意到当 $x &gt; y$ 时，后一个命题 "后 $y$ 位用户中，恰好有 $x$ 位投了通过" 是不可能成立的，因此前一个命题 <strong>"前 $x$ 位用户中，恰好 $y$ 位投了通过"</strong> 必须成立。</p>
+		<p>同理当 $x &lt; y$ 时，前一个命题不可能成立，因此后一个命题必须成立。</p>
+		<p>然而当 $x = y$ 时，两个命题都可能成立。但可以发现，如果有多个 $(t, t)$ 二元组，那么只需满足 $t$ 最大的即可。因为如果命题对 $(t, t)$ 成立，则它一定会对 $(u, u)$ ($u &lt; t$) 成立。</p>
+		<p>因此 $x = y$ 时的命题个数可以减少到 $1$ 个。由于这一个命题可能满足前半句，也可能满足后半句，是一个 "或" 的关系。故可以使用容斥原理将其转化为 "与" (同时成立) 的关系。</p>
+		<p>先来考虑对所有二元组，均有 $x &gt; y$ 的问题 (即只有前缀限制)。</p>
+		<p>这个还是<del>比较简单</del>的。我们可以对所有限制关于 $x$ 排序，然后作差分，得到关于若干个<strong>不交区间</strong>的命题，其中每个区间的命题形如 "这个区间中有 $t$ 个 $1$ (通过)"。可以看出，答案就等于几个<strong>二项式系数</strong>的乘积。</p>
+		<p>那么，如果有后缀限制又该怎么办呢？我们希望它可以转化成前缀限制。那如何才能转换呢？</p>
+		<p>最简单的方法是，<strong>如果整个序列中 $1$ (通过) 的个数</strong> (即总票数) 是已知的，这样，我们就可以计算出那个前缀 (后缀的补集) 中 $1$ (通过) 的个数。</p>
+		<P>因此，我们可以<strong>枚举</strong>整个序列中 $1$ 的个数，从而得到所有关于前缀的限制，运用刚才的方法即可解决。</p>
+		<p,>时间复杂度 $O \left( T n (n + m) \right)$。</p>
+		
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 5555
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const ll mod = 998244353;
+
+int n, m;
+int mx, cntL, cntR;
+pr L[N], R[N], res[N], Res[N];
+ll fact[N], finv[N];
+int buf[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (*fact = i = 1; i &lt; N; ++i) fact[i] = fact[i - 1] * i % mod;
+	--i; finv[i] = PowerMod(fact[i], mod - 2);
+	for (; i; --i) finv[i - 1] = finv[i] * i % mod;
+}
+
+inline ll C(int n, int r) {return fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+ll compute(int m) {
+	int i, j, k, cnt = 0; ll ret = 1;
+	for (i = 0; i &lt; cntL; ++i) res[cnt++] = L[i];
+	for (i = 0; i &lt; cntR; ++i) res[cnt++] = pr(n - R[i].second, m - R[i].first);
+	res[cnt++] = pr(0, 0); res[cnt++] = pr(n, m);
+	// counting sort begin
+	memset(buf, 0, n + 1 &lt;&lt; 2);
+	for (i = 0; i &lt; cnt; ++buf[res[i++].first]) if (res[i].second &lt; 0 || res[i].second &gt; m) return 0;
+	for (i = 1; i &lt;= n; ++i) buf[i] += buf[i - 1];
+	for (i = cnt - 1; i &gt;= 0; --i) Res[--buf[res[i].first]] = res[i];
+	// counting sort end
+	for (i = 1; i &lt; cnt; ++i) {
+		j = Res[i].first - Res[i - 1].first;
+		k = Res[i].second - Res[i - 1].second;
+		if (k &lt; 0 || k &gt; j) return 0;
+		ret = ret * C(j, k) % mod;
+	}
+	return ret;
+}
+
+ll solve() {
+	int i; ll ret = 0;
+	for (i = 0; i &lt;= n; ++i) ret += compute(i);
+	return ret % mod;
+}
+
+void work() {
+	int i, x, y; ll A, AL, AR;
+	mx = cntL = cntR = 0;
+	scanf("%d%d", &amp;n, &amp;m);
+	for (i = 1; i &lt;= m; ++i) {
+		scanf("%d%d", &amp;x, &amp;y);
+		if (x == y) up(mx, x);
+		else (x &lt; y ? R[cntR++] : L[cntL++]) = pr(x, y);
+	}
+	L[cntL++] = pr(mx, mx); AL = solve();
+	R[cntR++] = pr(mx, mx); A = solve();
+	--cntL; AR = solve();
+	A = (AL + AR - A) % mod;
+	printf("%lld\n", A + (A &gt;&gt; 63 &amp; mod));
+}
+
+
+int main() {
+	int T; init();
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在对限制 (关于 $x$) 排序时，可以使用 $O \left( n + m \right)$ 的计数排序，最好不要使用 $O \left( m \log m \right)$ 的排序，避免超时 (被卡常)。</p>
+	</body>
+</html>

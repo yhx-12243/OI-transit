@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj7]多项式插值</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n$ 对整数 $(u_1, v_1), (u_2, v_2), \cdots, (u_n, v_n)$，你需要寻找一个多项式 $\displaystyle f(x) = \sum_{i=0}^m a_i x^i$，满足：</p>
+		<ol>
+			<li><p>$f \left( u_1 \right) \equiv v_1 \pmod {998244353}, f \left( u_2 \right) \equiv v_2 \pmod {998244353}, \cdots, f \left( u_n \right) \equiv v_n \pmod {998244353}$；</p></li>
+			<li><p>$0 \leq m \leq n - 1$；</p></li>
+			<li><p>$0 \leq a_i \leq 998244352$。</p></li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个非负整数 $n$ ($0 \leq n \leq 10^5$)，表示整数的对数。</p>
+		<p>接下来 $n$ 行，每行两个整数 $u_i, v_i$ ($0 \leq u_i, v_i \leq 998244352$)，表示一对整数。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行一个整数 $m$，表示多项式的次数。</p>
+		<p>第二行 $m + 1$ 个整数，表示多项式的系数 $a_0, a_1, \cdots, a_m$。</p>
+		<p>如果你找不到满足条件的多项式，输出 <code>No solution</code>。</p>
+
+		<h3>题解</h3>
+		<p style="color: red">ps: 前置技能：<a href="soj6.html" target="_blank">多项式多点求值</a>、Lagrange 插值。</p>
+		<p>先来判断无解的情况。这个很简单，如果存在 $u_i = u_j; v_i \neq v_j$，那就当然无解了。否则，由 Larange 插值公式 (或 Vandermonde 行列式) 的有关知识，可知对于 $n$ 个不同的点值，一定存在唯一一个 $n - 1$ 次多项式，通过这 $n$ 个点。</p>
+		<p>Lagrange 公式的具体形式为：</p>
+		<p>$$ f(x) = \sum_{i=1}^n \left( \prod_{j \neq i} \frac {x - u_j} {u_i - u_j} \right) \cdot v_i = \sum_{i=1}^n \frac {\left( x - u_1 \right) \left( x - u_2 \right) \cdots \left( x - u_{i-1} \right) \left( x - u_{i+1} \right) \cdots \left( x - u_n \right)} {\left( u_i - u_1 \right) \left( u_i - u_2 \right) \cdots \left( u_i - u_{i-1} \right) \left( u_i - u_{i+1} \right) \cdots \left( u_i - u_n \right)} \cdot v_i \tag 1 \label 1 $$</p>
+		<p>来看一下式 $\eqref 1$ 的意义。这个公式可以当给定 $n$ 个点值时，对单点求值的时间达到 $O \left( n^2 \right)$，但是我们要求的是系数。乍一看，感觉求系数需要 $O \left( n^3 \right)$，其实不然，通过 $\eqref 1$ 式<em>暴力</em>求系数的时间复杂度也是 $O \left( n^2 \right)$ (<a href="cf917D.html" target="_blank">[Codeforces917D]Strange Trees</a>)。</p>
+		<ol>
+			<li><p>首先，需要求 $n$ 个分母，这部分的复杂度为 $O \left( n^2 \right)$。</p></li>
+			<li><p>对于分子上的 $n$ 个 $n - 1$ 次多项式，则可以这么操作：</p>
+			<p>首先将 $n$ 个一次式相乘 $O \left( n^2 \right)$，然后做 $n$ 次<strong>多项式除以一次式</strong> ($O \left( n \right)$)，最后相加。因此，这部分的复杂度也是 $O \left( n^2 \right)$。</p></li>
+		</ol>
+		<p>综上，可以在 $O \left( n^2 \right)$ 的时间内通过式 $\eqref 1$ 完成 (暴力的) 多项式差值，<del>代码非常好写</del>。</p>
+		<p>但是，在这道题中，$O \left( n^2 \right)$ 的插值显然是过不去的，因此而我们要考虑如何进行优化。</p>
+		<p>上面指出，通过式 $\eqref 1$ 进行差值需要两个步骤：1. 求 $n$ 个分母；2. 求出分子上的 $n$ 个 $n - 1$ 次多项式，并求它们的带权和。</p>
+		<p style="color: blue">先来优化第一部分——求 $n$ 个分母。</p>
+		<p>设 $A(x) = \left( x - u_1 \right) \left( x - u_2 \right) \cdots \left( x - u_n \right)$，则第 $i$ 个分母就等于多项式 $\dfrac {A(x)} {x - u_i}$ 当 $x = u_i$ 时的值，由于 $u_i$ 互不相同，因此这个值不为 $0$。但是直接将 $u_i$ 代入上式分子分母都会等于 $0$，那该怎么办呢？</p>
+		<p>由于 $A \left( u_i \right) = 0$，由导数的定义，$$\lim_{x \to u_i} \frac {A(x)} {x - u_i} = \lim_{x \to u_i} \frac {A(x) - A \left( u_i \right)} {x - u_i} = A' \left( u_i \right) $$</p>
+		<p>也就是说，这 $n$ 个分母的值就等于多项式 $A'(x)$ 在 $u_1, u_2, \cdots, u_n$ 上的点值！</p>
+		<p>因此，我们只需用分治 FFT 求出 $A'(x)$，然后对它及 $u_1, u_2, \cdots, u_n$ 多点求值，因此这部分的时间复杂度可降为 $O \left( n \log^2 n \right)$。</p>
+		<p style="color: blue">再来优化第二部分——求出分子上的 $n$ 个 $n - 1$ 次多项式，并求它们的带权和。</p>
+		<p>这里先令 $\displaystyle b_i = v_i \cdot \prod_{j \neq i} \dfrac 1 {u_i - u_j}$ (第一部分已解决)，则答案就等于</p>
+		<p>$$ f(x) = \sum_{i=1}^n b_i \cdot \prod_{j \neq i} \left( x - u_j \right) $$</p>
+		<p>这个就比较简单了，我们可以使用分治法，如果对于左边一半，设求出来的多项式为 $f_L (x)$，对于右边一半，求出来的多项式为 $f_R (x)$。当然，再设分治 NTT 中左边一堆一次式的乘积为 $A_L(x)$，右边为 $A_R(x)$，则</p>
+		<p>$$ f = f_L \cdot A_R + f_R \cdot A_L \quad \left( f(x) = f_L (x) \cdot A_R (x) + f_R (x) \cdot A_L (x) \right) $$</p>
+		<p>可以通过四次 DFT 和一次逆 DFT 解决。</p>
+		<p>因此这部分的时间复杂度也满足 $T(n) = 2 T \left( \dfrac n2 \right) + O \left( n \log n \right) \Rightarrow T(n) = O \left( n \log^2 n \right)$。</p>
+		<p>故总时间复杂度 $O \left( n \log^2 n \right)$，常数约为普通多项式乘法的 $20$ 倍左右。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 530000
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef int vec[N], *pvec;
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const ll mod = 998244353, half_mod = 499122177, root = 31;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	// Input and output
+	void in(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) scanf("%d", f + i);}
+
+	void out(int deg, pvec f, const char *_name){
+		printf("%s(x) =", _name);
+		for (int i = 0; i &lt;= deg; ++i) printf(" %+d x^%d", (int)(f[i] - (mod &amp; -(f[i] &gt;= half_mod))), i);
+		putchar(10);
+	}
+
+	void series(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) printf("%d%c", f[i], i == deg ? 10 : 32);}
+
+	#define fy_out(deg, f) Poly::out(deg, f, #f)
+
+	// Fast Number Theory Transform
+	void NTT_init(int len){
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1; *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) {
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3, B4, B5, B6;
+
+	// Multiplication (use buffer 1)
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = PowerMod(n, mod - 2);
+		DNTT(a, c); DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c); std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+
+	// Inversion (use buffer 1, 2, 3)
+	void Inv(int deg, pvec a, pvec b) {
+		int len, i; ll iv = half_mod;
+		if (!*a) fputs("Inv::Calculate inverse of polynomial with constant term 0 !\n", stderr), abort();
+		*b = PowerMod(*a, mod - 2); b[1] = 0;
+		*B1 = *a; B1[1] = a[1];
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
+			NTT_init(len + 2);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B1[i] = 0;
+			DNTT(b, B2); DNTT(B1, B3);
+			for (i = 0; i &lt; n; ++i)
+				B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod, B2[i] += B2[i] &gt;&gt; 31 &amp; mod;
+			DNTT(B2, B3); std::reverse(B3 + 1, B3 + n);
+			iv = (iv &gt;&gt; 1) + (iv &amp; 1 ? half_mod : 0);
+			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B3[i] * iv % mod;
+			for (; i &lt; n; ++i) b[i] = 0, B1[i] = a[i];
+		}
+	}
+
+	// Division and Modulo Operation (use buffer 4, 5)
+	void DivMod(int degA, int degB, pvec a, pvec b, pvec q, pvec r) {
+		if (degA &lt; degB) {memcpy(r, a, degA + 1 &lt;&lt; 2); memset(r + (degA + 1), 0, degB - degA &lt;&lt; 2); return;}
+		int degQ = degA - degB, i, j = (degQ ? 1 &lt;&lt; lg2(degQ) + 2 : 4);
+		for (i = 0; i &lt;= degQ &amp;&amp; i &lt;= degB; ++i) B4[i] = b[degB - i];
+		for (; i &lt; j; ++i) B4[i] = 0;
+		Inv(degQ + 1, B4, B5);
+		for (i = 0; i &lt;= degQ; ++i) B4[i] = a[degA - i];
+		for (; i &lt; n; ++i) B4[i] = B5[i] = 0;
+		Mul(degQ * 2, B4, B5, q);
+		std::reverse(q, q + (degQ + 1));
+		NTT_init(lg2(degA) + 1);
+		for (i = degQ + 1; i &lt; n; ++i) q[i] = 0;
+		for (i = 0; i &lt;= degB; ++i) B4[i] = b[i];
+		for (; i &lt; n; ++i) B4[i] = 0;
+		Mul(degA, B4, q, r);
+		for (i = 0; i &lt; degB; ++i) r[i] = a[i] - r[i], r[i] += r[i] &gt;&gt; 31 &amp; mod;
+	}
+
+	// Multiplication with std::vector (use buffer 4, 5, 6)
+	void Mul(vector &amp;a, vector &amp;b, vector &amp;ret) {
+		int deg_a = a.size() - 1, deg_b = b.size() - 1;
+		if (!(deg_a || deg_b)) {ret.emplace_back((ll)a[0] * b[0] % mod); return;}
+		NTT_init(lg2(deg_a + deg_b) + 1);
+		memset(B4, 0, n &lt;&lt; 2); memcpy(B4, a.data(), deg_a + 1 &lt;&lt; 2);
+		memset(B5, 0, n &lt;&lt; 2); memcpy(B5, b.data(), deg_b + 1 &lt;&lt; 2);
+		Mul(deg_a + deg_b, B4, B5, B6);
+		ret.assign(B6, B6 + (deg_a + deg_b + 1));
+	}
+}
+
+int n, cnt = 0, lc[N], rc[N];
+vec A, B, C, C0, C1, C2, C3, C4;
+vector g[N], result;
+pr b[N];
+
+int solve(int L, int R) {
+	if (L + 1 == R) return L;
+	int M = (L + R) / 2, id = cnt++, lp = solve(L, M), rp = solve(M, R);
+	Poly::Mul(g[lp], g[rp], g[id]);
+	return lc[id] = lp, rc[id] = rp, id;
+}
+
+void evaluation(int id, int L, int R, vector &amp;poly) {
+	if (L + 1 == R) {result.emplace_back(poly.front()); return;}
+	int M = (L + R) / 2, lp = lc[id], rp = rc[id]; vector rem;
+	Poly::DivMod(R - L - 1, M - L, poly.data(), g[lp].data(), C0, C1);
+	rem.assign(C1, C1 + (M - L));
+	evaluation(lp, L, M, rem);
+	Poly::DivMod(R - L - 1, R - M, poly.data(), g[rp].data(), C0, C1);
+	rem.assign(C1, C1 + (R - M));
+	evaluation(rp, M, R, rem);
+}
+
+void inter(int id, int L, int R) {
+	if (L + 1 == R) return;
+	int M = (L + R) / 2, lp = lc[id], rp = rc[id], i;
+	inter(lp, L, M); inter(rp, M, R);
+	Poly::NTT_init(lg2(R - L - 1) + 1);
+	memcpy(C1, C + L, M - L &lt;&lt; 2); memset(C1 + (M - L), 0, Poly::n - (M - L) &lt;&lt; 2);
+	memcpy(C2, C + M, R - M &lt;&lt; 2); memset(C2 + (R - M), 0, Poly::n - (R - M) &lt;&lt; 2);
+	memcpy(C3, g[lp].data(), M - L + 1 &lt;&lt; 2); memset(C3 + (M - L + 1), 0, Poly::n - (M - L + 1) &lt;&lt; 2);
+	memcpy(C4, g[rp].data(), R - M + 1 &lt;&lt; 2); memset(C4 + (R - M + 1), 0, Poly::n - (R - M + 1) &lt;&lt; 2);
+	Poly::DNTT(C1, C0), Poly::DNTT(C2, C1), Poly::DNTT(C3, C2), Poly::DNTT(C4, C3);
+	for (i = 0; i &lt; Poly::n; ++i) C4[i] = ((ll)C0[i] * C3[i] + (ll)C1[i] * C2[i]) % mod;
+	Poly::DNTT(C4, C0); std::reverse(C0 + 1, C0 + Poly::n);
+	ll iv = PowerMod(Poly::n, mod - 2);
+	for (i = 0; i &lt; R - L; ++i) C[L + i] = C0[i] * iv % mod;
+}
+
+void interpolation(int n, pr *a) {
+	int i, v, id; vector F;
+	for (i = 0; i &lt; n; ++i)
+		v = a[i].first, g[i].emplace_back((!v - 1) &amp; (mod - v)), g[i].emplace_back(1);
+	cnt = n; id = solve(0, n);
+	memcpy(A, g[id].data(), n + 1 &lt;&lt; 2);
+	for (i = 1; i &lt;= n; ++i) B[i - 1] = (ll)A[i] * i % mod;
+	F.assign(B, B + n);
+	evaluation(id, 0, n, F);
+	for (i = 0; i &lt; n; ++i) C[i] = PowerMod(result[i], mod - 2, a[i].second);
+	inter(id, 0, n);
+}
+
+int main() {
+	int i, j; vector F;
+	scanf("%d", &amp;j); if (!j) return puts("No solution"), 0;
+	for (i = 0; i &lt; j; ++i) scanf("%d%d", &amp;b[i].first, &amp;b[i].second);
+	sort(b, b + j); n = 1;
+	for (i = 1; i &lt; j; ++i)
+		if (b[i].first == b[i - 1].first) {
+			if (b[i].second != b[i - 1].second) return puts("No solution"), 0;
+		} else b[n++] = b[i];
+	interpolation(n, b);
+	printf("%d\n", n - 1);
+	Poly::series(n - 1, C);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>还是要注意边界，判断各种变量为 $0$ 的情况。</p>
+		<p><strong>坑2：</strong>注意及时将 buffer (缓冲区) 清零，尽量不要使用<strong>带 <code>sizeof</code> 的</strong> <code>memset</code> 以及 <code>memcpy</code>。还有就是不要在有约束的函数中使用相同的 buffer。</p>
+	</body>
+</html>

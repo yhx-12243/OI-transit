@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces1060F]Shrinking Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>考虑一棵 $n$ 个节点的树 $T$，节点编号为 $1, 2, \cdots, n$。我们对树 $T$ 执行下述操作 $n - 1$ 次：<p>
+		<ol>
+			<li><p>等概率随机选择当前树的一条边 $e$。</p></li>
+			<li><p>将这条边 "<dfn>缩掉</dfn>"：设 $e = (u, v)$，则删除点 $u, v$，创建一个新的点 $w$。如果 (删之前) 树中有与 $u$ 或 $v$ 相连的点，则删之后它应与 $w$ 连接。且 $w$ 的编号在 $u, v$ 之间等概率 ($\dfrac 12$) 选择一个。</p></li>
+		</ol>
+		<p>当 $n - 1$ 次操作结束后，我们得到了一个只含一个节点的树 $T' = \{v\}$。那个顶点 $v$ 的编号为 $1, 2, \cdots, n$ 之间的一个整数。现在你需要求出，对于 $\forall 1 \leq i \leq n$，$v$ 的编号为 $i$ 的概率是多少？
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 50$)。</p>
+		<p>接下来的 $n - 1$ 行，每行包含两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，描述 $T$ 中的一条边。保证这 $n - 1$ 条边构成一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $n$ 行，每行一个实数，第 $i$ 行的实数表示 $v$ 的编号为 $i$ 的概率。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-6}$。</p>
+
+		<h3>题解</h3>
+		<p>容易发现，总共的状态数不超过 $2^n \cdot n!$，因此它其实就是一道组合计数题。<del>(所以为什么不出模意义啊)</del></p>
+		<p>由于 $n$ 在 $50$ 左右的范围，这看起来像是一个高维多项式的 DP，我们来考虑如何记录状态。</p>
+		<p>首先，我们可以枚举最后剩下的点 $v$，计算编号为 $v$ 的概率，计算 $v$ 时我们可以不妨设 $v$ 就是根节点。接下来我们就 $1$ 为根来考虑。</p>
+		<p>我们用 $f_{v, i}$ ($0 \leq i &lt; \mathrm{size}_v$) 表示以 $v$ 为根的子树，删去 $i$ 条边后根仍为 $v$ 的概率<strong>乘以 $\left( \mathrm{size}_v - 1 \right)!$ 的值</strong>，其中 $\mathrm{size}_v$ 表示以 $v$ 为根的子树大小。</p>
+		<p>那么答案就是 $\dfrac {f_{1, n - 1}} {(n - 1)!}$，对于叶节点 $l$，有 $f_{l, 0} = 1$。</p>
+		<p>接下来考虑转移的过程。由于是树形 DP，因此就可以像背包一样一个子树、一个子树地合并。设当前点为 $x$，考虑如何合并 $x$ 的一个新的子树 $y$。</p>
+		<p>由于 $x$ 的子树的根为 $x$，$y$ 的子树的根为 $y$，它们最终的存活节点不是同一个，因此直接转移就会有障碍。</p>
+		<p>因此，我们对于以 $y$ 为根的子树 $T[y]$，作一次 "<dfn>提升</dfn>" 操作，即在 $y$ 上面接一个节点 $x$，得到一个新的树 $T'$。我们来计算对于新的树 $T'$，有关的 DP 值。</p>
+		<p>设 $f'_i$ 表示对于子树 $T'$，删去 $i$ 条边后根为 $x$ 的概率乘以 $\mathrm{size}_v !$ 的值。</p>
+		<p>看起来好像不太好转化，我们改变一下 $f_{v, i}$ 的定义：</p>
+		<p>令 $f_{v, i}$ 表示对于子树 $T[v]$ 中的一个完整<dfn>缩边</dfn>序列 $e_1, e_2, \cdots, e_{\mathrm{size}_v - 1}$，对于每一种<dfn>缩边</dfn>序列，有很多选编号机会，其中有一定的概率使得<strong>仅对后 $i$ 条边的缩边选编号后，根仍为 $v$</strong>。DP 值就等于<strong>所有<dfn>缩边</dfn>序列中的这样的概率之和</strong>。</p>
+		<p>这样一来，就好理解多了。我们考虑 $f'_i$。我们枚举边 $(x, y)$ 在 (倒数) 第 $j$ 步被删去，那么有两种情况：</p>
+		<ol>
+			<li><p>$j \leq i$：此时边 $(x, y)$ 在后 $i$ 轮被删去。那么由于缩掉这些边后根仍为 $v$，因此这一条边的 "选编号" 一步中必须选择 $v$ ——也就是说，有一个 $\dfrac 12$ 的概率。</p>
+			<p>而剩下的 $i - 1$ 条边中，前面的 $i - j$ 条边随便选，后面的 $j - 1$ 条边相当于 (同构于) $T[y]$ 删除 $j - 1$ 条边的情况。因此此时的贡献为</p>
+			<p>$$ f'_i \gets \frac 12 f_{y, j - 1} \quad (1 \leq j \leq i) $$ 其中 $a \gets b$ 表示 <code>a += b</code>。</p></li>
+			<li><p>$j &gt; i$：此时比较简单，由于前 $\mathrm{size}_y - i$ 次删边已经删去 $(x, y)$ 这条边。因此它就相当于后面的 $i$ 轮选编号就在 $T[y]$ 中选择。</p>
+			<p>故此时只需 $$ f'_i \gets f_{y, i} \cdot \left( \mathrm{size}_y - i \right) $$</p></li>
+		</ol>
+		<p>"<dfn style="color: blue">提升</dfn>" 操作完成后，两个状态的存活节点已经统一，接下来考虑 "<dfn style="color: blue">合并</dfn>"。</p>
+		<p>记 $f_i = f_{x, i}$。我们考虑如何将 $f_i$ 和 $f'_i$ 合并 (设合并结果为 $C_i$)。</p>
+		<p>对于 $C_i$，我们考虑在这 $i$ 次选编号操作中，有 $j$ 次来自左子树 ($f_j$)，$k$ 次来自右子树 ($f'_k$)，则 $j + k = i$。</p>
+		<p>然后就是排列问题了。这 $j$ ($k$) 次选编号内部之间的顺序已有 $f_j, f'_k$ 记录，因此我们只需要一个相对之间的顺序，由二项式系数的组合意义，它等于 $\dbinom {j + k} j$。</p>
+		<p>同理，前面若干次操作之间也有一个相对顺序。设两个子树的大小分别为 $A, B$，则共有 $\dbinom {A - j + B - k} {A - j}$ 中方案。</p>
+		<p>于是转移方程就是，$$ C_{j + k} \gets f_j \cdot f'_k \cdot \binom {j + k} j \cdot \binom {A - j + B - k} {A - j} \quad (j = 0, 1, \cdots, A; k = 0, 1, \cdots, B) $$</p>
+		<p>这样，我们就完成了整个 DP 的过程，总时间复杂度 $O \left( n^4 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 108
+
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+int n, E = 0;
+int to[N], first[N], next[N];
+int size[N];
+double fact[N], f[N][N], tmp[N];
+
+inline void addedge(int u, int v) {
+	to[++E] = v; next[E] = first[u]; first[u] = E;
+	to[++E] = u; next[E] = first[v]; first[v] = E;
+}
+
+inline double C(int u, int v) {return fact[u + v] / (fact[u] * fact[v]);}
+
+void dfs(int x, int px = 0) {
+	int e, i, j, y; size[x] = 1; f[x][0] = 1.0;
+	for (e = first[x]; e; e = next[e])
+		if ((y = to[e]) != px) {
+			dfs(y, x);
+			// lifting
+			for (i = 0; i &lt;= size[y]; ++i) {
+				f[0][i] = f[y][i] * (size[y] - i);
+				for (j = 0; j &lt; i; ++j) f[0][i] += f[y][j] * 0.5;
+			}
+			// merging
+			memset(tmp, 0, (size[x] + size[y]) &lt;&lt; 3);
+			for (i = 0; i &lt; size[x]; ++i)
+				for (j = 0; j &lt;= size[y]; ++j)
+					tmp[i + j] += f[x][i] * f[0][j] * C(i, j) * C(size[x] - i - 1, size[y] - j);
+			memcpy(f[x], tmp, (size[x] += size[y]) &lt;&lt; 3);
+		}
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = fact[i - 1] * (double)i;
+	for (i = 1; i &lt;= n; ++i) {
+		memset(f, 0, sizeof f); dfs(i);
+		printf("%.12lg\n", f[i][n - 1] / fact[n - 1]);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在 "合并" 过程中，由于更新时需要用到原来的值，因此不能直接覆盖，需要先转移到一个新的数组中，再拷贝回来 <del>(当然如果用一些高超的转移顺序技巧也是可以滴)</del>。</p>
+	</body>
+</html>

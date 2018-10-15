@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2125]最短路</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个 $n$ 个点 $m$ 条边的连通无向图，满足每条边至多属于一个环。有 $Q$ 组询问，每次询问两点之间的最短路径。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, Q$ ($n, q \leq 10000; m \leq 20000$)。</p>
+		<p>接下来的 $m$ 行，每行三个正整数 $u, v, w$ ($1 \leq u, v \leq n; 1 \leq w \leq 10^9$)，表示一条无向边，长度为 $w$。</p>
+		<p>最后 $Q$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n$) 表示一组询问。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $Q$ 行，每行一个整数，表示询问的答案。</p>
+
+		<h3>题解</h3>
+		<p>还记得<a href="lydsy1023.html" target="_blank"><strong>仙人掌</strong>的定义</a>吗？如果一个物相连哦天能图的每一条边至多出现在一个简单环 (simple cycle) 中，则称这张图就是一个仙人掌。</p>
+		<p>我们现在的任务就是，对一个给定的仙人掌，求两点之间的最短路。</p>
+		<p><del>显然 Floyd, Dijkstra, bfs 直接辣鸡算法可以直接滚粗了</del>，我们现在要寻找一个较为快速 $O \left( \log n \right)$ 的算法。</p>
+		<p>对仙人掌的题，应该先从<strong>树</strong>和<strong>基环树</strong>入手，观察如何求最短路。</p>
+		<p>对于一棵<strong>树</strong>，由树的性质，任意两点间<strong>有且仅有一条</strong>路径，因此最短路是唯一的。设树根为 $r$，$l = \mathrm{LCA}(u, v)$，则 $\mathrm{dist}(u, v) = \mathrm{dist}(r, u) + \mathrm{dist}(r, v) - 2 \mathrm{dist}(r, l)$，可以 dfs 维护路径前缀和 $\mathrm{dist}(r, v)$ 解决。</p>
+		<p>对于<strong>基环树</strong>，情况也是类似的。有两种方法：</p>
+		<ol>
+			<li><p>去掉一条环中的边 $(x, y)$，跑一遍 $u, v$ (在树上的最短路)，然后加上边 $(x, y)$，观察经过边 $(x, y)$ 时，最短路是否变短。此时需要计算 $\mathrm{dist}(u, x) + \mathrm{dist}(x, y) + \mathrm{dist}(y, v)$ 以及 $\mathrm{dist}(u, y) + \mathrm{dist}(y, x) + \mathrm{dist}(x, v)$。</p></li>
+			<li><p>将基环树进行外向树分解，即把它的所有外向树找出来，设为 $T_1, T_2, \cdots$。</p>
+			<p>此时，如果 $u, v$ 在同一棵外向树 $T_i$ 中，则它们的简单路径是唯一的，因此最短路即为 $T_i$ 中 $u$ 到 $v$ 的路径长。</p>
+			<p>如果 $u, v$ 分别在两个不同的外向树 $T_i, T_j$ 中，设这两个外向树的根分别为 $r_i, r_j$。则 $\mathrm{dist}(u, v) = \mathrm{dist}(u, r_i) + \mathrm{dist}(r_i, r_j) + \mathrm{dist}(r_j, v)$，中间的项由于 $r_i, r_j$ 都在环上，可以根据环的长度讨论一下。其它两项就是简单的路径前缀和。</p>
+		</ol>
+		<p>对比两种方法，可以发现方法 2 更具有<strong>可扩展性</strong>。是的，对于仙人掌图，方法 1 将不再使用，我们要使用的是方法 2 的思想。</p>
+		<p>注意到仙人掌不过是在树中多画了几个环，因此，我们需要对每个环处理好所需的最短路信息。</p>
+		<p>但是，对于仙人掌图，求 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 可能并不是非常方便，因此如果我们能把仙人掌转化成树，那不就好了么？</p>
+		<p>因此现在，有一个处理仙人掌的非常经典的技巧——<strong>点双 (连通分量) 缩点</strong> (圆方树)。</p>
+		<p>对，就是我们熟悉的<strong>点双缩点</strong>。<strong>点双缩点</strong>是一个对于一般图都可以进行的算法，它的目的就是找出所有的点双连通分量以及割点，然后就可以判断两点是否在一个点双中，以及它们路径上的必经点等等。</p>
+		<p>具体的点双缩点方法见 <a href="uoj30%3Bcf487E.html" target="_blank">Tourists 这道题</a>，这里不再赘述。</p>
+		<p>而对仙人掌来说，它点双缩点后的树就有了更好的性质，因为，对每个点双建立的新点，就代表原仙人掌中的一个<strong>环</strong>。</p>
+		<p>因此，我们可以在这棵新树中维护有关信息。比如，对一个环 $C$，设环的根为 $r(C)$，在新树中，连一条 $C$ 到 $r(C)$，权值为 $0$ 的边。对于环中其它点 $v$，连一条 $v$ 到 $C$，权值为 $\mathrm{dist} \left( v, r(C) \right)$ 的边。这个距离值可以在 dfs 时直接维护出来。</p>
+		<p>最后，对于两个点 $u, v$，我们在新树中求它们的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>。如果是一个普通的点，则它们在树上的距离就是在仙人掌中的距离。</p>
+		<p>否则，设它们的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 是一个环点 $C$。由点双缩点树的性质，$C$ 在 $u, v$ 方向的子节点 $u', v'$ 一定是个普通点。此时 $u, v$ 在仙人掌中的距离就等于 $\mathrm{dist}(u, u') + \mathrm{dist}(u', v') + \mathrm{dist}(v', v)$。</p>
+		<p>时间复杂度 $O \left( n \log n + q \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 80005
+#define LN 18
+
+typedef long long ll;
+
+struct edge {
+	int u, v; ll w;
+	edge (int u0 = 0, int v0 = 0, ll w0 = 0) : u(u0), v(v0), w(w0) {}
+};
+
+int n, m, q;
+
+int cyc_cnt = 0;
+int cyc[N];
+ll len[N], dis[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace Tree {
+	edge e[N];
+	int V, E;
+	int first[N], next[N];
+	int P[LN][N], *p = *P, dep[N];
+	ll s[LN][N];
+
+	inline void addedge(int u, int v, ll w) {e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;}
+
+	void dfs(int x) {
+		int i, y;
+		for (i = 0; i &lt; LN - 1 &amp;&amp; P[i][x]; ++i) {
+			P[i + 1][x] = P[i][P[i][x]];
+			s[i + 1][x] = s[i][x] + s[i][P[i][x]];
+		}
+		for (i = first[x]; i; i = next[i]) {
+			p[y = e[i].v] = x; dep[y] = dep[x] + 1;
+			s[0][y] = e[i].w; dfs(y);
+		}
+	}
+
+	int jump_until(int x, int d, ll &amp;ret) {
+		int i; ret = 0;
+		for (i = LN - 1; i &gt;= 0; --i)
+			if (dep[x] - (1 &lt;&lt; i) &gt;= d)
+				ret += s[i][x], x = P[i][x];
+		return x;
+	}
+
+	ll query(int x, int y) {
+		int i; ll ret, cur;
+		if (dep[x] &lt; dep[y]) std::swap(x, y);
+		x = jump_until(x, dep[y], ret);
+		if (x == y) return ret;
+		for (i = LN - 1; i &gt;= 0; --i)
+			if (P[i][x] != P[i][y])
+				ret += s[i][x] + s[i][y],
+				x = P[i][x], y = P[i][y];
+		if (p[x] &lt;= n) return ret + s[0][x] + s[0][y];
+		else return cur = llabs(dis[y] - dis[x]), ret + std::min(cur, len[cyc[x]] - cur);
+	}
+}
+
+namespace Cactus {
+	edge e[N];
+	int V, E;
+	int first[N], next[N];
+	int cnt = 0, id[N], low[N];
+	int p[N], dep[N];
+
+	inline void addedge(int u, int v, ll w) {
+		e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+	}
+
+	void dfs(int x) {
+		int i, y, c; ll cur;
+		id[x] = low[x] = ++cnt;
+		for (i = first[x]; i; i = next[i])
+			if (!id[y = e[i].v]) {
+				p[y] = i; dep[y] = dep[x] + 1;
+				dfs(y); down(low[x], low[y]);
+				if (id[x] &lt; low[y]) Tree::addedge(x, y, e[i].w);
+			} else if ((p[x] - 1) ^ (i - 1) ^ 1)
+				down(low[x], id[y]);
+		for (i = first[x]; i; i = next[i])
+			if (p[y = e[i].v] != i &amp;&amp; id[x] &lt; id[y]) {
+				Tree::addedge(x, ++cyc_cnt + V, 0); cur = e[i].w;
+				for (c = y; c != x; c = e[p[c]].u)
+					cyc[c] = cyc_cnt, dis[c] = cur, cur += e[p[c]].w;
+				len[cyc_cnt] = cur; cur = e[i].w;
+				for (c = y; c != x; c = e[p[c]].u)
+					Tree::addedge(cyc_cnt + V, c, std::min(cur, len[cyc_cnt] - cur)), cur += e[p[c]].w;
+			}
+	}
+}
+
+int main() {
+	int i, u, v; ll w;
+	scanf("%d%d%d", &amp;n, &amp;m, &amp;q); Cactus::V = n;
+	for (i = 0; i &lt; m; ++i) scanf("%d%d%lld", &amp;u, &amp;v, &amp;w), Cactus::addedge(u, v, w);
+	Cactus::dfs(1);
+	Tree::V = n + cyc_cnt;
+	Tree::dfs(1);
+	for (; q; --q) {
+		scanf("%d%d", &amp;u, &amp;v);
+		printf("%lld\n", Tree::query(u, v));
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>要注意环中普通点到环点的距离应该取它到 "环的根" 的最短距离，即取两端的最小值。</p>
+	</body>
+</html>

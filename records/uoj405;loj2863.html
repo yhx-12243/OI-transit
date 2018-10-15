@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj405][loj2863][IOI2018]组合动作</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你在玩一个动作游戏。游戏控制器有 $4$ 个按键，<kbd>A</kbd>、<kbd>B</kbd>、<kbd>X</kbd> 和 <kbd>Y</kbd>。在游戏中，你用组合动作来赚金币。你可以依次按这些按键来完成一个组合动作。</p>
+		<p>这个游戏有一个隐藏的按键序列，可以表示为由这 $4$ 个字符组成的串 $S$。你并不知道这个串 $S$，但是你知道它的长度为 $N$。</p>
+		<p><strong>你还知道，$S$ 的首字符不会在串中重复出现</strong>。例如，$S$ 可以是 "<code>ABXYY</code>" 或者 "<code>XYYAA</code>"，但不能是 "<code>AAAAA</code>" 或 "<code>BXYBX</code>"。</p>
+		<p>你可以依次按最多 $4N$ 个按键来完成一个组合动作。串 $p$ 为你所按的按键序列。你用这个组合动作赚到的金币数量，等于同时为 $p$ 之子串和 $S$ 之前缀的最长字符串的长度。串 $t$ 的子串定义为 $t$ 中的连续字符序列 (可以为空)。$t$ 的前缀定义为 $t$ 的子串，其或者为空，或者包含 $t$ 的首字符。</p>
+		<p>例如，如果 $S$ 是 "<code>ABXYY</code>"，而 $p$ 是 "<code>XXYYABYABXAY</code>"，你会得到 $3$ 个金币，因为 "<code>ABX</code>" 是可作为 $p$ 的子串的 $S$ 的前缀中最长的。</p>
+		<p>你的任务是，用少量的组合动作，找出隐藏字符串 $ S $。</p>
+
+		<h3>实现细节</h3>
+		<p>你需要实现下面的函数：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">std::string guess_sequence(int N)</code></pre>
+		<ul>
+			<li><code>N</code>：串 $S$ 的长度。</li>
+			<li>对每个测试用例，该函数被调用恰好一次。</li>
+			<li>该函数应返回串 $S$。</li>
+		</ul>
+		<p>你的程序可以调用下面的函数：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">int press(std::string p)</code></pre>
+		<ul>
+			<li><code>p</code>：你的按键序列。</li>
+			<li><code>p</code> 必须是长度为从 $0$ 到 $4N$ 的串 (包括 $0$ 和 $4N$)。<code>p</code> 的每个字符必须是 <code>A</code>、<code>B</code>、<code>X</code> 或者 <code>Y</code>。</li>
+			<li>对每个测试用例，你调用该函数的次数不能超过 $8000$ 次。</li>
+		<li>该函数的返回结果是，当按出按键序列 <code>p</code> 后你赚到的金币数量。</li>
+		</ul>
+		<p>如果不满足上面的条件，你的程序将被判为 <code>Wrong Answer</code>。否则，你的程序将被判为 <code>Accepted</code>，而你的得分将根据 <code>press</code> 的调用次数来计算。</p>
+
+		<h3>题解</h3>
+		<p>注意到性质 "$S$ 的首字符不会在串中重复出现"，考虑如何利用这个性质。</p>
+		<p>那么，设 $S$ 的首字符为 $c$ ($c = S[0]$)，则你的组合动作中，每一个 $c$ 代表一次判定，而不是 $c$ 的不参与判定，且每次判定相当于两个 $c$ 之间的判定和。</p>
+		<p>什么意思呢？就是，如果你用 "<code><em>c</em>AB</code>" 拿到了 $x$ 个金币，用 "<code><em>c</em>XY</code>" 拿到了 $y$ 个金币，则用 "<code><em>c</em>AB<em>c</em>XY</code>" 就可以拿到 $x + y$ 个金币。</p>
+		<p>我们先通过 $2$ 次询问找到 $c$ 是什么。接下来，我们要依次得到下面那的每个字符，由子任务可以知道，平均每个字符只能有 $1$ 次询问。</p>
+		<p>我们设当前已知的前缀为 $P$，长度为 $l$，下一个字符可能是 $u, v, w$ (就三种情况)。</p>
+		<p>如果单独询问，这样就需要询问两次。我们考虑将这两次合并起来询问。</p>
+		<p>此时，返回值是两个询问的和，因此我们希望有一个询问的答案是 $0$，这样就可以通过另一个询问的答案来判断。</p>
+		<p>具体地，我们构造 <code><em>PvPwuPwvPww</em></code>，那么下一个字符为 $u, v, w$ 当且仅当返回的答案为$l, l + 1, l + 2$。且询问串长为 $4l + 7 \leq 4n$ 只需 $l \leq n - 2$。</p>
+		<p>那么，至于最后一个字符，还是通过经典的两次询问解决。</p>
+		<p>这样，总的询问次数就恰好是 $n + 2$。</p>
+		<p>时间复杂度 $O \left( n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "combo.h"
+#include &lt;bits/stdc++.h&gt;
+using std::string;
+
+string guess_sequence(int n) {
+	char first = press("AB") ? (press("A") ? 'A' : 'B') : press("X") ? 'X' : 'Y', rem[3] = {'A', 'B', 'X'};
+	int i, j; string ret(1, first);
+	if (n == 1) return ret;
+	for (i = 0; i &lt; 3; ++i) rem[i] == first ? rem[i] = 'Y' : 0;
+	for (i = 1; i &lt; n - 1; ++i) {
+		j = press(ret + rem[1] + ret + rem[2] + rem[0] + ret + rem[2] + rem[1] + ret + rem[2] + rem[2]);
+		ret.push_back(rem[j - i]);
+	}
+	ret.push_back(press(ret + rem[0]) == n ? rem[0] : press(ret + rem[1]) == n ? rem[1] : rem[2]);
+	return ret;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意特判 $n = 1$ 的情况，此时需要直接 <code>return</code>。</p>
+	</body>
+</html>

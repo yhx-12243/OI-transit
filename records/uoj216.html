@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj216]Jakarta Skyscrapers</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>印尼首都雅加达市有 $10^{18}$ 座摩天楼，它们排列成一条直线，我们从左到右依次将它们编号为 $1$ 到 $10^{18}$ 。除了这 $10^{18}$ 座摩天楼外，雅加达市没有其他摩天楼。</p>
+		<p>有 $10^{18}$ 只叫做 "doge" 的神秘生物在雅加达市居住，它们的编号依次是 $1$ 到 $10^{18}$。编号为 $i$ 的 doge 居住于编号为 $i$ 的摩天楼。每只 doge 都有一种神秘的力量，使它们能够不用跳跃就可以在摩天楼之间传递消息，如果编号为 $i$ 的 doge 和一个编号比他小的编号为 $j$ 的 doge 都知道了一个消息，它们可以使用神秘力量将消息传递给编号为 $i - j$ 的 doge。</p>
+		<p>qmqmqm 想知道它们是否掌握了这种力量。他将一条消息告诉了编号为 $a$ 的 doge，又告诉了编号为 $b$ 的 doge ($a$ 可能和 $b$ 相等)，让它们尽快传送给编号为 $c$ 的 doge。</p>
+		<p>请帮助 doge 们计算是否有方法使用不超过 $400$ 次力量将消息传递到 $c$ 号 doge ，或者告诉它们消息不可能在次数限制内传递到 $c$ 号 doge。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含三个正整数 $a, b, c$ ($a, b, c \leq 10^{18}$) 。</p>
+
+		<h3>输出格式</h3>
+		<p>如果不可能在次数限制内传递，输出一行一个整数 $-1$。</p>
+		<p>否则，第一行输出你进行操作的次数 $K$。之后 $K$ 行每行两个正整数表示你这次操作选择的 $i$ 和 $j$。</p>
+
+		<h3>题解</h3>
+		<p>先来寻找在有限步 (不一定是 $400$ 步) 内无解的条件。</p>
+		<p>可以得到，每一次传递，目标 "狗" (doge) 的编号一定不大于两只操作 "狗" 的编号的较大者。因此，不妨设 $a = \max \{a, b\}$，则最终<strong>只有编号不超过 $a$ 的 "狗" 可能得到消息</strong>，其它的 (编号大于 $a$ 的) 狗是不可能得到消息的。</p>
+		<p>因此，如果 $c &gt; \max \{a, b\}$，则无解。</p>
+		<p>另外，可以发现，所有的目标狗的编号都能表示成 <strong>$a$ 和 $b$ 的线性组合</strong>，而两个整数的线性组合，就是它们的 $\gcd$ 的所有倍数！</p>
+		<p>设 $d = \gcd(a, b)$，那么，对于编号不被 $d$ 整除的狗，它也是得不到消息的。</p>
+		<p>因此，$c$ 能得到消息的一个必要条件是：$d \mid c \wedge c \leq \max \{a, b\}$。</p>
+		<p>其实，这个条件也是充分的。</p>
+		<p>首先，可以通过 "更相减损术" 的思想，来让编号为 $d = \gcd(a, b)$ 的狗得到消息，然后，设 $a = \max \{a, b\}$，不停地让 $a$ 去减 $d$，就可以让所有编号为区间 $\left( 0, a \right]$ 中 $d$ 的倍数的狗得到消息。</p>
+		<p>但是使用这种暴力，步数显然会超出限制。那应该怎么优化步数呢？</p>
+		<p>如果是加法，那么你们一定都能猜到——对，就是快速乘 (快速幂) 中的分治思想！</p>
+		<p>将一个乘数转化为二进制形式，然后不停地相加即可。那么减法能做到呢？答案是肯定的，也可以做到！</p>
+		<p>设有两个数，一个是 $N$ (充分大)，一个是 $1$，如何才能得到 $k$ (一个不那么大的数) 呢？具体步骤如下：</p>
+		<ol>
+			<li>$a_1 = N - 1$；</li>
+			<li>$a_2 = N - a_1 = 1; a_3 = a_1 - a_2 = N - 2$；</li>
+			<li>$a_4 = N - a_3 = 2; a_5 = a_3 - a_4 = N - 4$；</li>
+			<li>$a_6 = N - a_5 = 4; a_7 = a_5 - a_6 = N - 8$；</li>
+			<li>……</li>
+		</ol>
+		<p>这样循环往复，我们就能得到大量 $2$ 的幂。</p>
+		<p>此时，我们可以将 $N$ 减去这些 $2$ 的幂，得到 $N - k$，再用 $N$ 减回来，我们就得到了 $k$。</p>
+		<p>这个算法具有很大的启发性。首先，算法的后半部分有 "令 $a$ 不停地去减 $d$" 这种操作，我们只需将上述算法的 $1$ 改成 $d$ 即可。</p>
+		<p>而对于前半部分的 "更相减损术"，看起来它的表现还行，但是当两个数相差太大时就表现得比较差了。这个时候，设两数为 $a, b$ ($a \gg b$)，我们还是可以用上面的算法，拿 $a$ 取减掉 $\left \lfloor \dfrac ab \right \rfloor$ 倍的 $b$ 即可。</p>
+		<p>最后就是<del>激动人心的</del>分析复杂度时间了。</p>
+		<p>先考虑后半部分的复杂度，得到 $2$ 的幂需要 $2 \log n$ 次，最后的快速乘还需要一个 $\log n$。故这里需要 $3 \log n$ 次操作。</p>
+		<p>对于更相减损术，由于这些 $\left \lfloor \dfrac ab \right \rfloor$ 的乘积不超过 $n$，因此它们的 $\log$ 的和就不超过 $\log n$，注意有 $3$ 倍的常数，因此这部分也是约 $3 \log n$ 次操作。</p>
+		<p>于是总步数不超过 $6 \log n + O(1) &lt; 400$，可以通过。</p>
+		<p>此外，由于实际计算过程中会有大量冗余操作，如果像下面代码一样用 <code>std::set</code> 避免生成重复操作，可以将总步数控制在 $250$ 以内。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define gcd std::__gcd
+#define lg2(x) (63 - __builtin_clzll(x))
+
+typedef long long ll;
+typedef std::set &lt;ll&gt; set;
+
+ll a, b, c, d;
+set s;
+
+int ans = 0;
+ll ansX[666], ansY[666];
+
+inline ll push(ll x, ll y) {
+	if (x &gt; y &amp;&amp; y &gt; 0 &amp;&amp; s.insert(x - y).second) ansX[++ans] = x * d, ansY[ans] = y * d;
+	return x - y;
+}
+
+ll solve(ll x, ll y, ll d) { // x - d y
+	int i, L = lg2(d); ll v = push(x, y), t;
+	for (i = 0; i &lt;= L; ++i) t = push(x, v), i == L ? 0 : (v = push(v, t));
+	for (i = 0; i &lt;= L; ++i)
+		if (d &gt;&gt; i &amp; 1)
+			x = push(x, (ll)y &lt;&lt; i);
+	return x;
+}
+
+int main() {
+	int i; ll t;
+	scanf("%lld%lld%lld", &amp;a, &amp;b, &amp;c);
+	if (a &lt; b) std::swap(a, b);
+	if (c &gt; a || c % (d = gcd(a, b))) return puts("-1"), 0;
+	a /= d; b /= d; c /= d; s.insert(a); s.insert(b);
+	for (; b != 1; a = b, b = t) t = solve(a, b, a / b);
+	set::iterator it = s.lower_bound(c);
+	solve(*it, 1, *it - c);
+	printf("%d\n", ans);
+	for (i = 1; i &lt;= ans; ++i) printf("%lld %lld\n", ansX[i], ansY[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意交换 $a, b$ 要在判断 $c$ 之前执行，因为无解判定条件为 $c &gt; \max \{a, b\}$。</p>
+		<p><strong>坑2：</strong>注意在 <code>push</code> 的过程中判定合法性，不要出现诸如 $j = 0$ 或 $j \geq i$ 之类的操作 (如果有则要过滤它)。</p>
+	</body>
+</html>
