@@ -1,0 +1,165 @@
+#!/bin/bash
+
+_help_() {
+	cat <<FY
+A simple clapper.
+Usage: clap [options] [generator] [program1] [program2]
+
+Default value:
+      generator		'./data.py'
+      program1		'./1'
+      program2		'./std'
+
+Options:
+  -c, --compile		re-compile program1 and program2 (must be C++)
+  -f, --file=NAME	output testdata on NAME.in/out/ans
+  -n, --case=N		clapping at most N testcases
+  -t, --time		show running time of all programs instead of '...'
+      --help		display this help and exit
+      --version		output version information and exit
+
+Exit codes:
+      1			the output of program1 and program2 differ
+      2			cannot find file <generator>
+      3			cannot find file <program1>
+      4			cannot find file <program2>
+      50		compilation Error when compile a C++
+      127		parse args error
+FY
+}
+
+_version_() {
+	cat <<FY
+clap 2.00
+License GPLv3+: GNU GPL version 3 or later.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+FY
+}
+
+if [ "$1" = '--help' ]
+then _help_
+	exit 0
+fi
+
+if [ "$1" = '--version' ]
+then _version_
+	exit 0
+fi
+
+if ! fy=$(getopt -o cf:n:t --long compile,file:,case:,time -n 'clap' -- "$@")
+then echo "Try 'clap --help' for more information." >&2
+	exit 127
+fi
+
+eval set -- "$fy"
+
+c=0
+f=''
+n=0
+t=0
+i=0
+
+while :
+do
+	case "$1" in
+		-c|--compile)
+			c=1
+			shift 1
+			;;
+		-f|--file)
+			[[ "$2" =~ ^[[:alnum:]_]+$ ]] && f=$2
+			shift 2
+			;;
+		-n|--case)
+			test $2 -gt 0 && n=$2
+			shift 2
+			;;
+		-t|--time)
+			t=1
+			shift 1
+			;;
+		--)
+			shift 1
+			break
+			;;
+		*)
+			shift 1
+			;;
+	esac
+done
+
+data=${1:-'data.py'}
+pro=${2:-'1'}
+std=${3:-'std'}
+
+compile() {
+	if [ -r "$1.cpp" ]
+	then
+		echo "Compiling $1.cpp ..." >&2
+		if ! g++ "$1.cpp" -o "$1" -O2 -std=c++11 -Wall -Wno-unused-result -static -lm -DONLINE_JUDGE -DFY
+		then exit 50
+		fi
+	else
+		echo "File $1.cpp does not exist !" >&2; exit $2
+	fi
+}
+
+if [ ! -x $data ]
+then
+	echo "File $data does not exist !" >&2; exit 2
+fi
+
+if [ $c -eq 1 ]
+then
+	compile $pro 3
+	compile $std 4
+fi
+
+if [ ! -x $pro ]
+then
+	echo "File $pro does not exist !" >&2; exit 3
+fi
+
+if [ ! -x $std ]
+then
+	echo "File $std does not exist !" >&2; exit 4
+fi
+
+data=$(realpath $data)
+pro=$(realpath $pro)
+std=$(realpath $std)
+If=${f:+$f.}in
+Of=${f:+$f.}out
+Af=${f:+$f.}ans
+
+run() {
+	if [ $t -eq 1 ]
+	then
+		(time $data </dev/null >.$If 2>/dev/null) |& grep 'real' | cut --delimiter='	' --fields=2 | tr '\n' ' ' >&2
+		(time $pro <.$If >.$Of 2>/dev/null) |& grep 'real' | cut --delimiter='	' --fields=2 | tr '\n' ' ' >&2
+		(time $std <.$If >.$Af 2>/dev/null) |& grep 'real' | cut --delimiter='	' --fields=2 | tr '\n' ' ' >&2
+	else
+		$data </dev/null >.$If 2>/dev/null; echo -n '.' >&2
+		$pro <.$If >.$Of 2>/dev/null; echo -n '.' >&2
+		$std <.$If >.$Af 2>/dev/null; echo -n '. ' >&2
+	fi
+}
+
+trap "rm .$If .$Of .$Af; exit 0;" INT
+
+while :
+do	((++i))
+	run
+	if diff -w .$Of .$Af >&2
+	then
+		echo "passed on test $i" >&2
+	else
+		echo "failed on test $i" >&2
+		mv .$If $If
+		mv .$Of $Of
+		mv .$Af $Af
+		exit 1
+	fi
+	test $i -eq $n && { rm .$If .$Of .$Af; exit 0; }
+done

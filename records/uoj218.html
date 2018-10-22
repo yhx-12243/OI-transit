@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj218]火车管理</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>uoj 旗下有一个火车站，用来管理属于 uoj 的小火车。</p>
+		<p>火车站一共有 $n$ 条编号为 $1, \cdots, n$ 的，只有一端的用来存放小火车的铁路，由于小火车特殊的构造，每条铁路可以停放无数辆小火车。每条铁路是相互独立的。</p>
+		<p>铁路是一个栈结构，后停放的小火车可以先出来。</p>
+		<p>每辆小火车有一个吨位 $t$。</p>
+		<p>由于 NOI2016 即将到来，想要跟小火车正面作战的人多了起来，火车站管理员九条可怜每天需要处理很多事件。</p>
+		<p>事件可以概括成一下三种：</p>
+		<ol>
+			<li><code>1 <em>l</em> <em>r</em></code> 有人想跟铁路编号在 $[l, r]$ 的每条铁路的<strong>第一辆可以开出来的小火车</strong>正面战斗，你需要统计这些小火车的吨位之和，没有火车的铁路不计入答案。</li>
+			<li><code>2 <em>l</em></code> 编号为 $l$ 的铁路开走一辆火车，如果这条铁路没有小火车则不开出。</li>
+			<li><code>3 <em>l</em> <em>r</em> <em>x</em></code> 铁路编号在 $[l, r]$ 的每条铁路都新停放一辆吨位为 $x$ 的火车。</li>
+		</ol>
+		<p>现在管理员九条可怜要去南海前线了，你需要替他管理火车站。</p>
+		<p>由于火车站很忙，所以你需要实时反馈信息，我们会用一些手段要求你强制在线，具体请看输入格式。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, m, \mathrm{ty}$ ($1 \leq n, m \leq 5 \times 10^5; ty \in \{0, 1\}$) 表示铁路的数量、操作次数以及是否强制在线。</p>
+		<p>接下来 $m$ 行，每行 $2 \sim 4$ 个整数表示一次操作。</p>
+		<p>为了实时反馈信息，你需要解密 $l, r$，设读入的是 $l_1, r_1$，则实际的值如下：</p>
+		<p>\begin{eqnarray}
+l_2 &amp; = &amp; (l_1 + \mathrm{lastans} \cdot \mathrm{ty}) \bmod n + 1 \\
+r_2 &amp; = &amp; (r_1 + \mathrm{lastans} \cdot \mathrm{ty}) \bmod n + 1 \\
+l   &amp; = &amp; \min \left\{ l_2, r_2 \right\} \\
+r   &amp; = &amp; \max \left\{ l_2, r_2 \right\} \\
+\end{eqnarray}</p>
+		<p>$\mathrm{lastans}$ 表示上一次询问的答案，如果之前没有询问则为 $0$。</p>
+		<p>当你进行的是第二类操作时，只需要令 $l = \left( l_1 + \mathrm{lastans} \cdot \mathrm{ty} \right) \bmod n + 1$ 即可。</p>
+		<p>输入数据保证 $1 \leq l_1, r_1 \leq n; 1 \leq x \leq 10^3$。</p>
+		<p><strong style="color: red">注意，我们并没有加密吨位和操作类型。</strong></p>
+
+		<h3>输出格式</h3>
+		<p>对于每个询问，输出一行一个整数，表示答案。</p>
+
+		<h3>题解</h3>
+		<p>题目相当于有 $n$ 个栈，要求支持三种操作：区间入栈、单点弹栈、区间求栈顶和。</p>
+		<p>如果只有 $1, 3$ 两种操作，那么就相当于一个区间修改、区间求和的问题，直接用线段树维护栈顶即可。</p>
+		<p>现在考虑加上了单点弹栈操作，那么对于栈顶线段树来说，相当于一个单点修改。</p>
+		<p>如果我们能知道这个单点修改会被改成多少，那么就直接用线段树维护栈顶即可，于是问题解决。</p>
+		<p>于是现在的问题就是，要快速得到每个栈被弹栈顶后，新的栈顶是多少。</p>
+		<p>由于入栈、出栈有一个先后顺序——如果栈顶不弹出，则被它压在下面的元素无法改变。因此我们尝试使用可持久化线段树来辅助实现这个时间戳。</p>
+		<p>具体地，再创建一个可持久化线段树，每个节点维护当前栈顶的<strong>入栈时间戳</strong>，这样弹栈的时候，设当前栈顶的入栈时间戳为 $t$，那么访问时刻为 $t - 1$ 的线段树即可得到 (弹出后) 新的栈顶。</p>
+		<p>我们来看一下，对于这个可持久化线段树，需要滋磁哪些操作。</p>
+		<p>对于操作 1 (询问)，那是栈顶线段树干的事情，与这个可持久化线段树无关。</p>
+		<p>对于操作 2 (弹栈)，那就是两次单点查询的事情 (查 $2$ 次栈顶) 以及单点修改。</p>
+		<p>对于操作 3 (入栈)，就是一个区间赋值。</p>
+		<p>于是我们需要实现在可持久化线段树上区间赋值。注意到赋值标记<strong>不具有交换律</strong>，因此需要实时下传标记。</p>
+		<p>时空复杂度均为 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 500100
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+
+int n, q, ty;
+int root[N], weight[N];
+
+namespace stack {
+	struct node {
+		int v, tag, lc, rc;
+		node (int _v = 0, int _tag = 0, int _lc = 0, int _rc = 0) : v(_v), tag(_tag), lc(_lc), rc(_rc) {}
+	} x[58800000];
+	int cnt = 0;
+
+	int adj(int id, int L, int R, int ql, int qr, int v, node z = node()) {
+		int nid = ++cnt; x[nid] = x[id];
+		if (z.tag) x[nid].tag = 1, x[nid].v = z.v;
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[nid].tag = 1, x[nid].v = v, nid;
+		int M = (L + R - 1) &gt;&gt; 1;
+		if (ql &gt; qr) return nid;
+		if (x[nid].tag || ql &lt;= M) x[nid].lc = adj(x[id].lc, L, M, ql, std::min(qr, M), v, x[nid]);
+		if (x[nid].tag || qr &gt; M) x[nid].rc = adj(x[id].rc, M + 1, R, std::max(ql, M + 1), qr, v, x[nid]);
+		x[nid].tag = 0;
+		return nid;
+	}	
+
+	int query(int id, int L, int R, int h) {
+		if (!id) return 0;
+		if (x[id].tag) return x[id].v;
+		int M = (L + R - 1) &gt;&gt; 1;
+		return h &lt;= M ? query(x[id].lc, L, M, h) : query(x[id].rc, M + 1, R, h);
+	}
+}
+
+namespace answer {
+	struct node {int v, tag;} x[N * 4];
+
+	void push_down(int id, int lc, int rc, int lw, int rw) {
+		x[lc].v = x[id].tag * lw; x[rc].v = x[id].tag * rw;
+		x[lc].tag = x[rc].tag = x[id].tag; x[id].tag = 0;
+	}
+
+	void adj(int id, int L, int R, int ql, int qr, int v) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) {x[id].v = v * (R - L + 1); x[id].tag = v; return;}
+		segc; if (x[id].tag) push_down(id, lc, rc, M - L + 1, R - M);
+		if (ql &lt;= M) adj(lc, L, M, ql, std::min(qr, M), v);
+		if (qr &gt; M) adj(rc, M + 1, R, std::max(ql, M + 1), qr, v);
+		x[id].v = x[lc].v + x[rc].v;
+	}
+
+	int range(int id, int L, int R, int ql, int qr) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id].v;
+		segc, s = 0; if (x[id].tag) push_down(id, lc, rc, M - L + 1, R - M);
+		if (ql &lt;= M) s += range(lc, L, M, ql, std::min(qr, M));
+		if (qr &gt; M) s += range(rc, M + 1, R, std::max(ql, M + 1), qr);
+		return s;
+	}
+}
+
+int main() {
+	int i, t, l, r, op, ans = 0;
+	scanf("%d%d%d", &amp;n, &amp;q, &amp;ty);
+	for (i = 1; i &lt;= q; ++i)
+		switch (root[i] = root[i - 1], scanf("%d", &amp;op), op) {
+			case 1: {
+				scanf("%d%d", &amp;l, &amp;r);
+				l = (l + ans * ty) % n + 1;
+				r = (r + ans * ty) % n + 1;
+				if (l &gt; r) std::swap(l, r);
+				ans = answer::range(1, 1, n, l, r);
+				printf("%d\n", ans);
+				break;
+			}
+			case 2: {
+				scanf("%d", &amp;l);
+				l = (l + ans * ty) % n + 1;
+				t = stack::query(root[i], 1, n, l);
+				if (t) {
+					t = stack::query(root[t - 1], 1, n, l);
+					answer::adj(1, 1, n, l, l, weight[t]);
+					root[i] = stack::adj(root[i], 1, n, l, l, t);
+				}
+				break;
+			}
+			case 3: {
+				scanf("%d%d%d", &amp;l, &amp;r, weight + i);
+				l = (l + ans * ty) % n + 1;
+				r = (r + ans * ty) % n + 1;
+				if (l &gt; r) std::swap(l, r);
+				answer::adj(1, 1, n, l, r, weight[i]);
+				root[i] = stack::adj(root[i], 1, n, l, r, i);
+				break;
+			}
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意可持久化线段树区间赋值的写法，不要创建太多无用节点，减少空间常数。</p>
+	</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj225]奥利匹克五子棋</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>五子棋是 Picks 博士发明的一款益智类游戏。为了加大难度，这里的五子棋实则是 "$k$ 子棋"。</p>
+		<p>游戏规则很简单，游戏双方分别使用黑白两色的棋子，下在 $n \times m$ 的棋盘上，先形成 $k$ 子连成一条直线的一方获胜。即，若己方有连续的 $k$ 个棋子形成方向为上下、左右、左上右下、左下右上四个方向之一的直线，就可以获得胜利。</p>
+		<p>但没想到的是，“最强跳蚤”和伏特跳蚤国王不仅跳得比谁都高，知识水平也是不相上下。啊我们看到，在第 66 局他们再一次打成了平局……</p>
+		<p>现在是我们的有奖竞猜环节！大家可以来猜猜下一个平局是怎么产生的呢？最早给出答案的观众可以获得小火车一列哦。</p>
+		<p>现在，你作为一名观众想参与到竞猜环节中。但首先，你需要构造一个下棋过程使得填满整个棋盘之后也没有连续 $k$ 个同色棋子在这四个方向上排成一条直线。</p>
+		<p>注意，$n \times m$ 可能为奇数，此时先手会比后手多下一步棋。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含三个正整数 $n, m, k$ ($n, m \leq 500; k \leq 10^9$)，意义如前所述。</p>
+
+		<h3>输出格式</h3>
+		<p>如果双方不能打成平局，输出 $-1$；</p>
+		<p>否则输出 $n \times m$ 行，第 $i$ 行两个整数 $x_i, y_i$ 表示第 $i$ 次落子的坐标为第 $x_i$ 行第 $y_i$ 列。黑子先行，所以 $i$ 为奇数时为黑方落子，$i$ 为偶数时白方落子。坐标需满足 $1 \le x_i \le n, 1 \le y_i \le m$。</p>
+
+		<h3>题解</h3>
+		<p>先来寻找无解的条件：</p>
+		<p>当 $n = 1$ 或 $m = 1$ 时，不妨设 $n = 1$，则 $k = 1$ 时显然无解，$k \geq 2$ 只需黑白交错即可有解。</p>
+		<p>接下来考虑一般的情况。$k = 1$ 时还是无解，考虑 $k = 2$ 的情况。</p>
+		<p>由于 $\min \{n, m\} \geq 2$，因此一定存在一个 $2 \times 2$ 的子棋盘。如果这个子棋盘上有 $2$ 个黑子，则一定存在两个黑子共线，否则，一定存在 $2$ 个白子，故有两个白子共线。</p>
+		<p>因此 $k = 2$ 也是无解的。现在考虑 $k \geq 3$ 的情况，如果我们对 $k = 3$ 给出了一个构造，即不存在 $3$ 个同色棋子共线，那么这个构造对于所有 $k \geq 3$ 都是适用的。</p>
+		<p>这个具体的构造如下表所示，其中第 $i$ 行第 $j$ 列的数为 $\left( i + \left \lfloor \dfrac j2 \right \rfloor \right) \bmod 2$：</p>
+		<pre>10011001100...
+01100110011...
+10011001100...
+01100110011...
+10011001100...
+</pre>
+		<p>容易证明，不存在 $3$ 个 (同色) 棋子在横向、纵向、斜向共线，从而这个构造符合第一个要求。</p>
+		<p>第二个要求即为，两种颜色的棋子的数量差不超过 $1$ (否则这个局面无法下成)。</p>
+		<p>如果 $n$ 是偶数，则每一列包含 $\dfrac n2$ 个 $0$ 和 $\dfrac n2$ 个 $1$，从而符合要求。</p>
+		<p>如果 $m$ 是偶数，则每一行包含 $\dfrac m2$ 个 $0$ 和 $\dfrac m2$ 个 $1$，也满足要求。</p>
+		<p>如果 $n, m$ 都是奇数，则前 $n - 1$ 行的 $0, 1$ 可以相互配对 (两行两行配对)，最后一行 $1$ 的个数前 $m - 1$ 个数中也恰好包含 $0, 1$ 各一半，因此也是满足要求的。</p>
+		<p>于是 $k \geq 3$ 的情况成功构造，总时间复杂度为 $O \left( n m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 510
+
+int n, m, k;
+int fy[2][N * N], *x = *fy, *y = fy[1];
+
+int one_line() {
+	if (k == 1) return puts("-1"), 0;
+	for (int i = 1; i &lt; n + m; ++i) printf(n == 1 ? "1 %d\n" : "%d 1\n", i);
+	return 0;
+}
+
+int main() {
+	int i, j;
+	scanf("%d%d%d", &amp;n, &amp;m, &amp;k);
+	if (n == 1 || m == 1) return one_line();
+	if (k &lt;= 2) return puts("-1"), 0;
+	for (i = n; i; --i)
+		for (j = m; j; --j)
+			((i ^ j &gt;&gt; 1) &amp; 1 ? x[++*x] : y[++*y]) = i &lt;&lt; 16 | j;
+	for (*x &lt; *y ? std::swap(x, y) : (void)0; *x &amp;&amp; *y; --*x, --*y)
+		printf("%d %d\n%d %d\n", x[*x] &gt;&gt; 16, x[*x] &amp; 65535, y[*y] &gt;&gt; 16, y[*y] &amp; 65535);
+	if (*x) printf("%d %d\n", x[*x] &gt;&gt; 16, x[*x] &amp; 65535);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>不要忘记特判 $\min \{n, m\} = 1$ 的情况，此时 $k = 2$ 是可行的。</p>
+	</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj228]基础数据结构练习题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给出一个长度为 $n$ 的数列 $A$，接下来有 $m$ 次操作，操作有三种：</p>
+		<ol>
+			<li>对于所有的 $i \in [l, r]$，将 $A_i$ 变成 $A_i + x$。</li>
+			<li>对于所有的 $i \in [l, r]$，将 $A_i$ 变成 $\left \lfloor \sqrt {A_i} \right \rfloor$。</li>
+			<li>对于所有的 $i \in [l, r]$，询问 $A_i$ 的和。</li>
+		</ol>
+		<p>作为一个不怎么熟练的初学者，Sylvia 想了好久都没做出来。而可怜酱又外出旅游去了，一时间联系不上。于是她决定向你寻求帮助：你能帮她解决这个问题吗。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行把包含两个正整数 $n, m$ ($n, m \leq 10^5$)，表示数列的长度和操作的次数。</p>
+		<p>第二行包含 $n$ 个正整数 $A_1, A_2, \cdots, A_n$ ($1 \leq A_i \leq 10^5$)。</p>
+		<p>接下来 $m$ 行，第 $i$ 行第一个数 $t_i$ 表示操作类型：</p>
+		<p>若 $t_i = 1$，则接下来三个整数 $l_i, r_i, x_i$ ($1 \leq x_i \leq 10^5$)，表示操作一。</p>
+		<p>若 $t_i = 2$，则接下来三个整数 $l_i, r_i$，表示操作二。</p>
+		<p>若 $t_i = 3$，则接下来三个整数 $l_i, r_i$，表示操作三。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个询问操作，输出一行一个整数，表示答案。</p>
+
+		<h3>题解</h3>
+		<p>容易注意到，一个数进行开方，不需要多少次 ($O \left( \log \log n \right)$ 次) 即可达到 $1$。</p>
+		<p>因此，如果数据是纯随机的，则不上几次就有一大片数为 $1$ (或相同)。我们维护每个区间的最小值和最大值，如果它们相等，那么说明这个区间的所有数都相等，从而容易处理。</p>
+		<p>否则的话，直接向下递归操作。直到这个区间满足 $\min = \max$，一次操作即可。</p>
+		<p>这个算法看起来很靠谱 (在随机数据上)，但实际上交了一发发现 TLE 了。</p>
+		<p>因为这个算法复杂度的依据是，开方操作后，$\max - \min$ 的值变小，但是，有一种情况下，$\max - \min$ 的值不会减少。</p>
+		<p>考虑 $k^2 - 1, k^2, k^2 - 1, k^2, \cdots$，其中 $\max - \min = 1$，将它开方后得到了 $k - 1, k, k - 1, k, \cdots$，$\max - \min$ 还是等于 $1$。而加法不操作不改变 $\left( \max - \min \right)$ 的值，因此，只需对新的序列再加上 $k^2 - k$，又回到了原来的情况。</p>
+		<p>于是在这种情况下，上述算法的时间复杂度成功退化到 $O \left( n m \right)$。</p>
+		<p>那又该怎么办呢？其实很简单，因为，<strong>只有上面这种情况</strong> (以及所有数都相等的情况)，开方后能保证 $\max - \min$ 不变 (容易归纳证明，这里略去)。</p>
+		<p>因此，我们只需特殊处理这种情况——即如果 $\max - \min = 1$ 时，判断较大数是否为平方数，如果是平方数，我们直接对这个序列作一个区间减法——减去 $\left( k^2 - k \right)$。</p>
+		<p>这样总时间复杂度就有保证了，为 $O \left( n \log n + m \log n \log \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100010
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+
+typedef long long ll;
+
+struct node {
+	ll v, tag, min, max;
+} x[N * 4];
+
+int n, q;
+int a[N];
+
+inline bool ok(ll x) {ll t = sqrt(x + 0.5); return t * t == x;}
+
+inline void update(node &amp;ret, const node a, const node b) {ret.v = a.v + b.v; ret.min = std::min(a.min, b.min); ret.max = std::max(a.max, b.max);}
+
+void push_down(int id, int lc, int rc, int lw, int rw) {
+	x[lc].v += x[id].tag * lw; x[rc].v += x[id].tag * rw;
+	x[lc].min += x[id].tag; x[rc].min += x[id].tag;
+	x[lc].max += x[id].tag; x[rc].max += x[id].tag;
+	x[lc].tag += x[id].tag; x[rc].tag += x[id].tag; x[id].tag = 0;
+}
+
+void build(int id, int L, int R) {
+	if (L == R) {x[id].min = x[id].max = x[id].v = a[L]; x[id].tag = 0; return;}
+	segc; build(lc, L, M); build(rc, M + 1, R);
+	update(x[id], x[lc], x[rc]);
+}
+
+void add(int id, int L, int R, int ql, int qr, ll v) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) {x[id].v += v * (R - L + 1); x[id].min += v; x[id].max += v; x[id].tag += v; return;}
+	segc; if (x[id].tag) push_down(id, lc, rc, M - L + 1, R - M);
+	if (ql &lt;= M) add(lc, L, M, ql, std::min(qr, M), v);
+	if (qr &gt; M) add(rc, M + 1, R, std::max(ql, M + 1), qr, v);
+	update(x[id], x[lc], x[rc]);
+}
+
+void Sqrt(int id, int L, int R, int ql, int qr) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr)
+		if (x[id].min == x[id].max || (x[id].min + 1 == x[id].max &amp;&amp; ok(x[id].max)))
+			return add(id, L, R, ql, qr, (ll)sqrt(x[id].min) - x[id].min);
+	segc; if (x[id].tag) push_down(id, lc, rc, M - L + 1, R - M);
+	if (ql &lt;= M) Sqrt(lc, L, M, ql, std::min(qr, M));
+	if (qr &gt; M) Sqrt(rc, M + 1, R, std::max(ql, M + 1), qr);
+	update(x[id], x[lc], x[rc]);
+}
+
+ll range(int id, int L, int R, int ql, int qr) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id].v;
+	segc; ll s = 0; if (x[id].tag) push_down(id, lc, rc, M - L + 1, R - M);
+	if (ql &lt;= M) s += range(lc, L, M, ql, std::min(qr, M));
+	if (qr &gt; M) s += range(rc, M + 1, R, std::max(ql, M + 1), qr);
+	return s;
+}
+
+int main() {
+	int i, l, r, x, op;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	for (build(1, 1, n); q; --q)
+		switch (scanf("%d%d%d", &amp;op, &amp;l, &amp;r), op) {
+			case 1:
+				scanf("%d", &amp;x);
+				add(1, 1, n, l, r, x);
+				break;
+			case 2:
+				Sqrt(1, 1, n, l, r);
+				break;
+			case 3:
+				printf("%lld\n", range(1, 1, n, l, r));
+				break;
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在区间开方的过程中，可以将它看成减数为 $\left( k^2 - k \right)$ 的区间减法，避免了区间赋值的麻烦。</p>
+	</body>
+</html>
