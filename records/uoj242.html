@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj242]破坏蛋糕</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>平面上有 $n + 1$ 条直线，前 $n$ 条直线把平面分成许多块，这些块有些面积有限，有些面积无限。而第 $n + 1$ 条直线不经过前 $n$ 条直线的交点，且一定不和前 $n$ 条直线中的任意一条平行。求第 $n + 1$ 条直线被前 $n$ 条直线划分成的 $n + 1$ 段中哪些在面积有限的块里，哪些在面积无限的块里。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($3 \leq n \leq 10^5$)，意义如前所述。</p>
+		<p>接下来 $n + 1$ 行，第 $i$ 行 $4$ 个整数 $x_1, y_1, x_2, y_2$ ($-2 \times 10^6 \leq x_1, y_1, x_2, y_2 \leq 10^6$)，表示第 $i$ 条直线经过 $\left( x_1, y_1 \right)$ 和 $\left( x_2, y_2 \right)$ 两点。</p>
+		<p>保证第 $n + 1$ 条直线不经过前 $n$ 条直线的交点，且一定不和前 $n$ 条直线中的任意一条平行或重合。</p>
+		<p>保证第 $n + 1$ 条直线不与 $x$ 轴垂直，且对于第 $n + 1$ 条直线有 $x_1 &lt; x_2$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行长度为 $n + 1$ 的 01 串，第 $x$ 个数字如果为 $0$ 则表示第 $x$ 段是在面积无限的块里，如果为 $1$ 则表示第 $x$ 段是在面积有限的块里。</p>
+		<p>请注意，段的输出顺序必须是<strong>从左到右</strong>。由于第 $n + 1$ 条直线不与 $x$ 轴垂直，所以从左到右的顺序总是存在的。</p>
+
+		<h3>题解</h3>
+		<p>先来考虑，如何判定一个点 $P$ 所在的 "块" 是有界的还是无界的。</p>
+		<p>显然，我们可以枚举每一条直线，找到包含点 $P$ 的那个半平面，对所有这些半平面做一次<a href="lydsy4445%3Bloj2008.html" target="_blank"><strong>半平面交</strong></a>，即可判断。</p>
+		<p>当然，这个做法显得太愚蠢了。因为我们只需要知道它是否有界，而不需要更具体的信息。</p>
+		<p>我们来观察一个半平面无界所需要满足的性质。</p>
+		<p>考虑半平面交中最边上的两条直线 (半平面)，可知它们的交在半平面的另一侧。</p>
+		<p>由 Euclid 平行公设知，这两条边的法向量 (在半平面交一侧) 的夹角 $\geq 180^\circ$。</p>
+		<p>于是对于一个点 $P$，判断它所在的 "块" 是否有界，可以使用如下算法：</p>
+		<p>先计算出所有直线 (指向点 $P$ 一侧) 的法向量 (即所有半平面的法向量)，然后按照极角排序，如果存在<strong>两个相邻的向量</strong>之间的夹角 $\geq 180^\circ$，则半平面无解，反之半平面有界。</p>
+		<p>回到原题。首先，将直线表示为 $A x + B y + C = 0$ 后，容易求出第 $n + 1$ 条直线与前 $n$ 条直线的交点 $P_1, P_2, \cdots, P_n$。</p>
+		<p>那么，易知第一段和最后一段所在的半平面一定无界，剩下的 $n - 1$ 段可以分别对 $P_1 P_2$ 的中点、$P_2 P_3$ 的中点、……、$P_{n-1} P_n$ 的中点使用上述算法判定。
+		<p>如果对每个点都暴力维护所有的法向量，这样时间复杂度就会升到 $O \left( n^2 \right)$，不可接受。</p>
+		<p>但是我们注意到，对于相邻的两个<strong>中点</strong>，它们只穿过了一条直线。因此，<strong>只有一条直线的法向量</strong>的方向会发生反转，其余的向量是不变的。</p>
+		<p>所以是不是想到了什么来维护呢？对，使用平衡树或 <code>std::set</code> 来维护向量！</p>
+		<p>我们需要支持，插入一个向量，删除一个向量，统计有多少对相邻的向量夹角 $\geq 180^\circ$。这些都是计算几何比较基础的内容，这里就不再赘述了。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100010
+
+const double eps = 1e-8;
+
+int n, cnt = 0;
+int ord[N];
+char ans[N];
+
+struct vec2 {
+	double x, y;
+	vec2 (double x0 = 0.0, double y0 = 0.0) : x(x0), y(y0) {}
+	vec2 * read() {scanf("%lf%lf", &amp;x, &amp;y); return this;}
+	inline vec2 operator - () const {return vec2(-x, -y);}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline vec2 operator * (double k) const {return vec2(x * k, y * k);}
+	inline vec2 operator / (double k) const {return *this * (1.0 / k);}
+	inline double operator * (const vec2 &amp;B) const {return x * B.x + y * B.y;}
+	inline double operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}
+	inline double norm2() const {return *this * *this;}
+	inline bool operator &lt;&lt; (const vec2 &amp;B) const {return x &lt; B.x - eps || (x &lt; B.x + eps &amp;&amp; y &lt; B.y);}
+	inline bool operator &lt; (const vec2 &amp;B) const {
+		return (y &lt; -eps) ^ (B.y &lt; -eps) ? B.y &lt; -eps :
+			(*this ^ B) &gt; eps || ((*this ^ B) &gt; -eps &amp;&amp; x &gt; eps &amp;&amp; B.x &lt; -eps);
+	}
+} in[N], nm[N];
+
+struct line {
+	double A, B, C;
+	line (double A0 = 0.0, double B0 = 0.0, double C0 = 0.0) : A(A0), B(B0), C(C0) {}
+	line (const vec2 &amp;u, const vec2 &amp;v) {A = u.y - v.y; B = v.x - u.x; C = u ^ v;}
+	inline vec2 normVec() const {return vec2(A, B);}
+} l[N], L;
+
+typedef std::multiset &lt;vec2&gt; set;
+set s;
+
+inline double substitute(const vec2 &amp;P, const line &amp;l) {return l.A * P.x + l.B * P.y + l.C;}
+
+inline vec2 intersection(const line &amp;u, const line &amp;v) {
+	double Det = 1.0 / (u.A * v.B - u.B * v.A);
+	return vec2(u.B * v.C - u.C * v.B, u.C * v.A - u.A * v.C) * Det;
+}
+
+inline bool cmp(const int x, const int y) {return in[x] &lt;&lt; in[y];}
+
+inline bool judge(const vec2 &amp;P, const vec2 &amp;Q) {return (P ^ Q) &lt; -eps || ((P ^ Q) &lt; eps &amp;&amp; P * Q &lt; 0);}
+
+void insert(const vec2 &amp;P) {
+	set::iterator it = s.emplace(P), jt = it; ++jt;
+//	printf("insert (%.8lg, %.8lg)\n", P.x, P.y);
+	if (jt != s.end()) cnt += judge(P, *jt);
+	if (it != s.begin())
+		if (cnt += judge(*--it, P), jt != s.end()) cnt -= judge(*it, *jt);
+}
+
+void erase(const vec2 &amp;P) {
+	set::iterator it = s.find(P), jt;
+	assert(it != s.end()); it = jt = s.erase(it);
+//	printf("erase (%.8lg, %.8lg)\n", P.x, P.y);
+	if (jt != s.end()) cnt -= judge(P, *jt);
+	if (it != s.begin())
+		if (cnt -= judge(*--it, P), jt != s.end()) cnt += judge(*it, *jt);
+}
+
+inline bool answer() {return !cnt &amp;&amp; (*s.begin() ^ *s.rbegin()) &lt; -eps;}
+
+int main() {
+	int i, j; vec2 P, Q;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) l[i] = line(*P.read(), *Q.read());
+	L = line(*P.read(), *Q.read());
+	for (i = 1; i &lt;= n; ++i) in[i] = intersection(L, l[i]), ord[i] = i;
+//	printf("in[%d] = (%.8lg, %.8lg)\n", i, in[i].x, in[i].y);
+	std::sort(ord + 1, ord + (n + 1), cmp);
+	P = (in[ord[1]] + in[ord[2]]) * 0.5;
+	for (i = 1; i &lt;= n; ++i)
+		insert(nm[i] = (substitute(P, l[i]) &gt; 0 ? l[i].normVec() : -l[i].normVec()));
+	ans[0] = ans[n] = 48; ans[1] = 48 | answer();
+	for (j = 2; j &lt; n; ++j) {
+		i = ord[j]; erase(nm[i]); insert(-nm[i]); ans[j] = 48 | answer();
+	}
+	puts(ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在计算几何中，应<strong>尽可能避免使用 <code>atan2</code> 系列函数</strong>，主要原因有两点：一是它们的常数因子会比较大，导致卡常数；二是它们的精度误差也会比较大，导致卡精度。具体实现时，可以使用向量外积等技巧来判断角度 (以及极角排序)。</p>
+		<p><strong>坑2：</strong>在使用叉积 $\left[ 0, 2 \pi \right)-$极角排序时，注意跨过 $x$ 轴的情况，此时不能直接求外积，需要特判 $y_A \cdot y_B &lt; 0$ 及 $y_A \cdot y_B = 0$ 的情况。</p>
+	</body>
+</html>

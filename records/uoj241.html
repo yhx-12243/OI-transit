@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj241]破坏发射台</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>长度为 $n$ 的环，每个点染色，有 $m$ 种颜色，要求相邻相对不能同色，求方案数。(定义两个点相对为去掉这两个点后环能被分成相同大小的两段)</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, m$ ($3 \leq n \leq 10^9; 1 \leq m \leq 10^9$)，意义如前所述。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示能使方案数模 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 的值。</p>
+
+		<h3>题解</h3>
+		<p>由于当 $n$ 为奇数时，不存在相对的顶点，因此限制就转化为只有相邻的顶点。</p>
+		<p>先考虑 DP。设 $f_i$ 表示长度为 $i$ 的<strong>链</strong>，第 $1$ 个点和第 $i$ 个点均为颜色 $1$ 的方案数。</p>
+		<p>再令 $g_i$ 表示长度为 $i$ 的链，第 $1$ 个点是颜色 $1$，第 $i$ 个点为颜色 $k$ ($k \neq 1$) 的方案数 (注：这里 $g_i$ <strong>不是</strong> "颜色不为 $1$ 的方案数"，而是颜色为某个其它色的方案数，两者相差 $m - 1$ 倍)。</p>
+		<p>容易发现，答案就是 $m \cdot f_{n + 1}$，边界为 $f_1 = 1; g_1 = 0$。考虑转移：</p>
+		<p>对于 $f_i$，则第 $i - 1$ 个点必须不能为 $1$ 色，因此有 $$ f_i = (m - 1) \cdot g_{i-1} \tag 1 \label 1 $$</p>
+		<p>对于 $g_i$，则第 $i - 1$ 个点要为 $1$ 色或其它不为 $c_i$ 的颜色，因此有 $$ g_i = f_{i-1} + (m - 2) \cdot g_{i-1} \tag 2 \label 2 $$</p>
+		<p>式 $\eqref 2 \times m - 1$，有 $$ (m - 1) g_i = (m - 1) f_{i-1} + (m - 1) (m - 2) g_{i-1} $$</p>
+		<p>再代入式 $\eqref 1$，得 $$ f_{i+1} = (m - 2) f_i + (m - 1) f_{i-1} \tag 3 \label 3 $$</p>
+		<p>于是，我们得到了一个关于 $f_n$ 的<strong>线性齐次递推式</strong>，其中 $f_1 = 1, f_2 = 0$。</p>
+		<p>我们使用特征根法，解得 $\eqref 3$ 式的两个特征根为 $x_1 = m - 1, x_2 = -1$。解一个二元一次方程组可得</p>
+		<p>$$ f_i = \frac {m - 1} m \left( (m - 1)^{i - 2} - (-1)^i \right) $$</p>
+		<p>因此，当 $n$ 为奇数时，答案等于 $$ m \cdot f_{n+1} = (m - 1) \left( (m - 1)^{n - 1} - 1 \right) $$</p>
+		<hr />
+		<p>接下来是 $n$ 为偶数的情况。</p>
+		<p>此时由于存在相对的顶点，因此情况会复杂许多。不过首先要做的，还是列出转移方程。</p>
+		<p>转移时，我们可以固定第 $1$ 个点为 $1$ 色，第 $1 + \dfrac n2$ 个点为 $2$ 色。然后同时转移 $i$ 和 $i + \dfrac n2$，并再记录两维状态—— 第 $i$ 个点是否为 $1$ 色和 $2$ 色，第 $i + \dfrac n2$ 个点是否为 $1$ 色和 $2$ 色。</p>
+		<p>于是总的状态数就是 <code>f[n][3][3]</code> 级别，然而每一轮转移都是线性的。当然，用矩阵快速幂或多项式快速幂可以<del>比较懒地</del>解决这个问题。当然，这里有一些变量是恒等的，本质不同的状态只有 $6n$ 种。但是，它还是可以通过基础的代数变形来得到只关于一个变量的线性齐次递推式。</p>
+		<p>设答案数组为 $A_n$，类似奇数时所用的方法，则有 (当然如果笔算困难则可以使用一些辅助计算工具，<del>比如 Wolfram Mathematica</del>)</p>
+		<p>$$ \begin{align*}
+A_{i+1} = &amp; \left( 12 - 7m + m^2 \right) A_i \\
++ &amp; \left( -57 + 67 m - 27 m^2 + 4 m^3 \right) A_{i-1} \\
++ &amp; \left( 136 - 242 m + 162 m^2 - 50 m^3 + 6 m^4 \right) A_{i-2} \\
++ &amp; \left( -171 + 410 m - 386 m^2 + 182 m^3 - 43 m^4 + 4 m^5 \right) A_{i-3} \\
++ &amp; \left( 108 - 327 m + 397 m^2 - 250 m^3 + 86 m^4 - 15 m^5 + m^6 \right) A_{i-4} \\
++ &amp; \left( -27 + 99 m - 147 m^2 + 114 m^3 - 49 m^4 + 11 m^5 - m^6 \right) A_{i-5}
+\end{align*} \tag 4 \label 4 $$</p>
+		<p><del>(其实上面的式子并不算复杂，我只是把完全展开的形式写了下来)</del></p>
+		<p>还是使用特征根法，解得 $\eqref 4$ 式的 $6$ 个特征根分别为 $x_1 = x_2 = 3 - m, x_3 = x_4 = 1 - m, x_5 = m^2 - 3m + 3, x_6 = 1$，解一个六元一次方程组即得</p>
+		<p>$$ A_n = \left( (3 - m)^n - (1 - m)^n \right) \cdot m + \left( m^2 - 3m + 3 \right)^n - 1 $$</p>
+		<p>上式即为 $n$ 为偶数时的答案。</p>
+		<p>总时间复杂度 $O \left( \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const ll mod = 998244353;
+
+int n, m, ans = 0;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+int main() {
+	scanf("%d%d", &amp;n, &amp;m); --m;
+	if (n &amp; 1) return printf("%lld\n", (PowerMod(m, n) + mod - m) % mod), 0;
+	n &gt;&gt;= 1;
+	ans = ((PowerMod(2 - m, n) - PowerMod(-m, n)) * m % mod + PowerMod((m * (m - 1ll) + 1) % mod, n) - 1) % mod;
+	printf("%lld\n", ans + (ans &gt;&gt; 31 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在计算时，注意中间过程可能是负的，应该及时加回来。</p>
+	</body>
+</html>

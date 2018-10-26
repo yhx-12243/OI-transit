@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj226]奥林匹克环城马拉松</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>首先我来介绍一下比赛场地，微分方城有 $n$ 个路口，编号为 $1, 2, \cdots, n$。共有 $m$ 对路口间有无向道路相连，其中第 $i$ 对为 $u_i$ 号路口与 $v_i$ 号路口，且他们之间有 $t_i$ 条<strong>不同的无向道路</strong>。微分方城内<strong>任意两个路口都可以通过道路直接或间接到达</strong>，但由于微分方城的财政问题，有道路相连的路口对数 $m$ 不会超过 $n$。</p>
+		<p>现在，最强跳蚤和跳蚤国王的马拉松需要绕微分方城一周，即从某个起始点出发经过若干道路，再回到起始点。并且组委会规定，每条道路必须经过恰好一次。</p>
+		<p>那么问题来了，请观众朋友们数一数，一共有多少种环城马拉松的路线？最早给出答案的观众可以获得大火车一列哦。</p>
+		<p>路线可以认为是一个从某个点出发，由经过的道路<strong>编号</strong>和<strong>方向</strong>组成的序列。两条路线被认为是<strong>相同的</strong>当且仅当两序列相同，或更换起始边后两序列相同。请求出本质不同的路线的条数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n - 1 \leq m \leq n \leq 1000$)，意义如前所述。</p>
+		<p>接下来 $m$ 行，每行三个正整数 $u_i, v_i, t_i$ ($1 \leq u_i, v_i \leq n; u_i \neq v_i; 1 \leq t_i \leq 10000$)，表示 $u_i$ 到 $v_i$ 有 $t_i$ 条不同的无向道路。保证一对路口不会被重复描述。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示答案对 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 取模后的结果。</p>
+
+		<h3>题解</h3>
+		<p>可以看出，原题的任务就是，给定一张<strong>基图</strong>为<strong>树</strong>或<strong>基环树</strong>的重图，你需要统计它的<strong>欧拉回路</strong> (Eulerian circuit) 的个数。</p>
+		<p>易知，对于一张图，它是 Euler 图的充要条件是，每个点的度数为偶数。因此，对于给定的这张图，可以先判定它是否为 Euler 图，如果不是，直接输出 $0$ 即可。</p>
+		<p>接下来就是计数的问题了。无向图的 Euler 回路计数并不容易，不过，对于一张<strong>有向图</strong>，它的 Euler 回路计数由以下定理给出：</p>
+		<p><strong><a href="https://en.wikipedia.org/wiki/BEST_theorem" target="_blank">BEST 定理</a>：对一张有向 Euler 图 $G = (V, E)$，点 $v$ 的入度 (它等于出度) 记为 $d(v)$。任取一个点 $x$，以 $x$ 为根的<em>定向生成树</em>的个数为 $T(x)$，则 $G$ 的 Euler 回路个数由下式给出：</strong></p>
+		<p>$$ ec(G) = T(x) \prod_{v \in V} \left( d(v) - 1 \right) ! \tag 1 \label 1 $$</p>
+		<p>证明的话不难通过组合意义推得，主要思路就是对每个点指定一条<strong>最后出边</strong>，然后形成一棵<strong>定向树</strong>。具体见<a href="http://www.theoremoftheday.org/CombinatorialTheory/BEST/TotDBEST.pdf" target="_blank">这里</a>。</p>
+		<p>但是，原图给定的是一张无向图，因此我们需要将它<strong>定向</strong>以使用 BEST 定理。</p>
+		<p>由于原图的基图是树或基环树，我们分两种情况讨论：</p>
+		<ol>
+			<li><p>基图的树。</p>
+			<p>在这种情况下，由于定向后需要形成一张有向 Euler 图，故每个<strong>点</strong>的入度和出度必须相同。我们从叶子从根递归，就能发现，对于每条 $t$ 重边 $(u, v, t)$，必有 $2 \mid t$，且一定是 $\dfrac t2$ 条从 $u$ 到 $v$，剩下 $\dfrac t2$ 条从 $v$ 到 $u$。</p>
+			<p>因此定向的方案数就是 $\displaystyle \prod_{e \in E} \binom {t(e)} {t(e) / 2}$。</p>
+			<p>要注意的是，在式 $\eqref 1$ 中还有一个 $T(x)$ 因子——即取一个点 $x$，以 $x$ 为根的定向生成树的个数。我们可以任取一个点 $x$ (因为 $ec(G)$ 的值是不变的)，并将它作为根，来统计定向生成树的个数。注意到由于基图是树，因此每条边都要选择，而每条边有 $\dfrac t2$ 中方案选择一条从子节点到父节点的边。</p>
+			<p>于是就有 $\displaystyle T(x) = \prod_{e \in E} \dfrac {t(e)} 2$。</p>
+			<p>将其代入 $\eqref 1$ 式，即得答案。</p></li>
+			<li><p>基图是基环树。</p>
+			<p>树的情况还算简单，基环树的情况就稍显复杂了。因为它的定向可以不是平均分配的。</p>
+			<p>首先，若 $e$ 是它的一个<strong>外向树</strong>的树边，则仍有 $2 \mid t(e)$ 且 $\dfrac {t(e)} 2$ 条从 $u$ 到 $v$，$\dfrac {t(e)} 2$ 条从 $v$ 到 $u$。</p>
+			<p>而环的情况就比较多了。于是，我们可以枚举一条环边 $(u, v, t)$ 的定向——有 $w$ 条是从 $u$ 到 $v$ 的 ($0 \leq w \leq t$)。具体实现时，我们可以对原图构建一棵生成树，则我们就去枚举<strong>多出来的环边</strong>的定向。</p>
+			<p>这样一来，我们就对整张图完成了定向 (由于是枚举的，因此可能出现不合法的情况，比如说一个方向的边数是负数，这个需要手动排除)。</p>
+			<p>至于定向的方案数，设边 $e$ 中共取了 $w(e)$ 条从 $u(e)$ 到 $v(e)$ 的边，则 (对于本次枚举) 总的定向方案数即为 $\displaystyle \prod_{e \in E} \binom {t(e)} {w(e)}$。</p>
+			<p>接下来还是求 $T(x)$——以 $x$ 为根定向生成树的个数。我们可以将刚才那棵生成树的根作为 $x$。对于一个环长为 $l$ 的基环树，它的定向有 $l$ 中情况——即环中去掉任意一条边。</p>
+			<p>因此可以枚举在环中去掉了哪条边，最后对剩下的树乘以 $w(e)$ 或 $t(e) - w(e)$ 即可。</p>
+			<p>实现时可能会涉及到除法 (逆元)，因此对 $0$ 因子需要特别讨论。</p>
+		</ol>
+		<p>总时间复杂度 $O \left( n \right)$ (树) 和 $O \left( t \cdot n \right)$ (基环树，其中 $t$ 是环边中 $t_i$ 的最小值)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1005
+#define M 2010
+#define Y 20030731
+#define Z 100010
+
+typedef long long ll;
+const ll mod = 998244353;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int n, E, Es = 0, l = 0;
+int first[N], next[M];
+int p[N], deg[N], in[N], up[N];
+// up: for edge, in: in-degree, for vertex
+int cnt = 0, o[N], id[N];
+int fact[Y], finv[Z];
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (*fact = i = 1; i &lt; Y; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	i = Z - 1; finv[i] = PowerMod(fact[i], mod - 2);
+	for (; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+inline ll inv(int x) {return (ll)fact[x - 1] * finv[x] % mod;}
+inline ll C(int n, int r) {return (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+inline void addedge(int u, int v, int w) {
+	e[++Es] = edge(u, v, w); next[Es] = first[u]; first[u] = Es; deg[u] += w;
+	e[++Es] = edge(v, u, w); next[Es] = first[v]; first[v] = Es; deg[v] += w;
+}
+
+void dfs(int x) {
+	int i, y;
+	o[++cnt] = x; id[x] = cnt;
+	for (i = first[x]; i; i = next[i])
+		if (!id[y = e[i].v]) p[y] = i, dfs(y);
+		else if (i - 1 ^ p[x] - 1 ^ 1) l = i; // cycle
+}
+
+ll work(int weight) {
+	int _, i, pi, u, w, zero = 0;
+	ll direct = C(e[l].w, weight), span = 1, tot;
+	memset(in, 0, n + 1 &lt;&lt; 2);
+	in[e[l].v] = e[l].w - 2 * weight;
+	in[e[l].u] = -in[e[l].v];
+	// 1. direct
+	for (_ = n; _; --_) {
+		i = o[_]; pi = e[p[i]].u; w = e[p[i]].w;
+		up[i] = u = w - in[i] &gt;&gt; 1;
+		if (u &lt; 0 || u &gt; w) return 0;
+		direct = direct * C(w, u) % mod;
+		in[pi] += w - 2 * u;
+	}
+	// 2. spanning
+	for (i = 2; i &lt;= n; ++i) up[i] ? (span = span * up[i] % mod) : ++zero;
+	tot = -!zero &amp; span;
+	if (e[l].v &amp;&amp; weight != e[l].w) {
+		span = span * (e[l].w - weight) % mod;
+		for (i = e[l].v; i != e[l].u; i = e[p[i]].u) {
+			up[i] ? (span = span * inv(up[i]) % mod) : --zero;
+			tot += -!zero &amp; span;
+			up[i] == e[p[i]].w ? ++zero : (span = span * (e[p[i]].w - up[i]) % mod);
+		}
+	}
+	return tot % mod * direct % mod;
+}
+
+int main() {
+	int i, u, v, w; ll ans = 0;
+	init();
+	scanf("%d%d", &amp;n, &amp;E);
+	for (i = 1; i &lt;= E; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), addedge(u, v, w);
+	for (i = 1; i &lt;= n; ++i) if (deg[i] &amp; 1) return putchar(48), putchar(10), 0;
+	dfs(1);
+	for (i = 0; i &lt;= e[l].w; ++i) ans += work(i); ans %= mod;
+	for (i = 1; i &lt;= n; ++i) ans = ans * fact[deg[i] / 2 - 1] % mod;
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在枚举环中去掉的边的时候，一条边重新加回来时它 (在定向树中) 的定向将会<strong>反向</strong>，因此需要乘以它的补因子 ($w \to t - w$)。</p>
+		<p><strong>坑2：</strong>注意一个点的度数可以很大 $10^7$ 级别，因此阶乘数组需要定义到这个级别。</p>
+	</body>
+</html>

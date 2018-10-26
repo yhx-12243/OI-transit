@@ -24,12 +24,12 @@
 
 			'p': function (a, b) {
 				var A = a.cells[1].innerText, B = b.cells[1].innerText;
-				return js_natcasesort(A, B);
+				return nature(A, B);
 			},
 
 			'pr': function (a, b) {
 				var A = a.cells[1].innerText, B = b.cells[1].innerText;
-				return -js_natcasesort(A, B);
+				return -nature(A, B);
 			},
 
 			'c': function (a, b) {return (+b.cells[4].innerText) - (+a.cells[4].innerText);},
@@ -42,12 +42,12 @@
 
 			'a': function (a, b) {
 				var A = a.cells[6].innerText, B = b.cells[6].innerText;
-				return js_natcasesort(A, B);
+				return nature(A, B);
 			},
 
 			'ar': function (a, b) {
 				var A = a.cells[6].innerText, B = b.cells[6].innerText;
-				return -js_natcasesort(A, B);
+				return -nature(A, B);
 			},
 
 			'Ru': function (a, b) {
@@ -78,6 +78,27 @@
 		}
 
 	function trim(x) {var a = x.search(/[a-z]/); return ~a ? x.substr(a) : x;}
+
+	function nature(a, b) {
+		var digitA, digitB, posA, posB, u, v;
+		if (a == b) return 0;
+		for (; ; ) {
+			digitA = ('0' <= a[0] && a[0] <= '9')
+			digitB = ('0' <= b[0] && b[0] <= '9')
+			if (digitA ^ digitB) return digitB - digitA;
+			if (digitA) {
+				posA = a.search(/[^\d]/); posA = (~posA ? posA : a.length);
+				posB = b.search(/[^\d]/); posB = (~posB ? posB : b.length);
+				if (posA != posB) return posA - posB;
+			} else {
+				posA = a.search(/\d/); posA = (~posA ? posA : a.length);
+				posB = b.search(/\d/); posB = (~posB ? posB : b.length);
+			}
+			u = a.substr(0, posA); v = b.substr(0, posB);
+			if (u != v) return u < v ? -1 : 1;
+			a = a.substr(posA); b = b.substr(posB);
+		}
+	}
 
 	win.getSortChar = function (s) {return sortHook[s];}
 

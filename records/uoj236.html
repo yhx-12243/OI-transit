@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj236][IOI2016]railroad</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Anna 在一个游乐园工作。她负责建造一个新的过山车铁路。她已经设计了影响过山车速度的 $n$ 个特殊的路段 (方便起见标记为 $0$ 到 $n - 1$)。现在 Anna 必须要把这些特殊的路段放在一起并提出一个过山车的最后设计。为了简化问题，你可以假设过山车的长度为零。</p>
+		<p>对于 $0$ 和 $n - 1$ 之间的每个 $i$，这个特殊的路段 $i$ 具有如下两个性质：</p>
+		<ul>
+			<li>当进入这个路段时，有一个速度限制：过山车的速度必须小于或等于 $s_i \mathrm{km/h}$，</li>
+			<li>当离开这个路段时，过山车的速度刚好是 $t_i \mathrm{km/h}$，不管过山车进入该路段时的速度如何。</li>
+		</ul>
+		<p>最后完成的过山车设计是一个以某种顺序包含这 $n$ 个特殊路段的单一铁路线。这 $n$ 个路段中的每一个应当被使用刚好一次。连续的路段之前用铁轨来连接。Anna 应该选择这 $n$ 个路段的顺序，然后确定每段铁轨的长度。铁轨的长度以米来衡量，可以是任意的非负整数 (可以为零)。</p>
+		<p>两个特殊路段之间的每 $1$ 米铁轨可以将过山车的速度减慢 $1 \mathrm{km/h}$。在这个过山车铁路的起点，过山车按照 Anna 选择的顺序进入第一个特殊路段时的速度是 $1 \mathrm{km/h}$。</p>
+		<p>最后的设计还必须满足以下要求：</p>
+		<ul>
+			<li>过山车在进入这些特殊路段时不能违反任一个速度限制；</li>
+			<li>过山车的速度在任意时刻为正。</li>
+		</ul>
+		<p>你的任务是找出这些路段之间铁轨的最小可能总长度 (这些路段之间铁轨总长度的最小值)。</p>
+
+		<h3>实现细节</h3>
+		<p>你应该实现以下函数（方法）：</p>
+		<ul>
+			<li><code>long long plan_roller_coaster(std::vector&lt;int&gt; s, std::vector&lt;int&gt; t)</code>
+			<ul>
+				<li><code>s</code>：长度为 $n$ 的数组，进入路段时允许的速度最大值。</li>
+				<li><code>t</code>：长度为 $n$ 的数组，离开路段时的速度。</li>
+				<li>在所有子任务中（子任务 $3$ 除外），这个函数应该返回所有铁轨的最小可能总长度。（在子任务 $3$ 中，如果存在一个有效的过山车设计使得每段铁轨的长度均为零，则函数返回零，如果上述设计不存在，则输出任意的正整数）。</li>
+			</ul></li>
+		</ul>
+
+		<h3>题解</h3>
+		<p>我们先来看一下，如何转化 "速度小于等于 $s_i$" 的条件。</p>
+		<p>其实这可以看成，有另一种铁轨，它的长度为 $0$，可以使过山车的速度增加 $1 \mathrm{km/h}$。这样，这些路段的限制条件可以改成进入时速度恰好为 $s_i$，离开时速度恰好为 $t_i$。</p>
+		<p>因此，可以将每个速度建立一个点，对于入出速度分别为 $\left( s_i, t_i \right)$ 的路段，我们连一条从 $s_i$ 到 $t_i$ 的有向边。</p>
+		<p>然后你还可以花费 $1$ 的代价连接从 $x + 1$ 到 $x$ 的边 (铁轨)，花费 $0$ 的代价连接从 $x$ 到 $x + 1$ 的边。</p>
+		<p>于是最终过山车行驶的轨迹就是一条<strong>欧拉通路</strong> (Eulerian path)。</p>
+		<p>然鹅 Euler 通路不怎么好处理，注意到一开始的速度是一个最小值，最后我们可以通过不停地加速达到最大值。于是我们可以连一条从最大值到最小值的边 (代价为 $0$)。这样就将整个轨迹转化为了 Euler 回路。</p>
+		<p>于是现在的任务是，增加<strong>总代价尽可能小</strong>的边，使整张图为一张<strong>有向 Euler 图</strong>。</p>
+		<p>还记得有向图是 Euler 图的充分必要条件吗？</p>
+		<ol>
+			<li><p>该图强连通。</p></li>
+			<li><p>每个点的入度等于出度。</p></li>
+		</ol>
+		<p>我们要加边使得它符合上面两个条件。</p>
+		<p>首先考虑第 2 个条件，这个直接贪心从左往右扫描，发现入度大的就往右连 (或这往左连)，入度小的就往左要 (或往右要)，容易证明这样操作下去到最终一定会解除所有矛盾。</p>
+		<p>接下来就只需要使图强连通了。</p>
+		<p>注意到此时每个连通分量都是 Euler 图，于是它们一定强连通。于是使整个图强连通，只需要将它变成最简单的连通图——树 (或者说应该叫树形图？)。</p>
+		<p>其实这个时候把它看成无向图也未妨，这样每加一条边相当于正反加两条边，总代价为 $1$。</p>
+		<p>于是只需求出相邻关键点之间的距离 (即两个点所代表的速度差)，对所有这些距离做一次 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 即可。</p>
+		<p>注意到速度的范围有 $10^9$，于是点数会爆炸，但是注意到关键点 (有边的点) 只有 $O(n)$ 个，其余的边可以缩掉 (合并)，于是做一遍离散化即可。</p>
+		<p>总时间复杂度就是 <abbr title="Minimum Spanning Tree, 最小生成树">MST</abbr> 的复杂度——$O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "railroad.h"
+#include &lt;bits/stdc++.h&gt;
+#define N 400005
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vec;
+
+struct edge {
+	int u, w;
+	edge (int _u = 0, int _w = 0) : u(_u), w(_w) {}
+	inline bool operator &lt; (const edge &amp;B) const {return w &lt; B.w;}
+} e[N];
+
+int n, z, E;
+int a[N], b[N], deg[N], p[N];
+
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+bool test(int x, int y, bool un = false) {
+	if ((x = ancestor(x)) == (y = ancestor(y))) return true;
+	if (un) p[x] = y; return false;
+}
+
+namespace DC {
+	int F[N]; pr D[N];
+
+	int Discretize(int n) {
+		int i, cnt = 0;
+		std::sort(D, D + n);
+		for (i = 0; i &lt; n; ++i)
+			F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+}
+
+ll plan_roller_coaster(vec s, vec t) {
+	int i; ll ret = 0;
+	n = s.size();
+	for (i = 0; i &lt; n; ++i)
+		DC::D[i] = pr(s[i], i), DC::D[n + i] = pr(t[i], n + i);
+	z = DC::Discretize(n * 2);
+	for (i = 0; i &lt; z; ++i) p[i] = i;
+	for (i = 0; i &lt; n; ++i) {
+		a[i] = DC::F[i]; b[i] = DC::F[n + i];
+		--deg[a[i]]; ++deg[b[i]]; test(a[i], b[i], true);
+	}
+	--deg[z - 1]; ++deg[0]; test(z - 1, 0, true);
+	for (i = 0; i &lt; z - 1; ++i)
+		if (deg[i]) {
+			test(i, i + 1, true);
+			ret += (ll)(deg[i] &gt;&gt; 31 &amp; -deg[i]) * (DC::D[i + 1].first - DC::D[i].first);
+			deg[i + 1] += deg[i]; deg[i] = 0;
+		} else if (!test(i, i + 1))
+			e[++E] = edge(i, DC::D[i + 1].first - DC::D[i].first);
+	std::sort(e + 1, e + (E + 1));
+	for (i = 1; i &lt;= E; ++i)
+		if (!test(e[i].u, e[i].u + 1, true)) ret += e[i].w;
+	return ret;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意离散化后边权不要忘记使用原来的边权。</p>
+		<p><strong>坑2：</strong>在调整第 2 个条件的时候，注意所连边的方向，如果是 $x + 1 \to x$，才需要花费代价。</p>
+	</body>
+</html>
