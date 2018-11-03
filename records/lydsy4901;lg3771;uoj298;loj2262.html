@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4901][lg3771][uoj298][loj2262][CTSC2017]网络</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>一个一般的网络系统可以被描述成一张无向连通图。图上的每个节点为一个服务器，连接服务器与服务器的数据线则看作图上的一条边，边权为该数据线的长度。两个服务器之间的通讯距离被定义为其对应节点之间最短路的长度。</p>
+		<p>现在，考虑一个当前图结构为树的网络系统。你作为该网络系统的管理员，被要求在这个系统中新加入一条给定长度的数据线。数据线可以连在任意两个服务器上。</p>
+		<p>你的任务是，求出在所有合法的方案中，通讯距离最远的两个服务器之间的最小距离。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。</p>
+		<p>对于每组数据，输入的第一行包含两个正整数 $N, L$ ($N \leq 10^5; 1 \leq L \leq 2^{31} - 1; \sum N \leq 5 \times 10^5$)，其中 $N$ 表示服务器个数，$L$ 为新加入数据线的长度。</p>
+		<p>接下来 $n - 1$ 行，第 $i$ 行有三个正整数 $a_i, b_i, l_i$ ($1 \leq a_i, b_i \leq n; 1 \leq l_i \leq 2^{31} - 1$)，表示有一条长度为 $l_i$ 的数据线连接服务器 $a_i, b_i$。</p>
+		<p>输入的末尾以两个 $0$ 作为结束。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，描述在所有合法的方案中，通讯距离最远的两个服务器之间的最小距离。</p>
+
+		<h3>题解</h3>
+		<p>还是直径问题。不过这次原图是一棵树，因此可以先维护出树的直径 $\left[ u - w_1 - w_2 - \cdots - w_n - v \right]$ (易知 $u, v$ 为叶节点)，设它的 (带权) 长度为 $D$。</p>
+		<p>显然，最终加边后的图的直径肯定 $\leq D$。设这条边连接了 $(a, b)$，如果 $a, b$ 均在同一个 $w_i$ 的子树中，则 $u$ 到 $v$ 的最短路长度没有减少，因此直径还是 $v$。</p>
+		<p>因此 $a, b$ 在不同的 $w_i$ 的子树中。分别设为 $w_i$ 和 $w_j$ (当然也可能是 $u, v$)。</p>
+		<p>如果 $a \neq w_i$，我们考虑新的方案：<span style="color: fuchsia">连接 $p_a$ 和 $b$</span> (其中 $p_a$ 为以 $w_i$ 为根的子树中，$a$ 的父节点)。考虑两点间最短路径的变化。</p>
+		<p>考虑环 $\left[ p_a - \cdots - w_i - w_{i+1} - \cdots - w_j - \cdots - b - p_a \right]$，对于环中的两点 $u, v$，由于环的总长减少，因此距离不增。对于环外两点 $u, v$ 也是类似 (环长减少)。</p>
+		<p>现在考虑环中的点 $u_0$ 和环外的点 $v_0$，设<span style="color: red">连接 $a$ 和 $b$</span> 时 $u_0$ 到 $v_0$ 的最短路径，设为 $u_0 \to a \to b \to v_0$ (或 $u_0 \to b \to a \to v_0$)，由直径的性质知它不超过 $u \to a \to b \to v$ 的长度。</p>
+		<p>于是改成<span style="color: fuchsia">连接 $p_a$ 和 $b$</span> 后，依然有 $\mathrm{dist} \left( u_0, v_0 \right) \leq \mathrm{len} \left( u \to p_a \to b \to v \right)$，从而直径不增。</p>
+		<p>重复上述操作 (调整法或最小数原理)，可以得到，<strong>存在一组最优解，使得新加入的边所连接的两个节点 $a, b$ 都在原树的直径上</strong>。</p>
+		<p>那么我们可以对原树进行<strong>改造</strong>。对于不在直径上的点 $x$，设 $x$ 隶属于子树 $w_i$。我们断开 $x$ 连接的所有边，连一条从 $x$ 到 $w_i$，长度为 $\mathrm{dist} \left( x, w_i \right)$ 的边。</p>
+		<p>于是，对于每个直径上的点 $w_i$，它的子树中，只有距离最大的点会对答案产生影响。因此每个 $w_i$ 至多连出去<strong>一条有效边</strong>。</p>
+		<p>从而，这道题就转化为了 <a href="uoj237.html" target="_blank">[IOI2016]shortcut</a>，于是问题解决。</p>
+		<p>时间复杂度就多了个求直径的复杂度，还是 $O \left( n \log \sum l_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 200005
+#define y(_) (d[_] - L[_])
+#define z(_) (d[_] + L[_])
+#define ad(_) ((_ - 1 ^ 1) + 1)
+
+typedef long long ll;
+const ll INF = 2000000000000000ll;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[N];
+
+int l, n, V, E = 0;
+int first[N], next[N];
+int p[N], que[N];
+int D1, D2, ret;
+ll dep[N];
+ll L[N], d[N];
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+inline void addedge(int u, int v, int w) {
+	e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+	e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+}
+
+namespace UOJ237 {
+	bool check(ll diam) {
+		int i, h = 0, t = 0;
+		ll PP, PN, PX, NP, NN, NX, cur;
+		PP = PN = PX = NP = NN = NX = -1ll &lt;&lt; 61;
+		for (i = 0; i &lt; n; ++i) {
+			for (; h &lt; t &amp;&amp; L[i] + d[i] + y(que[h]) &gt; diam; ++h) up(PX, z(que[h])), up(NX, y(que[h]));
+			cur = d[i] + l - diam;
+			up(PP, PX + L[i] + cur);
+			up(PN, PX - L[i] + cur);
+			up(NP, NX + L[i] + cur);
+			up(NN, NX - L[i] + cur);
+			for (; h &lt; t &amp;&amp; y(que[t - 1]) &lt; y(i); --t);
+			que[t++] = i;
+		}
+		h = 0; t = n;
+		for (i = 0; i &lt; n; ++i) {
+			for (; h &lt; n - 1 &amp;&amp; L[h] - L[i] &lt; PN; ++h);
+			for (; t &amp;&amp; L[t - 1] + L[i] &gt;= PP; --t);
+ 			if (L[h] + L[i] &gt;= PP &amp;&amp; L[h] - L[i] &gt;= PN &amp;&amp; L[i] - L[h] &gt;= NP &amp;&amp; -L[h] - L[i] &gt;= NN) return true;
+			if (t &lt; n &amp;&amp; L[t] + L[i] &gt;= PP &amp;&amp; L[t] - L[i] &gt;= PN &amp;&amp; L[i] - L[t] &gt;= NP &amp;&amp; -L[t] - L[i] &gt;= NN) return true;
+		}
+		return false;
+	}
+
+	ll find_shortcut() {
+		ll L, R, M;
+		for (L = 0, R = INF; L &lt; R; )
+			check(M = (L + R) / 2) ? R = M : (L = M + 1);
+		return L;
+	}
+}
+
+void dfs(int x) {
+	int i, y;
+	if (dep[x] &gt; dep[ret]) ret = x;
+	for (i = first[x]; i; i = next[i])
+		if ((i - 1 ^ p[x] - 1 ^ 1) &amp;&amp; ~e[i].w)
+			p[y = e[i].v] = i, dep[y] = dep[x] + e[i].w, dfs(y);
+}
+
+void work() {
+	int i, u, v, w; ll all;
+	memset(first, 0, sizeof first); E = 0;
+	for (i = 1; i &lt; V; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), addedge(u, v, w);
+	ret = 1; dep[ret] = p[ret] = 0; dfs(ret); D1 = ret;
+	ret = D1; dep[ret] = p[ret] = 0; dfs(ret); D2 = ret;
+	all = dep[D2];
+	for (i = D2, n = 0; i; i = e[p[i]].u, ++n) {
+		L[n] = all - dep[i];
+		e[ad(p[i])].w = e[p[i]].w = -1;
+		ret = i; dep[i] = 0; dfs(i); d[n] = dep[ret];
+	}
+	printf("%lld\n", UOJ237::find_shortcut());
+}
+
+int main() {
+	for (; scanf("%d%d", &amp;V, &amp;l) == 2 &amp;&amp; V &amp;&amp; l; ) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在搜索直径上的每个点的子树深度最大值时，注意把直径上的边断掉，避免搜入其它子树。</p>
+		<p><strong>坑2：</strong>这一题和 <a href="uoj237.html" target="_blank">[IOI2016]shortcut</a> 有区别的一点是，$d_i$ 可以超过 <code>int</code> 范围 <del>(爆零警告)</del>。</p>
+	</body>
+</html>

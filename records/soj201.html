@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj201]&#913; &#215; &#914; Problem</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>这是一道<strong>交互题</strong>。</p>
+		<p>给你两个下降幂多项式 $\alpha$ 和 $\beta$，请返回他们的乘积 (当然也是一个下降幂多项式)。</p>
+		<p>由于结果可能很大，所以你只需要返回乘积各项系数关于 $998244353$ 取模的值。</p>
+
+		<h3>任务</h3>
+		<p>你需要编写一个函数，以完成题目的任务：</p>
+		<ul>
+			<li><code>multiplication(alpha, beta)</code>
+			<ul>
+				<li><code>alpha</code>, <code>beta</code> 表示两个下降幂多项式。</li>
+				<li>你需要返回一个 <code>std::vector &lt;int&gt;</code>，表示这两个下降幂多项式的乘积，你需要保证他的大小恰好比 <code>alpha</code> 和 <code>beta</code> 的大小的和少一。</li>
+			</ul></li>
+		</ul>
+
+		<h3>实现细节</h3>
+		<p>本题只支持 C++。</p>
+		<p>你只能提交一个源文件实现如上所述的 multiplication 函数，并且遵循下面的命名和接口。<strong>你需要包含头文件 multiplication.h</strong>。</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">std::vector &lt;int&gt; multiplication(std::vector &lt;int&gt; alpha, std::vector &lt;int&gt; beta);</code></pre>
+		<p>如果有不清楚的地方，见样例及测评库下载，内附了样例程序。</p>
+
+		<h3>题解</h3>
+		<p>又是多项式乘法。不过这次不是一般的多项式乘法，而是下降幂多项式乘法。</p>
+		<p>由<a href="http://61.153.16.137:8001/problem/34" target="_blank">这道题</a>的经验，可知，下降幂多项式对于离散数学非常友好 (通常在推导离散求和公式时有较大的化简作用)，因此掌握下降幂多项式的相关操作是刻不容缓的。</p>
+		<p>考虑当时一般的多项式乘法，我们使用离散傅里叶变换 (Discrete Fourier Transform) 实现了系数表达到点值表达的转化，然后通过 $O(n)$ 的时间将两个点值多项式相乘，然后再通过逆离散傅里叶变换 (Inverse Discrete Fourier Transform) 将点值表达重新转化为系数表达。</p>
+		<p>而 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr> 和 <abbr title="Inverse Discrete Fourier Transform, 逆离散傅里叶变换">IDFT</abbr>，可以通过一个叫做<strong>快速傅里叶变换</strong> (Fast Fourier Transform) 的算法，将原有的 $O \left( n^2 \right)$ 降至 $O \left( n \log n \right)$。</p>
+		<p>那么，下降幂多项式是否也有这样的性质呢？</p>
+		<hr />
+		<p><strong>ps: 由于下降幂多项式是离散数学的内容，因此以下默认自变量 $x$ 只取<em>整数</em>值</strong>。</p>
+		<p>考虑 $x$ 的 $n$ 次下降幂 $x^{\underline n} = x (x-1) (x-2) \cdots (x-n+1)$，当 $0 \leq x &lt; n$ 时，恒有 $x^{\underline n} = 0$。</p>
+		<p>于是对于一个下降幂多项式 $f(x)$ 和非负整数 $t$，<strong>在 $f(x)$ 中仅有不超过 $t$ 次的项才会对 $f(t)$ 产生贡献</strong>。</p>
+		<p>因此，一个 $n$ 次下降幂多项式 $f(x)$，它可以和 $f(0), f(1), \cdots, f(n)$ 作下一一对应。且 $f(t)$ 只和多项式的前 $t + 1$ 项系数有关。</p>
+		<p>于是，可以轻松得到一个 $O \left( n^2 \right)$ 实现下降幂多项式与 $0, 1, \cdots, n$ 点值转化的算法，具体这里就不说了，大家可以思考一下。</p>
+		<p>接下来我们考虑加速这个过程。</p>
+		<p>设 $\displaystyle f(x) = \sum_{i=0}^n a_i x^{\underline i}$，我们写出 $f(t)$ ($0 \leq t \leq n$) 的表达式，如下：</p>
+		<p>$$ f(t) = \sum_{i=0}^t a_i t^{\underline i} = \sum_{i=0}^t a_i \frac {t!} {(t-i)!} = t! \cdot \sum_{i=0}^t a_i \cdot \frac 1 {(t-i)!} $$</p>
+		<p>有没有发现什么？对，就是一个基础的<strong>卷积</strong>！</p>
+		<p>如果令 $\mathbf a = \left[ a_i \right], \mathbf b = \left[ \dfrac 1 {i!} \right], c = \left[ \dfrac {f(i)} {i!} \right]$，则有 $\mathbf c = \mathbf a \ast \mathbf b$！因此可以使用 FFT/FNTT 解决。</p>
+		<p>因此，我们已经解决了问题的前半部分——下降幂系数转化为 $0 \sim n$ 的点值。</p>
+		<hr />
+		<p>接下来我们来看问题的后半部分——点值表达转化为下降幂系数。</p>
+		<p>也就是说，我们知道向量 $\mathbf c$，如何求 $\mathbf a$。</p>
+		<p>不过可以发现，这里的 $\mathbf a, b, c$ 都是<strong>在模 $x^{n+1}$ 意义下进行</strong> 的！</p>
+		<p>因此，我们可以求出 $\mathbf b$ 在模 $x^{n+1}$ 意义下的逆 $\mathbf b^{-1}$，然后在式子中两边同乘 $\mathbf b^{-1}$，即得 $\mathbf a = \mathbf c \ast \mathbf b^{-1}$。</p>
+		<p>于是可以对 $\mathbf b$ 进行<em>多项式求逆解决</em>。等等，$b(x)$ 是什么？它是<strong>指数函数</strong>啊！注意到 $b(x) = \sum\limits_i \dfrac 1 {i!} x^i = e^x$，因此它的逆显然是 $e^{-x}$，即</p>
+		<p>$$ b^{-1} (x) = \sum_i \frac {(-1)^i} {i!} x^i $$</p>
+		<p>直接证明：</p>
+		<p>$$ b(x) \cdot b^{-1}(x) = \left( \sum_i \frac {x^i} {i!} \right) \cdot \left( \sum_j \frac {(-1)^j x^j} {j!} \right) = \sum_k x^k \sum_{j=0}^k \frac {(-1)^j} {j! (k-j)!} = \sum_k \frac {x^k} {k!} \sum_{j=0}^k (-1)^j \binom kj = \sum_k \frac {x^k} {k!} (1 - 1)^k = 1 $$</p>
+		<p>于是还是可以通过一次普通的多项式乘法，在 $O \left( n \log n \right)$ 的时间内将 $0 \sim n$ 的点值，转化为下降幂系数。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "multiplication.h"
+#include &lt;bits/stdc++.h&gt;
+#define N 530000
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef int vec[N], *pvec;
+typedef long long ll;
+typedef std::vector &lt;int&gt; vector;
+const ll mod = 998244353, root = 31;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len){
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1; *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) {
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3, B4, B5, B6;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = PowerMod(n, mod - 2);
+		DNTT(a, c); DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c); std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+}
+
+int nA, nB, n;
+vec A, B, u, v, w;
+vec fact, finv, E;
+
+void init(int n) {
+	int i;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+vector multiplication(vector a, vector b) {
+	int i;
+	nA = a.size() - 1; nB = b.size() - 1; init(n = nA + nB);
+	memcpy(A, a.data(), nA + 1 &lt;&lt; 2);
+	memcpy(B, b.data(), nB + 1 &lt;&lt; 2);
+	for (i = 0; i &lt;= n; ++i)
+		E[i] = (i &amp; 1 ? mod - finv[i] : finv[i]);
+	Poly::Mul(n * 2, A, finv, u);
+	Poly::Mul(n * 2, B, finv, v);
+	for (i = 0; i &lt;= n; ++i) w[i] = (ll)u[i] * v[i] % mod * fact[i] % mod;
+	Poly::Mul(n * 2, w, E, A);
+	return vector(A, A + (n + 1));
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意卷积得到的 $f(i)$ 中有 $\dfrac 1 {i!}$ 的系数，相乘后就是 $\dfrac 1 {\left( i! \right)^2}$。因此最后处理回来时需要乘一个 $i!$。</p>
+	</body>
+</html>

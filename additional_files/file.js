@@ -3,10 +3,15 @@
 	'use strict';
 
 	var
-		recArr, memArr, okay;
+		recArr, memArr, okay, config = {};
 
 	const
 		failed = '今天运气不怎么好，码个动态仙人掌再试试吧';
+
+	// ---------------- Configuration ---------------- //
+	win.setFileConfig = function (key, val) {
+		config[key] = val;
+	}
 
 	// ---------------- Records ---------------- //
 	win.parseRecords = function (strBack) {
@@ -18,20 +23,19 @@
 				info = recArr[i].replace(/[\f\n\r\v]/g, '').split('|');
 				if (info.length !== 5) continue; // invalid record
 				++recnum;
-				tnm = OJMatch(curLocation, nm = info[0]);
-				if (tnm) {
-					$R = $('<tr />');
-					$R.append($C = $('<td />').data('id', recnum - 1));
-					$R.append($C = $('<td />').html(tnm));
-					$A = $('<a href="records/' + escape(nm) + '.html" target="_blank">链接</a>');
-					$R.append($C = $('<td />').append($A));
-					$R.append($C = $('<td />').html(info[1]));
-					$R.append($C = $('<td />').html(info[2]));
-					$R.append($C = $('<td />').html(info[3]));
-					$R.append($C = $('<td />').html(info[4]));
-					Rows.push($R.get(0));
-					++count;
-				}
+				if (!(tnm = OJMatch(curLocation, nm = info[0]))) continue;
+				if (config['tag'] && !~(';' + html2Text(info[4]) + ';').indexOf(';' + config['tag'] + ';')) continue;
+				$R = $('<tr />');
+				$R.append($C = $('<td />').data('id', recnum - 1));
+				$R.append($C = $('<td />').html(tnm));
+				$A = $('<a href="records/' + encodeURIComponent(nm) + '.html" target="_blank">链接</a>');
+				$R.append($C = $('<td />').append($A));
+				$R.append($C = $('<td />').html(info[1]));
+				$R.append($C = $('<td />').html(info[2]));
+				$R.append($C = $('<td />').html(info[3]));
+				$R.append($C = $('<td />').html(highlightTags(info[4])));
+				Rows.push($R.get(0));
+				++count;
 			}
 		for (i = 0; i < Rows.length; ++i) {
 			$C = $(Rows[i].cells[0]);
@@ -39,9 +43,11 @@
 		}
 		if (curROrder === 'nr') tableReverse();
 		else if(curROrder !== 'n') sortTable(curROrder);
+		totPage = Math.ceil(count / RECORDS_PER_PAGE);
+		if (!(curPage >= 1)) curPage = 1;
+		else if (curPage > totPage) curPage = totPage;
 		$('#recTable').append(Rows.slice((curPage - 1) * RECORDS_PER_PAGE, curPage * RECORDS_PER_PAGE));
-		$('#recTotal').html('统计：' + (count ? (curLocation ? '当前筛选下' : '') + '共有 ' + count + ' 条记录' : '怎么一道题都还没有啊，快点做题了！'));
-		win.totPage = Math.ceil(count / RECORDS_PER_PAGE);
+		$('#recTotal').html('统计：' + (count ? (curLocation || config['tag'] ? '当前位置' : '') + '共有 ' + count + ' 条记录' : '怎么一道题都还没有啊，快点做题了！'));
 		pagination();
 	}
 
@@ -102,9 +108,11 @@
 		}
 		Rows.sort(function(a, b) {return $(b).data('priority') - $(a).data('priority') || (+b.cells[0].innerText) - (+a.cells[0].innerText);});
 		for(i = 0; i < Rows.length; ++i) $(Rows[i]).removeData();
+		totPage = Math.ceil(count / RECORDS_PER_PAGE);
+		if (!(curPage >= 1)) curPage = 1;
+		else if (curPage > totPage) curPage = totPage;
 		$('#memTable').append(Rows.slice((curPage - 1) * MEMOS_PER_PAGE, curPage * MEMOS_PER_PAGE));
 		$('#memTotal').html('统计: 共 ' + count + ' 份便笺');
-		win.totPage = Math.ceil(count / RECORDS_PER_PAGE);
 		pagination();
 	}
 

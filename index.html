@@ -3,7 +3,6 @@
 	<head>
 		<!-- version 3.0 -->
 		<meta charset="utf-8">
-		<link type="text/css" rel="stylesheet" href="additional_files/bootstrap.simplify.min.css">
 		<link type="text/css" rel="stylesheet" href="additional_files/sh_typical.min.css">
 		<link type="text/css" rel="stylesheet" href="additional_files/pgmain.min.css">
 		<title>OI 中转站 - 做题记录</title>
@@ -17,11 +16,25 @@
 				updTime(); setInterval(updTime, 250);
 				if (getStorage('marquee') === 'on') $("#intro").show().get(0).start();
 
-				curLocation = parseSearch('curLoc', '');
-				$('#pLocation').html('当前位置: ' + getDisplay(curLocation));
-
+				var params = parseStr(location.search), strLocation, curTag;
+				curLocation = params['curLoc'] || '';
 				curROrder = getStorage('srtRec') || 'n';
-				curPage = parseInt(parseSearch('page', '1'));
+				curPage = parseInt(params['page'] || '1');
+				curTag = params['tag'] || '';
+				if (~curTag.indexOf(';')) curTag = '';
+			
+				strLocation = '当前位置: <a href="' + getUri({}) + '">根</a>';
+
+				if (curLocation) {
+					strLocation += ' &gt; <a href="' + getUri({curLoc : curLocation}) + '">' + getDisplay(curLocation) + '</a>';
+				}
+
+				if (curTag) {
+					strLocation += ' &gt; <a href="' + getUri({curLoc : curLocation, tag : curTag}) + '">' + curTag + '</a>';
+					setFileConfig('tag', curTag);
+				}
+
+				$('#pLocation').html(strLocation);
 
 				$.get('records/tot.cfg', parseRecords);
 
@@ -32,47 +45,11 @@
 				});
 
 				var $curLoc = $('input[name="curLoc"]');
-				$('#form0 input:submit').click(function () {
-					$curLoc.val($(this).data('location'));
-					$('#form0').submit();
-				});
-
-				$('#form1 input:button').click(function () {
-					var p = $(this).val(), q;
-					if (isNaN(p))
-						switch(p){
-							case '>': p = curPage + 1; break;
-							case '<': p = curPage - 1; break;
-							case '\u00bb': p = totPage; break;
-							case '\u00ab': p = 1; break;
-						}
-					$('#selPage').val(p);
-					$curLoc.val(curLocation);
-					$('#form1').submit();
-				});
-
-				$('#selPage').blur(function () {
-					var p = parseInt(this.value);
-					if (p < 1 || p > totPage) {this.value = curPage.toString(); return;}
-					if (p === curPage) return;
-					$curLoc.val(curLocation);
-					$('#form1').submit();
-				});
-
-				$('#selPage').keypress(function (e) {
-					if (e.which === 13 || e.keyCode === 13){
-						var p = parseInt(this.value);
-						if(p < 1 || p > totPage) return alert('你都输入的些什么呀，认真点！'), false;
-						$('#form1 input[name="curLoc"]').val(curLocation);
-					}
-				});
-
-				$(document).keyup(function (e) {
-					if (e.which === 37 || e.keyCode === 37) {
-						$('#pgP1:visible').click();
-					} else if (e.which === 39 || e.keyCode === 39) {
-						$('#pgN1:visible').click();
-					}
+				$('#locations > input:submit').click(function () {
+					params['curLoc'] = $(this).data('location');
+					params['tag'] = '';
+					params['page'] = '';
+					location.replace(getUri(params));
 				});
 
 				$('.sortlink').click(function () {
@@ -90,23 +67,6 @@
 
 				$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
 			});
-
-			function pagination() {
-				if (totPage <= 1) return $('#form1').hide();
-				$('#selPage').val(curPage).attr('max', totPage);
-				$('#pgN1').val(curPage + 1);
-				$('#pgN2').val(curPage + 2);
-				$('#pgN3').val(curPage + 3);
-				$('#pgP1').val(curPage - 1);
-				$('#pgP2').val(curPage - 2);
-				$('#pgP3').val(curPage - 3);
-				if (curPage <= 3) $('#pgP3').hide();
-				if (curPage <= 2) $('#pgP2').hide();
-				if (curPage <= 1) $('#pgP1, #pgPrev, #pgFirst').hide();
-				if (curPage >= totPage - 2) $('#pgN3').hide();
-				if (curPage >= totPage - 1) $('#pgN2').hide();
-				if (curPage >= totPage) $('#pgN1, #pgNext, #pgLast').hide();
-			}
 		</script>
 	</head>
 	<body>
@@ -132,11 +92,11 @@
 				</div>
 				<fieldset>
 					<legend>做题记录</legend>
-					<form id="form0"><p>
-						<input name="curLoc" type="hidden" />
-						<input value="全部" type="submit" data-location="" /><input value="Lydsy" type="submit" data-location="Lydsy" /><input value="洛谷" type="submit" data-location="Luogu" /><input value="Vijos" type="submit" data-location="Vijos" /><input value="HDU" type="submit" data-location="HDU" /><input value="POJ" type="submit" data-location="POJ" /><input value="UOJ" type="submit" data-location="UOJ" /><input value="LibreOJ" type="submit" data-location="LibreOJ" /><input value="SimpleOJ/StupidOJ" type="submit" data-location="SOJ" /><input value="Codeforces" type="submit" data-location="Codeforces" /><input value="Codechef" type="submit" data-location="Codechef" /><input value="SPOJ" type="submit" data-location="SPOJ" /><input value="本地" type="submit" data-location="Local" /><input value="其它 OJ" type="submit" data-location="Unknown" />
-					</p></form>
-					<p id="pLocation">当前位置: 全部</p>
+					<div class="buffer-1" id="locations"><input value="全部" type="submit" data-location="" /><input value="Lydsy" type="submit" data-location="Lydsy" /><input value="洛谷" type="submit" data-location="Luogu" /><input value="Vijos" type="submit" data-location="Vijos" /><input value="HDU" type="submit" data-location="HDU" /><input value="POJ" type="submit" data-location="POJ" /><input value="UOJ" type="submit" data-location="UOJ" /><input value="LibreOJ" type="submit" data-location="LibreOJ" /><input value="SimpleOJ/StupidOJ" type="submit" data-location="SOJ" /><input value="Codeforces" type="submit" data-location="Codeforces" /><input value="Codechef" type="submit" data-location="Codechef" /><input value="SPOJ" type="submit" data-location="SPOJ" /><input value="本地" type="submit" data-location="Local" /><input value="其它 OJ" type="submit" data-location="Unknown" /></div>
+					<div class="buffer-1 row">
+						<div class="col-1-4" id="pLocation">当前位置: </div>
+						<div class="col-1-4 col-push-1-2 ri" style="right: 5%"><input type="text" name="search" placeholder="搜索" /></div>
+					</div>
 					<table class="cen main-table" id="recTable" style="width: 100%">
 						<thead>
 							<tr>
@@ -153,11 +113,7 @@
 						</tbody>
 					</table>
 					<p id="recTotal" class="cen">请稍等，写个 FFT 就加载完毕啦！</p>
-					<form id="form1"><p>页码：<input name="curLoc" type="hidden" value="">
-						<input id="pgFirst" value="&laquo;" type="button" /><input id="pgPrev" value="&lt;" type="button" /><input id="pgP3" value="-2" type="button" /><input id="pgP2" value="-1" type="button" /><input id="pgP1" value="0" type="button" />
-						<input id="selPage" name="page" value="1" type="number" min="1" max="1000000" class="cen" style="width: 50px; height: 21px" />
-						<input id="pgN1" value="2" type="button" /><input id="pgN2" value="3" type="button" /><input id="pgN3" value="4" type="button" /><input id="pgNext" value="&gt;" type="button" /><input id="pgLast" value="&raquo;" type="button" />
-					</p></form>
+					<div class="cen"><ul id="pagination"></ul></div>
 				</fieldset>
 			</div>
 		</div>

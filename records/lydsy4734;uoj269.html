@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4734][uoj269][清华集训2016]如何优雅的求和</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个多项式函数 $f(x)$，最高次幂为 $x^m$，定义变换 $Q$：</p>
+		<p>$$ Q (f, n, x) = \sum_{k=0}^n f(k) \binom nk x^k (1-x)^{n-k} \tag 1 \label 1 $$</p>
+		<p>现在给定函数 $f$ 和 $n, x$，求 $Q(f, n, x) \bmod 998244353$。</p>
+		<p>出于某种原因，函数 $f$ 由点值形式给出，即给定 $a_0, a_1, \cdots, a_m$ 共 $m + 1$ 个数，$f(x) = a_x$。可以证明该函数唯一。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, m, x$ ($1 \leq n \leq 10^9; 1 \leq m \leq 20000; 0 \leq x &lt; 998244353$)，意义如前所述。</p>
+		<p>第二行包含 $m + 1$ 个整数 $a_0, a_1, a_2, \cdots, a_m$ ($0 \leq a_i &lt; 998244353$)，表示多项式 $f(x)$ 在 $0, 1, 2, \cdots, m$ 处的点值。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示答案对 $998 \, 244 \, 353$ 取模的值。</p>
+
+		<h3>题解</h3>
+		<p>先从简单的情况入手：</p>
+		<p>当 $f(k) = 1$ (或常数) 时，由二项式定理，有</p>
+		<p>$$ Q(f, n, x) = \sum_{k=0}^n \binom nk x^k (1-x)^{n-k} = \left( x + (1 - x) \right)^n = 1 $$</p>
+		<p>当 $f(k) = k$ (一次函数) 时，可以发现是二项分布的期望，由期望的线性性质，可得，$Q(f, n, x) = n x$。或者，由吸收恒等式，</p>
+		<p>$$ Q(f, n, x) = \sum_{k=0}^n k \binom nk x^k (1-x)^{n-k} = \sum_{k=0}^n n \binom {n-1} {k-1} x^k (1-x)^{n-k} = n x \cdot \sum_{k=1}^n \binom {n-1} {k-1} x^{k-1} (1-x)^{n-k} = \left( x + (1 - x) \right)^{n-1} = n x $$</p>
+		<p>当 $f(k) = k^2$ 时，还是考虑吸收，有 $k^2 \dbinom nk = k \cdot n \dbinom {n-1} {k-1} = \cdots$ 似乎吸收恒等式已经无法比较好的利用。那该怎么办呢？</p>
+		<p>观察吸收恒等式 ($k \dbinom nk = n \dbinom {n-1} {k-1}$) 的形式，可以注意到，当二项式系数的下指标与外面的系数相等时，就可以实现吸收。因此，如果 $f(k) = k (k-1)$ 而不是 $k^2$，就可以实现重复吸收：$k (k-1) \dbinom nk = n \cdot (k-1) \dbinom {n-1} {k-1} = n (n-1) \cdot \dbinom {n-2} {k-2}$。</p>
+		<p>而此时，$k^2$ 可以表示成 $k(k-1) + k$ 的形式，两部分均可吸收。</p>
+		<p>更一般地，我们可以发现，当 $f(k) = k^{\underline m} = \dfrac {k!} {(k-m)!}$ 时，有</p>
+		<p>$$ Q(f, n, x) = \sum_{k=0}^n k^{\underline m} \binom nk x^k (1-x)^{n-k} = \sum_{k=0}^n \frac {k!} {(k-m)!} \cdot \frac {n!} {k! (n-k)!} \cdot x^k (1-x)^{n-k} = \sum_{k=m}^n \frac {n!} {(k-m)! (n-k)!} \cdot x^k (1-x)^{n-k} $$</p>
+		<p>$$ = \frac {n!} {(n-m)!} x^m \cdot \sum_{k=m}^n \frac {(n-m)!} {(k-m)! (n-k)!} x^{k-m} (1-x)^{n-k} = n^{\underline m} x^m \cdot \sum_{k=m}^n \binom {n-m} {k-m} x^{k-m} (1-x)^{n-k} = n^{\underline m} x^m \cdot \left( x + (1 - x) \right)^{n-m} = n^{\underline m} x^m $$</p>
+		<p>(上面的这个推导相当于<strong>连续使用 $m$ 次<em>吸收恒等式</em></strong>)</p>
+		<p>结果居然如此美妙！原来那么复杂的一串式子到最后竟然只剩下简单的两项：<em>$n$ 的 $m$ 次下降幂</em>乘 <em>$x$ 的 $m$ 次幂</em>！</p>
+		<p>而此时的条件，我们只需要 $f(k)$ 为一个下降幂即可！</p>
+		<p>由下降幂多项式的基本性质，<strong>任何一个多项式都能唯一地表示成下降幂的形式</strong>。于是，由 $\eqref 1$ 式关于 $f(k)$ 的线性性质，可知，如果 $\displaystyle f(k) = \sum_{i=0}^m c_i k^{\underline i}$，则代入 $\eqref 1$ 式得</p>
+		<p>$$ Q(f, n, x) = \sum_{k=0}^n \left( \sum_{i=0}^m c_i k^{\underline i} \right) \binom nk x^k (1-x)^{n-k} = \sum_{i=0}^m c_i \sum_{k=0}^n k^{\underline i} \binom nk x^k (1-x)^{n-k} = \sum_{i=0}^m c_i n^{\underline i} x^i $$
+		<p>还是如此的简洁。因此，我们只需要求出 $c_0, c_1, \cdots, c_m$ 的值，后面的计算，就是一个简单的 $O(m)$ 枚举。</p>
+		<p>那怎么知道 $c_0, c_1, \cdots, c_m$ 的值呢？这相当于，给定一个多项式在 $0, 1, 2, \cdots, m$ 的点值，你需要求出它的下降幂系数。</p>
+		<p>这不就是 <a href="soj201.html" target="_blank">[soj201]&#913; &#215; &#914; Problem</a> 的后半部分吗？可以在 $O \left( m \log m \right)$ 的时间内解决，跑 $m = 20000$ 绰绰有余 <del>(窝怎么感觉 $20000$ 跑 $O \left( m^2 \right)$ 都能过啊)</del>。</p>
+		<p>总时间复杂度 $O \left( m \log m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 530000
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef int vec[N], *pvec;
+typedef long long ll;
+const ll mod = 998244353, half_mod = 499122177, root = 31;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void in(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) scanf("%d", f + i);}
+
+	void out(int deg, pvec f, const char *_name){
+		printf("%s(x) =", _name);
+		for (int i = 0; i &lt;= deg; ++i) printf(" %+d x^%d", (int)(f[i] - (mod &amp; -(f[i] &gt;= half_mod))), i);
+		putchar(10);
+	}
+
+	void series(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) printf("%d%c", f[i], i == deg ? 10 : 32);}
+
+	#define fy_out(deg, f) Poly::out(deg, f, #f)
+
+	void NTT_init(int len){
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1; *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) {
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = PowerMod(n, mod - 2);
+		DNTT(a, c); DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c); std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+}
+
+int n, d, x;
+vec f, g;
+vec fact, finv, E;
+
+void init(int n) {
+	int i;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+	for (i = 0; i &lt;= n; ++i) E[i] = (i &amp; 1 ? mod - finv[i] : finv[i]);
+}
+
+int main() {
+	int i; ll A = 1, B = 1, ans = 0;
+	scanf("%d%d%d", &amp;n, &amp;d, &amp;x);
+	Poly::in(d, f); init(d);
+	for (i = 0; i &lt;= d; ++i) f[i] = (ll)f[i] * finv[i] % mod;
+	Poly::Mul(d * 2, f, E, g);
+	for (i = 0; i &lt;= d; ++i) {
+		ans = (ans + A * B % mod * g[i]) % mod;
+		A = A * x % mod; B = B * (n - i) % mod;
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 NTT 时的大小控制 (约为 $2m$)，不要太小也不要太大。</p>
+	</body>
+</html>

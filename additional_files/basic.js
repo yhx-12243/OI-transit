@@ -11,8 +11,8 @@ const
 	'use strict';
 
 	var
-		DisplayDict = {'': '全部', 'Luogu': '洛谷', 'SPOJ': 'Sphere OJ', 'SOJ': 'Simple OJ/Stupid OJ', 'Local': '本地', 'Unknown': '一些看似不是很知名的 OJ，快去问一问大佬们吧'},
-		NormDict = {'lydsy': 'Lydsy', 'lg': 'Luogu', 'vijos': 'Vijos', 'hdu': 'HDU', 'poj': 'POJ', 'uoj': 'UOJ', 'loj': 'LibreOJ', 'simpleoj': 'SOJ', 'soj': 'SOJ', 'cf': 'Codeforces', 'cc': 'Codechef', 'spoj': 'SPOJ'},
+		DisplayDict = {'Luogu' : '洛谷', 'SPOJ' : 'Sphere OJ', 'SOJ' : 'Simple OJ/Stupid OJ', 'Local' : '本地', 'Unknown' : '一些看似不是很知名的 OJ，快去问一问大佬们吧'},
+		NormDict = {'lydsy' : 'Lydsy', 'lg' : 'Luogu', 'vijos' : 'Vijos', 'hdu' : 'HDU', 'poj' : 'POJ', 'uoj' : 'UOJ', 'loj' : 'LibreOJ', 'simpleoj' : 'SOJ', 'soj' : 'SOJ', 'cf' : 'Codeforces', 'cc' : 'Codechef', 'spoj' : 'SPOJ'},
 		SiteDict = {
 			'lydsy' : [[/\d+/], 'https://www.lydsy.com/JudgeOnline/problem.php?id=@0'],
 			'lg' : [[/[TU]?\d+/], 'https://www.luogu.org/problemnew/show/@0'],
@@ -56,14 +56,44 @@ const
 		return year + '-' + month + '-' + day + ' ' + hour + ':' + (minute < 10 ? '0' : '') + minute + ':' + (second < 10 ? '0' : '') + second;
 	}
 
-	win.updTime = function () {
-		$('#dispTime').html('当前时间: ' + dateFormat(new Date()));
+	win.updTime = function () {$('#dispTime').html('当前时间: ' + dateFormat(new Date()));}
+
+	win.htmlspecialchars = function (s) {return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');}
+
+	win.htmlspecialcharsDecode = function (s) {return s.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');}
+
+	win.stripTags = function (s) {return s.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g, '');}
+
+	win.html2Text = function (s) {return htmlspecialcharsDecode(stripTags(s));}
+
+	win.parseStr = function (s) {
+		var ret = {}, i, a, b;
+		if (s.startsWith('?')) s = s.substr(1);
+		a = s.split('&');
+		for (i in a)
+			if (b = a[i].split('='), b[1])
+				ret[decodeURIComponent(b[0])] = decodeURIComponent(b[1]);
+		return ret;
 	}
 
-	win.parseSearch = function (key, defult){
-		var reg = new RegExp('[?&]' + key + '=([^&]*)(&|$)'),
-		r = win.location.search.match(reg);
-		return r ? unescape(r[1]) : defult;
+	win.queryStringEncode = function (params) {
+		var ret = [];
+		Object.keys(params).sort().forEach(function (item) {
+			if (params[item])
+				ret.push(encodeURIComponent(item) + '=' + encodeURIComponent(params[item]));
+		});
+		return ret.join('&');
+	}
+
+	win.getUri = function (params) {
+		var ps = queryStringEncode(params);
+		return location.href.replace(/\?.*/, '') + (ps ? '?' + ps : '');
+	}
+
+	win.getPageUri = function (p) {
+		var params = parseStr(location.search);
+		params['page'] = (p == 1 ? '' : p.toString());
+		return getUri(params);
 	}
 
 	win.getDisplay = function (s) {return DisplayDict.hasOwnProperty(s) ? DisplayDict[s] : s;}
@@ -74,36 +104,118 @@ const
 
 	win.getFL = function (s) {return FLDict.hasOwnProperty(s) ? FLDict[s] : null;}
 
-	win.OJMatch = function (ptrn, s){
+	win.pagination = function () {
+		if (totPage <= 1) return;
+
+		var $pag = $('#pagination'), $sel, i;
+		if (curPage > 1) {
+			$pag.append($('<li />')
+				.html('<a href="' + getPageUri(1) + '">&laquo;</a>')
+			).append($('<li />')
+				.html('<a href="' + getPageUri(curPage - 1) + '">&lt;</a>')
+			);
+		} else {
+			$pag.append($('<li class="disabled">')
+				.html('<a>&laquo;</a>')
+			).append($('<li class="disabled">')
+				.html('<a>&lt;</a>')
+			);
+		}
+
+		for (i = Math.max(curPage - 4, 1); i <= Math.min(curPage + 4, totPage); ++i) {
+			if (i == curPage) {
+				$pag.append($('<li />')
+					.append(
+						$sel = $('<input type="number" id="selPage" class="cen" min="1" max="' + totPage.toString()+ '" value="' + curPage.toString() + '" />')
+					)
+				);
+			} else {
+				$pag.append($('<li />')
+					.html('<a href="' + getPageUri(i) + '">' + i + '</a>')
+				);
+			}
+		}
+
+		if (curPage < totPage) {
+			$pag.append($('<li />')
+				.html('<a href="' + getPageUri(curPage + 1) + '">&gt;</a>')
+			).append($('<li />')
+				.html('<a href="' + getPageUri(totPage) + '">&raquo;</a>')
+			);
+		} else {
+			$pag.append($('<li class="disabled">')
+				.html('<a>&gt;</a>')
+			).append($('<li class="disabled">')
+				.html('<a>&raquo;</a>')
+			);
+		}
+
+		if (!$sel) return;
+
+		$sel.keypress(function (e) {
+			if (e.which === 13 || e.keyCode === 13){
+				var p = parseInt(this.value);
+				if (p < 1 || p > totPage) alert('你都输入的些什么呀，认真点！');
+				else location.replace(getPageUri(p));
+			}
+		}).blur(function () {
+			var p = parseInt(this.value);
+			if (p < 1 || p > totPage) this.value = curPage.toString();
+			else if (p !== curPage) location.replace(getPageUri(p));
+		});
+		
+		$(document).keyup(function (e) {
+			if (e.target.id === 'selPage') return;
+			if (e.which === 37 || e.keyCode === 37) {
+				if (curPage > 1) location.replace(getPageUri(curPage - 1));
+			} else if (e.which === 39 || e.keyCode === 39) {
+				if (curPage < totPage) location.replace(getPageUri(curPage + 1));
+			}
+		});
+	}
+
+	win.OJMatch = function (ptrn, s) {
 		var brr, i, j, ret = '', failed;
 		var sOJ, sID, siteMethod, regSite, strSite, regResult;
-		if(ptrn){
+		if (ptrn) {
 			brr = s.split(';');
-			for(i in brr){
-				if(j = brr[i].search(/[^a-z]/), j < 0) continue;
+			for (i in brr){
+				if (j = brr[i].search(/[^a-z]/), j < 0) continue;
 				sOJ = brr[i].substr(0, j);
-				if(ptrn === 'Unknown') sOJ && !getNorm(sOJ) && (ret += brr[i] + ';');
+				if (ptrn === 'Unknown') sOJ && !getNorm(sOJ) && (ret += brr[i] + ';');
 				else if(ptrn === 'Local') !j && (ret += brr[i] + ';');
 				else getNorm(sOJ) === ptrn && (ret += brr[i] + ';');
 			}
 			s = ret.substr(0, ret.length - 1); ret = '';
 		}
 		brr = s.split(';');
-		for(i in brr){
-			if(j = brr[i].search(/[^a-z]/), j <= 0) {ret += brr[i] + ';'; continue;}
+		for (i in brr) {
+			if (j = brr[i].search(/[^a-z]/), j <= 0) {ret += brr[i] + ';'; continue;}
 			sOJ = brr[i].substr(0, j); sID = brr[i].substr(j);
 			siteMethod = getSite(sOJ);
-			if(!siteMethod) {ret += brr[i] + ";"; continue;}
+			if (!siteMethod) {ret += brr[i] + ";"; continue;}
 			regSite = siteMethod[0]; 
 			strSite = siteMethod[1];
 			failed = false;
-			for(j in regSite){
+			for (j in regSite) {
 				regResult = sID.match(regSite[j]);
-				if(!regResult) {failed = true; break;}
+				if (!regResult) {failed = true; break;}
 				strSite = strSite.replace("@" + j, regResult[0]);
 			}
-			if(failed) {ret += brr[i] + ";"; continue;}
+			if (failed) {ret += brr[i] + ";"; continue;}
 			ret += '<a href="' + strSite + '" target="_blank">' + brr[i] + '</a>;';
+		}
+		return ret.substr(0, ret.length - 1);
+	}
+
+	win.highlightTags = function (s) {
+		var brr = s.split(';'), i, ret = '', tag;
+		for (i in brr) {
+			tag = html2Text(brr[i]);
+			var params = parseStr(location.search);
+			params['tag'] = tag;
+			params['page'] = '';
+			ret += '<a href="' + getUri(params) + '">' + brr[i] + '</a>;';
 		}
 		return ret.substr(0, ret.length - 1);
 	}
