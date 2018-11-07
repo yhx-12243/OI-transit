@@ -16,12 +16,12 @@
 				updTime(); setInterval(updTime, 250);
 				if (getStorage('marquee') === 'on') $("#intro").show().get(0).start();
 
-				var params = parseStr(location.search), strLocation, curTag;
+				var params = parseStr(location.search), strLocation, curTag, curSearch;
 				curLocation = params['curLoc'] || '';
 				curROrder = getStorage('srtRec') || 'n';
 				curPage = parseInt(params['page'] || '1');
 				curTag = params['tag'] || '';
-				if (~curTag.indexOf(';')) curTag = '';
+				curSearch = params['search'] || '';
 			
 				strLocation = '当前位置: <a href="' + getUri({}) + '">根</a>';
 
@@ -36,6 +36,10 @@
 
 				$('#pLocation').html(strLocation);
 
+				if (!curSearch.match(/^[^\x00-\x1f]+$/)) curSearch = '';
+				$('#search').val(curSearch);
+				setFileConfig('search', curSearch);
+
 				$.get('records/tot.cfg', parseRecords);
 
 				$('#btnMarquee').click(function (){
@@ -44,11 +48,11 @@
 					else {$mar.hide(); setStorage('marquee', 'off');}
 				});
 
-				var $curLoc = $('input[name="curLoc"]');
-				$('#locations > input:submit').click(function () {
+				$('#locations > button').click(function () {
 					params['curLoc'] = $(this).data('location');
 					params['tag'] = '';
 					params['page'] = '';
+					params['search'] = '';
 					location.replace(getUri(params));
 				});
 
@@ -62,8 +66,21 @@
 						else {curROrder = s; sortTable(s);}
 						$('#recTable').append(Rows.slice((curPage - 1) * RECORDS_PER_PAGE, curPage * RECORDS_PER_PAGE));
 						setStorage('srtRec', curROrder);
-					}	
+					}
 				});
+
+				$('#search').keypress(function (e) {
+					if (e.which === 13 || e.keyCode === 13) {
+						params['page'] == '';
+						params['search'] = this.value;
+						location.replace(getUri(params));
+					} else {
+						checkSearch(this.value);
+					}
+				}).blur(function (e) {
+//					checkSearch(this.value);
+				});
+				
 
 				$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
 			});
@@ -92,10 +109,10 @@
 				</div>
 				<fieldset>
 					<legend>做题记录</legend>
-					<div class="buffer-1" id="locations"><input value="全部" type="submit" data-location="" /><input value="Lydsy" type="submit" data-location="Lydsy" /><input value="洛谷" type="submit" data-location="Luogu" /><input value="Vijos" type="submit" data-location="Vijos" /><input value="HDU" type="submit" data-location="HDU" /><input value="POJ" type="submit" data-location="POJ" /><input value="UOJ" type="submit" data-location="UOJ" /><input value="LibreOJ" type="submit" data-location="LibreOJ" /><input value="SimpleOJ/StupidOJ" type="submit" data-location="SOJ" /><input value="Codeforces" type="submit" data-location="Codeforces" /><input value="Codechef" type="submit" data-location="Codechef" /><input value="SPOJ" type="submit" data-location="SPOJ" /><input value="本地" type="submit" data-location="Local" /><input value="其它 OJ" type="submit" data-location="Unknown" /></div>
+					<div class="buffer-1" id="locations"><button data-location="">全部</button><button data-location="Lydsy" >Lydsy</button><button data-location="Luogu">洛谷</button><button data-location="Vijos">Vijos</button><button data-location="HDU">HDU</button><button data-location="POJ">POJ</button><button data-location="UOJ">UOJ</button><button data-location="LibreOJ">LibreOJ</button><button data-location="SOJ">SimpleOJ/StupidOJ</button><button data-location="Codeforces">Codeforces</button><button data-location="Codechef">Codechef</button><button data-location="SPOJ">SPOJ</button><button data-location="Local">本地</button><button data-location="Unknown">其它 OJ</button></div>
 					<div class="buffer-1 row">
-						<div class="col-1-4" id="pLocation">当前位置: </div>
-						<div class="col-1-4 col-push-1-2 ri" style="right: 5%"><input type="text" name="search" placeholder="搜索" /></div>
+						<div class="col-1-2" id="pLocation">当前位置: </div>
+						<div class="col-1-4 col-push-1-4 ri"><input type="text" id="search" placeholder="搜索" style="margin-left: -12px; width: 100%" /></div>
 					</div>
 					<table class="cen main-table" id="recTable" style="width: 100%">
 						<thead>

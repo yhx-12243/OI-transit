@@ -15,7 +15,7 @@
 
 	// ---------------- Records ---------------- //
 	win.parseRecords = function (strBack) {
-		var i, nm, info, count = 0, recnum = 0, tnm;
+		var i, info, count = 0, recnum = 0, result;
 		var $R, $C, $A;
 		Rows = []; recArr = strBack.split('\n');
 		for (i = 0; i < recArr.length; ++i)
@@ -23,17 +23,21 @@
 				info = recArr[i].replace(/[\f\n\r\v]/g, '').split('|');
 				if (info.length !== 5) continue; // invalid record
 				++recnum;
-				if (!(tnm = OJMatch(curLocation, nm = info[0]))) continue;
-				if (config['tag'] && !~(';' + html2Text(info[4]) + ';').indexOf(';' + config['tag'] + ';')) continue;
+				result = recordMatch(info, curLocation, config);
+				if (!result.length) continue;
+//				if (config['tag'] && !~(';' + html2Text(info[4]) + ';').indexOf(';' + config['tag'] + ';')) continue;
 				$R = $('<tr />');
 				$R.append($C = $('<td />').data('id', recnum - 1));
-				$R.append($C = $('<td />').html(tnm));
-				$A = $('<a href="records/' + encodeURIComponent(nm) + '.html" target="_blank">链接</a>');
-				$R.append($C = $('<td />').append($A));
+				$R.append($C = $('<td />').html(result[0]));
+				$R.append($C = $('<td />')
+					.append(
+						$A = $('<a href="records/' + encodeURIComponent(info[0]) + '.html" target="_blank">链接</a>')
+					)
+				);
 				$R.append($C = $('<td />').html(info[1]));
 				$R.append($C = $('<td />').html(info[2]));
 				$R.append($C = $('<td />').html(info[3]));
-				$R.append($C = $('<td />').html(highlightTags(info[4])));
+				$R.append($C = $('<td />').html(result[1]));
 				Rows.push($R.get(0));
 				++count;
 			}
@@ -47,7 +51,7 @@
 		if (!(curPage >= 1)) curPage = 1;
 		else if (curPage > totPage) curPage = totPage;
 		$('#recTable').append(Rows.slice((curPage - 1) * RECORDS_PER_PAGE, curPage * RECORDS_PER_PAGE));
-		$('#recTotal').html('统计：' + (count ? (curLocation || config['tag'] ? '当前位置' : '') + '共有 ' + count + ' 条记录' : '怎么一道题都还没有啊，快点做题了！'));
+		$('#recTotal').html('统计：' + (count ? (curLocation || config['tag'] || config['search'] ? '当前位置' : '') + '共有 ' + count + ' 条记录' : '怎么一道题都还没有啊，快点做题了！'));
 		pagination();
 	}
 

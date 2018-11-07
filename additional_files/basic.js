@@ -66,6 +66,10 @@ const
 
 	win.html2Text = function (s) {return htmlspecialcharsDecode(stripTags(s));}
 
+	win.htmlBalance = function (s, ch = '\x01') {
+		return s.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g, function (w) {return ch.repeat(w.length);});
+	}
+
 	win.parseStr = function (s) {
 		var ret = {}, i, a, b;
 		if (s.startsWith('?')) s = s.substr(1);
@@ -92,7 +96,14 @@ const
 
 	win.getPageUri = function (p) {
 		var params = parseStr(location.search);
-		params['page'] = (p == 1 ? '' : p.toString());
+		params['page'] = (p === 1 ? '' : p.toString());
+		return getUri(params);
+	}
+
+	win.getTagUri = function (p) {
+		var params = parseStr(location.search);
+		params['tag'] = p;
+		params['page'] = '';
 		return getUri(params);
 	}
 
@@ -105,7 +116,7 @@ const
 	win.getFL = function (s) {return FLDict.hasOwnProperty(s) ? FLDict[s] : null;}
 
 	win.pagination = function () {
-		if (totPage <= 1) return;
+		if (!(totPage > 1)) return;
 
 		var $pag = $('#pagination'), $sel, i;
 		if (curPage > 1) {
@@ -153,7 +164,7 @@ const
 		if (!$sel) return;
 
 		$sel.keypress(function (e) {
-			if (e.which === 13 || e.keyCode === 13){
+			if (e.which === 13 || e.keyCode === 13) {
 				var p = parseInt(this.value);
 				if (p < 1 || p > totPage) alert('你都输入的些什么呀，认真点！');
 				else location.replace(getPageUri(p));
@@ -163,9 +174,9 @@ const
 			if (p < 1 || p > totPage) this.value = curPage.toString();
 			else if (p !== curPage) location.replace(getPageUri(p));
 		});
-		
+
 		$(document).keyup(function (e) {
-			if (e.target.id === 'selPage') return;
+			if (e.target.nodeName.toLowerCase() === 'input') return;
 			if (e.which === 37 || e.keyCode === 37) {
 				if (curPage > 1) location.replace(getPageUri(curPage - 1));
 			} else if (e.which === 39 || e.keyCode === 39) {
@@ -174,50 +185,74 @@ const
 		});
 	}
 
-	win.OJMatch = function (ptrn, s) {
-		var brr, i, j, ret = '', failed;
-		var sOJ, sID, siteMethod, regSite, strSite, regResult;
-		if (ptrn) {
-			brr = s.split(';');
-			for (i in brr){
-				if (j = brr[i].search(/[^a-z]/), j < 0) continue;
-				sOJ = brr[i].substr(0, j);
-				if (ptrn === 'Unknown') sOJ && !getNorm(sOJ) && (ret += brr[i] + ';');
-				else if(ptrn === 'Local') !j && (ret += brr[i] + ';');
-				else getNorm(sOJ) === ptrn && (ret += brr[i] + ';');
-			}
-			s = ret.substr(0, ret.length - 1); ret = '';
-		}
-		brr = s.split(';');
-		for (i in brr) {
-			if (j = brr[i].search(/[^a-z]/), j <= 0) {ret += brr[i] + ';'; continue;}
-			sOJ = brr[i].substr(0, j); sID = brr[i].substr(j);
-			siteMethod = getSite(sOJ);
-			if (!siteMethod) {ret += brr[i] + ";"; continue;}
+	function OJMatch(s, pos) {
+		var sOJ, sID, siteMethod, regSite, strSite, regResult, failed;
+		sOJ = s.substr(0, pos); sID = s.substr(pos);
+		if (siteMethod = getSite(sOJ)) {
 			regSite = siteMethod[0]; 
 			strSite = siteMethod[1];
 			failed = false;
-			for (j in regSite) {
-				regResult = sID.match(regSite[j]);
-				if (!regResult) {failed = true; break;}
-				strSite = strSite.replace("@" + j, regResult[0]);
+			for (var i in regSite) {
+				regResult = sID.match(regSite[i]);
+				if (regResult) strSite = strSite.replace("@" + i, regResult[0]);				
 			}
-			if (failed) {ret += brr[i] + ";"; continue;}
-			ret += '<a href="' + strSite + '" target="_blank">' + brr[i] + '</a>;';
-		}
-		return ret.substr(0, ret.length - 1);
+			return strSite;
+		} else return '';		
 	}
 
-	win.highlightTags = function (s) {
-		var brr = s.split(';'), i, ret = '', tag;
-		for (i in brr) {
-			tag = html2Text(brr[i]);
-			var params = parseStr(location.search);
-			params['tag'] = tag;
-			params['page'] = '';
-			ret += '<a href="' + getUri(params) + '">' + brr[i] + '</a>;';
+	win.recordMatch = function (info, location, config) {
+		var i, j, l = 0, searchCount = 0, raw, th, OJ;
+		var tmp, ret = [], html = [], link = [], _html = [], _link = [];
+		if (location) {
+			tmp = info[0].split(';');
+			for (i in tmp)
+				if (~(j = tmp[i].search(/[^a-z]/))) {
+					OJ = tmp[i].substr(0, j);
+					if (location === 'Unknown') j && !getNorm(OJ) && ret.push(tmp[i]);
+					else if (location === 'Local') j || ret.push(tmp[i]);
+					else getNorm(OJ) === location && ret.push(tmp[i]);
+				}
+		} else
+			ret = info[0].split(';');
+		if (!ret.length) return [];
+		if (config['tag']) {
+			tmp = ';' + html2Text(info[4]) + ';'
+			if (!~tmp.indexOf(';' + config['tag'] + ';')) return [];
 		}
-		return ret.substr(0, ret.length - 1);
+		if (config['search']) l = config['search'].length;
+		for (i in ret) {
+			if (l && ~(j = ret[i].indexOf(config['search']))) {
+				++searchCount;
+				html.push(
+					ret[i].substr(0, j) + '<strong>' + ret[i].substr(j, l) + '</strong>' + ret[i].substr(j + l)
+				);
+			} else
+				html.push(ret[i]);
+			j = ret[i].search(/[^a-z]/);
+			link.push(~j ? OJMatch(ret[i], j) : '');
+		}
+		tmp = info[4].split(';');
+		for (i in tmp) {
+			raw = html2Text(tmp[i]);
+			if (l && ~(j = htmlBalance(tmp[i], '\x01').indexOf(config['search']))) {
+				++searchCount;
+				_html.push(
+					tmp[i].substr(0, j) + '<strong>' + tmp[i].substr(j, l) + '</strong>' + tmp[i].substr(j + l)
+				);
+			} else _html.push(tmp[i]);
+			_link.push(getTagUri(raw));
+		}
+		if (l && !searchCount) return [];
+		ret = [];
+		tmp = [];
+		for (i in html)
+			tmp.push(link[i] ? '<a href="' + link[i] + '" target="_blank">' + html[i] + '</a>' : html[i]);
+		ret[0] = tmp.join(';');
+		tmp = [];
+		for (i in _html)
+			tmp.push('<a href="' + _link[i] + '">' + _html[i] + '</a>');
+		ret[1] = tmp.join(';');
+		return ret;
 	}
 
 })(window ? window : this);
