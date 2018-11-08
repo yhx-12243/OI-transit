@@ -69,6 +69,7 @@ const
 	win.htmlBalance = function (s, ch = '\x01') {
 		return s.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g, function (w) {return ch.repeat(w.length);});
 	}
+	// a.htmlBalance=function(a,b='\x01'){return a.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g,function(w){return b.repeat(w.length);})}
 
 	win.parseStr = function (s) {
 		var ret = {}, i, a, b;
@@ -201,7 +202,7 @@ const
 	}
 
 	win.recordMatch = function (info, location, config) {
-		var i, j, l = 0, searchCount = 0, raw, th, OJ;
+		var i, j, l = 0, searchCount = 0, raw, OJ, srch = config['search'];
 		var tmp, ret = [], html = [], link = [], _html = [], _link = [];
 		if (location) {
 			tmp = info[0].split(';');
@@ -219,9 +220,9 @@ const
 			tmp = ';' + html2Text(info[4]) + ';'
 			if (!~tmp.indexOf(';' + config['tag'] + ';')) return [];
 		}
-		if (config['search']) l = config['search'].length;
+		if (srch) l = config['search'].length;
 		for (i in ret) {
-			if (l && ~(j = ret[i].indexOf(config['search']))) {
+			if (l && ~(j = ret[i].toUpperCase().indexOf(srch.toUpperCase()))) {
 				++searchCount;
 				html.push(
 					ret[i].substr(0, j) + '<strong>' + ret[i].substr(j, l) + '</strong>' + ret[i].substr(j + l)
@@ -234,7 +235,7 @@ const
 		tmp = info[4].split(';');
 		for (i in tmp) {
 			raw = html2Text(tmp[i]);
-			if (l && ~(j = htmlBalance(tmp[i], '\x01').indexOf(config['search']))) {
+			if (l && ~(j = htmlBalance(tmp[i], '\x01').toUpperCase().indexOf(srch.toUpperCase()))) {
 				++searchCount;
 				_html.push(
 					tmp[i].substr(0, j) + '<strong>' + tmp[i].substr(j, l) + '</strong>' + tmp[i].substr(j + l)
