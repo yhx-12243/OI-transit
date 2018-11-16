@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4737][uoj275][清华集训2016]组合数问题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>组合数 $\dbinom nm$ 表示的是从 $n$ 个物品中选出 $m$ 个物品的方案数。举个例子，从 $(1, 2, 3)$ 三个物品中选择两个物品可以有 $(1, 2), (1, 3), (2, 3)$ 这三种选择方法。根据组合数的定义，我们可以给出计算组合数 $\dbinom nm$ 的一般公式：</p>
+		<p>$$ \binom nm = \frac {n!} {n! (n - m)!} $$ 其中 $n! = 1 \times 2 \times \cdots \times n$。(特别地，当 $n = 0$ 时，$n! = 1$)</p>
+		<p>小葱想知道如果给定 $n, m$ 和 $k$，对于所有的 $0 \leq i \leq n; 0 \leq j \leq \min \left\{ i, m \right\}$ 有多少对 $(i, j)$ 满足 $\dbinom ij$ 是 $k$ 的倍数。</p>
+		<p>由于答案可能很大，请模 $10^9 + 7$ 输出。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $t, k$ ($t, k \leq 100$)，其中 $t$ 代表该测试点总共有多少组测试数据，<strong>保证 $k$ 是一个素数</strong>。</p>
+		<p>接下来 $t$ 行，每行两个正整数 $n, m$ ($n, m \leq 10^{18}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $t$ 行，每行一个整数，代表所有的 $0 \leq i \leq n; 0 \leq j \leq \min \left\{ i, m \right\}$ 中有多少对 $(i, j)$ 满足 $\dbinom ij$ 是 $k$ 的倍数。</p>
+
+		<h3>题解</h3>
+		<p>初看此题，感觉和 <a href="http://uoj.ac/problem/263" target="_blank">[NOIP2016]组合数问题</a> 很像，但是还是有两点明显的区别：</p>
+		<ol>
+			<li>在这道题中，$n, m$ 的范围变得很大 ($n, m \leq 10^{18}$)。</li>
+			<li>在这道题中，保证 $k$ 是一个素数。</li>
+		</ol>
+		<p>那我们又该怎么处理呢？注意到 $k$ 是素数的条件，我们可以联想到 Kummer 定理：</p>
+		<p>$\dbinom nm$ 中所含素因子 $p$ 的指数，等于 <strong>$m$ 与 $n - m$ 的加法在 $p$ 进制下的进位次数</strong>。</p>
+		<p>那么，$p \mid \dbinom ij$ 就等价于 $j$ 与 $i - j$ 在 $p$ 进制加法下<strong>至少进位 $1$ 次</strong>；$p \nmid \dbinom ij$ 则等价于 $j$ 与 $i - j$ 在 $p$ 进制加法下不进位——即<strong>在 $p$ 进制表示下，$i$ 的每一位都不小于 $j$ 的每一位</strong>。</p>
+		<p>(注：该结论也可以通过 Lucas 定理得到，请读者自己思考)</p>
+		<p>根据上面可以发现，$k \mid \dbinom ij$ 的条件比较好处理，于是我们考虑问题的反面：即有多少对 $i, j$ 满足 $k \nmid \dbinom ij$。最后用总数取减即可。</p>
+		<p>我们现在的任务是，求出有多少对 $(i, j)$ ($0 \leq i \leq n; 0 \leq j \leq \min \left\{ i, m \right\}$)，使得 ($p$ 进制下) $i$ 的每一位都不小于 $j$ 的每一位。</p>
+		<p>看上去 $i, j$ 所满足的限制比较苛刻，不过当 $i &lt; j$ 时一定存在某一位，$i$ 的那一位比 $j$ 的大，故不对答案造成影响。因此我们可以将条件减弱为 $0 \leq i \leq n; 0 \leq j \leq m$。</p>
+		<p>考虑数位 DP，用 $f_{d, u, v}$ 表示当前到 (高位起) 第 $d$ 位，$u$ 表示 $i$ 是否在边界，$v$ 表示 $j$ 是否在边界，这样的满足条件的 $(i, j)$ 对的个数。易知边界为 $f_{0, 1, 1} = 1$。</p>
+		<p>转移时，可以枚举 $i, j$ 在这一位的值，枚举范围通过 $u, v$ 控制，中途不要忘记满足 $i$ 的值不能小于 $j$ 的值，直接转移即可 (刷表)。</p>
+		<p>最后的结果 ($k \nmid \dbinom ij$ 的数量) 就等于 $f_{l, 0, 0} + f_{l, 0, 1} + f_{l, 1, 0} + f_{l, 1, 1}$，其中 $l$ 为 $n$ 在 $k$ 进制表示下的长度。</p>
+		<p>时间复杂度 (单次) $O \left( k^2 \log n \right)$。<p/>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 120
+
+typedef long long ll;
+const ll mod = 1000000007, inv2 = (mod + 1) / 2;
+
+int p;
+ll n, m;
+int a[N], b[N], f[N][2][2];
+
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+inline void add(int &amp;x, const int y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+
+int main() {
+	int T, _n, _m, i, j, k, l, J, K, d1, d2; ll ans, y;
+	for (scanf("%d%d", &amp;T, &amp;p); T; --T) {
+		scanf("%lld%lld", &amp;n, &amp;m); down(m, n);
+		_n = n % mod; _m = m % mod; ans = (_n - _m * inv2 % mod + 1ll) * (_m + 1ll) % mod;
+		for (l = 0; n; n = y) y = n / p, a[++l] = n - y * p;
+		for (i = 0; i &lt; l; m = y) y = m / p, b[++i] = m - y * p;
+		memset(f, 0, sizeof f); f[0][1][1] = 1;
+		for (i = 0; i &lt; l; ++i)
+			for (j = 0; j &lt; 2; ++j)
+				for (k = 0; k &lt; 2; ++k)
+					if (f[i][j][k]) {
+						J = (j ? a[l - i] : p - 1), K = (k ? b[l - i] : p - 1);
+						for (d1 = 0; d1 &lt;= J; ++d1)
+							for (d2 = 0; d2 &lt;= K &amp;&amp; d2 &lt;= d1; ++d2)
+								add(f[i + 1][j &amp;&amp; d1 == J][k &amp;&amp; d2 == K], f[i][j][k]);
+					}
+		ans = (ans - f[l][0][0] - f[l][0][1] - f[l][1][0] - f[l][1][1]) % mod;
+		printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意一开始计算总数的时候不是 $n \times m$，而是一个类似梯形区域的面积，因为对于 $i &lt; j$，时，$k \mid \dbinom ij = 0$。当然，如果 $n &lt; m$，则需要直接令 $m \gets n$。</p>
+		<p><strong>坑2：</strong>由于我们是从高到低 DP 的 (这样会好处理边界)，因此转换为 $k$ 进制下的数组需要反转一下 (或者像上面代码一样倒着遍历也行)。</p>
+	</body>
+</html>

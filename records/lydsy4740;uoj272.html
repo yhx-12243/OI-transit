@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4740][uoj272][清华集训2016]石家庄的工人阶级队伍比较坚强</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>$n = 3^m$ 个人在玩石头剪刀布，一共有 $t$ <strong>轮</strong>游戏，每轮有 $m$ <strong>次</strong>石头剪刀布。</p>
+		<p>在同一轮的 $m$ 次游戏中，每个人的决策必须是提前确定的，也就是说不能采用随机策略，也不能根据前若干局的结果决定下一局的决策；这样，显然一共有 $n = 3^m$ 种决策。</p>
+		<p>这 $n = 3^m$ 个人会采取两两不同的决策。为了方便表达，对于第 $x$ ($0 \leq x &lt; n$) 个人，将 $x$ 转换成三进制得到一个 $m$ 位的数。其中 $0$ 表示剪刀，$1$ 表示石头，$2$ 表示布。就得到了第 $x$ 个人采取的策略。</p>
+		<p>由于编号是固定的，因此每个人在不同轮的 $m$ 次游戏中都会采取同一套决策。</p>
+		<p>第 $x$ 个人在最初时有一个分数 $f_{0, x}$。</p>
+		<p>在第 $i$ 轮中，他将和另一个人 $y$ 进行 $m$ 次的石头剪刀布的比赛。</p>
+		<p>我们用 $W \left( x, y \right)$ 表示 $x$ 在和 $y$ 的 $m$ 次比赛中赢的次数；用 $L \left( x, y \right)$ 表示 $x$ 在和 $y$ 的 $m$ 次比赛中输的次数。</p>
+		<p>在第 $i$ 轮结束之后，第 $x$ 个人分数是：</p>
+		<p>$$ f_{i, x} = \sum_{0 \leq y &lt; n} f_{i - 1, y} \cdot b_{u, v} $$</p>
+		<p>其中 $u = W \left( x, y \right) = L \left( y, x \right), v = L \left( x, y \right) = W \left( y, x \right)$，平局不计入次数；$b_{u, v}$ 则是一个给定的评分数组。</p>
+		<p>注意即使 $y$ 和 $x$ 一样 (自己转移到自己) 也会乘上一个系数 $b_{0, 0}$ (即自己跟自己打全为平局)。</p>
+		<p>显然随着轮数越来越多，分数也会越来越大，这个计分系统和我们平时用的计算机一样，也会溢出。当要储存的分数 $f$ 大于等于 $p$ 的时候，就会变成 $f \bmod p$。</p>
+		<p>B 君想知道 $t$ 轮之后所有人的分数，也就是 $f_{t, 0}, f_{t, 1}, \ldots, f_{t, n - 1}$。</p>
+		<p>G 君：「诶，我发现这个数 $p$ 有特殊的性质诶！不存在两个正整数，使得他们倒数的和等于 $\dfrac 3p$！」</p>
+		<p>B 君：「G 君好棒！不过这个题怎么做呢？」</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $m, t, p$ ($0 \leq m \leq 12; 0 \leq t \leq 10^9; 1 \leq p \leq 10^9$)。</p>
+		<p>第二行有 $n = 3^m$ 个整数，表示 $f_{0, 0}, f_{0, 1}, \cdots, f_{0, n - 1}$。保证 $0 \leq f_{0, i} &lt; p$。</p>
+		<p>接下来的部分是一个数组 $b$，第 $1$ 行 $m + 1$ 个数，第 $2$ 行 $m$ 个数……第 $m + 1$ 行 $1$ 个数。</p>
+		<p>其中第 $i$ 行的第 $j$ 个数为 $b_{i - 1, j - 1}$（$i, j \geq 1; i + j - 2 \leq m$），保证 $0 \leq b_{i, j} &lt; p$。</p>
+		<p>其中 $p$ 满足，<strong>不存在正整数 $x, y &gt; 0$，使得 $\dfrac 1x + \dfrac 1y = \dfrac 3p$</strong>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $n = 3^m$ 行，每行一个整数，表示每个人最终的得分。</p>
+		<p>其中第 $i$ 行表示第 $i$ 个人的得分 $f_{t, i}$。</p>
+
+		<h3>题解</h3>
+		<p>先来观察 $p$ 所满足的奇怪条件：<strong>不存在正整数 $x, y &gt; 0$，使得 $\dfrac 1x + \dfrac 1y = \dfrac 3p$</strong> <del>(我很好奇 G 君是怎么一眼发现的)</del>，看看 $p$ 到底有什么神奇的性质。</p>
+		<p>若 $p = (3k - 1) r$，则取 $x = k r, y = k p$，则 $\dfrac 1x + \dfrac 1y = \dfrac 1 {k r} + \dfrac 1 {k p} = \dfrac {p + r} {k r p} = \dfrac 3p$，从而不满足条件。</p>
+		<p>若 $p = 3 r$，则取 $x = r + 1, y = r (r + 1)$，则 $\dfrac 1x + \dfrac 1y = \dfrac 1 {r + 1} + \dfrac 1 {r (r + 1)} = \dfrac 1r = \dfrac 3p$，也不满足条件
+		<p>这说明，<strong>$p$ 既不存在 $3k - 1$ 型的因子，也不存在 $3k$ 型的因子</strong>，从而 $p$ 的所有素因子均为 $6k + 1$ 型 (事实上，这个条件就是充要条件，充分性也可以证明，这里略去)。</p>
+		<p>但是这有什么用呢？我们等会儿再说，先去观察原题。</p>
+		<hr />
+		<p>我们考虑<strong>一轮</strong>游戏，观察它对数组 $f_{i, x}$ 有什么影响。记 $A_x = f_{i-1, x}, C_x = f_{i, x}$。则转移即为</p>
+		<p>$$ \large C_x = \sum_{0 \leq y &lt; n} A_y \cdot b_{W(x, y), W(y, x)} \tag 1 \label 1 $$</p>
+		<p>考虑如何处理 $b_{W(x, y), W(y, x)}$。令 $u = x \ominus_3 y$，其中 $\ominus_3$ 表示三进制不退位按位减法。可以发现，$x \ominus_3 y$ 的三进制表示中，$0, 1, 2$ 的个数分别表示 $x$ 与 $y$ 平、$x$ 赢 $y$、$x$ 输给 $y$ 的次数。</p>
+		<p>于是可以令 $\large B_{x \ominus_3 y} = b_{W(x, y), W(y, x)}$，则 $\eqref 1$ 式就变成</p>
+		<p>$$ \large C_k = \sum_{i \oplus_3 y = k} A_i B_j $$ 其中 $\oplus_3$ 表示三进制不进位加法。</p>
+		<p>看上去有没有很熟悉的感觉？对！如果中间的运算是 $\oplus$ (异或，二进制不进位加法) 而不是 $\oplus_3$ 的话，那就是一个<a href="vijos%20%235.html" target="_blank"><strong>集合对称差卷积</strong></a>！可以使用<strong>快速 Walsh 变换</strong> (FWT) 解决。</p>
+		<p>那这回变成了三进制，该怎么办呢？</p>
+		<p><strong>还是 FWT！做三进制的 FWT！</strong></p>
+		<p>具体思路和二进制非常类似，这里就不再赘述。我们来考虑三进制 FWT 的基本变换——三个元素的变换。</p>
+		<p>设三个元素分别为 $a_0, a_1, a_2; b_0, b_1, b_2$，我们要得到 $c_0 = a_0 b_0 + a_1 b_2 + a_2 b_1; c_1 = a_0 b_1 + a_1 b_0 + a_2 b_2; c_2 = a_0 b_2 + a_1 b_1 + a_2 b_0$。</p>
+		<p>设变换 $T$ ($a \xrightarrow{T} A$) 使得 $A_i = a_0 + x a_1 + y a_2$，则 $B_i = b_0 + x b_1 + y b_2$，则 $C_i = A_i B_i = \left( a_0 + x a_1 + y a_2 \right) \left( b_0 + x b_1 + y b_2 \right) = c_0 + x c_1 + y c_2$。</p>
+		<p>于是有 $\begin{cases} x y = 1 \\ x^2 = y \\ y^2 = x \end{cases}$，即 $x^3 = 1$，故 $x = 1, \omega, \omega^2$ ($\omega = \dfrac {-1 + \sqrt 3 \mathrm i} 2$)。
+		<p>我们取 $\begin{cases} A_0 = a_0 + a_1 + a_2 \\ A_1 = a_0 + \omega a_1 + \omega^2 a_2 \\ A_2 = a_0 + \omega^2 a_1 + \omega a_2 \end{cases}$，不难验证这个构造符合要求。</p>
+		<p>因此我们只需对一开始的 $f_0$ 做一遍<em>快速 Walsh 变换</em>，对 $B$ 数组也做一遍变换，接下来只需要使用基本的快速幂即可得到 $f_t$ 的变换，再逆变换回去即可。</p>
+		<p>在做逆变换的时候，最后需要乘 $n$ 的逆元。由于 $(3, p) = 1$，于是 $(n, p) = 1$，故 $n$ 存在逆元。</p>
+		<hr />
+		<p>接下来考虑单位根如何处理的问题。如果暴力写个复数类也是可以的。不过这个模数的特殊性质，保证了在模意义下，$-3$ 一定是二次剩余。(那么接下来减一除以 $2$ 都可以做到，因为 $(2, p) = 1$)</p>
+		<p>由于 $n$ 的所有素因子都是 $6k + 1$ 型，先考虑 $6k + 1$ 型的素数 $p$。</p>
+		<p>$$ \left( \frac {-3} p \right) = \left( \frac {-1} p \right) \left( \frac 3p \right) = (-1)^{(p-1)/2} \cdot \left( \frac p3 \right) (-1)^{(3-1)/2 \cdot (p-1)/2} = (-1)^{p-1} \left( \frac p3 \right) = \left( \frac 13 \right) = 1 $$ (其中 $\left( \dfrac ap \right)$ 为 Legendre 符号)</p>
+		<p>再考虑这种素数的幂 $p^\alpha$，使用归纳法。对 $\alpha = 1$ 已经成立，现设 $-3$ 是 $p^\alpha$ 的二次剩余，证明 $-3$ 是 $p^{\alpha + 1}$ 的二次剩余：</p>
+		<p>由于 $x^2 \equiv -3 \pmod {p^\alpha}$，可设 $x^2 \equiv -3 + b p^\alpha \pmod {p^{\alpha + 1}}$。考虑方程 $\left( x + k p^\alpha \right)^2 \equiv -3 \pmod {p^{\alpha + 1}}$，可化简为 $-3 + b p^\alpha + 2 k x p^\alpha + k^2 p^{2 \alpha} \equiv -3 \pmod {p^{\alpha + 1}}$。</p>
+		<p>由于 $\alpha \geq 1$，所以 $2 \alpha \geq \alpha + 1$。故上述方程可以转化为 $2kx + b \equiv 0 \pmod p$，由于 $2x \not\equiv 0 \pmod p$，因此该方程对 $k$ 有唯一解，证毕。</p>
+		<p>接着考虑合数。由于每个满足题目条件的合数都能拆成上述素数或素数的幂的乘积，且它们两两互素。</p>
+		<p>由孙子定理 (中国剩余定理)，可知 $-3$ 一定是该合数的二次剩余。</p>
+		<p>可以在 $O \left( \log n \right)$ 的时间内得到 $x^2 \equiv -3 \pmod n$ 的其中一个解，然后只需将 $2^{-1} (x - 1)$ 当作 $\omega$ 即可直接进行数值运算。</p>
+		<p>总时间复杂度 $O \left( \log p + 3^m \cdot m \log t \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 550000
+#define M 15
+
+typedef long long ll;
+
+int mod;
+int n = 1, m, T;
+int f[N], g[N], d[M][M];
+int pop1[N], pop2[N];
+ll w, W;
+
+ll PowerMod(ll a, int n, ll mod, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Quadratic {
+	int p, s;
+
+	inline void ensure(bool cond, const char *fmt, int para = 0) {if (!cond) printf(fmt, para), exit(0);}
+ 
+	int exgcd(int a, int b, int &amp;x, int &amp;y) {
+		if (b) {int d = exgcd(b, a % b, y, x); y -= a / b * x; return d;}
+		else return x = 1, y = 0, a;
+	}
+
+	int GPowerMod(int a, int b, int n) {
+		int ra = 1, rb = 0, t;
+		for (; n; n &gt;&gt;= 1) {
+			if (n &amp; 1) {
+				t = ((ll)a * rb + (ll)b * ra) % p;
+				ra = ((ll)a * ra + (ll)b * rb % p * s) % p;
+				rb = t;
+			}
+			t = 2ll * a * b % p;
+			a = ((ll)a * a + (ll)b * b % p * s) % p;
+			b = t;
+		}
+		return ra;
+	}
+
+	int get(int a, int p, int d) {
+		int i, t, x, _ = a % p, fy = p, Fy = p * p;
+		_ += _ &gt;&gt; 31 &amp; mod; Quadratic::p = p;
+		ensure(PowerMod(_, (p - 1) / 2, p) == 1, "FAIL get::Unknown Error (maybe there are factors without `6k+1`).");
+		for (t = 0; ; ++t) {
+			s = ((ll)t * t - _) % p; s += s &gt;&gt; 31 &amp; mod;
+			if (!s) break;
+			if (PowerMod(s, (p - 1) / 2, p) == p - 1) break;
+		}
+		x = (s ? GPowerMod(t, 1, (p + 1) / 2) : t);
+		for (i = 1; i &lt; d; ++i, fy = Fy, Fy *= p)
+			for (; ((ll)x * x - a) % Fy; x += fy);
+		return x;
+	}
+
+	int combine(int a1, int m1, int a2, int m2) {
+		int x, u1, u2;
+		ensure(exgcd(m1, m2, u1, u2) == 1, "FAIL combine::Unknown Error.");
+		x = ((ll)u2 % m1 * (a1 - a2) % m1) % m1;
+		x = ((ll)x * m2 + a2) % ((ll)m1 * m2);
+		return x + (x &gt;&gt; 31 &amp; mod);
+	}
+
+	int main(int n) {
+		int i, j, K, _n = n, u, cur = 0, mo = 1;
+		ensure(n % 2, "FAIL n [equals to %d] is even.", n);
+		for (i = 7; i * i &lt;= n; i += 6)
+			if (!(n % i)) {
+				for (j = 0, K = 1; !(n % i); n /= i, ++j) K *= i;
+				u = get(-3, i, j);
+				cur = combine(cur, mo, u, K);
+				mo *= K;
+			}
+		if (n &gt; 1) {
+			ensure(n % 6 == 1, "FAIL n [equals to %d] mod 6 is not equal to 1.", n);
+			u = get(-3, n, 1);
+			cur = combine(cur, mo, u, n);
+		}
+		ensure((cur * (ll)cur + 3) % _n == 0, "FAIL Unknown Error [result = %d].", cur);
+		return (_n + 1ll) / 2 * (cur - 1) % mod;
+	}
+}
+
+void FWT(int *f, bool rev = false) {
+	int i, *j, *k, len = 1; ll u, v;
+	for (i = 0; i &lt; m; ++i) {
+		for (j = f; j &lt; f + n; j += len * 3)
+			for (k = j; k &lt; j + len; ++k) {
+				u = (*k + k[len] * w + k[len * 2] * W) % mod;
+				v = (*k + k[len] * W + k[len * 2] * w) % mod;
+				*k = ((ll)*k + k[len] + k[len * 2]) % mod;
+				rev ? (k[len] = v, k[len * 2] = u) : (k[len] = u, k[len * 2] = v);
+			}
+		len *= 3;
+	}
+}
+
+int main() {
+	int i, j; ll iv;
+	scanf("%d%d%d", &amp;m, &amp;T, &amp;mod); w = Quadratic::main(mod); W = w * w % mod;
+	iv = PowerMod((2ll * mod + 1) / 3, m, mod);
+	for (i = m; i; --i) n *= 3;
+	for (i = 0; i &lt; n; ++i) scanf("%d", f + i);
+	for (i = 0; i &lt;= m; ++i)
+		for (j = 0; i + j &lt;= m; ++j) scanf("%d", d[i] + j);
+	for (i = 0; i &lt; n; ++i) {
+		pop1[i] = pop1[i / 3] + (i % 3 == 1);
+		pop2[i] = pop2[i / 3] + (i % 3 == 2);
+		g[i] = d[pop1[i]][pop2[i]];
+	}
+	FWT(f); FWT(g);
+	for (i = 0; i &lt; n; ++i) f[i] = PowerMod(g[i], T, mod, f[i]);
+	FWT(f, true); 
+	for (i = 0; i &lt; n; ++i) printf("%d\n", (int)(f[i] * iv % mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在 FWT 运算过程中有三个整数相加的情形，注意不要爆 <code>int</code>。</p>
+		<p><strong>坑2：</strong>FWT 的逆变换和二进制的有些许不同，要像 FFT 一样翻转 $A_1$ 和 $A_2$。</p>
+	</body>
+</html>

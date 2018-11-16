@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy1242]Fishing Net 弦图判定</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在一个高度信息化的渔村，鱼网的制作和修补都是由电脑完成。</p>
+		<p>众所周知，鱼网是由网组成的，网组成的东西叫网眼。如果网眼够小，就能捕到很多鱼；如果网眼太大，鱼就会全部漏走。</p>
+		<p>每次捕鱼回来，鱼网都会烂得很厉害，小网眼会变成网眼，那鱼网就需要修补。</p>
+		<p>他们希望有一个程序能够为他们判断鱼网是否需要修补。程序会把鱼网看作一个连通的图。</p>
+		<p>他们的判断方法是：任何一个长度 (组成其的边的数目) 超过 $3$ 的闭合的圈，都必须有一条交线将它分作两部分。(提示：递归下去，其实就是每个网眼都只能是三角形)</p>
+		<p>如果合乎要求，程序就输出 <code>Perfect</code>,否则输出 <code>Imperfect</code>。</p>
+		<p>注：这里的交线是指一个联结一封闭圈的不同结点而捕属于该圈的一条边。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 1000; m \leq \dbinom n2$)，表示鱼网有 $n$ 个节点和 $m$ 条边。</p>
+		<p>接下来的 $m$ 行，每行两个整数 $A, B$ ($1 \leq A, B \leq n; A \neq B$)，表示节点 $A$ 与节点 $B$ 之间存在一条边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个字符串，为 <code>Perfect</code> 或 <code>Imperfect</code>，表示每个鱼网的测试结果。</p>
+
+		<h3>题解</h3>
+		<p>参见便笺 "<a href="../memos/15.html" target="_blank">弦图相关</a>"。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef std::list &lt;int&gt; list;
+typedef std::set &lt;int, std::greater &lt;int&gt; &gt; set;
+const int N = 1005, M = 1000005;
+
+int V, E, Es = 0;
+int G[N][N];
+int to[M], first[N], next[M];
+int used[N], lbl[N];
+int cnt = 0, peo[N];
+int tcnt, tmp[N];
+list li[N];
+list::iterator it[N];
+set s;
+
+int beg[N], L[N], R[N];
+
+inline void addedge(int u, int v) {
+	to[++Es] = v; next[Es] = first[u]; first[u] = Es; G[u][v] = 1;
+	to[++Es] = u; next[Es] = first[v]; first[v] = Es; G[v][u] = 1;
+}
+
+inline void ins(int x, int val) {
+	if (li[val].empty()) s.insert(val); li[val].push_back(x); --(it[x] = li[val].end());
+}
+
+inline void del(int x, int val) {
+	li[val].erase(it[x]); if (li[val].empty()) s.erase(val);
+}
+
+int main() {
+	int i, u, v, best;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	for (i = 1; i &lt;= V; ++i) {
+		lbl[i] = 0; li[0].push_back(i); --(it[i] = li[0].end());
+	}
+	s.insert(0);
+	for (; !s.empty(); ) {
+		u = li[*s.begin()].front();
+		peo[++cnt] = u; used[u] = cnt;
+		for (i = first[u]; i; i = next[i])
+			if (!used[v = to[i]])
+				del(v, lbl[v]), ins(v, ++lbl[v]);
+		del(u, lbl[u]); best = tcnt = 0;
+		for (i = first[u]; i; i = next[i])
+			if (used[v = to[i]])
+				if (tmp[++tcnt] = v, used[v] &gt; used[best]) best = v;
+		for (i = 1; i &lt;= tcnt; ++i)
+			if (!(tmp[i] == best || G[tmp[i]][best])) return puts("Imperfect"), 0;
+	}
+	return puts("Perfect"), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>其实最大势算法的标记 $l_i$ 的最大值是可以用<strong>链表</strong>来维护的，这样复杂度就可以做到 $O \left( n + m \right)$。</p>
+		<p>还有，在判定两个点是否相邻时，由于 $n \leq 1000$，因此可以用<strong>邻接矩阵</strong>，否则可以用 <code>hash</code> 表等工具。</p>
+	</body>
+</html>
