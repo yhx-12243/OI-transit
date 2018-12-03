@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces923E/947E]Perpetual Subtraction</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个数，初始时为 $x$，你需要重复下列操作 $m$ 次：</p>
+		<ol>
+			<li><p>在 $[0, x]$ 间等概率随机一个数 $y$。</p></li>
+			<li><p>令 $x \gets y$。</p></li>
+		</ol>
+		<p>现在你不知道 $x$ 是多少，你只知道初始时 $x$ 有 $p_i$ 的概率为 $i$ ($0 \leq i \leq n$)。</p>
+		<p>你想知道，经过 $m$ 次操作后，对于每个 $0 \leq i \leq n$，$x = i$ 的概率。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($1 \leq n \leq 10^5; 0 \leq m \leq 10^{18}$)，表示最大可能的数和操作的次数。
+		<p>第二行包含 $n + 1$ 个非负整数 $p_0, p_1, \cdots, p_n$。其中 $p_i$ 为初始时 $x = i$ 的概率在模 $998244353$ 意义下的值。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n + 1$ 个整数，其中第 $i + 1$ 个整数 $q_i$ 表示最终 $x = i$ 的概率在模 $998244353$ 意义下的值。</p>
+
+		<h3>题解</h3>
+		<p>首先，非常容易建立一个 DP 模型：</p>
+		<p>用 $f_{i, j}$ 表示经过 $i$ 轮后 $x = j$ 的概率，则有转移</p>
+		<p>$$ f_{i, j} = \sum_{k=j}^n \frac {f_{i-1, k}} {k + 1} $$</p>
+		<p>时间复杂度 $O \left( n m \right)$，显然过不去。于是我们考虑使用矩阵优化，将 $m$ 部分的复杂度降下来。</p>
+		<p>我们令 $n + 1$ 维列向量 $\mathbf f_i = \begin{bmatrix} f_{i, 0} \\ f_{i, 1} \\ \cdots \\ f_{i, n} \end{bmatrix}$，则有</p>
+		<p>$$ \mathbf f_i = \begin{bmatrix}
+1 & \dfrac 12 & \dfrac 13 & \dfrac 14 & \cdots & \dfrac 1 {n + 1} \\
+0 & \dfrac 12 & \dfrac 13 & \dfrac 14 & \cdots & \dfrac 1 {n + 1} \\
+0 & 0 & \dfrac 13 & \dfrac 14 & \cdots & \dfrac 1 {n + 1} \\
+0 & 0 & 0 & \dfrac 14 & \cdots & \dfrac 1 {n + 1} \\
+\vdots & \vdots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & 0 & 0 & \cdots & \dfrac 1 {n + 1}
+\end{bmatrix} \cdot \mathbf f_{i-1} $$</p>
+		<p>记上面那个 $n + 1$ 阶方阵为 $\mathbf A$。</p>
+		<p>则答案向量 $\mathbf f_m = \mathbf A^m \cdot \mathbf f_0$，其中 $\mathbf f_0$ 就是题目中给的数组 $\left\{ p_i \right\}$。</p>
+		<p>总时间复杂度 $O \left( n^3 \log m \right)$，比暴力稍微优秀了一点。</p>
+		<p>于是，我们现在的任务，就是快速计算矩阵的幂。</p>
+		<hr />
+		<p>如何才能快速计算矩阵的幂呢？除了直接裸乘 (分治法) 和 Cayley-Hamilton 定理，剩下的，就只有<strong style="color: red">对角化</strong>了。</p>
+		<p>我们先来看这个矩阵的特征多项式，$f(\lambda) = \left| \lambda \mathbf I - \mathbf A \right|$，注意到它是上三角行列式，于是有</p>
+		<p>$$ f(\lambda) = \left( \lambda - 1 \right) \left( \lambda - \dfrac 12 \right) \left( \lambda - \dfrac 13 \right) \cdots \left( \lambda - \dfrac 1 {n + 1} \right) $$</p>
+		<p>于是它的 $n + 1$ 个特征值分别为 $1, \dfrac 12, \dfrac 13, \cdots, \dfrac 1 {n + 1}$。</p>
+		<p>由于我们需要对矩阵对角化，因此由矩阵对角化的性质，我们需要求出它们的特征向量。</p>
+		<p>对较小的矩阵进行手算，可以归纳得，$\mathbf A$ 的 $n + 1$ 个特征向量 $\mathbf v_0, \mathbf v_1, \cdots, \mathbf v_n$ 满足 (当 $n &lt; r$ 时定义 $\dbinom nr = 0$)：
+		<p>$$ \mathbf v_i = \begin{bmatrix} (-1)^i \\ (-1)^{i+1} \dbinom i1 \\ (-1)^{i+2} \dbinom i2 \\ \cdots \\ (-1)^{i+n} \dbinom in \end{bmatrix} $$</p>
+		<p>其中 $\mathbf v_i$ 是对应于 $\lambda_i$ 的特征向量。</p>
+		<p>我们来简单证明一下这个结论，即证明 $\mathbf A \cdot \mathbf v_i = \lambda_i \cdot \mathbf v_i$。</p>
+		<p>考虑 $\mathbf A$ 的第 $r$ 行与 $\mathbf v_i$ 的内积，有</p>
+		<p>\begin{align*}
+\sum_{j=0}^n a_{r, j} v_{i, j} &amp;= \sum_{j=r}^n \frac 1 {j + 1} (-1)^{i + j} \binom ij \\
+&amp;= \sum_{j=r}^i (-1)^{i+j} \frac {i!} {(i - j)! (j + 1)!} \\
+&amp;= \frac 1 {i + 1} \sum_{j=r}^i (-1)^{i+j} \frac {(i + 1)!} {(i - j)! (j + 1)!} = \frac 1 {i + 1} \sum_{j=r}^i (-1)^{i+j} \binom {i + 1} {j + 1} \\
+&amp;= \frac 1 {i + 1} \sum_{j=r}^i (-1)^{i+1} \binom {j - i - 1} {j + 1} \quad \color {magenta} {\textrm{(Upper-index negation)}} \\
+&amp;= \frac 1 {i + 1} (-1)^i \binom {r - i - 1} r \\
+&amp;= \frac 1 {i + 1} (-1)^{i + r} \binom ir \quad \color {magenta} {\textrm{(Inversed upper-index negation)}} \\
+&amp;= \lambda_i \cdot v_{i, r}
+\end{align*}</p>
+		<hr />
+		<p>有了 $\mathbf \Phi = \begin{bmatrix} \mathbf v_1 &amp; \mathbf v_2 &amp; \cdots &amp; \mathbf v_n \end{bmatrix}$ 后，接下来就是求 $\mathbf \Phi^{-1}$。</p>
+		<p>首先有 $$ \mathbf \Phi = \begin{bmatrix}
+1 & -1 & 1 & -1 & \cdots & (-1)^n \\
+0 & 1 & -2 & 3 & \cdots & (-1)^{n+1} \dbinom n1 \\
+0 & 0 & 1 & -3 & \cdots & (-1)^{n+2} \dbinom n2 \\
+0 & 0 & 0 & 1 & \cdots & (-1)^{n+3} \dbinom n3 \\
+\vdots & \vdots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & 0 & 0 & \cdots & 1
+\end{bmatrix} $$</p>
+		<p>考虑求它的逆矩阵，打表或根据二项式反演的性质可以知道，$\mathbf \Phi^{-1}$ 就是把矩阵 $\mathbf \Phi$ 中的所有项取绝对值的结果。</p>
+		<p>形式化地，$$ \mathbf \Phi^{-1} = \begin{bmatrix}
+1 & 1 & 1 & 1 & \cdots & 1 \\
+0 & 1 & 2 & 3 & \cdots & \dbinom n1 \\
+0 & 0 & 1 & 3 & \cdots & \dbinom n2 \\
+0 & 0 & 0 & 1 & \cdots & \dbinom n3 \\
+\vdots & \vdots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & 0 & 0 & \cdots & 1
+\end{bmatrix} $$
+		<p>而对于矩阵 $\mathbf B = \mathbf \Phi^{-1} \cdot \mathbf A \cdot \mathbf \Phi$，由之前的结论，是等于 $\mathop{\mathrm{diag}} \left( 1, \dfrac 12, \dfrac 13, \cdots, \dfrac 1n \right)$ 的。</p>
+		<p>则 $\mathbf A^m = \left( \mathbf \Phi \cdot \mathbf B \cdot \mathbf \Phi^{-1} \right)^m = \mathbf \Phi \cdot \mathbf B^m \cdot \mathbf \Phi^{-1}$。</p>
+		<hr />
+		<p>但是这里还有两次 $O \left( n^2 \right)$ 的矩阵乘法！要怎么处理呢？</p>
+		<p>和线性递推优化一样，我们只需要得到它与某一个向量的乘积。因此，我们只需要在上式两端<strong>右乘向量</strong> $\mathbf f_0$。</p>
+		<p>于是，有 $\mathbf A^m \cdot \mathbf f_0 = \mathbf \Phi \cdot \mathbf B^m \cdot \mathbf \Phi^{-1} \cdot \mathbf f_0$。</p>
+		<p>注意最右边是一个 $n + 1$ 维列向量，因此如果从右往左计算，就不会涉及到 $O \left( n^2 \right)$ 的矩阵啦。</p>
+		<p>因此，于是我们将原问题转化为三个子问题：对一个向量左乘 $\mathbf \Phi^{-1}, \mathbf B^m, \mathbf \Phi$。</p>
+		<p>先考虑左乘 $\mathbf B^m$，这个比较简单，由于 $\mathbf B^m$ 是对角矩阵，于是我们将向量的每一维与矩阵对应位置上的值相乘即可。</p>
+		<p>接下来考虑左乘 $\mathbf \Phi^{-1}$。设 $\mathbf b = \mathbf \Phi^{-1} \cdot \mathbf a$。我们将其写成式子，就是：</p>
+		<p>$$ b_k = \sum_{i=k}^n \binom ik a_i $$</p>
+		<p>将二项式系数展开，就是 $$k! b_k = \sum_{i=k}^n \left( i! a_i \right) \cdot \frac 1 {(i - k)!} $$</p>
+		<p>发现它是个卷积，因此可以使用 FFT/FNTT 解决。</p>
+		<p>完全类似地，设 $\mathbf b = \mathbf \Phi \cdot \mathbf a$，展开后得到：
+		<p>$$ b_k = \sum_{i=k}^n (-1)^{i + k} \binom ik a_i $$</p>
+		<p>展开二项式系数，得到 $$ k! b_k = \sum_{i=k}^n \left( i! a_i \right) \cdot \frac {(-1)^{i - k}} {(i - k)!} $$</p>
+		<p>也是一个卷积，从而也能通过 FFT/FNTT 解决。</p>
+		<p>于是我们成功地解决了三个子问题，从而就解决了原问题。</p>
+		<p>总时间复杂度 $O \left( n \log n + n \log \mathrm{mod} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 530000
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef int vec[N], *pvec;
+typedef long long ll;
+const ll mod = 998244353, pmod = mod - 1, half_mod = (mod + 1) / 2, root = 31;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void in(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) scanf("%d", f + i);}
+
+	void out(int deg, pvec f, const char *_name){
+		printf("%s(x) =", _name);
+		for (int i = 0; i &lt;= deg; ++i) printf(" %+d x^%d", (int)(f[i] - (mod &amp; -(f[i] &gt;= half_mod))), i);
+		putchar(10);
+	}
+
+	void series(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) printf("%d%c", f[i], i == deg ? 10 : 32);}
+
+	#define fy_out(deg, f) Poly::out(deg, f, #f)
+
+	void NTT_init(int len){
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1; *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) {
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = PowerMod(n, mod - 2);
+		DNTT(a, c); DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c); std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+}
+
+int n;
+ll K;
+vec fact, finv;
+vec P, Q, a, b, gi;
+
+int main() {
+	int i;
+	scanf("%d%lld", &amp;n, &amp;K); Poly::in(n, P); K = pmod - K % pmod;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+	for (i = 0; i &lt;= n; ++i) a[n - i] = (ll)P[i] * fact[i] % mod;
+	Poly::Mul(n * 2, a, finv, b);
+	memset(b + (n + 1), 0, n &lt;&lt; 2);
+	for (i = 0; i &lt;= n; ++i) a[i] = PowerMod(n - i + 1, (int)K, b[i]);
+	for (i = 0; i &lt;= n; ++i) gi[i] = (i &amp; 1 ? mod - finv[i] : finv[i]);
+	Poly::Mul(n * 2, a, gi, b);
+	for (i = 0; i &lt;= n; ++i) Q[i] = (ll)b[n - i] * finv[i] % mod;
+	Poly::series(n, Q);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在卷积的过程中注意一些细节。比如对阶乘的处理，还有本题的卷积是需要先翻转再进行的。</p>
+	</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces1067E]Random Forest Rank</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个节点的树 $T$，每条边有独立的 $\dfrac 12$ 的概率出现，于是你可以得到一个森林。</p>
+		<p>设这个森林邻接矩阵的秩的期望为 $E$，求 $E \cdot 2^{n-1} \bmod 998244353$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 5 \times 10^5$)，表示树的点数。</p>
+		<p>接下来的 $n - 1$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，表示 $u$ 和 $v$ 在树中相连。</p>
+		<p>保证这些边构成了一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $E \cdot 2^{n-1} \bmod 998244353$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>注意到一张无向图的邻接矩阵一定是对称矩阵，而对称矩阵满足如下性质：</p>
+		<p><strong>秩为 $r$ 的对称矩阵必存在非零 $r$ 阶主子式。</strong></p>
+		<p>因此，通过它，我们就可以证明下面一个非常重要的定理：</p>
+		<p><strong>对于一棵树或森林 $G$，它的邻接矩阵的秩一定是偶数，且等
+于它的最大匹配数的两倍。</strong></p>
+		<p>于是问题就转化为了，求森林的最大匹配的期望。</p>
+		<p>这是一个非常基础的 DP。</p>
+		<p>任选一个点为根，比如点 $1$。用 $f_i$ 表示点 $i$ 和它的子节点匹配的概率，则边界为 $f_l = 0$ ($l$ 是叶节点)，答案为 $\sum\limits_{v \in T} f_v$。</p>
+		<p>对于转移，正难则反，考虑 $i$ 不能和它的子节点匹配的概率。如果 $i$ 不能匹配，则可以说明：对于 $i$ 的任意一个子节点 $c$，要么边 $(i, c)$ 不出现，要么 $c$ 已经和它的子节点匹配。</p>
+		<p>对于每个 $c$，这样的概率是 $\dfrac {1 + f_c} 2$，于是转移方程为
+		<p>$$ f_i = 1 - \prod_{c \textrm{ is a child of } i} \frac {1 + f_c} 2 $$</p>
+		<p>最后别忘记乘以 $2^n$，总时间复杂度 $O(n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 510000, M = N * 2;
+const ll mod = 998244353, inv2 = (mod + 1) / 2;
+
+int n, E = 0;
+int to[M], first[N], next[M];
+int cnt = 0, id[N], f[N];
+ll ans = 0;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v; next[E] = first[u]; first[u] = E;
+	to[++E] = u; next[E] = first[v]; first[v] = E;
+}
+
+void dfs(int x, int px = 0) {
+	int i, y; ll cur = 1;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px)
+			dfs(y, x), cur = cur * (1 + f[y]) % mod * inv2 % mod;
+	ans += f[x] = mod + 1 - cur;
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1); ans %= mod;
+	printf("%lld\n", PowerMod(2, n, ans + (ans &gt;&gt; 63 &amp; mod)));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>DP 时要注意边不存在的情况。</p>
+		<p><strong>坑2：</strong>要注意的是，秩<strong>大于</strong> $r$ 的对称矩阵<strong>不一定</strong>存在非零 $r$ 阶主子式。如，对称矩阵 $B = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix}$ 的秩为 $2$，但不存在非零 $1$ 阶主子式。</p>
+	</body>
+</html>

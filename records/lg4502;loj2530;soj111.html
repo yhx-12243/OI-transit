@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg4502][loj2530][soj111][ZJOI2018]保镖</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style type="text/css">
+			dfn {font-weight: bold; color: fuchsia}
+		</style>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>九条可怜是一个贪玩的女孩子。</p>
+		<p>一个可爱的女孩子出门在外和朋友玩，难免会遇到危险，于是可怜的爸爸悄悄的安插了 $n$ 位保镖在暗中保护她。因为可怜是一个要强的女孩子，所以她的爸爸不想让她知道她的身边有这么多的保镖，因此保镖们必须通过定期的换岗来避免被可怜发现。</p>
+		<p>一次理想的换岗是：距离可怜远的保镖被换到了较近的位置，距离可怜近的保镖被换到了较远的位置。经过一系列安排，保镖们会按照如下的方式进行换岗：</p>
+		<ul>
+			<li>换岗时，可怜和保镖们的位置可以被抽象成二维平面直角坐标系上的点。设可怜的位置为 $O$，保镖的位置为 $P_i$，换岗后的位置为 $P'_i$。</li>
+			<li>在换岗前后，保镖和可怜的相对位置不变。即对于 $\forall i \in [1,n]$，$P'_i$ 在射线 $OP_i$ 上。</li>
+			<li>在换岗前后，保镖和可怜的距离变成了原来的倒数。即对于 $\forall i \in [1, n]$，$\left| OP_i \right| \left| OP'_i \right| = 1$。</li>
+		</ul>
+		<p>同时，保镖的位置决定了可怜的安全度。如果在外围的保镖越多，那么他们能观察到的信息就越多，可怜就越安全。因此，我们定义这些保镖的位置的凸包的顶点个数为可怜的安全度。</p>
+		<p>然而，可怜的行踪总是神出鬼没的。这一天，保镖们跟丢了可怜，只知道可怜下次会在以 $\left( x_1, y_1 \right)$ 为左下角，以 $\left( x_2, y_2 \right)$ 为右上角的矩形区域内出现，具体的位置服从这个矩形区域内的均匀分布 (可以理解为等概率随机)。因为保镖们已经有很长时间没有换岗了，于是他们打算在可怜下次出现的时候换岗。同时，在极小的概率下，可怜可能会出现在和某个保镖相同的位置上。这时这个保镖会被发现，从而他会保持位置不动，而其他的保镖还是会按照上述规则进行换岗。</p>
+		<p>现在，可怜的爸爸想要计算，保镖们在换岗后，可怜的安全度的期望是多少。</p>
+		<p>如果你对凸包不太熟悉，这儿给出凸包形式化的定义：</p>
+		<ul>
+			<li>对于一个简单多边形，它是凸多边形当且仅当它内部任意两点的连线在它的内部。</li>
+			<li>对于一个点集 $P$，它的凸包为包含所有点面积最小的没有三个连续顶点共线的凸多边形。</li>
+		</ul>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($3 \leq n \leq 2000$)，表示保镖的数量。</p>
+		<p>第二行包含四个正整数 $x_1, y_1, x_2, y_2$ ($0 \leq x_0 &lt; x_1 \leq 10^5; 0 \leq y_0 &lt; y_1 \leq 10^5; x1 - x_0 \geq 1000, y_1 - y_0 \geq 1000$)，表示可怜可能出现的矩形区域。</p>
+		<p>接下来 $n$ 行，每行两个整数 $a, b$ ($0 \leq a, b \leq 10^5$)，表示一个保镖的坐标。保证保镖的坐标两两不同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示凸包节点数的期望。</p>
+		<p>当你的答案与标准输出的绝对误差或相对误差在 $10^{-7}$ 内时，就会被视为正确。</p>
+
+		<h3>题解</h3>
+		<p>首先可以发现，保镖们的换岗其实就是作了一个<strong>以可怜为反演中心、$1$ 为反演幂的反演变换</strong>。</p>
+		<p>由反演的保圆性知，任何一个圆经过反演后还是一个圆 (或直线——退化的圆)。</p>
+		<p>接下来我们来扯一下点集的<dfn>三角剖分 (Triangulation)</dfn>。</p>
+		<p>对于一个点集，我们在这些点中尽可能地去连边 (线段)，满足以下两个条件：</p>
+		<ol>
+			<li><p>任何两条边不能交叉。</p></li>
+			<li><p>这是一个极大边集。换句话说，如果再连任何一条 (没连过的) 边，就会与一条已知边出现交叉。</p></li>
+		</ol>
+		<p>我们称这样的点集连通边集连同点称为这个点集的<em>三角剖分</em>。易证，三角剖分中的每个平面均为三角形，且不共线的平面点集必存在三角剖分。</p>
+		<p>对于点集的三角剖分，有一种特殊的三角剖分，叫做<dfn>Delaunay 三角剖分 (Delaunay triangulation)</dfn>。</p>
+		<p>如果一个三角剖分满足，任意一个三角剖分的外接圆的<strong>内部</strong> (非边界) 不包含点集中其它的点，则称它为 Delaunay 三角剖分。</p>
+		<p>在一般位置上，点集的 Delaunay 三角剖分是唯一的。但如果出现四点共圆等情况，就有可能出现不唯一的 Delaunay 三角剖分。</p>
+		<p>这一性质又称为 Delaunay 三角剖分的<strong>空圆特性</strong>。</p>
+		<p>直管感受下，凸包上的所有边一定会出现在三角剖分中 (否则可以将其连上，于是不是极大边集)。那三角剖分与这道题的凸包的点数又有什么关系呢？下面的定理给出了它们之间的关系。</p>
+		<p><strong>定理 1：一个大小为 $n$ 的点集的任何一个三角剖分的三角形个数与凸包点数的和为 $2n - 2$</strong>。注意这里的凸包是严格凸的。</p>
+		<p>证明：注意到三角剖分可以看成一张平面图，于是设三角剖分中有 $T$ 个三角形，$E$ 条边，则由平面图的 Euler 定理，</p>
+		<p>$$ n - E + (1 + T) = 2 \tag 1 \label 1 $$</p>
+		<p>考虑到每个三角形的三条边，则凸包上的边被算了一次，非凸包上的边被算了两次。设凸包的点数 (也等于边数) 为 $C$，则</p>
+		<p>$$ 3 T = C + 2 (E - C) \tag 2 \label 2 $$</p>
+		<p>在 $\eqref 1, \eqref 2$ 式中消去 $E$，得</p>
+		<p>$$ T + C = 2n - 2 \tag 3 \label 3 $$</p>
+		<p>证毕。</p>
+		<hr />
+		<p>这个定理给问题带来了很大的简(ma)化(fan)。看起来三角剖分中三角形的个数比凸包点数难求，但是期望有线性性质，我们可以独立计算每个三角形的贡献，而不是像凸包一样——只能统一处理。</p>
+		<p>那一个点集的三角剖分有很多，取哪一个比较好呢？相信你们都猜到了，<strong>Delaunay 三角剖分</strong>！</p>
+		<p>对于一个 Delaunay 三角形，它的外接圆中不包含任何其它的点。因此，如果反演中心在圆外，则这个圆的反形内部依然不包含点集中其它的点 (的反形)，即那个 Delaunay 三角形的反形还是 Delaunay 三角形。</p>
+		<p>那如果反演中心在圆内呢？好像不好处理了。不过可以发现，此时，这个圆的<strong>反形外部不包含其它的点</strong>，也就是说，所有的点都在这个圆内！</p>
+		<p>于是，如果点集中存在三个点，它们的外接圆 (含边界) 包含其余所有的点，则成这个圆为<strong>支配圆</strong>。Delaunay 三角形对应的外接圆，暂且记作 <strong>Delaunay 圆</strong>。当然，有些圆可能既是支配圆，又是 Delaunay 圆。</p>
+		<p>那么，就有如下结论 (<a href="https://www.geogebra.org/m/begkbgrn" target="_blank">亲自验证</a>)：</p>
+		<ol>
+			<li><p><strong>对于一个 Delaunay 圆，如果反演中心在圆外，则它的反形还是 Delaunay 圆；反之，它的反形是支配圆</strong> (本题不用考虑反演中心在圆上的情形，因为概率为 $0$)。</p></li>
+			<li><p><strong>对于一个支配圆，如果反演中心在圆外，则它的反形还是支配圆；反之，它的反形是 Delaunay 圆</strong>。</p></li>
+		</ol>
+		<p>而凸包的个数是和 Delaunay 圆的个数有关，因此，我们需要对原点集求出所有的 Delaunay 圆和支配圆。</p>
+		<p>对于，Delaunay 圆，可以使用 Delaunay 三角剖分的 $O \left( n \log n \right)$ 算法，但是支配圆怎么办呢？</p>
+		<p>考虑平面上的一个圆，它的一般方程是 $$ x^2 + y^2 + D x + E y + F = 0 \tag 4 \label 4 $$</p>
+		<p>我们令 $z = x^2 + y^2$，于是 $\eqref 4$ 式就可以写成 $D x + E y + z + F = 0$。若把 $\left( x, y, z = x^2 + y^2 \right)$ 看作一个空间中的点，则容易看出，这个方程就是<strong>空间中平面的方程</strong>。<p>
+		<p>因此，对于任一点 $(x, y)$，它在圆 $\eqref 4$ 上 (内/外) 当且仅当点 $\left( x, y, x^2 + y^2 \right)$ 在那个平面上 (一侧/另一侧)。</p>
+		<p>这样，我们就对 Delaunay 圆和支配圆做了一个比较好的刻画——我们将平面上的每一个点沿竖轴 ($z$ 轴) 方向投射到椭圆抛物面 $z = x^2 + y^2$ 上。记这个投射变换为 $\phi$。</p>
+		<p>那么，对于一个 Delaunay 圆 (支配圆)，所有其它的点都在该圆的外 (内) 部，当且仅当其余所有的点在这三点所决定的平面的一侧。</p>
+		<p>对，其余所有的点在这三点所决定的平面的一侧。</p>
+		<p>你想到了什么？<big><strong>三维凸包</strong></big>！</p>
+		<p>也就是说，将所有点投射到抛物面后，得到的点集的凸包中，每一个面对应到一个 Delaunay 圆或支配圆！</p>
+		<p>于是有如下定理：</p>
+		<p><strong>定理 2：大小为 $n$ 的一般点集，Delaunay 圆和支配圆的总数为 $2n - 4$</strong>。</p>
+		<p>证明的话，转化成三维凸包，然后按照平面三角剖分图的方法去证——用面数和边数的关系得到一个式子，Euler 公式得到另一个式子，联立即可，具体证明略。</p>
+		<p>假定我们已经求出了三维凸包。接下来的问题是，如何得到凸包上的一个面是 Delaunay 圆还是支配圆？</p>
+		<p>事实上，我们由如下定理：</p>
+		<p><strong>定理 3：对于 $xOy$ 平面上三个不共线的点 $A, B, C$，它们投射到抛物面上的三个投影，所决定的平面不平行于 $z$ 轴 (从而可以规定上半空间和下半空间)，则如果点 $P$ 在 $\odot ABC$ 内当且仅当 $\phi(P)$ 在 $\phi(A)\phi(B)\phi(C)$ 对应的<em>下半空间</em>中</strong>。</p>
+		<p>证明：$P$ 在 $\odot ABC$ 中可以得到它代入 $\eqref 4$ 中会得到一个负值。而下半空间中必定包含点 $\left( 0, 0, - \infty \right)$，它代入方程中也会得到一个负值，对应性得证。</p>
+		<p>那么，我们就可以判断一个平面对应 Delaunay 圆还是支配圆了。如果一个圆是 Delaunay 圆，说明其余所有点都在它的外部，从而投射变换后所有的点都在对应平面的上方。</p>
+		<p>也就是说，<strong>下凸包 (Lower hull) 对应 Delaunay 圆，上凸包 (Upper hull) 对应支配圆</strong>。</p>
+		<hr />
+		<p>剩下的问题应该就不是很难了。</p>
+		<p>由于$\mathrm{凸包点数} = 2n - 2 - \mathrm{Delaunay 圆个数} = 2 + \mathrm{支配圆个数}$，于是我们只需求出每个圆是支配圆的概率。</p>
+		<p>还是假定我们求出了三维凸包，枚举每个面，判断它是 Delaunay 圆还是支配圆。</p>
+		<p>如果它是 Delaunay 圆，那么当且仅当反演中心在圆内时，反形是支配圆。</p>
+		<p>如果它本身是支配圆，那么当且仅当反演中心在圆外时，反形是支配圆。</p>
+		<p>因此我们要做的，就是一个<strong>矩形和圆的面积交</strong>，它可以分成四个 <strong>"其中一个顶点为圆心的三角形" 与圆的有向面积交</strong>。而后者是平面圆几何的基础，参见<a href="../templates.html#cg08" target="_blank">模板</a>。</p>
+		<p>还要考虑一种情况，就是退化的情况——即这个 Delaunay 圆或者支配圆退化为一条直线的情况。此时圆和三角形的交精度误差就非常大了，我们需要使用另一个模板——<strong>凸多边形与半平面的面积交</strong>。</p>
+		<p>此时这三个点一定都在凸包上，因此反演中心在凸包外时，反形是支配圆。因此我们只需令半平面的方向取远离点集的一侧即可。</p>
+		<p>最后把概率相加再 $+ 2$ 即得答案。此部分时间复杂度 $O(n)$。</p>
+		<hr />
+		<p>还有最后一个历史遗留问题——如何求三维凸包。</p>
+		<p>这个本来应该扔到模板里面讲的……那么在这里先说几句把。</p>
+		<p>这里的三维凸包采用的是 $O \left( n^2 \right)$ 的卷包裹法，是一种增量构造法 (Incremental construction)。</p>
+		<p>和平面凸包的 Jarvis March 算法类似，先找到两个最边界的点，作为起点，然后从这条边开始卷包裹。</p>
+		<p>对于每次卷包裹，设其中一条边为 $e$，我们要找到与 $e$ 所夹的 "二面角" 最小的点，连成三角形，然后对它的另外两条边递归卷包裹。一条边至多被卷一次。</p>
+		<p>由平面图的性质，凸包上的边数和面数均为 $O(n)$，故此算法的时间复杂度为 $O \left( n^2 \right)$。总时间复杂度也是 $O \left( n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 5000
+
+typedef long long ll;
+const double eps = 1e-8;
+
+#define lt(x, y) ((x) &lt; (y) - eps)
+#define gt(x, y) ((x) &gt; (y) + eps)
+#define le(x, y) ((x) &lt;= (y) + eps)
+#define ge(x, y) ((x) &gt;= (y) - eps)
+#define eq(x, y) (le(x, y) &amp;&amp; ge(x, y))
+#define dot(x, y, z) (((y) - (x)) * ((z) - (x)))
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+#define triple(x, y, z) ((x) * ((y) ^ (z)))
+
+// 2D CG Template begins.
+struct vec2 {
+	double x, y;
+	vec2 (double x0 = 0.0, double y0 = 0.0) : x(x0), y(y0) {}
+	vec2 * read() {scanf("%lf%lf", &amp;x, &amp;y); return this;}
+	inline vec2 operator - () const {return vec2(-x, -y);}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline vec2 operator * (double k) const {return vec2(x * k, y * k);}
+	inline vec2 operator / (double k) const {return *this * (1.0 / k);}
+	inline double operator * (const vec2 &amp;B) const {return x * B.x + y * B.y;}
+	inline double operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}
+	inline double norm2() const {return x * x + y * y;}
+	inline double norm() const {return sqrt(x * x + y * y);}
+	inline bool operator &lt; (const vec2 &amp;B) const {return lt(x, B.x) || le(x, B.x) &amp;&amp; lt(y, B.y);}
+	inline bool operator == (const vec2 &amp;B) const {return eq(x, B.x) &amp;&amp; eq(y, B.y);}
+	inline bool operator &lt;&lt; (const vec2 &amp;B) const {return lt(y, 0) ^ lt(B.y, 0) ? lt(B.y, 0) : gt(*this ^ B, 0) || ge(*this ^ B, 0) &amp;&amp; gt(x, 0) &amp;&amp; lt(B.x, 0);}
+	inline vec2 trans(double a11, double a12, double a21, double a22) const {return vec2(x * a11 + y * a12, x * a21 + y * a22);}
+};
+
+struct line {
+	double A, B, C;
+	line (double A0 = 0.0, double B0 = 0.0, double C0 = 0.0) : A(A0), B(B0), C(C0) {}
+	line (const vec2 &amp;u, const vec2 &amp;v) : A(u.y - v.y), B(v.x - u.x), C(u ^ v) {}
+	inline vec2 normVec() const {return vec2(A, B);}
+	inline double norm2() const {return A * A + B * B;}
+	inline double operator () (const vec2 &amp;P) const {return A * P.x + B * P.y + C;}
+};
+
+inline vec2 intersection(const line u, const line v) {
+	double Det = 1.0 / (u.A * v.B - u.B * v.A);
+	return vec2(u.B * v.C - u.C * v.B, u.C * v.A - u.A * v.C) * Det;
+}
+
+inline double dis2(const vec2 P, const line l) {return l(P) * l(P) / l.norm2();}
+
+inline vec2 projection(const vec2 P, const line l) {return P - l.normVec() * (l(P) / l.norm2());}
+
+inline int collinear(const vec2 u, const vec2 v, const vec2 P) {double p = cross(P, u, v); return eq(p, 0) ? 1 + le(dot(P, u, v), 0) : 0;}
+
+double area(int n, vec2 *poly) {
+	double ret = poly[n - 1] ^ *poly;
+	for (int i = 1; i &lt; n; ++i) ret += poly[i - 1] ^ poly[i];
+	return ret * 0.5;
+}
+
+inline double convCutArea(int n, vec2 *poly, const line l) {
+	int t = 0; vec2 tmp[n + 5], *u = poly + (n - 1), *v = poly;
+	for (int i = 0; i &lt; n; u = v, ++v, ++i) {
+		if (ge(l(*u), 0)) tmp[t++] = *u;
+		if (lt(l(*u) * l(*v), 0)) tmp[t++] = intersection(line(*u, *v), l);
+	}
+	return t ? area(t, tmp) : 0;
+}
+
+inline vec2 circumCenter(const vec2 A, const vec2 B, const vec2 C) {
+	vec2 a = B - A, b = C - A, AO;
+	double det = 0.5 / (a ^ b), na = a.norm2(), nb = b.norm2();
+	AO = vec2((na * b.y - nb * a.y) * det, (nb * a.x - na * b.x) * det);
+	return A + AO;
+}
+
+inline double angle(const vec2 u, const vec2 v) {return atan2(u ^ v, u * v);}
+
+void intersection(double r2, const vec2 O, const line l, vec2 *ret) {
+	double d2 = dis2(O, l); vec2 j = l.normVec();
+	if (gt(d2, r2)) {ret[0] = ret[1] = vec2(INFINITY, INFINITY); return;}
+	if (ge(d2, r2)) {ret[0] = ret[1] = projection(O, l); return;}
+	if (le(d2, 0)) {
+		j = j * sqrt(r2 / j.norm2());
+		ret[0] = O + j.trans(0, -1, 1, 0);
+		ret[1] = O + j.trans(0, 1, -1, 0);
+	} else {
+		double T = copysign(sqrt((r2 - d2) / d2), l(O)); j = j * (-l(O) / j.norm2());
+		ret[0] = O + j.trans(1, T, -T, 1);
+		ret[1] = O + j.trans(1, -T, T, 1);
+	}
+}
+
+double interArea(double r2, const vec2 B, const vec2 C) {
+	if (eq(B ^ C, 0)) return 0;
+	vec2 is[2]; intersection(r2, vec2(), line(B, C), is);
+	if (!std::isfinite(is-&gt;x)) return 0.5 * r2 * angle(B, C);
+	bool b = gt(B.norm2(), r2), c = gt(C.norm2(), r2);
+	if (b &amp;&amp; c) return 0.5 * (lt(dot(*is, B, C), 0) ? r2 * (angle(B, *is) + angle(is[1], C)) + (is[0] ^ is[1]) : r2 * angle(B, C));
+	else if (b) return 0.5 * (r2 * angle(B, *is) + (*is ^ C));
+	else if (c) return 0.5 * ((B ^ is[1]) + r2 * angle(is[1], C));
+	else return 0.5 * (B ^ C);
+}
+
+// 2D CG Template ends.
+// 3D CG Template begins.
+
+struct vec3 {
+    double x, y, z;
+    vec3 (double x0 = 0, double y0 = 0, double z0 = 0) : x(x0), y(y0), z(z0) {}
+    vec3 * read() {scanf("%lf%lf%lf", &amp;x, &amp;y, &amp;z); return this;}
+    inline vec3 operator - () const {return vec3(-x, -y, -z);}
+    inline vec3 operator + (const vec3 &amp;B) const {return vec3(x + B.x, y + B.y, z + B.z);}
+    inline vec3 operator - (const vec3 &amp;B) const {return vec3(x - B.x, y - B.y, z - B.z);}
+    inline vec3 operator * (double k) const {return vec3(x * k, y * k);}
+    inline vec3 operator / (double k) const {return *this * (1.0 / k);}
+    inline double operator * (const vec3 &amp;B) const {return x * B.x + y * B.y + z * B.z;}
+    inline vec3 operator ^ (const vec3 &amp;B) const {return vec3(y * B.z - z * B.y, z * B.x - x * B.z, x * B.y - y * B.x);}
+    inline double norm2() const {return x * x + y * y + z * z;}
+    inline double norm() const {return sqrt(x * x + y * y + z * z);}
+    inline bool operator &lt; (const vec3 &amp;B) const {return lt(x, B.x) || le(x, B.x) &amp;&amp; (lt(y, B.y) || le(y, B.y) &amp;&amp; lt(z, B.z));}
+    inline bool operator == (const vec3 &amp;B) const {return eq(x, B.x) &amp;&amp; eq(y, B.y) &amp;&amp; eq(z, B.z);}
+};
+
+inline double volume(const vec3 A, const vec3 B, const vec3 C, const vec3 D) {return triple(B - A, C - A, D - A);}
+
+namespace CH3D {
+	typedef std::pair &lt;int, int&gt; pr;
+	typedef std::set &lt;pr&gt; set;
+
+	struct triangle {vec3 A, B, C;} tr[N];
+
+	vec3 p[N], q[N], r[N];
+	set E;
+	int n, cnt;
+
+	inline vec3 randvec3() {return vec3((double)rand() / RAND_MAX, (double)rand() / RAND_MAX, (double)rand() / RAND_MAX);}
+
+	void wrap(int u, int v) {
+		if (E.find({u, v}) == E.end()) {
+			int i, w = -1;
+			for (i = 0; i &lt; n; ++i)
+				if (i != u &amp;&amp; i != v &amp;&amp; (!~w || ge(volume(q[w], q[u], q[v], q[i]), 0))) w = i;
+			if (~w) {
+				tr[cnt++] = (triangle){p[u], p[v], p[w]};
+				E.emplace(u, v); E.emplace(v, w); E.emplace(w, u);
+				wrap(w, v); wrap(u, w);
+			}
+		}
+	}
+
+	void main(int _n, vec3 *_p) {
+		int i;
+		n = _n; cnt = 0; E.clear();
+		memcpy(p, _p, n * sizeof(vec3));
+		std::iter_swap(p, std::min_element(p, p + n));
+		for (i = 0; i &lt; n; ++i) q[i] = p[i] + randvec3() * 1e-6;
+		for (i = 2; i &lt; n; ++i)
+			if (ge(cross(q[0], q[i], q[1]).z, 0)) std::swap(p[1], p[i]), std::swap(q[1], q[i]);
+		wrap(0, 1);
+	}
+}
+
+// 3D CG Template ends.
+// main program begins.
+
+int n;
+int L, U, R, D;
+vec2 r[4];
+vec3 p[N];
+
+vec3 conic(const vec2 p) {return vec3(p.x, p.y, p.x * p.x + p.y * p.y);}
+
+vec2 planarize(const vec3 p) {return vec2(p.x, p.y);}
+
+inline double solve(double r2, const vec2 O) {
+	return interArea(r2, r[0] - O, r[1] - O) +
+		   interArea(r2, r[1] - O, r[2] - O) +
+		   interArea(r2, r[2] - O, r[3] - O) +
+		   interArea(r2, r[3] - O, r[0] - O);
+}
+
+int main() {
+	int i; bool coplanar = true; double r2, Ar, ar, ans = 0.0;
+	vec2 u, v, w, O; CH3D::triangle *t;
+	scanf("%d", &amp;n); r-&gt;read(); r[2].read();
+	r[1] = vec2(r[2].x, r-&gt;y); r[3] = vec2(r-&gt;x, r[2].y);
+	for (i = 0; i &lt; n; ++i) p[i] = conic(*u.read());
+	Ar = (r[2].x - r-&gt;x) * (r[2].y - r-&gt;y);
+	for (i = 3; i &lt; n &amp;&amp; coplanar; ++i) coplanar &amp;= eq(volume(p[0], p[1], p[2], p[i]), 0);
+	if (coplanar) return printf("%d\n", n), 0;
+	CH3D::main(n, p);
+	for (t = CH3D::tr; t != CH3D::tr + CH3D::cnt; ++t)
+		if (collinear(u = planarize(t-&gt;A), v = planarize(t-&gt;B), w = planarize(t-&gt;C))) {
+			O = planarize(cross(t-&gt;A, t-&gt;B, t-&gt;C));
+			ans += convCutArea(4, r, line(O.x, O.y, -(u * O)));
+		} else {
+			O = circumCenter(u, v, w); r2 = (u - O).norm2();
+			ar = solve(r2, O);
+			ans += (gt(cross(t-&gt;A, t-&gt;B, t-&gt;C).z, 0) ? Ar - ar : ar);
+		}
+	printf("%.12lg\n", ans / Ar + 2.0);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在处理三维的几何的问题时，面的方向一定要把握好，在实现过程中可以规定令右手定则确定的方向指向凸包外部。</p>
+		<p><strong>坑2：</strong>在求 <em>"其中一个顶点为圆心的三角形" 与圆的有向面积交</em>的时候，要注意三角形的对边所在直线与圆的交点是否在对边上，此时最好用点积来判断。如果直接用 <code>collinear</code> 函数可能会爆精度。</p>
+	</body>
+</html>

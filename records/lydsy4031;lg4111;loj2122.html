@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4031][lg4111][loj2122][HEOI2015]小 Z 的房间</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个房子，里面有一些房间，可以看成一个 $n \times m$ 的网格，每个格子是一个房间或一个柱子。一开始，相邻的格子间有一堵墙。</p>
+		<p>小 Z 想打通一些相邻房间的墙，使得任意两个房间有且只有一条通路。求方案数，对 $10^9$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 9$)，表示房间的大小。</p>
+		<p>接下来 $n$ 行，每行一个长为 $m$ 的字符串，每个字符是 <code>.</code> 或 <code>*</code> 之一，其中 <code>.</code> 代表房间，<code>*</code> 代表柱子。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示合法的方案数模 $10^9$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>可以建立一个生成树的模型——把所有是 "房间" 的格子当作点，如果房间相邻，则连边，建立网格图。</p>
+		<p>则总的方案树等于网格图的生成树个数。</p>
+		<p>由 Kirchhoff's Matrix-Tree 定理知，它等于该图的 Laplacian 矩阵的任意一个代数余子式的值。</p>
+		<p>因此试着使用 Gauss 消元解决。</p>
+		<p>然而模数 $P$ 不是素数，因此有部分数不存在逆元。故不能用传统的 Gauss 消元法解决。</p>
+		<p>注意到在传统的 Gauss 消元中，第 $i$ 步我们取第 $i$ 列中的一个非零行，设为第 $k$ 行，然后我们将第 $k$ 行与第 $i$ 行交换，然后将 $a_{ii}$ 化为 $1$。然后对于第 $j$ 行，将第 $i$ 行乘以 $-a_{ji}$ 加到第 $j$ 行，即可使 $a_{ji}$ 变为 $0$。</p>
+		<p>但是如果没有逆元，第二步可能就无法进行了。这时候我们可以<strong>省去第二步</strong>，因为我们的目标是完成矩阵的<strong>上三角化</strong>而不是<strong>单位矩阵化</strong>。因此，我们尝试<strong>直接进入第三步</strong>，消元。</p>
+		<p>此时，如果 $a_{ji} = 0$，则已经完成。否则，我们需要对 $a_{ii}$ 和 $a_{ji}$ 进行辗转相除法。由辗转相除法的理论，在有限步后，一定会有一个变成 $0$。如果是 $a_{ji} = 0$，则已经完成任务，否则交换第 $i$ 行和第 $j$ 行即可。</p>
+		<p>可以证明，用辗转相除法处理 $n$ 阶矩阵的时间复杂度是 $O \left( n^3 + n^2 \log P \right)$ 的，因此这道题的总时间复杂度 $O \left( n^3 m^3 + n^2 m^2 \log P \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100
+
+typedef long long ll;
+const int mod = 1000000000;
+
+int cnt = 0, r, c;
+int m[N][N], *a[N];
+int id[12][12];
+char s[12][12];
+
+inline void link(int x, int y) {++m[x][x], ++m[y][y], --m[x][y], --m[y][x];}
+
+int gauss(int n) {
+	int d, i, j, k, *f, *g; ll ans = 1;
+	for (i = 1; i &lt;= n; ++i) a[i] = m[i];
+	for (i = 1; i &lt; n; ++i)
+		for (j = i + 1; j &lt;= n; ++j) {
+			for (f = a[i], g = a[j]; g[i]; std::swap(f, g))
+				for (d = f[i] / g[i], k = 1; k &lt;= n; ++k) f[k] = (f[k] + (ll)(mod - d % mod) * g[k]) % mod;
+			if (f == a[j]) ans = mod - ans, std::swap(a[i], a[j]);
+		}
+	for (i = 1; i &lt;= n; ++i) ans = ans * a[i][i] % mod;
+	return ans + (ans &gt;&gt; 63 &amp; mod);
+}
+
+int main() {
+	int i, j;
+	scanf("%d%d", &amp;r, &amp;c);
+	for (i = 0; i &lt; r; ++i)
+		for (scanf("%s", s[i]), j = 0; j &lt; c; ++j)
+			if (s[i][j] == 46) id[i][j] = cnt++;
+	for (i = 0; i &lt; r; ++i)
+		for (j = 1; j &lt; c; ++j)
+			if (s[i][j - 1] == 46 &amp;&amp; s[i][j] == 46) link(id[i][j - 1], id[i][j]);
+	for (i = 1; i &lt; r; ++i)
+		for (j = 0; j &lt; c; ++j)
+			if (s[i - 1][j] == 46 &amp;&amp; s[i][j] == 46) link(id[i - 1][j], id[i][j]);
+	printf("%d\n", gauss(cnt - 1));
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意不能对柱子建立点 (放入行列式中)，否则会得到不连通的图导致生成树个数为 $0$。</p>
+	</body>
+</html>

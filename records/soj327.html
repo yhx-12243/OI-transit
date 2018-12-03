@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj327]连通图</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵大小为 $n$ 的带权树 $T$，节点 $i$ 的权值为 $w_i$。你需要选择它的一个连通子树 $T' \subseteq T$，定义一个连通子树的价值为它的所有节点的权值和模 $k$ 的结果，其中 $k$ 是一个给定的数。</p>
+		<p>求对于 $i = 0, 1, \cdots, k - 1$，有多少种方案选出价值为 $i$ 的连通子树。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($n \leq 50000; k \leq 500$)，分别表示树的大小和给定的常数。</p>
+		<p>第二行包含 $n$ 个非负整数 $w_1, w_2, \cdots, w_n$ ($0 \leq w_i &lt; k$)，表示每个节点的权值。</p>
+		<p>接下来的 $n - 1$ 行，每行包含两个正整数 $u_i, v_i$，描述树上的一条边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $k$ 行，每行一个整数，第 $i$ 行的整数表示价值为 $i - 1$ 的连通子树数量模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>对于树的连通子树，肯定有一个最高点，我们可以对每一个最高点进行计算，容易想到一个树形背包 DP 的模型，它的复杂度为 $O \left( n k^2 \right)$，容易被卡常。</p>
+		<p>卡常数的方法在这里就不再说了。这里讲一个优化复杂度的方法，可以将其优化到 $O \left( n \log n \cdot k \right)$。</p>
+		<p>由于这可以看作是一个背包问题，因此每个物品的选择之间会有一个约束。而这个约束就是你<strong>选出的节点必须连通</strong>。</p>
+		<p>连通这个概念过于抽象，我们将它具体化，就是——我们假设这个最高点就是根 $r$，则对于对于所选出的任何一个节点 $v$，$v$ 和 $r$ 必须连通，从而 $p_v$ 也必须选择，即 <strong>$v$ 被选择 &#8658; $p_v$ 被选择</strong>。</p>
+		<p>这可以用另一种 DP 方式：设原树的 dfs 序为 $1, 2, 3, \cdots, n$，枚举最高点 (根 $r$)，用 $f_{i, j}$ 表示只选择区间 $\left[ i, n \right]$ 中的点，权值和为 $j$ 的方案数。</p>
+		<p>考虑转移，如果 $i$ 选，则其它子树的情况无所谓，故有 $$ f_{i, j+w_i} \gets f_{i+1, j} $$</p>
+		<p>如果 $i$ 不选，由上面命题的<em>逆否命题</em>，以 $i$ 为根的子树都不能选。而一棵子树的 dfs 序是连续的，设 $i$ 在 dfs 序中结束的位置为 $e_i$，则 $\left[ e_i + 1, n \right]$ 中的点的情况任意。因此有</p>
+		<p>$$ f_{i, j} \gets f_{e_i + 1, j} $$</p>
+		<p>最后 $f_{1, j}$ 就是最高点为 $1$ 的情况下，价值为 $i$ 的连通子树个数。</p>
+		<p>这样下来，对于这种 DP 复杂度就降到了 $O \left( n k \right)$。</p>
+		<hr />
+		<p>但这里还有一个细节，就是所选择的子树的最高点不一定是 $1$。</p>
+		<p>如果暴力枚举最高点的话，复杂度可能会退化到 $O \left( n^2 k \right)$，比暴力还要劣。</p>
+		<p>那怎么办呢？对于枚举根的问题，大家应该都知道一个套路——使用<strong>点分治</strong>。</p>
+		<p>只需要每次点分治所选的根，对该子树进行 DP，这样子树大小就不会超过上一次的一半，于是总复杂度就是 $O \left( n \log n \cdot k \right)$，可以通过此题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 51000, M = N * 2, K = 510;
+const int mod = 1000000007;
+
+int n, k, E = 0;
+bool fy[N];
+int to[M], first[N], next[M];
+int w[N], p[N], size[N];
+int cnt, o[N], id[N], end_id[N];
+int f[N][K], ans[K];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void add(int &amp;x, const int y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+
+inline void addedge(int u, int v) {
+	to[++E] = v; next[E] = first[u]; first[u] = E;
+	to[++E] = u; next[E] = first[v]; first[v] = E;
+}
+
+namespace Centroid {
+	int V, Gm, G;
+
+	void init(int _V) {V = _V; Gm = INT_MAX;}
+
+	int get(int x, int px = 0) {
+		int i, y, Max = 0; size[x] = 1;
+		for (i = first[x]; i; i = next[i])
+			if ((y = to[i]) != px &amp;&amp; !fy[y]) {
+				get(y, x); up(Max, size[y]);
+				size[x] += size[y];
+			}
+		up(Max, V - size[x]);
+		return Max &lt;= Gm ? (Gm = Max, G = x) : G;
+	}
+}
+
+#define get_centroid(x, y) (Centroid::init(y), Centroid::get(x))
+
+void dfs(int x, int px = 0, int dep = 1) {
+	int i, y; size[x] = 1;
+	o[++cnt] = x; id[x] = cnt;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px &amp;&amp; !fy[y])
+			dfs(y, x, dep + 1), size[x] += size[y];
+	end_id[x] = cnt;
+}
+
+void solve(int x) {
+	int i, j, nj, y, v, G, *p, *q, *r;
+	fy[x] = 1; cnt = 0; dfs(x);
+	memset(f, 0, (cnt + 2) * K * 4);
+	f[cnt + 1][0] = 1;
+	for (i = cnt; i &gt; 1; --i) {
+		nj = (w[v = o[i]] ? k - w[v] : 0);
+		p = f[i], q = f[end_id[v] + 1], r = f[i + 1];
+		for (; p != f[i] + k; ++p, ++q, ++nj == k ? nj = 0 : 0) {
+			add(*p, *q);
+			add(*p, r[nj]);
+		}
+	}
+	for (j = 0; j &lt; k; ++j) add(ans[(j + w[x]) % k], f[2][j]);
+	for (i = first[x]; i; i = next[i])
+		if (!fy[y = to[i]])
+			G = get_centroid(y, size[y]), solve(G);
+}
+
+int main() {
+	int i, u, v, G;
+	scanf("%d%d", &amp;n, &amp;k);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", w + i);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	G = get_centroid(1, n); solve(G);	
+	for (i = 0; i &lt; k; ++i) printf("%d\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意点分治清空时不要使用带 <code>sizeof</code> 的 <code>memset</code>，以保证复杂度。</p>
+	</body>
+</html>

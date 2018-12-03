@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4738][uoj276][清华集训2016]汽水</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>牛牛来到了一个盛产汽水的国度旅行。</p>
+		<p>这个国度的地图上有 $n$ 个城市，这些城市之间用 $n - 1$ 条道路连接，任意两个城市之间，都存在一条<strong>路径</strong>连接。这些城市生产的汽水有许多不同的风味，在经过道路 $i$ 时，牛牛会喝掉 $w_i$ 的汽水。牛牛非常喜欢喝汽水，但过量地饮用汽水是有害健康的，因此，他希望在他旅行的这段时间内，<strong>平均每天</strong>喝到的汽水的量尽可能地接近给定的一个正整数 $k$。</p>
+		<p>同时，牛牛希望他的旅行计划尽可能地有趣，牛牛会先选择一个城市作为起点，然后<strong>每天</strong>通过一条道路，前往一个<strong>没有去过</strong>的城市，最终选择在某一个城市结束旅行。</p>
+		<p>牛牛还要忙着去喝可乐，他希望你帮他设计出一个旅行计划，满足每天 $\left| 平均每天喝到的汽水 - k \right|$ 的值尽量小，请你告诉他这个最小值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, k$ ($1 \leq n \leq 5 \times 10^5; 0 \leq k \leq 10^{13}$)。</p>
+		<p>接下来 $n - 1$ 行，每行三个非负整数 $u_i, v_i, w_i$ ($1 \leq u_i, v_i \leq n; 0 \leq w_i \leq 10^{13}$)，表示城市 $u_i$ 和城市 $v_i$ 之间有一条长度为 $w_i$ 的道路连接。</p>
+		<p>同一行相邻的两个整数均用一个空格隔开。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $\left| 平均每天喝到的汽水 - k \right|$ 的最小值<strong>的整数部分</strong>，即你只要将这个最小值<strong>向下取整</strong>然后输出即可。</p>
+
+		<h3>题解</h3>
+		<p>平均值与 $k$ 的差最小不好处理，我们将每条边边权减去 $k$，就转化为了<strong>平均值的绝对值最小</strong>的问题。</p>
+		<p>对这种路径最小化问题，参考 <a href="lydsy1758.html" target="_blank">[WC2010]重建计划</a> 的做法，可以得到应该先对整棵树进行点分治，然后在每一层二分。</p>
+		<p>设二分的答案为 $w$，于是我们就需要找到一条路径，使得它们的权值平均值 $\bar x$ 满足 $-w - 1 &lt; \bar x &lt; w + 1$。</p>
+		<p>考虑到这里有两个不等式，不好处理，于是可以将上面不等式拆成两个不等式的并：$\begin{cases} 0 \leq \bar x &lt; w + 1 \\ -w - 1 &lt; \bar x \leq 0 \end{cases}$。</p>
+		<p>这两个不等式里，只要有一个有链解，那么总不等式就有链解。由对称性，我们只需考虑第一个不等式的处理方法。至于第二个不等式，只需将所有边权取相反数再做一遍即可。</p>
+		<p>设链的权值为 $w_1, w_2, \cdots, w_k$，于是需要满足 $0 \leq w_1 + w_2 + \cdots + w_k &lt; (w + 1) k$，由于 $k$ 的不确定性，因此我们不能直接减 $w + 1$，需要使用数据结构或单调性等维护。</p>
+		<p>具体地，我们可以将该层所有的节点 (以重心 $C$ 为根的子树中的所有节点) 按照到 $C$ 的距离 $W_i$ 排序，则最终的一条链可以拆成 $u \leadsto C$ 和 $C \leadsto v$。设它们的距离为 $W_i, W_j$，则需要满足的不等式变为 $0 \leq W_i + W_j &lt; (w + 1) \left( d_i + d_j \right)$。</p>
+		<p>那么，当 $W_i$ 递增时，满足 $W_i + W_j \geq 0$ 的 $W_j$ 的可取值范围也是单调递增的。于是，我们可以升序枚举 $i$，计算出满足 $W_i + W_j \geq 0$ 时 $W_j - (w + 1) d_j$ 的最小值，然后与当前 $W_i - (w + 1) d_i$ 相加看是否 $&lt; 0$ 即可。</p>
+		<p>当然，这里有一些细节上的问题，比如，$i$ 和 $j$ 不能在同一棵子树，因此维护 $\left( W_j - (w + 1) d_j \right)_\min$ 时，不能仅仅维护最小值，还需要维护<strong>与最小值不在同一棵子树</strong>的最小值。这样判断的时候就可以得到与 $i$ 不在一棵子树的最小值。</p>
+		<p>还有一种情况，就是这条链是以 $C$ 为端点的链。此时很简单，直接枚举所有的 $W_i$，观察是否有 $W_i$ 满足 $0 \leq W_i &lt; (w + 1) d_i$ 即可。</p>
+		<p>总时间复杂度就是点分治时排序的复杂度，为 $O \left( n \log^2 n \log w_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define REV if (reversed) {for (i = 0; i &lt; cnt; ++i) Dep[v[i]] = -Dep[v[i]]; \
+	std::reverse(v, v + cnt);}
+
+typedef long long ll;
+typedef std::pair &lt;ll, int&gt; pli;
+const int N = 50010, M = N * 2;
+const ll INF = 0x3f3f3f3f3f3f3f3fll;
+
+struct edge {
+	int u, v; ll w;
+	edge (int u0 = 0, int v0 = 0, ll w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int n, E = 0;
+int first[N], next[M];
+int cnt = 0, v[N], size[N];
+int dep[N], bel[N];
+ll Dep[N], ans = LLONG_MAX;
+bool fy[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+inline bool cmp(const int x, const int y) {return Dep[x] &lt; Dep[y] || (Dep[x] == Dep[y] &amp;&amp; dep[x] &lt; dep[y]);}
+
+inline void addedge(int u, int v, ll w) {
+	e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+	e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+	down(ans, llabs(w) + 1);
+}
+
+namespace Centroid {
+	int V, Gm, G;
+
+	void init(int _V) {V = _V; Gm = INT_MAX;}
+
+	int get(int x, int px = 0) {
+		int i, y, Max = 0; size[x] = 1;
+		for (i = first[x]; i; i = next[i])
+			if ((y = e[i].v) != px &amp;&amp; !fy[y]) {
+				get(y, x); up(Max, size[y]);
+				size[x] += size[y];
+			}
+		up(Max, V - size[x]);
+		return Max &lt;= Gm ? (Gm = Max, G = x) : G;
+	}
+}
+
+#define get_centroid(x, y) (Centroid::init(y), Centroid::get(x))
+
+void dfs(int x, int px) {
+	int i, y; size[x] = 1; v[cnt++] = x;
+	for (i = first[x]; i; i = next[i])
+		if ((y = e[i].v) != px &amp;&amp; !fy[y]) {
+			dep[y] = dep[x] + 1; Dep[y] = Dep[x] + e[i].w;
+			bel[y] = bel[x]; dfs(y, x);
+			size[x] += size[y];
+		}
+}
+
+bool check(ll x, bool reversed = false) {
+	int i, j, Fi = 0, Si = 0; ll r, F = INF, S = INF;
+	for (i = 0; i &lt; cnt; ++i) if (-x * dep[v[i]] &lt; Dep[v[i]] &amp;&amp; Dep[v[i]] &lt; x * dep[v[i]]) return true;
+	REV;
+	for (i = 0, j = cnt - 1; i &lt; cnt; ++i) {
+		for (; j &gt;= 0 &amp;&amp; Dep[v[i]] + Dep[v[j]] &gt;= 0; --j) {
+			r = Dep[v[j]] - dep[v[j]] * x;
+			if (r &lt; F) {
+				bel[v[j]] == Fi ? 0 : (S = F, Si = Fi);
+				F = r, Fi = bel[v[j]];
+			} else if (r &lt; S &amp;&amp; bel[v[j]] != Fi)
+				S = r, Si = bel[v[j]];
+		}
+		r = Dep[v[i]] - dep[v[i]] * x;
+		if (r + (bel[v[i]] == Fi ? S : F) &lt; 0) {REV; return true;}
+	}
+	REV; return false;
+}
+
+void solve(int x) {
+	int i, y, G; ll L, R, M;
+	fy[x] = 1; cnt = 0;
+	for (i = first[x]; i; i = next[i])
+		if (!fy[y = e[i].v]) Dep[y] = e[i].w, dep[y] = 1, bel[y] = y, dfs(y, x);
+	std::sort(v, v + cnt, cmp);
+	for (L = 1, R = ans; L &lt; R; ) check(M = (L + R) / 2) || check(M, true) ? R = M : (L = M + 1);
+	for (ans = L, i = first[x]; i; i = next[i])
+		if (!fy[y = e[i].v])
+			G = get_centroid(y, size[y]), solve(G);
+}
+
+int main() {
+	int i, u, v, G; ll W, w;
+	scanf("%d%lld", &amp;n, &amp;W);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d%lld", &amp;u, &amp;v, &amp;w), addedge(u, v, w - W);
+	G = get_centroid(1, n); solve(G);
+	printf("%lld\n", --ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>点分治处理链的问题时需要特别注意以重心为端点的链，在某些情况下是需要特判的。</p>
+	</body>
+</html>

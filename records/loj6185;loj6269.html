@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6185][loj6269]烷基计数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>众所周知，大连 24 中是一所神奇的学校，在那里，化竞的同学很多都擅长写代码。</p>
+		<p>有一天，化学不及格的胡小兔向化竞巨佬晴岚请教化学题：</p>
+		<p><strong>“$n$ 个碳原子的烷基共有多少种同分异构体？”</strong></p>
+		<p>刚刚得了化竞全市第一的晴岚听了，认为这道题十分简单，建议胡小兔写个程序解决这个问题。但胡小兔弱得连什么是同分异构体都不知道，于是晴岚给胡小兔画了个图——例如 $n = 4$ 时 (即丁基)，有 $4$ 种同分异构体：</p>
+		<img class="center-block" src="uploads/3.jpg" alt="丁基" style="width: 150px" />
+		<p>同理，其他常见烷基同分异构体数目如下表：</p>
+		<table class="table table-bordered table-text-center table-vertical-middle">
+			<tr><td style="width: 20%">$n$</td><td>$1$</td><td>$2$</td><td>$3$</td><td>$4$</td><td>$5$</td><td>$6$</td></tr>
+			<tr><td><strong>同分异构体数目</strong></td><td>$1$</td><td>$1$</td><td>$2$</td><td>$4$</td><td>$8$</td><td>$17$</td></tr>
+		</table>
+		<p>现在已知碳原子个数 $n$，求对应的烷基有多少种同分异构体。</p>
+		<p>注意：这里的烷基计数不用考虑空间异构，能否稳定存在等各种特殊情况。也就是说，你要求的是<strong>$n$ 个点的每个点度数不超过 $4$ 且根的度数不超过 $3$ 的有根树的数目</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 5000$)，表示烷基中碳原子的数目。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示该烷基同分异构体的数目，对 $10^9 + 7$ 取模。</p>
+
+		<h3>题解</h3>
+		<p>第一次接触无标号树计数系列~</p>
+		<p>看起来非常恐怖，其实难度也并不是很大啦。</p>
+		<p>先来考虑有根树吧，毕竟有根的结构是更加容易 DP 的。所以我们先从<strong>烷基</strong> (而不是烷烃) 入手来计数。</p>
+		<p><del>理论上，烷基计数可以做到 $O \left( n \log^2 n \right)$ 的复杂度，这里略去。</del></p>
+		<p>先来考虑最 simple 的 DP：用 $f_i$ 表示 $i-$烷基的个数。我们可以枚举三个子树的大小，乘上对应的二项式系数，于是得到了一个 $O \left( n^4 \right)$ 的做法。注意到 $c_1 + c_2 + c_3 = i - 1$，因此这个做法实际上是 $O \left( n^3 \right)$ 的。</p>
+		<p>但这个做法复杂度比较劣，<del>如果碳原子能成 $100$ 个键你的复杂度就变成了 $O \left( n^{99} \right)$，显然不可接受</del>。</p>
+		<p>那又该如何优化呢？首先，一次性枚举所有的子树显然是不靠谱的，因此可以像树形 DP 一样，一个一个子树取添加。那么具体按照什么顺序呢？对，<strong>按照子树的大小顺序</strong>添加。</p>
+		<p>我们枚举当前添加的子树大小 $size$ (从 $1$ 到 $n$)，然后去对所有的 DP 值产生贡献。或者等价地，我们在 DP 最前面加一维 $s$，表示当前允许的子树大小。</p>
+		<p>我们再加一维 $j$，表示当前根节点的度数，于是我们得到了新的状态：</p>
+		<p><strong>用 $f_{s, i, j}$ 表示在 $i-$烷基中，根节点的度数为 $j$，所有子树的大小不超过 $s$ 的方案数</strong>。</p>
+		<p>考虑转移，首先，如果所有子树的大小都小于 $s$，方案数就是 $f_{s - 1, i, j}$。否则，设有 $k$ ($1 \leq k \leq \min \left\{ j, \left \lfloor \dfrac {i-1} s \right \rfloor \right\}$) 个子树的大小为 $s$，则把这些子树去掉后，剩下的点数为 $i - s k$，根度数为 $j - k$，子树大小不超过 $s - 1$，对应到状态就是 $f_{s - 1, i - s k, j - k}$。</p>
+		<p>然后就是将大小为 $s$ 的 $k$ 个子树填充进去。设大小为 $s$ 的子树 ($s-$烷基) 有 $A_s$ 个 ($A_s = \sum f_{s-1, s, j}$)。易知，这是一个可重组合，方案数为 $\dbinom {A_s + k - 1} k$。于是就有</p>
+		<p>$$ f_{s, i, j} = \sum_{0 \leq k \leq j \\ s k &lt; i} f_{s - 1, i - s k, j - k} \cdot \dbinom {A_s + k - 1} k $$</p>
+		<p>这样时间复杂度就是 $O \left( n^2 m \log m \right)$ 了，其中 $m$ 是碳原子的成键个数 (即树的度数限制)。</p>
+		<p>根据背包 DP 的优化方式，具体实现时，$s$ 这一维只需要枚举，不需要存储，不过需要注意 $i$ 需要从大到小枚举。于是空间复杂度为 $O \left( n m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 5100, B = 4;
+const ll mod = 1000000007, inv6 = (mod + 1) / 6;
+
+int n, size;
+int f[N][B];
+
+ll C(int n, int r) {
+	switch (r) {
+		case 0 : return 1;
+		case 1 : return n % mod;
+		case 2 : return n * (n - 1ll) / 2 % mod;
+		default : return n * (n - 1ll) % mod * (n - 2ll) % mod * inv6 % mod;
+	}
+}
+
+int main() {
+	int i, j, k, cur;
+	scanf("%d", &amp;n);
+	f[1][0] = 1;
+	for (size = 1; size &lt; n; ++size) {
+		cur = std::accumulate(f[size], f[size] + B, 0ll) % mod;
+		for (i = n; i; --i)
+			for (j = 1; j &lt; B; ++j)
+				for (k = 1; k &lt;= j &amp;&amp; size * k &lt; i; ++k)
+					f[i][j] = (f[i][j] + f[i - size * k][j - k] * C(cur + k - 1, k)) % mod;
+	}
+	printf("%lld\n", std::accumulate(f[n], f[n] + B, 0ll) % mod);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>这道题中由于组合数的下指标只到 $3$，因此可以分类讨论直接计算。</p>
+		<p><strong>坑2：</strong>注意 <code>std::accumulate</code> 函数的使用方式，最终返回值的数据类型和传入的最后一个参数的类型一致 (<code>long long</code>)。</p>
+	</body>
+</html>

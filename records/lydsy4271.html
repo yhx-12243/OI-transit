@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4271]化学</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>求 $n-$烷的同分异构体个数，不考虑空间异构。例如，丁烷 ($4-$烷) 有两个：正丁烷，异丁烷。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 500$)，表示烷烃中碳原子的数目。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示同分异构体的数目。</p>
+
+		<h3>题解</h3>
+		<p style="color: red">ps: 前置技能：<a href="loj6185%3Bloj6269.html" target="_blank">烷基计数</a>。</p>
+		<p>感觉和上一题好像的样子 (可能代码也是)~</p>
+		<p>不过这回要数的是<strong>烷烃 (无根树)</strong> 而不再是<strong>烷基 (有根树)</strong> 了。</p>
+		<p>那又该怎么 DP 呢？</p>
+		<p>对于无根树，就像一个没有领头的团队，我们需要给它人为地规定一个根。</p>
+		<p>那这个根是什么呢？直径中点？重心？……</p>
+		<p>对了，我们把一个无根树的根定为它的<strong>重心</strong>，这是因为它满足如下两个性质 (设 $n$ 为树的阶数)：</p>
+		<ol>
+			<li><p>(定义) 以重心为根时，所有子树的大小不超过 $\left \lfloor \dfrac n2 \right \rfloor$。</p></li>
+			<li><p>若 $n$ 为奇数，则重心是唯一的；若 $n$ 为偶数，则重心要么唯一，要么只有两个且相邻。</p></li>
+		</ol>
+		<p>这些性质证明甚易，这里略去。</p>
+		<p>因此在假定根节点为重心的条件下进行 DP，也就是说，令所有子树的大小不超过 $\left \lfloor \dfrac n2 \right \rfloor$。具体实现时，只需要把上一题的状态中的 $s$ 维转移到 $\dfrac n2$ 即可。</p>
+		<p>但是这里有一个比较恼人的情况：<strong>当 $n$ 为偶数时</strong>，有一些树有两个相邻的重心。此时，这个树的形态一定如下：</p>
+		<img class="center-block" src="uploads/64.png" alt="两个重心的树" />
+		<p>对这种类型的树，我们可以特殊计算。于是，一开始 DP 的时候，只需令所有子树的大小不超过 $\dfrac n2 - 1$。而对于这种烷烃，我们可以看成是两个 $\dfrac n2-$烷基并起来的结果。设 $\dfrac n2-$烷基有 $A_{n/2}$ 个，则由可重组合，这样的烷烃共有 $\dbinom {A_{n/2} + 1} 2$ 种。将其加入原来的答案即可。</p>
+		<p>总时间复杂度不变，为 $O \left( n^2 m \log m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<h4>(注：此代码为取模版本，并不能通过此题。真正通过需要使用高精度或者打表)</h4>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 5100, B = 4;
+const ll mod = 1000000007, inv6 = (mod + 1) / 6, inv24 = inv6 / 4;
+
+int n, size;
+int f[N][B + 1];
+
+ll C(int n, int r) {
+	switch (r) {
+		case 0 : return 1;
+		case 1 : return n % mod;
+		case 2 : return n * (n - 1ll) / 2 % mod;
+		case 3 : return n * (n - 1ll) % mod * (n - 2ll) % mod * inv6 % mod;
+		default : return n * (n - 1ll) % mod * (n - 2ll) % mod * (n - 3ll) % mod * inv24 % mod;
+	}
+}
+
+int main() {
+	int i, j, k, cur;
+	scanf("%d", &amp;n);
+	f[1][0] = 1;
+	for (size = 1; size &lt;= (n - 1) / 2; ++size) {
+		cur = std::accumulate(f[size], f[size] + B, 0ll) % mod;
+		for (i = n; i; --i)
+			for (j = 1; j &lt;= B; ++j)
+				for (k = 1; k &lt;= j &amp;&amp; size * k &lt; i; ++k)
+					f[i][j] = (f[i][j] + f[i - size * k][j - k] * C(cur + k - 1, k)) % mod;
+	}
+	cur = std::accumulate(f[n], f[n] + (B + 1), 0ll) % mod;
+	if (!(n &amp; 1)) {
+		k = std::accumulate(f[n / 2], f[n / 2] + B, 1ll) % mod;
+		cur = (cur + C(k, 2)) % mod;
+	}
+	printf("%d\n", cur);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 DP 时第二维的状态要到 $4$ 而不是 $3$，因为根可能有 $4$ 个子树。但求和时还是 $0 \sim 3$。</p>
+	</body>
+</html>
