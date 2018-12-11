@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj328]翻转</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个长度为 $n$ 的序列 $a_1, a_2, \cdots, a_n$，你需要支持三种操作：</p>
+		<ol>
+			<li><code>swap <em>l</em> <em>r</em></code>：<strong>保证 $l, r$ 奇偶性不同</strong>。你需要交换 $a_l$ 和 $a_{l+1}$，交换 $a_{l+2}$ 和 $a_{l+3}$，……，交换 $a_{r-1}$ 和 $a_r$。</li>
+			<li><code>reverse <em>l</em> <em>r</em></code>：翻转子序列 $a_l, a_{l+1}, \cdots, a_r$。</li>
+			<li><code>query <em>l</em> <em>r</em></code>：求 $a_l + a_{l+1} + \cdots + a_r$ 的值。</li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 2.5 \times 10^5$)，表示序列的长度。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_1, a_2, \cdots, a_n$ ($a_i \leq 10^9$)，描述初始序列。</p>
+		<p>第三行包含一个正整数 $q$ ($q \leq 2.5 \times 10^5$)，表示操作的次数。</p>
+		<p>接下来的 $q$ 行，每行描述一个操作，格式如上所述。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个 <code>query</code> 操作，输出一行一个整数，表示区间的和。</p>
+
+		<h3>题解</h3>
+		<p>如果没有 <code>swap</code> 操作，那么就是一道 <em>"文艺平衡树"</em> ——经典 Splay 练习题。即维护一个数据结构支持区间翻转和区间求和。</p>
+		<p>那现在有相邻交换操作怎么办呢？看起来这个标记并不好下放，因此我们要尝试使用新的方法。</p>
+		<p>首先 Splay 还是必要的，因为如果把操作 1 去掉，我们还是要维护两种操作——<del>而这只能用 Splay (或一些高深的数据结构) 维护</del>，因此尝试使用 Splay 建模的方法。</p>
+		<p>注意 <code>swap</code> 操作的特点，举个例子，它可以把 $[1 \ 2 \ 3 \ 4 \ 5 \ 6]$ 变成 $[2 \ 1 \ 4 \ 3 \ 6 \ 5]$。仔细观察后可以发现：虽然每个数的前趋和后继变了，<em>但是每个数<strong>二级前趋</strong> (即前趋的前趋) 和<strong>二级后继</strong> (即后继的后继) 没有变化</em>！这个不动性质有助于我们产生算法。</p>
+		<p>我们把整个序列分为奇数项 (下标为奇数的项) 和偶数项 (下标为偶数的项) 两个子序列，然后每个子序列分别使用一个 Splay (称为<strong>奇 Splay</strong> 和<strong>偶 Splay</strong>) 维护。这样交换操作相当于 Splay 完毕后交换两个子树即可。而这个直接先 <code>std::swap()</code> 再 <code>splay()</code> 一下即可。</p>
+		<p>对于 <code>reverse</code> 操作，我们分两种情况讨论：</p>
+		<ol>
+			<li><p>若 $l, r$ 奇偶性相同，则翻转的是<strong>奇数个</strong>元素，于是元素在奇偶 Splay 中的所属是不变的，因此我们只需在两个 Splay 中将这个区间拉出来做一次正常的翻转 (打标记) 即可。</p></li>
+			<li><p>若 $l, r$ 奇偶性不同，则翻转的是<strong>偶数个</strong>元素，于是元素在奇偶 Splay 中的所属将会改变 (即奇 Splay 中的元素可能跑到偶 Splay 中)，于是将区间拉出来后不仅要翻转 (打标记)，还要像 <code>swap</code> 操作一样交换两个子树。</p></li>
+		</ol>
+		<p>对于 <code>query</code> 操作，那就相对简单多了，只需要将两个 Splay 中对应区间取出来，分别求和再相加即可。</p>
+		<p>时间复杂度自然就是 $O \left( n + q \log n \right)$ 啦。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 254000
+
+typedef long long ll;
+int n, q;
+
+namespace Splay {
+	#define pa p[nd]
+	#define C(x) c[x][nd]
+	#define odd Splay::nd[N - 1].c[0]
+	#define even Splay::nd[N - 1].c[1]
+
+	struct node {int v, sz, p, c[2]; bool rev; ll sum;} nd[N];
+
+	inline int dir(int x) {return x == nd[x].pa.c[1];}
+
+	inline void reverse(int x) {std::swap(nd[x].c[0], nd[x].c[1]); nd[x].rev ^= 1;}
+
+	inline void push_down(int x) {if (nd[x].rev) reverse(nd[x].c[0]), reverse(nd[x].c[1]), nd[x].rev = 0;}
+
+	void pull_down(int x) {if (nd[x].p != N - 1) pull_down(nd[x].p); push_down(x);}
+
+	inline void update(int x) {nd[x].sz = nd[x].C(0).sz + nd[x].C(1).sz + 1; nd[x].sum = nd[x].C(0).sum + nd[x].C(1).sum + nd[x].v;}
+
+	void rotate(int x) {
+		int y = nd[x].p, d = !dir(x);
+		nd[nd[y].c[!d] = nd[x].c[d]].p = y;
+		nd[x].p = nd[y].p;
+		nd[y].pa.c[dir(y)] = x;
+		nd[nd[x].c[d] = y].p = x;
+		update(y);
+	}
+
+	void splay(int x, int g = N - 1) {for (pull_down(x); nd[x].p != g; rotate(x)) if (nd[x].pa.p != g) rotate(dir(x) ^ dir(nd[x].p) ? x : nd[x].p); update(x);}
+
+	int kth(int x, int k) {
+		if (nd[x].sz &lt; k) return INT_MIN;
+		for (int j; ; x = nd[x].c[k &gt; j], k -= j - k &gt;&gt; 31 &amp; j + 1) if (push_down(x), j = nd[x].C(0).sz, k == j + 1) return x;
+	}
+	// -------- basic template end -------- //
+	inline void link(int x, int px, int c) {nd[x].p = px, nd[px].c[c] = x;}
+
+	int split(int root, int L, int R) {
+		if (L &gt; R) return N - 2;
+		int l = kth(root, L - 1), r = kth(root, R + 1);
+		return splay(l), splay(r, l), r;
+	}
+
+	inline ll range(int root, int L, int R) {return nd[split(root, L, R)].C(0).sum;}
+
+	void swap(int ql, int qr, bool rev = false) {
+		int O = split(odd, (ql + 4) &gt;&gt; 1, (qr + 3) &gt;&gt; 1), E = split(even, (ql + 3) &gt;&gt; 1, (qr + 2) &gt;&gt; 1), o = nd[O].c[0], e = nd[E].c[0];
+		if (rev) reverse(o), reverse(e); link(o, E, 0), link(e, O, 0), splay(o), splay(e);
+	}
+
+	void reverse(int ql, int qr) {
+		if ((ql ^ qr) &amp; 1) return swap(ql, qr, true);
+		int r = nd[N - 1].c[(ql ^ 1) &amp; 1]; reverse(nd[split(r, (ql + 3) &gt;&gt; 1, (qr + 3) &gt;&gt; 1)].c[0]);
+		r = nd[N - 1].c[ql &amp; 1]; reverse(nd[split(r, (ql + 4) &gt;&gt; 1, (qr + 2) &gt;&gt; 1)].c[0]);
+	}
+}
+
+int main() {
+	int i, l, r; char op[10];
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", &amp;Splay::nd[i].v);
+	Splay::link(1, n + 3, 1); Splay::link(n + 3, N - 1, 0);
+	Splay::link(2, n + 4, 1); Splay::link(n + 4, N - 1, 1);
+	for (i = n + 2; i &gt; 2; --i) Splay::link(i, i - 2, 1);
+	for (i = n + 2; i; --i) Splay::update(i);
+	Splay::update(n + 3); Splay::update(n + 4);
+	for (scanf("%d", &amp;q); q; --q)
+		switch (scanf("%s%d%d", op, &amp;l, &amp;r), *op) {
+			case 113: printf("%lld\n", Splay::range(odd, (l + 4) &gt;&gt; 1, (r + 3) &gt;&gt; 1) + Splay::range(even, (l + 3) &gt;&gt; 1, (r + 2) &gt;&gt; 1)); break;
+			case 114: Splay::reverse(l, r); break;
+			case 115: Splay::swap(l, r); break;
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在写 Splay 的时候，可以在最前面和最后面加一个 "哨兵" 元素，这样在提取一段区间的时候会比较方便 (不用特判边界)。</p>
+		<p><strong>坑2：</strong>交换完左右子树后，需要将新的两个节点 <code>splay()</code> 一下。这样做一是为了保证复杂度，二是为了让上面的祖先节点更新 (<code>update()</code>) 对应的值 (<code>sz</code> 和 <code>sum</code>)。</p>
+	</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj329]多边形</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一个凸多边形 $P$ 和数轴正半轴上的一个区间 $[l, r]$，定义 $P$ 与 $[l, r]$ 的 <strong>"乘积"</strong>，记为 $P \circ [l, r]$，等于</p>
+		<p>$$ P \circ [l, r] = \left\{ k \cdot A \mid l \leq k \leq r, A \in P \right\} $$</p>
+		<p>其中 $k \cdot (x, y) = (kx, ky)$。</p>
+		<p>容易发现，对于一个凸多边形 $P$ 和正半轴上的区间 $[l, r]$，$P \circ [l, r]$ 仍是一个凸多边形。</p>
+		<p>给定一个凸多边形 $P$ 和 $m$ 个区间 $\left[ a_1, 2 a_1 \right], \left[ a_2, 2 a_2 \right], \cdots, \left[ a_m, 2 a_m \right]$，你需要选出其中的 $k$ 个区间 $r_1, r_2, \cdots, r_k$，使得点集 $P \circ r_1, P \circ r_2, \cdots, P \circ r_k$ 的面积并最大。求最大的面积。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, k$ ($1 \leq n, m \leq 100; 1 \leq k \leq m$)，表示凸多边形的边数、区间的个数和需要选定的区间的个数。</p>
+		<p>接下来的 $n$ 行，每行包含两个正整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq 10000$)，以逆时针的顺序给出凸多边形各个点的坐标 $\left( x_i, y_i \right)$。</p>
+		<p>第 $n + 2$ 行包含 $m$ 个正整数 $a_1, a_2, \cdots, a_m$ ($1 \leq a_i \leq 5000$)，表示这 $m$ 个区间的左端点。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示面积并的最大值。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-4}$。</p>
+
+		<h3>题解</h3>
+		<p>先来考虑多边形 $P$ 和各个区间的乘积所满足的性质。</p>
+		<p>注意到这里每个区间的右端点都是左端点的 $2$ 倍，因此可以发现，这 $k$ 个凸多边形 $P \circ r_i$ 其实是<strong>相似</strong>的，更确切地说，是<strong>关于原点位似</strong>的。</p>
+		<p>那么，我们可以先预处理出多边形 $Q = P \circ [1, 2]$，那么就有 $P \circ \left[ a, 2 a \right] = Q \cdot a$。而处理 $Q$ 的过程可以通过一个简单的凸包完成。</p>
+		<p>接下来是如何选择 $k$ 个区间使得面积并最大。</p>
+		<p>我们考虑使用背包 DP 的思路。将 $a_i$ 排序后，用 $f_{i, j}$ 表示当前所选最后一个凸多边形为 $Q \cdot a_i$，一共选了 $j$ 个多边形。则 $f_{i, 1} = \mathop{\mathrm{area}} \left( Q \cdot a_i \right)$，答案就是 $\max\limits_{1 \leq i \leq m} f_{i, K}$。</p>
+		<p>考虑转移，对于 $f_{i, j}$，考虑所选的上一个凸多边形为 $Q \cdot a_{i'}$，则 $f_{i, j}$ 就等于 $f_{i', j-1}$ 加上这部分新加的部分。</p>
+		<p>由多边形的凸性和位似性质，可以得到，<strong>若一个凸多边形集合包含了 $Q \cdot a_{i'}$，则不管 $i'$ 前面的多边形是否被选，对第 $i$ ($i &gt; i'$) 个多边形的贡献 (即选了 $i$ 后的面积增量) 是不变的</strong>。</p>
+		<p>于是我们设 $A_{i, j}$ 为 $Q \cdot a_i$ 与 $Q \cdot a_j$ 的差集的面积，即 $A_{i, j} = \mathop{\mathrm{area}} \left( Q \cdot a_i \setminus Q \cdot a_j \right)$，则转移方程就是简单的</p>
+		<p>$$ f_{i, j} \uparrow f_{i', j-1} + A_{i, i'} \ (j \geq 2; i' &lt; i) $$</p>
+		<p>其中 $a \uparrow b$ 表示 <code>a = max(a, b)</code>。</p>
+		<p>于是现在就只需要求 $A_{i, j}$ 的值。</p>
+		<p>可以发现，$A_{i, j}$ 就等于 $Q \cdot a_i$ 的面积减去 $Q \cdot a_i$ 与 $Q \cdot a_j$ 的面积交。</p>
+		<p>因此问题就转化为了两个凸多边形的面积交问题。可以使用暴力切割法 ($O \left( n^2 \right)$) 或半平面交 ($O \left( n \log n \right)$) 解决。</p>
+		<p>总时间复杂度 $O \left( n^4 \right)$ 或 $O \left( n^3 \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 254;
+const double eps = 1e-8;
+
+inline void up(double &amp;x, const double y) {x != x || x &lt; y ? x = y : 0;}
+
+#define lt(x, y) ((x) &lt; (y) - eps)
+#define gt(x, y) ((x) &gt; (y) + eps)
+#define le(x, y) ((x) &lt;= (y) + eps)
+#define ge(x, y) ((x) &gt;= (y) - eps)
+#define eq(x, y) (le(x, y) &amp;&amp; ge(x, y))
+#define dot(x, y, z) (((y) - (x)) * ((z) - (x)))
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+struct vec2 {
+	double x, y;
+	vec2 (double x0 = 0.0, double y0 = 0.0) : x(x0), y(y0) {}
+	vec2 * read() {scanf("%lf%lf", &amp;x, &amp;y); return this;}
+	inline vec2 operator - () const {return vec2(-x, -y);}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline vec2 operator * (double k) const {return vec2(x * k, y * k);}
+	inline vec2 operator / (double k) const {return *this * (1.0 / k);}
+	inline double operator * (const vec2 &amp;B) const {return x * B.x + y * B.y;}
+	inline double operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}
+	inline double norm2() const {return x * x + y * y;}
+	inline double norm() const {return sqrt(x * x + y * y);}
+	inline bool operator &lt; (const vec2 &amp;B) const {return lt(x, B.x) || le(x, B.x) &amp;&amp; lt(y, B.y);}
+	inline bool operator == (const vec2 &amp;B) const {return eq(x, B.x) &amp;&amp; eq(y, B.y);}
+	inline bool operator &lt;&lt; (const vec2 &amp;B) const {return lt(y, 0) ^ lt(B.y, 0) ? lt(B.y, 0) : gt(*this ^ B, 0) || ge(*this ^ B, 0) &amp;&amp; gt(x, 0) &amp;&amp; lt(B.x, 0);}
+	inline vec2 trans(double a11, double a12, double a21, double a22) const {return vec2(x * a11 + y * a12, x * a21 + y * a22);}
+};
+
+struct line {
+	double A, B, C; // Ax + By + C = 0, &gt; 0 if it represents halfplane.
+	line (double A0 = 0.0, double B0 = 0.0, double C0 = 0.0) : A(A0), B(B0), C(C0) {}
+	line (const vec2 &amp;u, const vec2 &amp;v) : A(u.y - v.y), B(v.x - u.x), C(u ^ v) {} // left &gt; 0
+	inline vec2 normVec() const {return vec2(A, B);}
+	inline double norm2() const {return A * A + B * B;}
+	inline double operator () (const vec2 &amp;P) const {return A * P.x + B * P.y + C;}
+};
+
+inline vec2 intersection(const line u, const line v) {
+	double Det = 1.0 / (u.A * v.B - u.B * v.A);
+	return vec2(u.B * v.C - u.C * v.B, u.C * v.A - u.A * v.C) * Det;
+}
+
+inline bool parallel(const line u, const line v) {double p = u.normVec() ^ v.normVec(); return eq(p, 0);}
+
+inline bool sameDir(const line u, const line v) {return parallel(u, v) &amp;&amp; gt(u.normVec() * v.normVec(), 0);}
+
+double area(int n, vec2 *poly) {
+	double ret = poly[n - 1] ^ *poly;
+	for (int i = 1; i &lt; n; ++i) ret += poly[i - 1] ^ poly[i];
+	return ret * 0.5;
+}
+
+vec2 base_;
+inline bool CHcmp(const vec2 A, const vec2 B) {
+	double p = cross(base_, A, B);
+	return gt(p, 0) || ge(p, 0) &amp;&amp; lt(A.norm2(), B.norm2());
+}
+
+int graham(int n, vec2 *p, vec2 *dest) {
+	int i; vec2 *ret = dest;
+	std::iter_swap(p, std::min_element(p, p + n)); base_ = *p;
+	std::sort(p + 1, p + n, CHcmp);
+	for (i = 0; i &lt; 2 &amp;&amp; i &lt; n; ++i) *ret++ = p[i];
+	for (; i &lt; n; *ret++ = p[i++])
+		for (; ret != dest + 1 &amp;&amp; ge(cross(ret[-2], p[i], ret[-1]), 0); --ret);
+	return *ret = *p, ret - dest;
+}
+
+inline bool HPIcmp(const line u, const line v) {return sameDir(u, v) ? gt((fabs(u.A) + fabs(u.B)) * v.C, (fabs(v.A) + fabs(v.B)) * u.C) : u.normVec() &lt;&lt; v.normVec();}
+
+inline bool geStraight(const vec2 A, const vec2 B) {return lt(A ^ B, 0) || le(A ^ B, 0) &amp;&amp; lt(A * B, 0);}
+
+int HPI(int n, line *l, vec2 *poly, vec2 *&amp;ret) { // -1 : Unbounded, -2 : Infeasible
+	int h = 0, t = -1, i, que[n + 5];
+	std::sort(l, l + n, HPIcmp);
+	if (n &lt;= 2 || geStraight(l[n - 1].normVec(), l-&gt;normVec())) return -1;
+	for (i = 0; i &lt; n; ++i) {
+		if (h &lt;= t &amp;&amp; sameDir(l[que[t]], l[i])) continue;
+		if (geStraight(l[que[t]].normVec(), l[i].normVec())) return -1;
+		for (; h &lt; t &amp;&amp; le(l[i](poly[t - 1]), 0); --t);
+		for (; h &lt; t &amp;&amp; le(l[i](poly[h]), 0); ++h);
+		que[++t] = i; h &lt; t ? poly[t - 1] = intersection(l[ que[t - 1] ], l[ que[t] ]) : 0;
+	}
+	for (; h &lt; t &amp;&amp; le(l[ que[h] ](poly[t - 1]), 0); --t);
+	return h == t ? -2 : (poly[t] = intersection(l[ que[t] ], l[ que[h] ]), ret = poly + h, t - h + 1);
+}
+
+int n, K, P, C;
+int a[N];
+double A[N], f[N][N];
+vec2 p[N], c[N], r[N * 4];
+line l[N * 4];
+
+double solve(double x1, double x2) {
+	int i, tot = 0; vec2 *ret;
+	for (i = 0; i &lt; C; ++i)
+		l[tot++] = line(c[i] * x1, c[i + 1] * x1), l[tot++] = line(c[i] * x2, c[i + 1] * x2);
+	tot = HPI(tot, l, r, ret);
+	return x2 * x2 * *A - (tot &lt; 0 ? 0.0 : area(tot, ret));
+}
+
+int main() {
+	int i, j, k; double ans = 0.0;
+	scanf("%d%d%d", &amp;P, &amp;n, &amp;K);
+	for (i = 0; i &lt; P; ++i) p[P + i] = *p[i].read() * 2; P *= 2;
+	C = graham(P, p, c); *A = area(C, c);
+	for (i = 0; i &lt; n; ++i) scanf("%d", a + i); std::sort(a, a + n);
+	memset(f, -1, sizeof f);
+	for (i = 0; i &lt; n; ++i) {
+		f[i][1] = a[i] * a[i] * *A;
+		for (k = i + 1; k &lt; n; ++k) A[k] = solve(a[i], a[k]);
+		for (j = 1; j &lt; K; ++j)
+			if (f[i][j] == f[i][j])
+				for (k = i + 1; k &lt; n; ++k)
+					up(f[k][j + 1], f[i][j] + A[k]);
+	}
+	for (i = 0; i &lt; n; ++i) up(ans, f[i][K]);
+	printf("%.12lg\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意半平面交的实现细节，即交为空的情况。</p>
+	</body>
+</html>

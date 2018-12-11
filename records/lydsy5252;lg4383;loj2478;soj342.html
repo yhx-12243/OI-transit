@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5252][lg4383][loj2478][soj342]林克卡特树</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个节点的树，你需要选择 $k$ 条路径，它们两两不相交 (没有公共点)，求这 $k$ 条路径的权值和的最大值。其中一条路径的权值定义为它所经过的边的边权和。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($1 \leq k \leq n \leq 3 \times 10^5$)，表示树的点数和路径的条数。</p>
+		<p>接下来的 $n - 1$ 行，每行三个整数 $u_i, v_i, w_i$ ($1 \leq x_i, y_i \leq n; -10^6 \leq w_i \leq 10^6$)，表示有一条权为 $w_i$ 的边连接点 $u_i$ 和 $v_i$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示路径权值和的最大值。</p>
+
+		<h3>题解</h3>
+		<p>注意到刚好有 $k$ 条路径这个条件不好控制。但是我们发现，如果没有这个条件，也就是说路径数可以任意，这是比较好解决的，可以使用 $O(n)$ 的 DP 完成。</p>
+		<p>那有 $k$ 条路径该怎么办呢？此时我们遇到的情况其实和 <a href="lydsy2654.html">[lydsy2654]Tree</a> 题类似。参考该题的做法，我们使用<strong>带权二分</strong>。那二分的权值是什么呢？注意到在那道题中，是需要有 $k$ 条白色边，于是对白色边的权值进行二分。</p>
+		<p>因此在这道题中，是需要有 $k$ 条路径，于是我们可以对<strong>每条路径的权值</strong>进行二分。</p>
+		<p>具体地，我们设产生每条路径可以得到 $W$ 的权值 ($W$ 可正可负)，则 DP 状态记录如下：</p>
+		<p>设<strong>二元组</strong> $f_{i, j}$ 表示以 $i$ 为根的子树内部，$i$ 向它的子节点连了共 $j$ ($j \in \{0, 1, 2\}$) 条边，子树中选择若干路径的最大权值以及<strong>在这个最大权值的条件下</strong>，边数的最大值 (也就是说这是一个双关键字排序)。</p>
+		<p>对于叶节点 $x$，有 $f_{x, 0} = (0, 0), f_{x, 1} = (-\infty, 0), f_{x, 2} = (W, 1)$。</p>
+		<p>考虑转移，对于每个子节点 $y$，它都可以不参与和 $x$ 有关的这条链，于是有 $f_{x, i} \uparrow f_{x, i} + \max \left\{ f_{y, 0}, f_{y, 1}, f_{y, 2} \right\}$。</p>
+		<p>如果 $y$ 参与了这条链，则分为如下两种情况：</p>
+		<ol>
+			<li><p>$y$ 是端点。此时，$y$ 向子节点连了 $0$ 条边。若 $x$ 也是端点，则有 $f_{x, 1} \uparrow f_{x, 0} + f_{y, 0} + \left( w_{x, y} + W, 1 \right)$。</p>
+			<p>若 $x$ 已经连了 $1$ 条边了，则有 $f_{x, 2} \uparrow f_{x, 1} + f_{y, 0}$。</p></li>
+			<li><p>$y$ 不是端点。此时，$y$ 向子节点连了 $1$ 条边。若 $x$ 是端点，则有 $f_{x, 1} \uparrow f_{x, 0} + f_{y, 1}$。</p>
+			<p>若 $x$ 已经向子节点连了 $1$ 条边，则这两条路径合并后就会少一条，于是有 $f_{x, 2} \uparrow f_{x, 1} + f_{y, 1} + \left( w_{x, y} - W, -1 \right)$。</p></li>
+		</ol>
+		<p>最后的答案就是 $\max \left\{ f_{r, 0}, f_{r, 1}, f_{r, 2} \right\}$，其中 $r$ 为根节点。我们可以将该值的第二关键字与 $k$ 相比较，如果太小了，说明我们设置的单条路径权值太低，需要变高，反之同理。</p>
+		<p>像那一题一样，通过带权二分，我们最终就能得到路径数为 $k$ 的最优解。时间复杂度为 $O \left( n \log \sum w_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) ((x - 1 ^ 1) + 1)
+
+typedef long long ll;
+typedef std::pair &lt;ll, int&gt; pr;
+const int N = 100010, Z = N * 2;
+const ll INF = 0x3f3f3f3f3f3f3f3fll;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[Z];
+
+int n, m, K, E = 0;
+ll L, R, M, ans, cost;
+int first[N], next[Z];
+pr f[N][3], ret;
+
+inline void up(pr &amp;x, const pr y) {x &lt; y ? x = y, 0 : 0;}
+inline pr max(pr x, const pr y, const pr z) {return up(x, y), x &lt; z ? z : x;}
+inline pr operator + (const pr x, const pr y) {return pr(x.first + y.first, x.second + y.second);}
+
+inline void addedge(int u, int v, int w) {
+	e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+	e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+}
+
+void dfs(int x, int px = 0) {
+	int i, y; pr t;
+	f[x][0] = pr(0, 0); f[x][1] = pr(-INF, 0); f[x][2] = pr(cost, 1);
+	for (i = first[x]; i; i = next[i])
+		if ((y = e[i].v) != px) {
+			dfs(y, x);
+			t = max(f[y][0], f[y][1], f[y][2]);
+			up(f[x][2], f[x][2] + t);
+			up(f[x][2], f[x][1] + f[y][0] + pr(e[i].w, 0));
+			up(f[x][2], f[x][1] + f[y][1] + pr(e[i].w - cost, -1));
+			up(f[x][1], f[x][1] + t);
+			up(f[x][1], f[x][0] + f[y][0] + pr(e[i].w + cost, 1));
+			up(f[x][1], f[x][0] + f[y][1] + pr(e[i].w, 0));
+			up(f[x][0], f[x][0] + t);
+		}
+}
+
+bool check(ll val) {return ::cost = val, dfs(1), ret = max(f[1][0], f[1][1], f[1][2]), ret.second &lt; K;}
+
+int main() {
+	int i, u, v, w;
+	scanf("%d%d", &amp;n, &amp;K);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), addedge(u, v, w), R += abs(w);
+	for (L = -R; L &lt; R; )
+		check(M = (L + R) &gt;&gt; 1) ? (L = M + 1) : (R = M, ans = ret.first - M * K);
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在原题中需要先 <code>++K</code> 才能转化为此题。</p>
+		<p><strong>坑2：</strong>在带权二分中注意边界 (<strong>第二关键字</strong>)，像那题一样，如果有多个最优解，需要指定路径数尽可能大 (或小)。比如在那题中，可以让白边数尽可能少，这题中，可以让边数尽可能多 (当然反一下也无所谓)。</p>
+	</body>
+</html>

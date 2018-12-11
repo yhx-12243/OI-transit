@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj330]吉夫特</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张无向简单图，保证<strong>每个点的度数不超过 $7$</strong>，你需要找到该图的一个 $4-$染色，使得对于每个点 $v$，与 $v$ 相邻的点中，<strong>至多</strong>有一个点和 $v$ 颜色相同。</p>
+		<p>如果不存在满足条件的 $4-$染色，输出 <code>impossible</code>。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。</p>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10$) ，表示数据组数。</p>
+		<p>对于每组数据，第一行包含两个正整数 $n, m$ ($n \leq 25000; m \leq 10^5$)，分别表示图的点数和边数 (约定点从 $1$ 开始标号)。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $x, y$，描述图中的一条边，保证不存在重边、自环。</p>
+
+		<h3>输出格式</h3>
+		<p>输出到标准输出。</p>
+		<p>我们用小写英文字母 <code>a</code>、<code>b</code>、<code>c</code>、<code>d</code> 给四种不同的颜色标号。</p>
+		<p>对于每组数据：</p>
+		<ul>
+			<li>如果有解，输出一行一个长度为 $n$ 的字符串 $S$，其中 $S_i$ 表示你给第 $i$ 个点染上的颜色（下标从 $1$ 开始）；</li>
+			<li>否则，输出 <code>impossble</code>。</li>
+		</ul>
+
+		<h3>题解</h3>
+		<p>注意度数不超过 $7$ 有什么性质。</p>
+		<p>如果 $d(v)$ 大于等于 $8$，那么与 $v$ 相邻的点中，每个颜色都至少出现了 $2$ 次，则 $v$ (在此时) 是无法染色的。</p>
+		<p>但是度数不超过 $7$ 就有一个非常好的性质，不论哪个点 $v$，如果 $d(v) \leq 7$，那么不管周围的点怎么染，由 (逆) 抽屉原理，必存在一种颜色只出现不超过 $1$ 次，因此只需令 $c(v)$ 为那种颜色即可。</p>
+		<p>但是这样可能会导致新的点不满足性质，那怎么办呢？可以尝试暴力点，<strong>递归更改</strong>。</p>
+		<p>于是我们得到了一个 "算法"：</p>
+		<ol>
+			<li><p>先给整张图一个随机的 $4-$染色，再令 $q$ 为空队列。</p></li>
+			<li><p>找到图中所有的不合法点 $v$，即与 $v$ 相邻的点中，有至少 $2$ 个点与 $v$ 同色，将其加入队列 $q$。</p></li>
+			<li><p>若队列为空，则转到步骤 $6$。否则，弹出队首元素 $v$，如果 $v$ 此时为合法点，重复步骤 $3$。</p></li>
+			<li><p>否则，$v$ 的邻点中必存在一种颜色 $c_0$，出现不超过 $1$ 次，令 $c(v) \gets c_0$。</p></li>
+			<li><p>扫描它的邻点，如果发现合法点变为不合法点，则将其加入队列 $q$，并返回步骤 $3$。</p></li>
+			<li><p>此时该染色即为原图的一个合法 $4-$染色。</p></li>
+		</ol>
+		<p>现在最主要的问题是：</p>
+		<ol>
+			<li><p>这个 "算法" 能否在有限步内结束？</li>
+			<li>如果 "算法" 能够结束，它的时间复杂度是多少？</li>
+		</ol>
+		<p>下面我们来具体分析。主要思路就是使用半不变量 (单调量，或势能分析法)。</p>
+		<p>令 $K(G)$ 为图 $G$ 中<strong>同色边</strong>的数量。考虑进行一次调整，$K(G)$ 变化。</p>
+		<p>首先，设点 $v$ 周围的邻点为 $c_1, c_2, \cdots, $。设其中有 $k$ ($k \geq 2$) 个点的颜色和 $v$ 相同，而更改以后，周围的点中至多不超过 $1$ 个与 $v$ 同色。故 $K(G)$ 的增量为 $\leq 1 - k \leq -1$。</p>
+		<p>于是每进行一次操作，$\Delta K(G) \leq -1$，而初始的 $K(G) \leq m$，最终的 $K(G) \geq 0$，因此操作的次数不会超过 $m$ 次。</p>
+		<p>而每次操作的时间复杂度为 $O \left( m \Delta(G) \right)$，其中 $\Delta(G) \leq 7$ 为图 $G$ 的最大度。故总时间复杂度为 $O \left( n + m \Delta (G) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 26000, M = 200010;
+
+int V, E, Es;
+int to[M], first[N], next[M];
+int deg[N];
+int h, t, que[M];
+bool in_que[N];
+char col[N];
+
+inline void addedge(int u, int v){
+	to[++Es] = v; next[Es] = first[u]; first[u] = Es;
+	to[++Es] = u; next[Es] = first[v]; first[v] = Es;
+}
+
+void adjust(int x, int c) {
+	int i, y, old = col[x]; col[x] = c; deg[x] = 0;
+	for (i = first[x]; i; i = next[i]) {
+		if (col[y = to[i]] == old) --deg[y];
+		if (col[y] == c &amp;&amp; (++deg[x], ++deg[y] &gt;= 2) &amp;&amp; !in_que[y]) que[t++] = y, in_que[y] = true;
+	}
+}
+
+void work() {
+	int i, u, v, mask;
+	scanf("%d%d", &amp;V, &amp;E); Es = 0;
+	memset(first, 0, sizeof first);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	for (i = 1; i &lt;= V; ++i) col[i] = rand() &amp; 3;
+	for (t = 0, v = 1; v &lt;= V; ++v) {
+		for (deg[v] = 0, i = first[v]; i; i = next[i]) deg[v] += col[v] == col[to[i]];
+		if (deg[v] &gt;= 2) que[t++] = v, in_que[v] = true;
+	}
+	for (h = 0; h &lt; t; ++h) {
+		if (in_que[v = que[h]] = false, deg[v] &lt; 2) continue;
+		for (mask = 0, i = first[v]; i; i = next[i]) mask += 1 &lt;&lt; col[to[i]] * 3;
+		for (i = 0; i &lt; 4; ++i)
+			if (!(mask &gt;&gt; (i * 3 + 1) &amp; 3)) {adjust(v, i); break;}
+	}
+	for (i = 1; i &lt;= V; ++i) col[i] += 97; col[V + 1] = 0;
+	puts(col + 1);
+}
+
+int main() {
+	int T; char *ptr = new char;
+	srand(time(NULL) + (long long)ptr); delete ptr;
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>寻找出现次数不超过 $1$ 的颜色时需要用 <code>+=</code> 而不是 <code>|=</code>。</p>
+	</body>
+</html>

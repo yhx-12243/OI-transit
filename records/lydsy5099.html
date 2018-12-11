@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5099][POI2018]Pionek</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个平面向量的集合 $S$。你需要选择 $S$ 的一个子集 $T$，使得 $T$ 中所有向量和的模长最大。输出最大模长的平方。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 2 \times 10^5$)，表示集合 $S$ 的大小 $|S|$。</p>
+		<P>接下来 $n$ 行，每行两个整数 $x_i, y_i$ ($-10000 \leq x_i, y_i \leq 10000$)，表示第 $i$ 个向量为 $\left( x_i, y_i \right)$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最大模长的平方。</p>
+
+		<h3>题解</h3>
+		<p>设 $S = \left\{ \mathbf v_1, \mathbf v_2, \cdots, \mathbf v_n \right\}$。首先，零向量 $\mathbf 0$ 显然对答案不产生任何贡献，故先将其删去。</p>
+		<p>为了方便，我们可以在 $S$ 中加入一个新向量 $\mathbf v' = - \left( \mathbf v_1 + \mathbf v_2 + \cdots + \mathbf v_n \right)$，容易证明它对答案不产生影响。因为，如果一个方案中包含 $\mathbf v'$，设它取了 $S$ 的子集 $T_0$ 和 $\mathbf v'$，那么 $T_0$ 的<strong>补集</strong> $\bar T$ ($S \setminus T_0$) 中的向量之和就等于原方案中向量之和的<strong>相反向量</strong> (因为所有向量的和为 $\mathbf 0$)。</p>
+		<p>我们考虑最优方案的向量和为 $\mathbf s = \mathbf u_1 + \mathbf u_2 + \cdots + \mathbf u_k$，设它的方向向量为 $\mathbf d$。</p>
+		<p>则 $|\mathbf s| = \mathbf s \cdot \mathbf d = \left( \mathbf u_1 + \mathbf u_2 + \cdots + \mathbf u_k \right) \cdot \mathbf d = \mathbf u_1 \cdot \mathbf d + \mathbf u_2 \cdot \mathbf d + \cdots + \mathbf u_k \cdot \mathbf d$，即每个向量在 $\mathbf d$ 上投影的和。</p>
+		<p>这个式子是不是很熟悉呢？对，我们在求<strong>凸多边形直径</strong>的时候就用到过这个式子。</p>
+		<p>对于一个凸多边形，它的直径就是距离最远的点对。设直径的方向为 $\mathbf d$，我们也是把其中一侧的向量沿 $d$ 的方向投影相加求最大值。</p>
+		<p>在此题中，我们只需要将这些向量<strong>沿极角排序</strong>，然后首尾相连，由于所有向量的和为 $\mathbf 0$，因此可以构成一个<strong>凸多边形</strong>。于是，就可以将这个问题转化为了已知的<strong>凸多边形直径</strong>的问题。</p>
+		<p>而这个问题的解决方案当然是旋转卡壳啦。我们选取一对对踵点，比如扫描序 (双关键字排序) 最小的点和最大的点，然后比较斜率沿凸多边形转一周 (双指针)，这样所有距离的最大值就是凸多边形的直径啦。</p>
+		<p>正确性也极易证明。设 $A_i A_j$ 为凸多边形的直径，则 $\angle A_j A_i A_{i-1} &lt; 90^\circ, \angle A_{i+1} A_i A_j &lt; 90^\circ$，同理 $\angle A_i A_j A_{j-1} &lt; 90^\circ, A_{j+1} A_j A_i &lt; 90^\circ$。于是容易发现存在一条平行线 (支撑线) "卡" 住 $A_i A_j$，于是 $\left| A_i A_j \right|$ 就会被计入答案。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 1000010;
+const ll eps = 0;
+
+#define lt(x, y) ((x) &lt; (y) - eps)
+#define gt(x, y) ((x) &gt; (y) + eps)
+#define le(x, y) ((x) &lt;= (y) + eps)
+#define ge(x, y) ((x) &gt;= (y) - eps)
+#define eq(x, y) (le(x, y) &amp;&amp; ge(x, y))
+#define dot(x, y, z) (((y) - (x)) * ((z) - (x)))
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+struct vec2 {
+	ll x, y;
+	vec2 (ll x0 = 0, ll y0 = 0) : x(x0), y(y0) {}
+	vec2 * read() {scanf("%lld%lld", &amp;x, &amp;y); return this;}
+	inline vec2 operator - () const {return vec2(-x, -y);}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline vec2 operator * (ll k) const {return vec2(x * k, y * k);}
+	inline ll operator * (const vec2 &amp;B) const {return x * B.x + y * B.y;}
+	inline ll operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}
+	inline ll norm2() const {return x * x + y * y;}
+	inline bool operator &lt; (const vec2 &amp;B) const {return lt(x, B.x) || le(x, B.x) &amp;&amp; lt(y, B.y);}
+	inline bool operator == (const vec2 &amp;B) const {return eq(x, B.x) &amp;&amp; eq(y, B.y);}
+	inline bool operator &lt;&lt; (const vec2 &amp;B) const {return lt(y, 0) ^ lt(B.y, 0) ? lt(B.y, 0) : gt(*this ^ B, 0) || ge(*this ^ B, 0) &amp;&amp; gt(x, 0) &amp;&amp; lt(B.x, 0);}
+};
+
+inline bool cmp(const vec2 &amp;x, const vec2 &amp;y) {return x &lt;&lt; y;}
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+ll convDiameter(int n, vec2 *poly) {
+	int l = std::min_element(poly, poly + n) - poly, r = std::max_element(poly, poly + n) - poly, i = l, j = r;
+	ll diam = (poly[l] - poly[r]).norm2();
+	do {
+		(ge(poly[(i + 1) % n] - poly[i] ^ poly[(j + 1) % n] - poly[j], 0) ? ++j : ++i) %= n;
+		up(diam, (poly[i] - poly[j]).norm2());
+	} while (i != l || j != r);
+	return diam;
+}
+
+int n;
+vec2 a[N], b[N];
+
+int main() {
+	int i;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) {
+		a[i].read();
+		if (a[i] == vec2()) {--i; --n; continue;}
+	}
+	if (!n) return putchar(48), putchar(10), 0;
+	for (i = 0; i &lt; n; ++i) a[n] = a[n] - a[i];
+	n += !(a[n] == vec2());
+	std::sort(a, a + n, cmp);
+	for (i = 1; i &lt; n; ++i) a[i] = a[i] + a[i - 1];
+	printf("%lld\n", convDiameter(n, a));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意要将 $\mathbf 0$ 向量删除光，不然在后面的极角排序以及旋转卡壳中可能会出问题。</p>
+		<p><strong>坑2：</strong>注意对空集的处理，若 $S = \varnothing$ (即没有非零向量)，则最大模长为 $0$。</p>
+	</body>
+</html>
