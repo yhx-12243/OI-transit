@@ -21,9 +21,23 @@ typedef int vec[N], *pvec;
 typedef long long ll;
 typedef std::pair &lt;int, int&gt; pr;
 typedef std::vector &lt;int&gt; vector;
-const ll mod = 998244353, half_mod = 499122177, root = 31;
+const ll mod = 998244353, half_mod = (mod + 1) / 2, root = 31;
 
+vec fact, inv, finv;
+
+inline int &amp; reduce(int &amp;x) {return x += (x &gt;&gt; 31 &amp; (int)mod);}
+inline ll &amp; reduce(ll &amp;x) {return x += (x &gt;&gt; 63 &amp; mod);}
+inline int &amp; half(int &amp;x) {return x = (x &gt;&gt; 1) + (-(x &amp; 1) &amp; (int)half_mod);}
+inline ll &amp; half(ll &amp;x) {return x = (x &gt;&gt; 1) + (-(x &amp; 1) &amp; half_mod);}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; ((int)mod - x);}
+inline ll &amp; neg(ll &amp;x) {return x = (!x - 1) &amp; (mod - x);}
 ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = (mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
 
 namespace Poly {
 	int l, n;
@@ -32,7 +46,7 @@ namespace Poly {
 	// Input and output
 	void in(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) scanf("%d", f + i);}
 
-	void out(int deg, pvec f, const char *_name){
+	void out(int deg, pvec f, const char *_name) {
 		printf("%s(x) =", _name);
 		for (int i = 0; i &lt;= deg; ++i) printf(" %+d x^%d", (int)(f[i] - (mod &amp; -(f[i] &gt;= half_mod))), i);
 		putchar(10);
@@ -43,7 +57,7 @@ namespace Poly {
 	#define fy_out(deg, f) Poly::out(deg, f, #f)
 
 	// Fast Number Theory Transform
-	void NTT_init(int len){
+	void NTT_init(int len) {
 		if (l == len) return; n = 1 &lt;&lt; (l = len);
 		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
 		*x = 1; *rev = 0;
@@ -67,7 +81,7 @@ namespace Poly {
 		}
 	}
 
-	vec B1, B2, B3, B4, B5, B6;
+	vec B1, B2, B3, B4, B5, B6, B7;
 
 	// Multiplication (use buffer 1)
 	void Mul(int deg, pvec a, pvec b, pvec c) {
@@ -90,10 +104,8 @@ namespace Poly {
 			NTT_init(len + 2);
 			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B1[i] = 0;
 			DNTT(b, B2); DNTT(B1, B3);
-			for (i = 0; i &lt; n; ++i)
-				B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod, B2[i] += B2[i] &gt;&gt; 31 &amp; mod;
-			DNTT(B2, B3); std::reverse(B3 + 1, B3 + n);
-			iv = (iv &gt;&gt; 1) + (iv &amp; 1 ? half_mod : 0);
+			for (i = 0; i &lt; n; ++i) reduce(B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod);
+			DNTT(B2, B3); std::reverse(B3 + 1, B3 + n); half(iv);
 			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B3[i] * iv % mod;
 			for (; i &lt; n; ++i) b[i] = 0, B1[i] = a[i];
 		}
@@ -115,7 +127,7 @@ namespace Poly {
 		for (i = 0; i &lt;= degB; ++i) B4[i] = b[i];
 		for (; i &lt; n; ++i) B4[i] = 0;
 		Mul(degA, B4, q, r);
-		for (i = 0; i &lt; degB; ++i) r[i] = a[i] - r[i], r[i] += r[i] &gt;&gt; 31 &amp; mod;
+		for (i = 0; i &lt; degB; ++i) reduce(r[i] = a[i] - r[i]);
 	}
 
 	// Multiplication with std::vector (use buffer 4, 5, 6)
@@ -129,29 +141,34 @@ namespace Poly {
 		ret.assign(B6, B6 + (deg_a + deg_b + 1));
 	}
 
+	// Differential
+	void Diff(int deg, vec a, vec b) {for (int i = 1; i &lt;= deg; ++i) b[i - 1] = (ll)a[i] * i % mod;}
+
+	// Integral
+	void Intg(int deg, vec a, vec b, int ct = 0) {for (int i = 1; i &lt;= deg; ++i) b[i] = (ll)a[i - 1] * inv[i] % mod, *b = ct;}
+
 	// Logarithm (use buffer 4, 5, 6)
 	void Ln(int deg, vec a, vec b) {
 		if (*a != 1) fputs("Ln::Calculate logarithm of polynomial without constant term 1 !\n", stderr), abort();
 		if (!--deg) {*b = 0; return;}
 		int i, j = deg * 2 - 1; NTT_init(lg2(j) + 1);
-		for (i = 1; i &lt;= deg; ++i) B4[i - 1] = (ll)a[i] * i % mod; B4[deg] = 0;
-		for (Inv(deg, a, B5); i &lt; n; ++i) B4[i] = B5[i] = 0;
-		Mul(j, B4, B5, B6); *b = 0;
-		for (i = 1; i &lt;= deg; ++i) b[i] = (ll)B6[i - 1] * inv[i] % mod;
-		// inv(i) = PowerMod(i, mod - 2), can be initalized
+		Diff(deg, a, B4), Inv(deg, a, B5);
+		for (i = deg; i &lt; n; ++i) B4[i] = B5[i] = 0;
+		Mul(j, B4, B5, B6); Intg(deg, B6, b);
 	}
 
 	// Exponentiation (use buffer 6, 7)
 	void Exp(int deg, vec a, vec b) {
-		int len, i;
+		int len, i, n = 2;
 		if (*a) fputs("Exp::Calculate exponent of polynomial without constant term 0 !\n", stderr), abort();
 		*b = 1; b[1] = 0;
-		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
-			Ln(2 &lt;&lt; len, b, B7); *B7 = 1;
-			for (i = 1; i &lt; 2 &lt;&lt; len; ++i) B7[i] = a[i] - B7[i], B7[i] += B7[i] &gt;&gt; 31 &amp; mod;
-			Mul((4 &lt;&lt; len) - 1, b, B7, B6);
-			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B6[i];
-			for (; i &lt; n; ++i) b[i] = 0;
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len, n &lt;&lt;= 1) {
+			Ln(n, b, B7); *B7 = 1;
+			for (i = 1; i &lt; n; ++i) reduce(B7[i] = a[i] - B7[i]);
+			for (; i &lt; n &lt;&lt; 1; ++i) B7[i] = b[i] = 0;
+			Mul((n &lt;&lt; 1) - 1, b, B7, B6);
+			for (i = 0; i &lt; n; ++i) b[i] = B6[i];
+			for (; i &lt; n &lt;&lt; 1; ++i) b[i] = 0;
 		}
 	}
 }

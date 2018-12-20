@@ -142,7 +142,7 @@
 				$R.append($C = $('<td />').append($A));
 				Rows.push($R.get(0));
 			}
-			$('#rankTable').append(Rows);
+			$('#rankTable > tbody').empty().append(Rows);
 		}
 	}
 

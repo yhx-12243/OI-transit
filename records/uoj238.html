@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj238][IOI2016]paint</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>按数目填色是个有名的智力游戏。我们现在考虑的是这个游戏的一维版本。在这个游戏中，玩家会有一行 $n$ 个方格。这些方格从左到右分别编号为 $0$ 至 $n - 1$。</p>
+		<p>玩家必须要为这些方格填上黑色或白色，我们用 <samp>'X'</samp> 代表填上黑色的方格并用 <samp>'_'</samp> 来代表填上白色的方格。</p>
+		<p>系统将会给玩家一个提示，这个提示是一个含有 $k$ 个正整数的序列 $c = \left[ c_0, \cdots, c_{k - 1} \right]$。而玩家必须要根据提示为方格填色，填色的要求是在这行上，填上黑色的方格必须组成 $k$ 个连续的区间，而且，在由左开始的第 $i$ (由 $0$ 开始) 个区间上必须含有 $c_i$ 个黑色方格。</p>
+		<p>例如，若提示为 $c = [3, 4]$，则该游戏的正确填色方法是必须含有两个由连续黑色格位组成的区间，这两个区间的长度分别是 $3$ 和 $4$。因此，若 $n = 10$ 且 $c = [3, 4]$ 的话，则满足提示的一个正确的填色方法是 <samp>'_XXX__XXXX'</samp>。</p>
+		<p>要注意的是 <samp>'XXXX_XXX__'</samp> 并不满足提示，因为黑色的区间的长度顺序不正确。同时 <samp>'__XXXXXXX_'</samp> 也不满足提示，因为它只含有一个黑色区间而非两个分开的黑色区间。</p>
+		<p>你将获得一个部分方格已填好颜色的游戏行格，即，你知道 $n$ 及 $c$ 的值，并且你也知道有些方格一定是黑色和有些方格一定是白色。你的工作是从中推算出更详细的方格的信息。</p>
+		<p>更加详细来说，一个正确的游戏解应该满足提示，并且和已经知道颜色的方格的颜色一致。你的程序必须找出在所有正确的游戏解中都会填上黑色的方格和在所有正确的游戏解中都会填上白色的方格。</p>
+		<p>你可以假设每个输入一定存在至少一个正确的游戏解。</p>
+
+		<h3>实现细节</h3>
+		<p>你必须编写程序以实现以下的函数 (或方法)：</p>
+		<ul>
+			<li><code>std::string solve_puzzle(std::string s, std::vector&lt;int&gt; c)</code>，
+			<ul>
+				<li><code>s</code>: 一个含有 $n$ 个字符的字符串。而对于每个 $i$ ($0 \le i \le n - 1$)，字符 $i$ 将会是以下其中一个：
+				<ul>
+					<li><samp>'X'</samp>, 表示方格 $i$ 必须要填上黑色，</li>
+					<li><samp>'_'</samp>, 表示方格 $i$ 必须要填上白色，</li>
+					<li><samp>'.'</samp>, 表示方格 $i$ 没有任何信息。</li>
+				</ul></li>
+				<li><code>c</code>: 是一个长度为 $k$ 的数组，它的内容是上面叙述中所讲的提示，</li>
+				<li>这函数必须要返回一个长度为 $n$ 的数组。对于每个 $i$ ($0 \le i \le n - 1$) 而言，输出字符串的第 $i$ 个字符应该是以下其中一个：
+				<ul>
+					<li><samp>'X'</samp>, 表示在所有游戏解中，第 $i$ 个方格都是填上黑色，</li>
+					<li><samp>'_'</samp>, 表示在所有游戏解中，第 $i$ 个方格都是填上白色，</li>
+					<li><samp>'?'</samp>, 表示其他情况（即该游戏中存在两个正确的游戏解，且其中一个解该方格是填上黑色，但在另一个解中该方格是填上白色）。</li>
+				</ul></li>
+			</ul></li>
+		</ul>
+
+		<h3>题解</h3>
+		<p>由于 $n \leq 2 \times 10^5; k \leq 100$，因此 $n \cdot k \leq 2 \times 10^7$。尝试使用一个 $O \left( n k \right)$ 的 DP。</p>
+		<p>我们使用 $suf_{i, j}$ 表示方格 $i$ 为空 (白色)，后缀 $[i + 1, n]$ 中对应提示中的 $c_j, c_{j+1}, \cdots, c_{k-1}$ 的状态<strong>是否可能</strong>。显然，$suf_{i, j} = \mathrm{true}$ 的一个<strong>必要条件</strong>是 $s_i \neq \texttt X$。</p>
+		<p>现在已知 $s_i \neq \texttt X$，那么又该如何转移呢？分为两种情况讨论：</p>
+		<ol>
+			<li><p>$t_{i + 1}$ 也为空 ($t_i$ 表示最终方案中的第 $i$ 格)。此时，如果 $suf_{i + 1, j} = \mathrm{true}$，那么 $suf_{i, j}$ 就可以为 $\mathrm{true}$。</p></li>
+			<li><p>$t_{i + 1}$ 非空 (即为提示中的第 $j$ 段 $c_j$)。此时，这一段为 $[i + 1, i + c_j]$ 且 $t_{i + c_j + 1}$ 为空，还需要满足 $s_{i + 1}$ 到 $s_{i + c_j}$ 都不能为空。</p>
+			<p>故如果 $suf_{i + c_j + 1, j + 1} = \mathrm{true}$ 且 $s[i + 1 .. i + c_j]$ 不含 "$\texttt _$" (白色)，则 $suf_{i, j} \gets \mathrm{true}$。注意后面这个条件可以使用前缀和优化判断。</p></li>
+		</ol>
+		<p>于是可以在 $O \left( n \cdot k \right)$ 的时间内得到所有 $suf_{i, j}$，我们还是可以类似地定义 $pre_{i, j}$，表示方格 $i$ 为空，前缀 $[1, i - 1]$ 中对应 $c_0, c_1, \cdots, c_j$ 的状态的可能性。</p>
+		<p>但是注意到最后我们所求的是每个方格是否可能是 "$\texttt _$"。如果这样直接转移，合并状态可能会不太方便，因此我们考虑换一种记录状态的方式。</p>
+		<p>我们用 $pre_{i, j}$ 表示方格 $i$ 为空，前缀 $[1, i - 1]$ 对应 $c_0, c_1, \cdots, c_{j-1}$，<strong>后缀 $[i + 1, n]$ 对应 $c_j, c_{j+1}, \cdots, c_{k-1}$</strong> 的状态的可能性。</p>
+		<p>那么边界是 $pre_{0, 0} = \mathrm{true}$，如果 $pre_{i, j} = \mathrm{true}$，<strong>则位置 $i$ 可能是 "$\texttt _$"</strong>。</p>
+		<p>考虑转移。类似地，$s_i \neq \texttt X$ 还是一个必要条件。由新状态的定义，$suf_{i, j}$ 也应该等于 $\mathrm{true}$。现在我们考虑在满足该条件的情况下，$pre_{i, j}$ 的情形。</p>
+		<ol>
+			<li><p>$t_{i-1}$ 为空：此时，如果 $pre_{i-1, j} = \mathrm{true}$，那么就有 $pre_{i, j} \gets \mathrm{true}$。</p></li>
+			<li><p>$t_{i-1}$ 非空：此时，这一段为 $[i - c_j, i - 1]$ 且 $f_{i - c_j - 1}$ 为空，还有 $s_{i - c_j}$ 到 $s_i$ 都不能为空。</p></li>
+		</ol>
+		<p>于是我们已经解决了问题的一半：即位置 $i$ 是否可能为 "$\texttt _$"。</p>
+		<p>接下来我们来考虑计算<strong>位置 $i$ 是否可能为 $\texttt X$</strong>。</p>
+		<p>这个就相对简单多了，因为我们只需要找到一组合法的方案满足该格为 $i$ 即可。</p>
+		<p>注意到每种合法的方案都会在 $pre_{i, j}$ 的转移中统计到，因此我们只需对每一种转移，将 $a_{i - c_j} \sim a_{i-1}$ 赋值为 $\mathrm{true}$，这样最后 $a_i$ 就表示方格 $i$ 能否为 $\texttt X$。</p>
+		<p>注意到区间赋值暴力做不是很方便，于是我们可以考虑化为区间加，然后使用差分解决 (当然你要用 <code>std::vector &lt;int&gt;</code> 或线段树也无所谓)。</p>
+		<p>最后根据每个格子<strong>是否可能为 $\texttt X$</strong> 及<strong>是否可能为 "$\texttt _$"</strong> 来决定最终应该输出什么。由于保证有解，因此这两个变量至少有一个为真。</p>
+		<p>时间复杂度 $O \left( n k \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "paint.h"
+#include &lt;bits/stdc++.h&gt;
+#define N 200010
+#define M 127
+using std::string;
+
+typedef std::vector &lt;int&gt; vec;
+const char fy[4] = {88, 33, 63, 95};
+
+char S[N];
+int n, K;
+int Blank[N];
+bool pre[N][M], suf[N][M];
+bool can_blank[N];
+int can_fill[N];
+
+inline void filling(int L, int R) {++can_fill[L], --can_fill[R];}
+
+string solve_puzzle(string s, vec c) {
+	int i, j, k; string ret;
+	n = s.size(); K = c.size(); memcpy(S + 1, s.c_str(), n);
+	for (i = 1; i &lt;= n; ++i) Blank[i] = Blank[i - 1] + (S[i] == 95);
+	pre[0][0] = suf[n + 1][K] = true;
+	for (i = n; i &gt;= 0; --i) if (S[i] != 88)
+		for (memcpy(suf[i], suf[i + 1], K + 1), j = 0; j &lt; K; ++j)
+			suf[i][j] |= i + c[j] &lt;= n &amp;&amp; suf[i + c[j] + 1][j + 1] &amp;&amp; Blank[i] == Blank[i + c[j]];
+	for (i = 1; i &lt;= n + 1; ++i) if (S[i] != 88)
+		for (j = 0; j &lt;= K; ++j) if (suf[i][j]) {
+			if (pre[i - 1][j]) can_blank[i] = pre[i][j] = true;
+			if (j &amp;&amp; (k = i - c[j - 1]) &gt; 0 &amp;&amp; pre[k - 1][j - 1] &amp;&amp; Blank[i - 1] == Blank[k - 1])
+				can_blank[i] = pre[i][j] = true, filling(k, i);
+		}
+	for (i = 1; i &lt;= n; ++i) can_fill[i] += can_fill[i - 1];
+	for (i = 1; i &lt;= n; ++i) ret.push_back(fy[can_blank[i] &lt;&lt; 1 | !can_fill[i]]);
+	return ret;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 <code>memset</code> 的时候保证时间复杂度，因此最后一个参数要注意，且不能越界。</p>
+		<p><strong>坑2：</strong>注意 $pre_{i, j}$ 的实际意义，从而进行正确转移。要注意被 $suf_{i, j}$ 统计到的答案不能直接赋值为 $\mathrm{true}$，因为前面可能找不到合理的方案。</p>
+	</body>
+</html>

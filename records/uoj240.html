@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj240][IOI2016]aliens</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>我们的卫星刚刚通过观测一个遥远的星球发现了外星文明。我们也已经获得了该星球的一个正方形区域的低分辨率照片。这个照片上有许多智能生命的迹象。专家们也已经确定了照片上的 $n$ 个兴趣点。这些兴趣点被编号为 $0$ 到 $n - 1$。现在我们希望拍摄一些能包含全部 $n$ 个兴趣点的高分辨率照片。</p>
+		<p>卫星已将低分辨率照片的区域划分成由 $m \times m$ 个单位正方形的小方格组成的网络。网格的行和列被连续地编号为 $0$ 到 $m - 1$ (从上到下和从左到右)。我们用坐标 $(s, t)$ 来表示第 $s$ 行与第 $t$ 列上的小方格。第 $i$ 个兴趣点位于小方格 $(r_i, c_i)$ 上，每个小方格子上可以包含任意多个兴趣点。</p>
+		<p>卫星在一个固定的轨道上运行，而它刚好也直接经过这个网格的主对角线的上方。主对角线就是指在网络中连接左上角和右下角的那条线段。卫星能够在任意的区域上拍摄高分辨率的照片，但必须满足以下条件：</p>
+		<ul>
+			<li>拍摄的区域必须是正方形。</li>
+			<li>这个正方形的主对角线全部包含在网格的主对角线中。</li>
+			<li>网格中的每个小方格或者完全在拍摄范围内，或者完全在拍摄范围外。</li>
+		</ul>
+		<p>卫星最多只能拍摄 $k$ 张高分辨率照片。</p>
+		<p>一旦卫星拍摄完成，它将把每个拍摄区域的高分辨率照片传送到地面基站 (无论这些区域是否包含兴趣点)。尽管一个小方格可能会被多次拍摄，但每个被拍摄到的小方格上的数据只会被传送一次。</p>
+		<p>因此，我们必须选择最多 $k$ 个正方形区域进行拍摄，而且要保证：</p>
+		<ul>
+			<li>每个包含至少一个兴趣点的小方格必须被至少拍摄到一次，并且</li>
+			<li>被拍摄到至少一次的小方格数目必须是最小的。</li>
+		</ul>
+		<p>你的任务就是去找出被拍摄到的小方格有可能的最小值。</p>
+
+		<h3>实现细节</h3>
+		<p>你应该实现下列函数（方法）：</p>
+		<ul>
+			<li><code>long long take_photos(int n, int m, int k, std::vector&lt;int&gt; r, std::vector&lt;int&gt; c)</code>
+			<ul>
+				<li>$n$：兴趣点的数目，</li>
+				<li>$m$：网格中的行数 (也是列数)，</li>
+				<li>$k$：卫星能够拍摄高分辨率照片的最大次数，</li>
+				<li>$r$ 和 $c$：两个长度为 $n$ 的数组，描述网格中包含兴趣点的那些小方格的坐标。对于 $0 \le i \le n - 1$，第 $i$ 个兴趣点位于坐标为 $(r_i, c_i)$ 的小方格，</li>
+				<li>这个函数应该返回被至少拍摄一次的小方格的总数的最小值这些照片必须覆盖所有兴趣点)。</li>
+			</ul></li>
+		</ul>
+
+		<h3>题解</h3>
+		<p>由对称性，不妨设所有点均在主对角线下方，即 $c_i \leq r_i$，反之沿主对角线翻折一下即可。</p>
+		<p>注意到某些点满足一些依赖关系，即如果两个点 $i, j$ 满足偏序 (i.e. $r_i \leq r_j; c_i \geq c_j$)，则可以发现点 $i$ 本质上是不需要的，因为如果某个正方形覆盖了点 $j$，则它一定覆盖了点 $i$。</p>
+		<p>于是我们可以使用单调栈将这些点进行去重。可以证明，去重后的点满足对 $\forall i, j$，要么 $r_i &lt; r_j \wedge c_i &lt; c_j$，要么 $r_i &gt; r_j \wedge c_i &gt; c_j$。我们可以将其按照 $r$ 排序 (从而按照 $c$ 排序)。</p>
+		<p>先考虑正方形个数 $k$ 没有限制时的做法。考虑使用 DP，设 $f_i$ 表示前 $i$ 个点被覆盖所需要的最小面积并，则 $f_0 = 0$，答案为 $f_n$。考虑转移，则有</p>
+		<p>$$ f_i = \min_{0 \leq j &lt; i} \left( f_j + \left( r_i - c_{j+1} + 1 \right)^2 - \max \left\{ r_j - c_{j+1} + 1, 0 \right\}^2 \right) \tag 1 \label 1 $$</p>
+		<p>注意项 $f_j - \max \left\{ r_j - c_{j+1} + 1, 0 \right\}^2$ 是一个只和 $j$ 有关的常量，因此可以记 $F_j = f_j - \max \left\{ r_j - c_{j+1} + 1, 0 \right\}^2$，于是 $\eqref 1 \Leftrightarrow$</p>
+		<p>$$ F_i = \min_{0 \leq j &lt; i} \left( F_j + \left( r_i - c_{j+1} + 1 \right)^2 \right) - \max \left\{ r_i - c_{i+1} + 1, 0 \right\}^2 \tag 2 \label 2 $$</p>
+		<p>这样 DP 方程 ($\max$ 内部) 就简洁了很多。注意到经典的平方形式，我么考虑使用斜率优化，即设 $j &lt; k$，写 $k$ 的状态较优，化简后可以得到</p>
+		<p>$$ \frac {\left( F_j + c_{j+1}^2 \right) - \left( F_k + c_{k+1}^2 \right)} {c_{j+1} - c_{k+1}} &lt; 2 \left( r_i + 1 \right) $$</p>
+		<p>即斜率值<strong>小于</strong>已知值，已知值单调增。</p>
+		<p>故我们需要维护<strong>下凸包</strong>，使用<strong>队列</strong>来维护。</p>
+		<p>这样时间复杂度就是 $O \left( n \right)$ 的。</p>
+		<hr />
+		<p>接下来考虑有限制 $k$ (即 $k &lt; +\infty$) 时的做法。</p>
+		<p>显然，可以通过加一维状态 $j$ 表示当前使用了 $j$ 个矩形，即变成 $f_{i, j}$ 后做二维 DP，但这样复杂度又变成了 $O \left( n \cdot k \right)$，不够优，我们要寻找更优的做法。</p>
+		<p>根据以往题的经(tao)验(lu)，我们可以想到使用<strong>带权二分</strong>，即对每个正方形指定一个权值 $w$，表示选一个正方形的代价。</p>
+		<p>这样当 $w$ 增大的时候，正方形的个数就会减少，因此只需找到最终合适的权值后即可算出答案。</p>
+		<p>同理，对带权二分的题目还要指定第二关键字，即在总代价最小的情况下，再令正方形个数尽可能少，这样才可以得到正确的答案。</p>
+		<p>总时间复杂度 $O \left( n \log m  \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "aliens.h"
+#include &lt;bits/stdc++.h&gt;
+#define N 100010
+#define y(_) (f[_] + sqr(p[_ + 1].c))
+#define x(_) ((ll)p[_ + 1].c)
+
+typedef long long ll;
+typedef std::vector &lt;int&gt; vec;
+
+struct pr {
+	int r, c;
+	pr (int x = 0, int y = 0) : r(x), c(y) {if (r &lt; c) std::swap(r, c);}
+	inline bool operator &lt; (const pr &amp;B) const {return r &lt; B.r || r == B.r &amp;&amp; c &gt; B.c;}
+} p[N], q[N];
+ 
+int K, que[N], g[N];
+ll f[N];
+
+inline ll sqr(const ll x) {return x * x;}
+inline bool test1(int u, int v, ll slope) {return y(u) - y(v) &lt; slope * (x(u) - x(v));}
+inline bool test2(int u, int v, int w) {return (y(u) - y(v)) * (x(v) - x(w)) &lt; (x(u) - x(v)) * (y(v) - y(w));}
+
+bool check(ll val, int n) {
+	int i, j, h = 0, t = 0;
+	que[t++] = 0; f[0] = g[0] = 0;
+	for (i = 1; i &lt;= n; ++i) {
+		for (; h &lt; t - 1 &amp;&amp; test1(que[h + 1], que[h], p[i].r + 1 &lt;&lt; 1); ++h);
+		g[i] = g[j = que[h]] + 1;
+		f[i] = f[j] + sqr(p[i].r - p[j + 1].c + 1) + val;
+		if (i &lt; n &amp;&amp; p[i + 1].c &lt;= p[i].r) f[i] -= sqr(p[i].r - p[i + 1].c + 1);
+		for (; h + 1 &lt; t &amp;&amp; test2(i, que[t - 1], que[t - 2]); --t);
+		que[t++] = i;
+	}
+	return g[n] &gt; K;
+}
+
+ll take_photos(int n, int m, int k, vec _r, vec _c) {
+	int i, top = 0; ll ret = 0, L = -4, R = 4 + sqr(m), M; K = k;
+	for (i = 0; i &lt; n; ++i) q[i + 1] = pr(_r[i], _c[i]);
+	std::sort(q + 1, q + (n + 1));
+	for (i = 1; i &lt;= n; p[++top] = q[i++])
+		for (; top &amp;&amp; q[i].c &lt;= p[top].c; --top);
+	if ((n = top) &lt;= K) {
+		for (i = 1; i &lt;= n; ++i) ret += sqr(p[i].r - p[i].c + 1);
+		for (i = 1; i &lt; n; ++i) if (p[i + 1].c &lt;= p[i].r) ret -= sqr(p[i].r - p[i + 1].c + 1);
+		return ret;
+	}
+	for (; L &lt; R; ) check(M = (L + R) &gt;&gt; 1, n) ? (L = M + 1) : (R = M, ret = f[n] - M * K);
+	return ret;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意转移中不要漏掉 $\max \left\{ r_i - c_{i+1} + 1, 0 \right\}^2$ 这一项，因为一个小方格被拍摄多次只算一次的贡献。</p>
+		<p><strong>坑2：</strong>对一开始的点进行去重排序后注意先对 $r_i$ 递增排序，(第二关键字) 再对 $c_i$ <strong>递减</strong>排序。</p>
+		<p><strong>坑3：</strong>最后统计答案的时候不要忘记减去所二分的权值。</p>
+	</body>
+</html>

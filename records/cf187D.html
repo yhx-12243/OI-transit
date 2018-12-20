@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces187D]BRT Contract</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>快速公交 (BRT) 的推广方便了人们的出行，降低了人们的生活成本。</p>
+		<p>如今 BRT 九十九号线进行测试。BRT 九十九号线车速为 $1 \,\mathrm m/\mathrm s$，它的主要路线是一条直线。</p>
+		<p>在这条直线中有 $n$ 个十字路口。</p>
+		<p>每个十字路口都装有交通信号灯，这些交通信号灯是同时变化的，第 $0 \,\mathrm s$ 内它们刚刚变成绿灯并维持 $G \,\mathrm s$ (即 $0 \sim (G - 1) \,\mathrm s$)，之后变成红灯维持 $R \,\mathrm s$，依次往复。</p>
+		<p>BRT 从直线的一端出发，它到第一个十字路口的距离为 $L_1$，之后每两个十字路口之间的相距分别为 $L_2, L_3, \cdots, L_n$。而最后一个十字路口到终点站的距离为 $L_{n+1}$。</p>
+		<p>现在有 $Q$ 辆车准备通过，每辆车的出发时间为 $t_i \,\mathrm s$。请求出每辆车到达终点站的时间分别为多少。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, G, R$ ($n \leq 10^5; G + R \leq 10^9$)，分别表示直线中拥有 $n$ 个十字路口，交通信号灯绿灯时长 $G \,\mathrm s$，红灯时长 $R \,\mathrm s$。</p>
+		<p>第二行包含 $n + 1$ 个正整数 $l_1, l_2, \cdots, l_{n+1}$ ($l_i \leq 10^9$)，表示路段中起点到十字路口，十字路口之间，十字路口到终点的距离。</p>
+		<p>第三行包含一个正整数 $Q$ ($Q \leq 10^5$)，表示有 $Q$ 辆车准备进行测试。</p>
+		<p>最后输入 $Q$ 行，每行一个数，表示一辆车从起点的发车时间 $T_i$ ($T_i \leq 10^9$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $Q$ 行，每行一个整数，表示每辆车到达终点站的时刻。</p>
+
+		<h3>题解</h3>
+		<p>注意到每辆车的运行过程中有一个规律：如果运行时遇到一个红灯，设在第 $i$ 个站点时遇到，则接下来行驶的过程中，初始时间在模 $T = G + R$ 意义下为 $0$。</p>
+		<p>因此，如果能计算出以下两个值，则问题就可以解决了：</p>
+		<ol>
+			<li><p>对于任意 $1 \leq i \leq n$，若第 $i$ 个站点结束时，车子在时刻 $0 \pmod T$，那么它走到终点站的时间 $\mathrm{suf}_i$。</p></li>
+			<li><p>对于任意 $0 \leq t &lt; T$，若在起点站，车子在时刻 $t \pmod T$，若<strong>只考虑 $i \sim n$ 站点的红灯</strong>，则它<strong>最早</strong>遇到红灯的站点编号 $f_{i, t}$，如果没有红灯则为 $n + 1$。</p></li>
+		</ol>
+		<p>先考虑边界，显然有 $\mathrm{suf}_{n + 1} = 0, f_{n + 1, t} = n + 1$。</p>
+		<p>考虑转移，先设 $\displaystyle L_i = \sum_{k=1}^i l_i$。对于加入站点 $i$ 的情况，则容易发现，当且仅当 $G - L_i \leq t &lt; T - L_i \pmod T$ 时，它需要在站点 $i$ 上等红灯，其余状态不变。于是 $f$ 的转移非常简单：</p>
+		<p>$$ f_{i, t} = \begin{cases} i &amp; G - L_i \leq t &lt; T - L_i \pmod T \\ f_{i + 1, t} &amp; \text{otherwise} \end{cases} $$</p>
+		<p>接下来考虑如何求出 $\mathrm{suf}_i$。也就是说，在第 $i$ 个站点处，车子在时刻 $0 \pmod T$ 时，走到终点站所需的时间。</p>
+		<p>可以看出，这是原问题的一个子问题，因此思路类似，还是先求出它最早遇到红灯的站点编号。</p>
+		<p>注意到它是在第 $i$ 个站点而不是起点站。因此直接使用 $f_{i, 0}$ 是不对的。此时，注意到它是只考虑 $i \sim n$ 站点的红灯，$0 \sim i - 1$ 站点不考虑，于是可以看成在起点站时，它处于时刻 $- L_i \pmod T$，那么它走完 $i$ 个站点就到了时刻 $0$。</p>
+		<p>也可以这么理解，当 $i = 0$ 时，直接使用 $f_{0, 0}$ 是正确的。因此对于 $i &gt; 0$，$f_{i, t}$ 相当于对时刻 $t$ 做了一次长度为 $L_i$ 的<strong>平移变换</strong>，因此调用时直接逆回去即为 $f_{i, -L_i}$。</p>
+		<p>于是大体思路我们已经解决，接下来就是实现问题了。</p>
+		<p>首先，$T$ 是 $10^9$ 级别的，对 $f_{i, T}$ 直接开 $O \left( n \cdot T \right)$ 数组时空都会爆炸。</p>
+		<p>但是注意这个数组的读写特点：转移相当于区间覆盖，读取只需要单点查询。因此可以用一个 <code>std::set &lt;int, int&gt;</code> 或者 <code>std::map &lt;int, int&gt;</code> 来维护每个区间，这样复杂度就是 $O \left( n \log n \right)$ 的。</p>
+		<p>至于最后的询问，我们先找到最早遇到红灯的站点编号 $j = f_{0, t}$，然后由于 $0 \sim j$ 区间内没有遇到红灯，于是时间就等于 $L_j$，而这部分等红灯的时间就等于 $T - \left( (t + L_j) \bmod T \right)$，后面走到终点站的时间就是 $\mathrm{suf}_j$。故最后的答案就是</p>
+		<p>$$ L_j + T - \left( (t + L_j) \bmod T \right) + \mathrm{suf}_j $$</p>
+		<p>要注意的一个细节是，当 $j = n + 1$ (即前面畅通无阻) 时，最后时刻即使是红灯也<strong>不需要等待</strong>，因此中间那一项就不用加。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100010
+
+typedef long long ll;
+typedef std::map &lt;int, int&gt; map;
+
+int n, q, G, T;
+ll l[N], suf[N];
+map f;
+
+inline ll reduce(ll x) {return x %= T, x + (x &gt;&gt; 63 &amp; T);}
+
+void insert(int i, int l, int r) {
+	map::iterator beg = f.lower_bound(l), end = f.upper_bound(r);
+	int tmp = (--end)-&gt;second;
+	f.erase(beg, ++end);
+	f[l] = i; f[r] = tmp;
+}
+
+ll drive(int i, ll x) {
+	int j = (--f.upper_bound(reduce(x)))-&gt;second;
+	return l[j] - l[i] + (j == n ? 0 : T - reduce(x + l[j]) + suf[j]);
+}
+
+int main() {
+	int i; ll L, R, t, ans = 0;
+	scanf("%d%d%d", &amp;n, &amp;G, &amp;T);
+	++n; T += G;
+	for (i = 1; i &lt;= n; ++i) scanf("%lld", l + i), l[i] += l[i - 1];
+	f[0] = n;
+	for (i = n - 1; i; --i) {
+		L = reduce(G - l[i]), R = reduce(-l[i]); suf[i] = drive(i, -l[i]); // offset
+		L &lt; R ? insert(i, L, R) : (insert(i, L, T), insert(i, 0, R));
+	}
+	for (scanf("%d", &amp;q); q; --q)
+		scanf("%lld", &amp;t), printf("%lld\n", ans = t + drive(0, t));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在模意义下使用 <code>std::map</code> 的时候注意要取最小非负剩余系，不要传入一个负数。具体可以通过写一个 <code>reduce</code> 函数来实现，代码见上。</p>
+	</body>
+</html>

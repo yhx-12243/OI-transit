@@ -195,7 +195,8 @@ const
 			failed = false;
 			for (var i in regSite) {
 				regResult = sID.match(regSite[i]);
-				if (regResult) strSite = strSite.replace("@" + i, regResult[0]);				
+				if (regResult) strSite = strSite.replace("@" + i, regResult[0]);
+				else return '';
 			}
 			return strSite;
 		} else return '';		
