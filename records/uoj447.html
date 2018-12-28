@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj447][集训队作业2018]快乐</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>这是一道<strong>提交答案题</strong>。</p>
+		<p>你将被给出若干个序列，每个序列都存在一个确定的规律，你需要找出这个规律并根据规律求出序列的某一项。</p>
+		<p>一共会给出 $10$ 个输入文件，编号为 $0 \sim 9$。每个输入文件都包含 $5$ 个序列，每个输入文件中的序列规律都有一定相关性并且存在一定难度梯度。</p>
+		<p>你需要对每个序列求出这个序列指定的某一项，每正确求出一个答案，你将获得 $2$ 分。答案以标准答案为准，如果你求出的某个询问的答案与标准答案不同，对于这个询问你将获得 $0$ 分，即使你发现的规律可以使得给出的序列每一项均满足。</p>
+
+		<h3>输入格式</h3>
+		<p>编号为 $i$ 的输入文件名为 <code>happy<em>i</em>.in</code>，每个输入文件中会依次给出 $5$ 组询问。</p>
+		<p>每组询问包括两行，第一行三个整数 $n, p, k$。$n$ 表示数据会给出序列的第 $1 \sim n$ 项。</p>
+		<p>$p$ 表示该序列是否在模某个数的意义下以及具体的模数，若 $p = 0$，该序列在整数范围内；否则该序列在模 $p$ 意义下，所有数字均为 $0 \sim p - 1$ 内的整数，保证$p \geq 0$。</p>
+		<p>$k$ 表示要求求出该序列的第 $k$ 项，注意 $k$ 可以不是正整数，其意义可以根据序列的规律得到。</p>
+		<p>第二行包含 $n$ 个整数，表示给出的序列。为了便于观察，每组询问结束后会多给出一个空行。</p>
+
+		<h3>输出格式</h3>
+		<p>对于编号为 $i$ 的输入文件，你需要提交一个文件名为 <code>happy<em>i</em>.out</code> 的答案文件，如果没有提交，对于这个输入文件你将获得 $0$ 分。</p>
+		<p>每个答案文件中需要包含至少五行，其中前五行每行必须恰好包含一个整数，依次表示对应的输入文件中每个询问的答案，如果对于某个询问你无法求出正确答案，建议输出 $-1$。如果你提交的答案没有严格按照这个格式，不保证能返回正确的评测结果。</p>
+		<p>第五行之后的部分允许选手提交一些额外的信息，可以包括所发现的规律或是自己的感想等，此部分对选手得分没有任何影响。</p>
+
+		<h3>题解</h3>
+		<h4>约定</h4>
+		<p>$R \left( \{c_1, c_2, \cdots, c_k\}, \{a_0, a_1, \cdots, a_{k-1}\} \right)$ 表示<strong>线性齐次递推式</strong>，即满足对 $n \geq k$，恒有 $$ a_n = c_1 a_{n-1} + c_2 a_{n-2} + \cdots + c_k a_{n-k} $$</p>
+		<p>$p_n$ 表示第 $n$ 个素数，如 $p_1 = 2, p_2 = 3, p_{25} = 100$。</p>
+		<p>$\left[ \mathrm{cond} \right]$ (Iverson 约定) 表示如果 $\mathrm{cond}$ 成立则为 $1$，否则为 $0$。</p>
+		<p>$\mathbb P$ 为所有素数组成的集合，即 $\mathbb P = \left\{ p_i \mid i \in \mathbb N^* \right\}$。</p>
+		<p>$a^{-1} \pmod m$ 表示 $a$ 在模 $m$ 意义下的乘法逆元，即有 $a \cdot \left( a^{-1} \pmod m \right) \equiv 1 \pmod m$。</p>
+		<p>$\phi(n)$ 为 Euler 函数，表示 $1 \sim n$ 与 $n$ 互素的数的个数。</p>
+		<p>$\pi(n)$ 为素数计数函数，表示不超过 $n$ 的素数个数，有 $\displaystyle \pi(n) = \sum_{i=1}^n \left[ i \in \mathbb P \right]$。</p>
+		<p>$\mathbin{\&}, \mid, \oplus$ 分别表示<strong>按位与</strong>、<strong>按位或</strong>、<strong>按位异或</strong>运算。</p>
+		<p>$\mathrm{Xsg}$ 函数定义如下：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">unsigned int Xsg(unsigned int x) {
+	x ^= x &lt;&lt; 13;
+	x ^= x &gt;&gt; 17;
+	x ^= x &lt;&lt; 5;
+	return x;
+}
+</code></pre>
+		<p>$H_n$ 为调和数，定义为 $\displaystyle H_n = \sum_{i=1}^n i^{-1}$。</p>
+
+		<h4>规律</h4>
+		<ol>
+			<li>$$ a_n = 2 n - 1 $$</li>
+			<li>$$ a_n = 3 n - 1 $$</li>
+			<li>$$ a_n = 3 \cdot 13^{n - 1} $$</li>
+			<li>$$ a_n = 71 \cdot 47^{n - 1} $$</li>
+			<li>$$ a_n = 67 + 108 \cdot 23^{n - 1} $$</li>
+			<li>$$ a_n = n^2 $$</li>
+			<li>$$ a_n = n^5 $$</li>
+			<li>$$ a_n = n^2 + (n + 1)^5 $$</li>
+			<li>$$ a_n = n^{-1} $$</li>
+			<li>$$ a_n = (n + 2)^{-3} $$</li>
+			<li>$$ a_n = f_n $$</li>
+			<li>$$ a_n = f_n $$</li>
+			<li>$$ a_n = R \left( \{1, 0, 1\}, \{0, 1, 1\} \right) [n] $$</li>
+			<li>$$ a_n = R \left( \{4, -4, 1\}, \{0, 1, 5\} \right) [n] $$</li>
+			<li>$$ a_n = R \left( \{1, 2, 3, 4, 5, 6, 7, 8, 9, 10\}, \{1, 1, 3, 8, 21, 55, 144, 377, 987, 2584\} \right) [n] $$</li>
+			<li>$$ a_n = n ! $$</li>
+			<li>$$ a_n = \binom {2 n - 2} {n - 1} $$</li>
+			<li>$$ a_n = \binom {2 n - 2} {n - 1} $$</li>
+			<li>$$ a_n = \binom {2 n - 2} {n - 1} $$</li>
+			<li>$$ a_n = \binom {3 n - 2} {\left \lfloor \dfrac {2 n} 3 \right \rfloor} $$</li>
+			<li>$$ a_n = p_n $$</li>
+			<li>$$ a_n = p_n $$</li>
+			<li>$$ a_n = p_n^{-1} $$</li>
+			<li>$$ a_n = \min \left\{ p \mid p \in \mathbb P \wedge 2 (n + 1) - p \in \mathbb P \right\} $$</li>
+			<li>$$ a_n = i^{-1} \pmod {p_i} $$</li>
+			<li>$$ a_n = \phi(n) $$</li>
+			<li>$$ a_n = \begin{cases} 0 & n = 1 \\ a_{\phi(n)} + 1 & n > 1 \end{cases} $$</li>
+			<li>$$ a_n = \pi(10 n) $$</li>
+			<li>$$ a_n = \sum_{i=2}^{2 n} \left[ p \in \mathbb P \right] \cdot \left[ 2 (n + 1) - p \in \mathbb P \right] $$</li>
+			<li>$$ a_n = \sum_{i=1}^n \left[ \left( i^{-1} \pmod {10^9 + 7} \right) \in \mathbb P \right] $$</li>
+			<li>$$ a_n = \begin{cases} 1 & n \leq 2 \\ a_{n-1} a_{n-2} + 1 & n > 2 \end{cases} $$</li>
+			<li>$$ a_n = D_n = \frac 1 {\mathrm e} \cdot \gamma (n + 1, -1) = \begin{cases} 1 & n = 1 \\ (n + 1) a_{n-1} + (-1)^{n+1} & n > 1 \end{cases} $$</li>
+			<li>$$ a_n = \frac {n !!} {(n - 1) !!} $$</li>
+			<li>$$ a_n = \begin{cases} 0 & n = 1 \\ \left( a_{n-1}^2 + 1 \right) \bmod n & n > 1 \end{cases} $$</li>
+			<li>$$ a_n = \begin{cases} 1 & n \leq 3 \\ n - a_{a_{n-1}} & n > 3 \end{cases} $$</li>
+			<li>$$ a_n = \bigoplus_{i=1}^n i = \begin{cases} n & n \equiv 0 \pmod 4 \\ 1 & n \equiv 1 \pmod 4 \\ n + 1 & n \equiv 2 \pmod 4 \\ 0 & n \equiv 3 \pmod 4 \end{cases} $$</li>
+			<li>$$ a_n = n \mathbin{\&} \mathtt{0x55555555} $$</li>
+			<li>$$ a_n = n \mid \left( n + 1 \right) $$</li>
+			<li>$$ a_n = n \oplus 2 n $$</li>
+			<li>$$ a_n = \mathrm{Xsg} \left( a_{n-1} \right) $$</li>
+			<li>$$ a_n = \left \lfloor 2 \pi n \right \rfloor $$</li>
+			<li>$$ a_n = \left \lfloor \mathrm e^n \right \rfloor $$</li>
+			<li>$$ a_n = \left \lfloor \pi n^2 \right \rfloor $$</li>
+			<li>$$ a_n = \left \lfloor \frac 43 \pi n^3 \right \rfloor $$</li>
+			<li>$$ a_n = \left \lfloor \frac 12 \pi^2 n^4 \right \rfloor $$</li>
+			<li>$$ a_n = \sum_{i=1}^n i^i $$</li>
+			<li>$$ a_n = 1 + n + n^2 + n^3 $$</li>
+			<li>$$ a_n = 3 + n + 3 n^2 + 4 n^3 + 3 n^4 + 2 n^5 $$</li>
+			<li>\begin{align*}
+a_n &amp;= 296 + 692 n + 10 n^2 + 284 n^3 + 166 n^4 + 265 n^5 + 777 n^6 + 131 n^7 + 327 n^8 + 866 n^9 \\
+&amp;+ 450 n^{10} + 871 n^{11} + 466 n^{12} + 41 n^{13} + 884 n^{14} + 182 n^{15} + 157 n^{16} + 342 n^{17} + 988 n^{18} + 626 n^{19} \\
+&amp;+ 366 n^{20} + 975 n^{21} + 201 n^{22} + 719 n^{23} + 40 n^{24} + 841 n^{25} + 845 n^{26} + 280 n^{27} + 856 n^{28} + 982 n^{29} \\
+&amp;+ 33 n^{30} + 397 n^{31} + 944 n^{32} + 663 n^{33} + 904 n^{34} + 606 n^{35} + 451 n^{36} + 259 n^{37} + 304 n^{38} + 171 n^{39} \\
+&amp;+ 106 n^{40} + 393 n^{41} + 292 n^{42} + 422 n^{43} + 303 n^{44} + 275 n^{45} + 157 n^{46} + 977 n^{47} + 153 n^{48} + 4 n^{49} \\
+&amp;+ 833 n^{50} + 717 n^{51} + 327 n^{52} + 379 n^{53} + 108 n^{54} + 274 n^{55} + 392 n^{56} + 448 n^{57} + 439 n^{58} + 454 n^{59} \\
+&amp;+ 42 n^{60} + 590 n^{61} + 983 n^{62} + 224 n^{63} + 506 n^{64} + 489 n^{65} + 984 n^{66} + 740 n^{67} + 195 n^{68} + 259 n^{69} \\
+&amp;+ 417 n^{70} + 652 n^{71} + 962 n^{72} + 794 n^{73} + 41 n^{74} + 364 n^{75} + 954 n^{76} + 347 n^{77} + 986 n^{78} + 582 n^{79} \\
+&amp;+ 435 n^{80} + 37 n^{81} + 797 n^{82} + 456 n^{83} + 489 n^{84} + 359 n^{85} + 670 n^{86} + 235 n^{87} + 642 n^{88} + 332 n^{89} \\
+&amp;+ 209 n^{90} + 381 n^{91} + 663 n^{92} + 969 n^{93} + 405 n^{94} + 745 n^{95} + 719 n^{96} + 227 n^{97} + 577 n^{98} + 894 n^{99} \\
+&amp;+ 968 n^{100} + 838 n^{101} + 276 n^{102} + 517 n^{103} + 951 n^{104} + 556 n^{105} + 121 n^{106} + 687 n^{107} + 938 n^{108} + 50 n^{109} \\
+&amp;+ 187 n^{110} + 207 n^{111} + 573 n^{112} + 394 n^{113} + 53 n^{114} + 275 n^{115} + 514 n^{116} + 580 n^{117} + 782 n^{118} + 496 n^{119} \\
+&amp;+ 828 n^{120} + 262 n^{121} + 274 n^{122} + 662 n^{123} + 949 n^{124} + 614 n^{125} + 772 n^{126} + 202 n^{127} + 286 n^{128} + 189 n^{129} \\
+&amp;+ 707 n^{130} + 724 n^{131} + 528 n^{132} + 518 n^{133} + 354 n^{134} + 848 n^{135} + 865 n^{136} + 495 n^{137} + 117 n^{138} + 296 n^{139} \\
+&amp;+ 433 n^{140} + 48 n^{141} + 425 n^{142} + 658 n^{143} + 941 n^{144} + 746 n^{145} + 171 n^{146} + 518 n^{147} + 955 n^{148} + 578 n^{149} \\
+&amp;+ 956 n^{150} + 251 n^{151} + 495 n^{152} + 797 n^{153} + 683 n^{154} + 42 n^{155} + 485 n^{156} + 894 n^{157} + 635 n^{158} + 666 n^{159} \\
+&amp;+ 649 n^{160} + 942 n^{161} + 790 n^{162} + 566 n^{163} + 452 n^{164} + 923 n^{165} + 898 n^{166} + 252 n^{167} + 999 n^{168} + 148 n^{169} \\
+&amp;+ 308 n^{170} + 848 n^{171} + 965 n^{172} + 716 n^{173} + 371 n^{174} + 273 n^{175} + 580 n^{176} + 558 n^{177} + 950 n^{178} + 49 n^{179} \\
+&amp;+ 948 n^{180} + 600 n^{181} + 480 n^{182} + 290 n^{183} + 691 n^{184} + 986 n^{185} + 642 n^{186} + 15 n^{187} + 512 n^{188} + 120 n^{189} \\
+&amp;+ 554 n^{190} + 809 n^{191} + 518 n^{192} + 846 n^{193} + 707 n^{194} + 508 n^{195} + 739 n^{196} + 85 n^{197} + 5 n^{198} + 937 n^{199} \\
+&amp;+ 386 n^{200} + 843 n^{201} + 366 n^{202} + 909 n^{203} + 951 n^{204} + 999 n^{205} + 777 n^{206} + 522 n^{207} + 801 n^{208} + 853 n^{209} \\
+&amp;+ 118 n^{210} + 180 n^{211} + 52 n^{212} + 230 n^{213} + 954 n^{214} + 543 n^{215} + 431 n^{216} + 669 n^{217} + 593 n^{218} + 63 n^{219} \\
+&amp;+ 619 n^{220} + 709 n^{221} + 705 n^{222} + 136 n^{223} + 574 n^{224} + 287 n^{225} + 33 n^{226} + 87 n^{227} + 439 n^{228} + 210 n^{229} \\
+&amp;+ 778 n^{230} + 480 n^{231} + 563 n^{232} + 699 n^{233}
+\end{align*}</li>
+			<li>$$ a_n = H_n + 23333 = \sum_{i=1}^n i^{-1} + 23333 $$</li>
+		</ol>
+		<script>syntax_highlight()</script>
+	</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[codechef ADJLEAF2]Adjacent Leaves</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵有根树，定义这棵树的叶子为所有没有儿子的结点。考虑从根开始进行深度优先遍历，我们将所有叶子按照被遍历到的顺序排成一列得到一个序列。</p>
+		<p>定义一个叶子集合合法当且仅当存在一种深度优先遍历的方式使得这个叶子集合在序列中的出现位置是一个连续子串。</p>
+		<p>现在给出一个 $n$ 个点的无根树。$m$ 次询问 $R, S$，求以 $R$ 为根的情况下叶子集合 $S$ 是否合法。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 5 \times 10^5$)，表示点数和询问数。</p>
+		<p>接下来 $n - 1$ 行，每行两个正整数 $u, v$，表示树中的一条边。</p>
+		<p>接下来 $m$ 行，每行第一个正整数 $R_i$，第二个正整数为 $\left| S_i \right|$ ($\sum \left| S_i \right| \leq 5 \times 10^5$)，接下来 $\left| S_i \right|$ 个正整数表示集合 $S_i$ 内的元素。保证这些元素互不相同且都是以 $R_i$ 为根的有根树的叶子。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 行，每行一个字符串 <code>YES</code> 或 <code>NO</code>。</p>
+
+		<h3>题解</h3>
+		<p>先考虑只有一个询问的做法。</p>
+		<p>对于节点 $x$，若以 $x$ 为根的子树中<strong>既存在属于 $S$ 的叶子又存在不属于 $S$ 中的叶子</strong>，则称以 $x$ 为根的子树为<dfn>坏子树</dfn>。</p>
+		<p>考虑对于每个节点 $x$，如果它的子节点对应的子树中，有<strong>超过 $2$ 个是坏子树</strong>，则容易发现集合 $S$ 是不合法的。</p>
+		<p>如果这些子树中恰好有 $2$ 个坏子树，则当且仅当 $S$ 中所有点都是 $x$ 的后代节点 (即 $x$ 是 $S$ 中所有点的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>) 时才可能合法，否则也不合法。</p>
+		<p>如果有 $0 \sim 1$ 个，则对答案不产生影响。</p>
+		<p>因此，只需处理出所有子树中叶子的个数 (<code>Size</code>) 以及子树中<strong>属于 $S$ 的叶子</strong>的个数 (<code>size</code>)，然后 dfs 一遍即可。单次复杂度 $O(n)。</p>
+		<p>那有很多个询问怎么办呢？注意到 $\sum \left| S_i \right|$ 不大的性质，可以考虑使用<a href="lydsy3572%3Blg3233%3Bloj2206.html" target="_blank"><strong>虚树</strong></a>来解决。</p>
+		<p>虚树的构造算法 (DSA，深度栈算法) 这里就不讲了，详见那一篇题解。</p>
+		<p>不过用 DSA 构造出来的虚树是以 $1$ 为根的虚树。而这道题有换根操作，怎么办呢？</p>
+		<p>也就是说，对于 $\forall u, v \in S$，以 $R$ 为根 $u, v$ 的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> (其实这就是无根树中三点 $R, u, v$ 的<em>联合 LCA</em>) 也应该加入虚树的点集。根据联合 LCA 的性质，它等于以任意一个点为根三个点两两 LCA 中深度最大的那个。因此，我们只需将 $R$ 加入虚树后，这个联合 LCA 也会在虚树中。</p>
+		<p>因此，我们需要对 $S$ 中所有节点与 $R$ 求并后使用 DSA 构造虚树。</p>
+		<p>最后的扫描过程中，设 $x$ (在虚树中) 的子节点为 $y$，我们要判断 $y$ 方向的子树是否是坏子树，因此我们需要知道 $x$ 在 $y$ 方向的子节点。</p>
+		<p>常规 (根为 $1$) 的情况只需要求 <code>jump_until(y, dep[x] + 1)</code> 即可，而这道题中由于根不一定是 $1$，因此 $y$ 的深度可能小于 $x$。此时的答案就是 $x$ 的父节点 $p_x$。</p>
+		<p>同理，如果 $x$ 是新的根 $root$ 的祖先节点，$x$ 对应的子树大小也有适当改变，它等于 <code>size[1] - size[jump_until(root, dep[x] + 1)</code>。</p>
+		<p>总时间复杂度 $O \left( m + \left( n + \sum \left| S_i \right| \right) \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 500010, M = N * 5, LN = 20;
+
+int n, m, q, E = 0, stamp = 0;
+int to[M], first[N], next[M];
+int h[N], _h[N], vf[N], root;
+int top = 0, stack[N];
+int cnt = 0, v[N], p[N];
+int fy[N], size[N];
+
+inline void addedge(int u, int v, int *first){
+	to[++E] = v; next[E] = first[u]; first[u] = E;
+	to[++E] = u; next[E] = first[v]; first[v] = E;
+}
+
+namespace Tree {
+	int P[LN][N], *p = *P, dep[N];
+	int cnt = 0, o[N], id[N], end_id[N], size[N];
+
+	void dfs(int x) {
+		int i, y; o[++cnt] = x, id[x] = cnt, size[x] = !next[first[x]];
+		for (i = 0; P[i][x]; ++i) P[i + 1][x] = P[i][P[i][x]];
+		for (i = first[x]; i; i = next[i])
+			if ((y = to[i]) != p[x])
+				p[y] = x, dep[y] = dep[x] + 1, dfs(y),
+				size[x] += size[y];
+		end_id[x] = cnt;
+	}
+	
+	int jump_until(int x, int d){
+		for (int i = LN - 1; i &gt;= 0; --i)
+			if (dep[x] - (1 &lt;&lt; i) &gt;= d)
+				x = P[i][x];
+		return x;
+	}
+
+	int LCA(int x, int y) {
+		if (dep[x] &lt; dep[y]) std::swap(x, y);
+		if (x = jump_until(x, dep[y]), x == y) return x;
+		for (int i = LN - 1; i &gt;= 0; --i)
+			if (P[i][x] != P[i][y])
+				x = P[i][x], y = P[i][y];
+		return p[x];
+	}
+}
+
+inline bool idcmp(const int A, const int B) {return Tree::id[A] &lt; Tree::id[B];}
+
+void build() {
+	using Tree::dep;
+	int i, x, y;
+	memcpy(_h, h, m &lt;&lt; 2);
+	std::sort(h, h + m, idcmp); cnt = 0;
+	for(; top; --top) stack[top] = 0;
+	for(i = 0; i &lt; m; ++i) {
+		x = h[i];
+		if (!top) {stack[++top] = v[++cnt] = x; continue;}
+		stack[top + 1] = 0;
+		for (y = Tree::LCA(x, stack[top]); dep[stack[top]] &gt; dep[y]; --top);
+		p[stack[top + 1]] = y;
+		if (stack[top] != y) {p[y] = stack[top]; stack[++top] = v[++cnt] = y;}
+		p[x] = stack[top]; stack[++top] = v[++cnt] = x;
+	}
+	std::sort(v + 1, v + (cnt + 1), idcmp);
+}
+
+inline int near_child(int x, int y) {return Tree::dep[x] &lt; Tree::dep[y] ? Tree::jump_until(y, Tree::dep[x] + 1) : Tree::p[x];}
+
+inline int rooted_size(int x) {
+	using Tree::id; using Tree::end_id;
+	return x == root ? Tree::size[1] : id[x] &lt; id[root] &amp;&amp; id[root] &lt;= end_id[x] ? Tree::size[1] - Tree::size[Tree::jump_until(root, Tree::dep[x] + 1)] : Tree::size[x];
+}
+
+bool DFS(int x, int px = 0) {
+	int i, y, near, bad = 0; size[x] = fy[x] == stamp;
+	for (i = vf[x]; i; i = next[i])
+		if ((y = to[i]) != px) {
+			if (!DFS(y, x)) return false;
+			near = near_child(x, y);
+			bad += size[y] &amp;&amp; size[y] != rooted_size(near);
+			size[x] += size[y];
+		}
+	if (bad &gt;= 3) return false;
+	else if (bad == 2) return size[x] == m - 1;
+	return true;
+}
+
+bool solve() {
+	int i;
+	for (i = 1; i &lt;= cnt; ++i) vf[v[i]] = 0; E = 2 * (n - 1);
+	for (i = 2; i &lt;= cnt; ++i) addedge(v[i], p[v[i]], vf);
+	return DFS(root);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v, first);
+	Tree::dfs(1);
+	for (; q; --q) {
+		scanf("%d%d", h, &amp;m); root = *h;
+		for (++stamp, i = 1; i &lt;= m; ++i) scanf("%d", h + i), fy[h[i]] = stamp;
+		++m, build(), puts(solve() ? "YES" : "NO");
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意根 (<code>root</code>) 需要单独用一个变量保存，因为求虚树的点在 DSA 过程中被排序 (<code>std::sort</code>) 了。</p>
+		<p><strong>坑2：</strong>由于虚树的边数可能会很多，因此边表数组需要开大，且清零时注意复杂度。</p>
+	</body>
+</html>

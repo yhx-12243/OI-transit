@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4036][lg3175][loj2127][HAOI2015]按位或</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>刚开始你有一个数字 $0$，每一秒钟你会随机选择一个 $\left[ 0, 2^n-1 \right]$ 的数字，与你手上的数字进行<strong>按位或</strong>操作。</p>
+		<p>选择数字 $i$ 的概率是 $p[i]$ (保证 $0 \leq p[i] \leq 1; \sum p[i] = 1$)。问期望多少秒后，你手上的数字变成 $2^n-1$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 20$)，表示元素个数 (的对数)。</p>
+		<p>第二行包含 $2^n$ 个非负实数 $p[i]$ ($\displaystyle p[i] \geq 0; \sum_{i=0}^{2^n-1} p[i] = 1$)，第 $i$ 个数表示选到 $i - 1$ 的概率。</p>
+
+		<h3>输出格式</h3>
+		<p>如果有解，输出一行一个实数，表示期望的时间，绝对误差或相对误差不超过 $10^{-6}$ 即可算通过。如果无解则要输出 <code>INF</code>。</p>
+
+		<h3>题解</h3>
+		<p>考虑将题意进行转化：</p>
+		<p>假设有一个大小为 $n$ 的集合，每一次以一定的概率分布随机 $S$ 的一个子集 $T$，并标记 $T$ 中所有的元素，你需要求出 $S$ 中<strong>所有数</strong>均被标记所需的轮数。</p>
+		<p>这样就可以想到 <a href="loj2542%3Bsoj60.html" target="_blank">[PKUWC2018]随机游走</a> 中所提到的 <strong>Min-Max 容斥原理</strong>了。我们将这个问题转化成，<strong>对所有 $T \subseteq S$，求出 $T$ 中至少一个数被标记所需的轮数期望</strong>。</p>
+		<p>设每次标记包含 $T$ 中元素的概率为 $p$，则由<em>几何分布</em>的性质，轮数的期望就是 $p^{-1}$。</p>
+		<p>因此现在我们把问题转化成了，对于所有非空子集 $T \subseteq S$，求出每一轮标记中，包含 $T$ 中元素的概率 $p$。</p>
+		<p>至少一个不太好处理，我们用补集转化的思想，转化成<em>每一轮标记中，不包含 $T$ 中元素的概率 $p$</em>。</p>
+		<p>可以看出，它等于 $$ \sum_{A \subseteq S \setminus T} p_A $$</p>
+		<p>于是，我们只需要对原先的 $p$ 序列作一次<strong>子集和变换</strong> (快速 Möbius 变换)，设为 $P$。然后枚举所有非空子集 $T \subseteq S$，然后 $T$ 的期望轮数就是 $\left( 1 - P_{S \setminus T} \right)^{-1}$。对这个序列进行容斥即可得到答案。</p>
+		<p>不过要注意的是，如果某个真子集 $A$ 的子集和变换为 $1$，那么可以得到，每一轮标记中，包含 $\bar A$ ($A$ 的子集) 中的元素的概率等于 $0$，从而期望次数为 $+ \infty$，故不能满足目标。</p>
+		<p>注意答案为 $+ \infty$ 的时候需要输出 <code>INF</code>，故需要特判或使用 <code>%.lF</code>/<code>%.lG</code>。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 22
+#define N2 1050000
+#define parity __builtin_parity
+
+int n, ALL;
+double p[N2];
+
+int main() {
+	int i, j; double cur, ans = 0.0;
+	scanf("%d", &amp;n); ALL = ~(-1 &lt;&lt; n);
+	for (i = 0; i &lt;= ALL; ++i) scanf("%lf", p + i);
+	for (i = 0; i &lt; n; ++i)
+		for (j = 0; j &lt;= ALL; ++j)
+			if (!(j &gt;&gt; i &amp; 1)) p[j | 1 &lt;&lt; i] += p[j];
+	for (i = 1; i &lt; 1 &lt;&lt; n; ++i)
+		cur = 1.0 / (1.0 - p[ALL ^ i]), parity(i) ? ans += cur : ans -= cur;
+	printf("%.12lG\n", std::isfinite(ans) ? ans : INFINITY);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意可能会出现 $\left( + \infty \right) - \left( + \infty \right)$ 的情形，因此可能会出现 <code>nan</code>，需要特判一下。</p>
+		<p><strong>坑2：</strong>注意统计的时候要统计非空子集，因为 $S \setminus \varnothing$ 的子集和一定是 $1$。</p>
+	</body>
+</html>

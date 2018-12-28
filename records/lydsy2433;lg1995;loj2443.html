@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2433][lg1995][loj2443][NOI2011]智能车比赛</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>新一届智能车大赛在 JL 大学开始啦！比赛赛道可以看作是由 $n$ 个矩形区域拼接而成 (如下图所示)，每个矩形的边都平行于坐标轴，第 $i$ 个矩形区域的左下角和右上角坐标分别为 $\left( x_{i, 1}, y_{i, 1} \right)$ 和 $\left( x_{i, 2}, y_{i, 2} \right)$。
+		<p>题目保证：$x_{i, 1} &lt; x_{i, 2} = x_{i+1, 1}$，且 $y_{i, 1} &lt; y_{i, 2}$，相邻两个矩形一定有重叠在一起的边 (如图中虚线所示)，智能车可以通过这部分穿梭于矩形区域之间。</p>
+		<img class="center-block" src="uploads/71.png" alt="智能车" />
+		<p>选手们需要在最快的时间内让自己设计的智能车从一个给定的起点 $S$ 点到达一个给定的终点 $T$ 点，且智能车不能跑出赛道。假定智能车的速度恒为 $v$ 且转向不消耗任何时间，你能算出最快需要多少时间完成比赛么？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 2000$)，表示组成赛道的矩形个数。</p>
+		<p>接下来 $n$ 行描述这些矩形，其中第 $i$ 行包含 $4$ 个整数 $x_{i, 1}, y_{i, 1}, x_{i, 2}, y_{i,2}$，表示第 $i$ 个矩形左下角和右上角坐标分别为 $\left( x_{i, 1}, y_{i, 1} \right)$ 和 $\left( x_{i, 2}, y_{i, 2} \right)$。</p>
+		<p>接下来一行包含两个整数 $x_S, y_S$，表示起点坐标。</p>
+		<p>接下来一行包含两个整数 $x_T, y_T$，表示终点坐标。</p>
+		<p>接下来一行包含一个实数 $v$ ($1 \leq v \leq 10$)，表示智能车的速度。</p>
+		<p>保证所有坐标均为整数且绝对值不超过 $40000$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示智能车完成比赛的最快时间。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-4}$。</p>
+
+		<h3>题解</h3>
+		<p>即求在矩形区域并中 $S$ 到 $T$ 的最短距离，然后除以速度 $v$ 就是答案。</p>
+		<p>考虑如何求出最短路。一个比较基础的做法是将所有的关键点建出来，如果两个点之间可以不穿过区域直线到达，则连一条权值为两点间距离的边。则最终图中 $S$ 到 $T$ 的最短路就是原图中的最短路。</p>
+		<p>容易发现，这张图中点数是 $O(n)$ 的 (每个矩形 $4$ 个点，加上 $S, T$ 两个点，故不超过 $4 n + 2$ 个点)。于是可以<del>使用 Dijkstra、SPFA</del> 或 DP 来求最短路。</p>
+		<p>接下来考虑建图 (连边) 的复杂度，注意对于每两个点，判断它们的连线是否越过区域，暴力判断复杂度是 $O(n)$ 的，因此连边的总复杂度是 $O \left( n^3 \right)$，不可接受。</p>
+		<p>那该怎么优化呢？注意到当一个端点固定时，另一个端点的可行角域 (即可行区域的夹角的范围) 是单调缩减的，如果我们能合理利用这个性质，那么很可能可以在 $O(1)$ 的时间内完成下一个点的判断，从而将建图的复杂度将为可以接受的 $O \left( n^2 \right)$。</p>
+		<p>我们固定一个左端点 $P$，并向右扫描所有的矩形，并记录出它的可行角域的两个端点。每加入一个新的矩形，设它的左边界为 $LU$，于是可行角域必须在 $PL \sim PU$ 范围内，我们将原先的可行角域和新的可行角域 (即 $PL \sim PU$) 取个<strong>交集</strong>即可。</p>
+		<p>如果某一时刻交集为空，则直接 <code>continue;</code> 掉即可。</p>
+		<p>具体实现时，不用暴力连边最后跑最短路，注意到这张图其实是一个 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，因此我们可以一边建图一边 DP，即在固定左端点 $P$ 时，把它对应的 DP 值 (即距离值) 记录下来，如果扫描到可以连边的点，直接更新 DP 值 (距离值) 即可。</p>
+		<p>对于可行角域的处理，初始时为 $\left[ - \dfrac \pi 2, \dfrac \pi 2 \right]$ ($x$ 轴正方向的极角为 $0$)。当然，由于精度原因，在具体实现时最好不要直接维护角度，而可以维护以这两个角度为极角的向量 (比如 $- \dfrac \pi 3$ 可以用向量 $\left( 1, - \sqrt 3 \right)$ 代替)。</p>
+		<p>由于 $- \dfrac \pi 2 \leq \alpha \leq \dfrac \pi 2$，因此所有的向量的 $x$ 分量都 $\geq 0$。因此比较两个向量对应的极角只需做叉积即可。</p>
+		<p>最后注意对起点和终点的处理，如果起点的横坐标大于终点的横坐标，则可以将它们交换 (问题具有对称性)。</p>
+		<p>总时间复杂度 $O \left( n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 2010
+
+const double eps = 1e-8;
+
+#define lt(x, y) ((x) &lt; (y) - eps)
+#define gt(x, y) ((x) &gt; (y) + eps)
+#define le(x, y) ((x) &lt;= (y) + eps)
+#define ge(x, y) ((x) &gt;= (y) - eps)
+#define eq(x, y) (le(x, y) &amp;&amp; ge(x, y))
+#define dot(x, y, z) (((y) - (x)) * ((z) - (x)))
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+struct vec2 {
+	double x, y;
+	vec2 (double x0 = 0.0, double y0 = 0.0) : x(x0), y(y0) {}
+	vec2 * read() {scanf("%lf%lf", &amp;x, &amp;y); return this;}
+	inline vec2 operator - () const {return vec2(-x, -y);}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline vec2 operator * (double k) const {return vec2(x * k, y * k);}
+	inline vec2 operator / (double k) const {return *this * (1.0 / k);}
+	inline double operator * (const vec2 &amp;B) const {return x * B.x + y * B.y;}
+	inline double operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}
+	inline double norm2() const {return x * x + y * y;}
+	inline double norm() const {return sqrt(x * x + y * y);}
+	inline bool operator &lt; (const vec2 &amp;B) const {return lt(x, B.x) || le(x, B.x) &amp;&amp; lt(y, B.y);}
+	inline bool operator == (const vec2 &amp;B) const {return eq(x, B.x) &amp;&amp; eq(y, B.y);}
+	inline bool operator &lt;&lt; (const vec2 &amp;B) const {return lt(y, 0) ^ lt(B.y, 0) ? lt(B.y, 0) : gt(*this ^ B, 0) || ge(*this ^ B, 0) &amp;&amp; ge(x, 0) &amp;&amp; lt(B.x, 0);}
+	inline vec2 trans(double a11, double a12, double a21, double a22) const {return vec2(x * a11 + y * a12, x * a21 + y * a22);}
+} S, T;
+
+struct rect {
+	vec2 a[4];
+	rect * read() {
+		double L, B, R, T; scanf("%lf%lf%lf%lf", &amp;L, &amp;B, &amp;R, &amp;T);
+		a[0] = vec2(L, T), a[1] = vec2(L, B), a[2] = vec2(R, B), a[3] = vec2(R, T);
+		return this;
+	}
+	inline bool operator () (const vec2 &amp;P) const {return ge(P.x, a[1].x) &amp;&amp; le(P.x, a[3].x) &amp;&amp; ge(P.y, a[1].y) &amp;&amp; le(P.y, a[3].y);}
+	inline vec2 &amp; operator [] (int x) {return a[x];}
+} r[N];
+
+int n;
+double f[N][4];
+
+inline void down(double &amp;x, const double y) {x &gt; y ? x = y : 0;}
+inline bool segCross(const vec2 L, const vec2 R, const vec2 lb, const vec2 ub) {return le(cross(L, R, lb), 0) &amp;&amp; ge(cross(L, R, ub), 0);}
+inline bool toLeft(const vec2 A, const vec2 B, const vec2 C) {double p = cross(A, B, C); return lt(p, 0) || le(p, 0) &amp;&amp; lt(dot(A, B, C), 0);}
+
+void trans(int id, const vec2 P, double cur) {
+	int i, j; vec2 lb = P - vec2(0, 1), ub = P + vec2(0, 1), lc, uc;
+	for (i = id; i &lt;= n; ++i) {
+		for (j = 0; j &lt; 4; ++j)
+			if (segCross(P, r[i].a[j], lb, ub))
+				down(f[i][j], cur + (P - r[i][j]).norm());
+		if (r[i](T) &amp;&amp; segCross(P, T, lb, ub))
+			down(f[0][0], cur + (P - T).norm());
+		if (i &lt; n) {
+			lc = vec2(r[i][2].x, std::max(r[i][2].y, r[i + 1][1].y));
+			uc = vec2(r[i][2].x, std::min(r[i][3].y, r[i + 1][0].y));
+			if (toLeft(P, lc, lb)) lb = lc;
+			if (toLeft(P, ub, uc)) ub = uc;
+			if (lt(cross(P, lb, ub), 0)) return;
+		}
+	}
+}
+
+int main() {
+	int i, j;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) r[i].read(); S.read(), T.read();
+	if (T &lt; S) std::swap(S, T);
+	memset(f, 127, sizeof f);
+	for (i = 1; i &lt;= n; ++i) {
+		if (r[i](S)) trans(i, S, 0.0);
+		for (j = 0; j &lt; 4; ++j) trans(i, r[i].a[j], f[i][j]);
+	}
+	scanf("%lf", f[0] + 1), printf("%.12lf\n", f[0][0] / f[0][1]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意向量比较的时候对共线向量的处理 ($- \dfrac \pi 2$ 与 $\dfrac \pi 2$)，此时需要注意同向和反向的问题。如果在函数体外特判，则有两种情况：某些矩形的右边界的转移以及起点 $S$ 的转移 (可能出现)。</p>
+	</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2758][SCOI2012]Blinker 的噩梦</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>一天 Blinker 醒来，发现自己成为了一个二维世界的点，而且被标记上了一个奇怪的值。</p>
+		<p>这个世界由 $n$ 个边界互不相交 (且不相切) 的图形组成，这里图形仅包括圆和凸多边形，每个图形还有一个权值。每次 Blinker 走进或走出某个图形时 (相切时经过不算)，Blinker 的标记值就会被异或上那个值。</p>
+		<p>现在，我们记录了 Blinker 在这个世界的 $m$ 天的信息。每天可能发生两种事情，一种是某个图形的权值更改为某个值；另一种是 Blinker 从某个点走到另一个点。</p>
+		<p>我们假设 Blinker 首次出发前的标记值为 $0$，我们希望知道他每次到达目的地后的标记值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 10^5$)，分别表示这个世界的图形数和记录的天数。</p>
+		<p>接下来的 $n$ 行，每行描述一个图形。如果一行以字符 <code>C</code> 开头，表示这个图形是一个圆，后面紧跟着三个实数 $x, y, r$ 和一个非负整数 $v$，分别表示圆的横坐标，纵坐标和圆的半径以及该图形对应的值。</p>
+		<p>如果一行以字符 <code>P</code> 开头，表示这个图形是凸多边形，后面紧跟着一个正整数 $L$ ($3 \leq L \leq 34$)，表示凸多边形的点数，然后后面有 $L$ 对实数 $x_0, y_0, x_1, y_1, \cdots, x_{L - 1}, y_{L - 1}$，表示这 $L$ 个点的坐标，这一行最后一个数是一个非负整数 $v$，表示这个图形对应的值，保证凸多边形上的点按照顺时针给出。</p>
+		<p>接下来的 $m$ 行，每行表示一天的记录信息。</p>
+		<p>如果一行以字符 <code>Q</code> 开头，表示这一天 Blinker 出行了，接下来是 $x_0, y_0, x_1, y_1$ 四个实数，分别表示出发点的坐标和目的地的坐标。</p>
+		<p>如果一行以字符 <code>C</code> 开头，表示这一天某个图形的值改变了，接下来是两个非负整数 $i$ 和 $v$，表示输入中第 $i$ 个出现的图形的值变成 $v$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于 Blinker 的每次出行，输出一行一个整数，表示他到达目的地后的标记值，很显然这个值与 Blinker 的路径无关。</p>
+
+		<h3>题解</h3>
+		<p>由于这些图形还是互不相交，由<a href="lydsy4561%3Blg3268.html" target="_blank">这道题</a>的经验，可以发现，这些图形组成了一个<strong>树形结构</strong>。</p>
+		<p>假如说我们已经处理出了这棵树 $T$，那么 $T$ 的根节点就应该是最外面的无穷区域，其余每个节点都代表一个图形。这棵树是有边权的，$x$ 和其父节点 $p_x$ 所连的边的边权就是这个图形的权值。</p>
+		<p>那么，修改操作就相当于修改一条边的权值。对于询问操作，设两个询问点在树上的位置为 $u$ 和 $v$，则这次出行的权值就等于 $u$ 到 $v$ 的路径上所有边的异或和，注意是标记异或，因此要把之前的标记考虑上。</p>
+		<p>这个问题可以使用前缀和思想简化。设 $r$ 为 $T$ 的根，则对于 $T$ 中的每个节点 $v$，用 $W_v$ 表示 $r$ 到 $v$ 的路径上所有边的异或和，则对于询问操作，只需询问 $W_u \oplus W_v$ 即可。</p>
+		<p>对于修改操作，由于修改 $x$ 到 $p_x$ 的边权只会影响到<em>以 $x$ 为根的子树中的所有节点</em>，因此相当于一个子树异或。</p>
+		<p>使用 dfs 序的思想，可以转化成<strong>区间异或</strong>与<strong>单点查询</strong>，<em>再次差分后</em>可以使用树状数组解决。</p>
+		<p>所以现在的主要问题就是，如何将这个树形结构预处理出来，并查询每个询问点在树上的位置？</p>
+		<p>首先，在线查找一个点在哪个凸多边形中，这是一个非常复杂的问题，需要使用可持久化线段树或 K-D 树来解决，这里就不扯开去了。</p>
+		<p>因此我们考虑对询问离线，即把所有的询问点也预先提取出来，在建树的过程中顺便把询问点在树上的位置处理出来。</p>
+		<p>那么怎样才能得到这个数据结构呢？当然是<del>我们 cutest 的</del>扫描线啦。</p>
+		<p>在那道题中，我们使用扫描线处理出了只有圆的结构，现在加入了凸多边形和询问点。又该怎么办呢？</p>
+		<p>询问点这东西非常好处理，遇到这个事件的时候直接 <code>lower_bound</code> 一下，如果后面是 <code>)</code>，则说明是父子关系，就是那个节点，如果是 <code>(</code>，说明是兄弟关系，要取那个节点的父节点。</p>
+		<p>对于凸多边形的话，还是将它分为下凸壳和上凸壳，分别冠以 <code>(</code> 和 <code>)</code>，分别记录扫描线 $x = x_0$ 与当前凸多边形所截得的两条边 (所在的直线方程)。</p>
+		<p>而在凸多边形的每一个顶点处，我们添加一个事件，表示下凸壳 (或上凸壳) 中直线方程的改变。</p>
+		<p>这样直接用一个平衡树或 <code>std::set</code> 来维护整个括号序列即可。对于插入事件，还是先查询 <code>lower_bound</code> 得到和下一个节点的关系 (父子关系还是兄弟关系)，从而在树上连边。</p>
+		<p>总时间复杂度 $O \left( (n + m) \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 233333
+
+typedef long double ld;
+
+int n, q;
+int qarg[N][2], w[N];
+
+namespace BIT {
+	#define lowbit(x) (x &amp; -x)
+	int x[N];
+	void init() {for (int i = 1; i &lt;= n; ++i) if (i + lowbit(i) &lt;= n) x[i + lowbit(i)] ^= x[i];}
+	void adj(int h, int v) {for (; h &lt;= n; h += lowbit(h)) x[h] ^= v;}
+	int sum(int h) {int s = 0; for (; h; h -= lowbit(h)) s ^= x[h]; return s;}
+}
+
+namespace Tree {
+	#define lg2(x) (31 - __builtin_clz(x))
+
+	int fc[N], nc[N], p[N], W[N];
+	int cnt = 0, o[N], id[N], end_id[N];
+
+	inline void link(int x, int px) {nc[x] = fc[px], fc[px] = x, p[x] = px;}
+
+	void dfs(int x) {
+		o[++cnt] = x, id[x] = cnt, W[cnt] = W[id[p[x]]] ^ w[x];
+		for (int y = fc[x]; y; y = nc[y]) dfs(y);
+		end_id[x] = cnt;
+	}
+
+	inline void modify(int x, int v) {BIT::adj(id[x], v ^= w[x]), BIT::adj(end_id[x] + 1, v), w[x] ^= v;}
+
+	inline int query(int x, int y) {return BIT::sum(id[x]) ^ BIT::sum(id[y]);}
+}
+
+namespace Geometry {
+	ld x[N], y[N], r[N];
+
+	struct sweepLine {
+		int ty, id; ld arg[4];
+		inline bool operator &lt; (const sweepLine &amp;B) const {return *arg &lt; *B.arg || (*arg == *B.arg &amp;&amp; ty &lt; B.ty);}
+	} sl[N * 17];
+
+	int cnt = 0;
+	ld curX = 0.0, G[N][8];
+
+	inline int doubleCompare(ld x, ld y) {
+		const ld eps = std::max(fabsl(y) * 7e-14L, 1e-8L);
+		return std::isfinite(eps) ? (x &lt; y - eps ? -1 : x &gt; y + eps) : (y &gt; 0 ? -1 : 1);
+	}
+
+	inline ld sqr(ld x) {return x * x;}
+	inline ld safe_sqrt(ld x) {return x &gt;= 0 ? sqrtl(x) : 0;}
+	inline ld fy(ld x1, ld y1, ld x2, ld y2, ld x) {return doubleCompare(x1, x2) ? (x1 * y2 - x2 * y1 + x * (y1 - y2)) / (x1 - x2) : y1;}
+
+	inline ld getY(int id) {
+		if (id == 1) return INFINITY;
+		if (id == -2) return -INFINITY;
+		if (!id) return G[id][0];
+		if (id &gt;&gt; 31) {
+			id ^= -1;
+			return G[id][3] == G[id][3] ? fy(G[id][6], G[id][7], G[id][4], G[id][5], curX) : -safe_sqrt(sqr(G[id][2]) - sqr(curX - G[id][0])) + G[id][1];
+		} else {
+			return G[id][3] == G[id][3] ? fy(G[id][0], G[id][1], G[id][2], G[id][3], curX) : safe_sqrt(sqr(G[id][2]) - sqr(curX - G[id][0])) + G[id][1];
+		}
+	}
+
+	struct evCmp {
+		bool operator () (const int &amp;x, const int &amp;y) {
+			if (!~(x ^ y)) return x &lt; y;
+			int C = doubleCompare(getY(x), getY(y));
+			return C &lt; 0 || (!C &amp;&amp; x &lt; y);
+		}
+	};
+
+	typedef std::set &lt;int, evCmp&gt; set;
+	set s;
+
+	void main() {
+		int i, j, k, l, u, v, L; ld X[35], Y[35];
+		set::iterator it;
+		for (i = 2; i &lt;= n + 1; scanf("%d", w + (i++)))
+			if (scanf("%s", &amp;k), (k &amp; 255) == 67) {
+				scanf("%Lf%Lf%Lf", G[i], G[i] + 1, G[i] + 2); G[i][3] = NAN;
+				sl[cnt].ty = 1, sl[cnt].id = i;
+				sl[cnt].arg[0] = G[i][0] - G[i][2], sl[cnt].arg[1] = G[i][1];
+				sl[cnt++].arg[2] = G[i][2];
+				sl[cnt].ty = 4, sl[cnt].id = i;
+				sl[cnt].arg[0] = G[i][0] + G[i][2], sl[cnt].arg[1] = G[i][1];
+				sl[cnt++].arg[2] = -G[i][2];
+			} else {
+				scanf("%d", &amp;L);
+				for (j = 0; j &lt; L; ++j) scanf("%Lf%Lf", X + j, Y + j);
+				for (l = k = 0, j = 1; j &lt; L; ++j)
+					X[j] &lt; X[k] ? k = j : 0, X[j] &gt; X[l] ? l = j : 0;
+				for (j = k; X[j] == X[k]; ++j == L ? j = 0 : j) k = j;
+				for (j = l; X[j] == X[l]; ++j == L ? j = 0 : j) l = j;
+				u = k;
+				do {
+					(v = u + 1) == L ? v = 0 : 0;
+					sl[cnt].ty = (u == k ? 2 : 5), sl[cnt].id = i;
+					sl[cnt].arg[0] = X[u], sl[cnt].arg[1] = Y[u];
+					sl[cnt].arg[2] = X[v], sl[cnt++].arg[3] = Y[v];
+				} while (u = v, v != l);
+				u = k;
+				do {
+					v = (u ? u : L) - 1;
+					sl[cnt].ty = (u == k ? 3 : 6), sl[cnt].id = i;
+					sl[cnt].arg[0] = X[u], sl[cnt].arg[1] = Y[u];
+					sl[cnt].arg[2] = X[v], sl[cnt++].arg[3] = Y[v];
+				} while (u = v, v != l);
+				sl[cnt].ty = 4, sl[cnt].id = i;
+				sl[cnt].arg[0] = X[l], sl[cnt++].arg[1] = Y[l];
+			}
+		for (i = 0; i &lt; q; ++i)
+			if (scanf("%s", &amp;k), (k &amp; 255) == 67)
+				scanf("%d%d", &amp;j, &amp;v), qarg[i][0] = ~j - 1, qarg[i][1] = v;
+			else {
+				scanf("%Lf%Lf%Lf%Lf", X, Y, X + 1, Y + 1);
+				sl[cnt].ty = -1, sl[cnt].id = i;
+				sl[cnt].arg[0] = *X, sl[cnt++].arg[1] = *Y;
+				sl[cnt].ty = -2, sl[cnt].id = i;
+				sl[cnt].arg[0] = X[1], sl[cnt++].arg[1] = Y[1];
+			}
+		std::sort(sl, sl + cnt);
+		s.insert(-2), s.insert(1);
+		for (j = 0; j &lt; cnt; ++j) {
+			switch (curX = *sl[j].arg, i = sl[j].id, sl[j].ty) {
+				case 1 : { // circle appear
+					it = s.lower_bound(i);
+					*it &gt;&gt; 31 ? Tree::link(i, Tree::p[~*it]) : Tree::link(i, *it);
+					s.insert(~i), s.insert(i); break;
+				}
+				case 2 : { // upper-polygon appear
+					memcpy(G[i], sl[j].arg, 64);
+					it = s.lower_bound(i);
+					*it &gt;&gt; 31 ? Tree::link(i, Tree::p[~*it]) : Tree::link(i, *it);
+					s.insert(i); break;
+				}
+				case 3 : { // lower-polygon appear
+					memcpy(G[i] + 4, sl[j].arg, 64);
+					s.insert(~i); break;
+				}
+				case 4 : s.erase(i), s.erase(~i); break; // disappear
+				case 5 : memcpy(G[i], sl[j].arg, 64); break; // upper-polygon change
+				case 6 : memcpy(G[i] + 4, sl[j].arg, 64); break; // lower-polygon change
+				case -1 : // query S
+				case -2 : { // query T
+					G[0][0] = sl[j].arg[1], it = s.lower_bound(0);
+					qarg[i][~sl[j].ty] = (*it &gt;&gt; 31 ? Tree::p[~*it] : *it);
+					break;
+				}
+			}
+		}
+	}
+}
+
+int main() {
+	int i, ans = 0;
+	scanf("%d%d", &amp;n, &amp;q);
+	Geometry::main(); Tree::dfs(1); ++n;
+	for (i = 1; i &lt;= n; ++i) BIT::x[i] = Tree::W[i] ^ Tree::W[i - 1];
+	BIT::init();
+	for (i = 0; i &lt; q; ++i)
+		qarg[i][0] &gt;&gt; 31 ? Tree::modify(~qarg[i][0], qarg[i][1]) : (void)printf("%d\n", ans ^= Tree::query(qarg[i][0], qarg[i][1]));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意权值的处理是先<strong>树上前缀和</strong>再在 dfs 序上差分，不要搞混了。<del>如果怕搞混可以直接写树链剖分维护链上异或和，只是复杂度会多一个 $O \left( \log n \right)$。</del></p>
+		<p><strong>坑2：</strong>注意要新建一个节点作为根，表示最外面的无穷区域。</p>
+		<p><strong>坑3：</strong>计算扫描线与圆的交点的时候，在边界处可以因为精度问题出现<em>对负数开根</em>产生 <code>nan</code>，导致比较函数错误。因此开根时需要对 $0$ 取 $\max$。</p>
+		<p><strong>坑4：</strong>注意精度问题，最好使用 <code>long double</code> (但是 lydsy 好像不太滋磁的样子)，比较的时候如果绝对值很大可以采用相对误差比较 (比如 <code>double</code> 的精度是 $10^{-15}$ 左右，于是可以采用 $7 \times 10^{-14}$ 的相对误差比较)。</p>
+		<p><strong>坑5：</strong>计算扫描线与多边形的边的交点的时候，注意线段与 $x$ 轴垂直的情况。</p>
+		<p><strong>坑6：</strong>在写比较函数的时候，精度误差主要来自<strong>同一个图形</strong>的边界处，因此可以特判：如果被比较的两个元素来自同一个图形，则默认返回<strong>下边界 &lt; 上边界</strong>。</p>
+		<p><strong>坑7：</strong>在 lydsy 中不能使用 <code>%Lf</code> 读取 <code>long double</code>，且在代码的其它地方也应该慎用，<del>因为 lydsy 对 <code>long double</code> 的实现非常诡异</del>，很容易导致 <code>Wrong Answer</code> 或 <code>Runtime Error</code>。</p>
+	</body>
+</html>

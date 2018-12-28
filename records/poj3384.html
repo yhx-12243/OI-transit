@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[poj3384]风水</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<!-- 风水。。。是一门艺术。。。我在想要不要看看《周易》《葬经》什么的，等老了还能出去给人算算命，看看阴宅阳宅什么的，混口饭吃。嘿嘿，扯远了。。。-->
+		<p>给出⼀个凸多边形的房间，根据风⽔要求，把两个圆形地毯铺在房间⾥，不能折叠，不能切割，可以重叠。问最多能覆盖多⼤空间，输出两个地毯的圆⼼坐标。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, r$ ($3 \leq n \leq 100; 1 \leq r \leq 1000$)，表示多边形的点数和地毯的半径。</p>
+		<p>接下来的 $n$ 行，每行包含两个整数 $x_i, y_i$ ($-1000 \leq x_i, y_i \leq 1000$)，表示凸多边形各个顶点的坐标。</p>
+		<p>保证 $n$ 个顶点的坐标互不相同且无三点共线，保证坐标由<em>顺时针</em>顺序给出。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含四个实数 $x_1, y_1, x_2, y_2$，其中 $\left( x_1, y_1 \right)$ 和 $\left( x_2, y_2 \right)$ 分别表示两个地毯的坐标。</p>
+		<p>如果有多解，输出任意一个均可。题目保证至少存在一种放地毯的方案。</p>
+
+		<h3>题解</h3>
+		<p>先来考虑，两个等圆的并的面积和什么因素有关。</p>
+		<p>容易看出并证明，两个等圆的并的面积<strong>只和它们的圆心距</strong>有关，与它们的位置，方向等等因素均无关。且<strong>并的面积随着圆心距的增大而 (非严格) 单调减小</strong>。</p>
+		<p>因此，我们的目标就是让这两个圆的<em>圆心距尽可能大</em>。</p>
+		<p>直接判断一个圆能否嵌入多边形是一个比较麻烦的问题，我们换一种思路，寻找圆心的 <em>"可行域"</em>，即圆心可能的范围。</p>
+		<p>而能够放入圆心为 $(x, y)$，半径为 $r$ 的圆的充要条件是 <strong>$(x, y)$ 到凸多边形中任意一条边的距离不小于 $r$</strong>。</p>
+		<p>因此只需要将凸多边形中的每一条边都向内缩进 $r$ 的距离，得到一个新的凸多边形。由于原来的图形是凸多边形，因此新的凸多边形就是圆心的 "可行域"。</p>
+		<p>也就是说，我们就将问题转化为了，给定一个凸集，你需要寻找两个点使得它们的距离最大。</p>
+		<p>这就是经典的<strong>凸集直径问题</strong>，采用<strong>旋转卡壳</strong>解决。</p>
+		<p>至于半平面的缩进的问题，可以证明：<span style="color: fuchsia">半平面 $A x + B y + C \geq 0$ 向内 (正方向) 缩进 $r$ 的距离所得到的新的半平面方程为 $A x + B y + C - r \sqrt {A^2 + B^2} \geq 0$</span>。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1000
+
+const double eps = 1e-8;
+
+#define lt(x, y) ((x) &lt; (y) - eps)
+#define gt(x, y) ((x) &gt; (y) + eps)
+#define le(x, y) ((x) &lt;= (y) + eps)
+#define ge(x, y) ((x) &gt;= (y) - eps)
+#define eq(x, y) (le(x, y) &amp;&amp; ge(x, y))
+#define dot(x, y, z) (((y) - (x)) * ((z) - (x)))
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+struct vec2 {
+	double x, y;
+	vec2 (double x0 = 0.0, double y0 = 0.0) : x(x0), y(y0) {}
+	vec2 * read() {scanf("%lf%lf", &amp;x, &amp;y); return this;}
+	inline vec2 operator - () const {return vec2(-x, -y);}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline vec2 operator * (double k) const {return vec2(x * k, y * k);}
+	inline vec2 operator / (double k) const {return *this * (1.0 / k);}
+	inline double operator * (const vec2 &amp;B) const {return x * B.x + y * B.y;}
+	inline double operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}
+	inline double norm2() const {return x * x + y * y;}
+	inline double norm() const {return sqrt(x * x + y * y);}
+	inline bool operator &lt; (const vec2 &amp;B) const {return lt(x, B.x) || le(x, B.x) &amp;&amp; lt(y, B.y);}
+	inline bool operator == (const vec2 &amp;B) const {return eq(x, B.x) &amp;&amp; eq(y, B.y);}
+	inline bool operator &lt;&lt; (const vec2 &amp;B) const {return lt(y, 0) ^ lt(B.y, 0) ? lt(B.y, 0) : gt(*this ^ B, 0) || ge(*this ^ B, 0) &amp;&amp; ge(x, 0) &amp;&amp; lt(B.x, 0);}
+	inline vec2 trans(double a11, double a12, double a21, double a22) const {return vec2(x * a11 + y * a12, x * a21 + y * a22);}
+} p[N], q[N], *r;
+
+struct line {
+	double A, B, C;
+	line (double A0 = 0.0, double B0 = 0.0, double C0 = 0.0) : A(A0), B(B0), C(C0) {}
+	line (const vec2 &amp;u, const vec2 &amp;v) : A(u.y - v.y), B(v.x - u.x), C(u ^ v) {} // left &gt; 0
+	inline vec2 normVec() const {return vec2(A, B);}
+	inline double norm2() const {return A * A + B * B;}
+	inline double operator () (const vec2 &amp;P) const {return A * P.x + B * P.y + C;}
+	inline void translate(double);
+} l[N];
+
+inline vec2 intersection(const line u, const line v) {
+	double Det = 1.0 / (u.A * v.B - u.B * v.A);
+	return vec2(u.B * v.C - u.C * v.B, u.C * v.A - u.A * v.C) * Det;
+}
+
+inline bool parallel(const line u, const line v) {double p = u.normVec() ^ v.normVec(); return eq(p, 0);}
+
+inline bool sameDir(const line u, const line v) {return parallel(u, v) &amp;&amp; gt(u.normVec() * v.normVec(), 0);}
+
+int n, d;
+
+inline void line::translate(double d) {C -= (d - eps) * sqrt(this-&gt;norm2());}
+
+inline bool HPIcmp(const line u, const line v) {return sameDir(u, v) ? gt((fabs(u.A) + fabs(u.B)) * v.C, (fabs(v.A) + fabs(v.B)) * u.C) : u.normVec() &lt;&lt; v.normVec();}
+
+inline bool geStraight(const vec2 A, const vec2 B) {return lt(A ^ B, 0) || le(A ^ B, 0) &amp;&amp; lt(A * B, 0);}
+
+int que[N];
+int HPI(int n, line *l, vec2 *poly, vec2 *&amp;ret) { // -1 : Unbounded, -2 : Infeasible
+	int h = 0, t = -1, i;
+	std::sort(l, l + n, HPIcmp);
+	if (n &lt;= 2 || geStraight(l[n - 1].normVec(), l-&gt;normVec())) return -1;
+	for (i = 0; i &lt; n; ++i) {
+		if (h &lt;= t &amp;&amp; sameDir(l[que[t]], l[i])) continue;
+		if (geStraight(l[que[t]].normVec(), l[i].normVec())) return -1;
+		for (; h &lt; t &amp;&amp; le(l[i](poly[t - 1]), 0); --t);
+		for (; h &lt; t &amp;&amp; le(l[i](poly[h]), 0); ++h);
+		que[++t] = i; h &lt; t ? poly[t - 1] = intersection(l[ que[t - 1] ], l[ que[t] ]) : 0;
+	}
+	for (; h &lt; t &amp;&amp; le(l[ que[h] ](poly[t - 1]), 0); --t);
+	return h == t ? -2 : (poly[t] = intersection(l[ que[t] ], l[ que[h] ]), ret = poly + h, t - h + 1);
+}
+
+double convDiameter(int n, vec2 *poly) {
+	int l = std::min_element(poly, poly + n) - poly, r = std::max_element(poly, poly + n) - poly, i = l, j = r;
+	double cur, diam = (poly[l] - poly[r]).norm2(); int besti = l, bestj = r;
+	do {
+		(ge(poly[(i + 1) % n] - poly[i] ^ poly[(j + 1) % n] - poly[j], 0) ? ++j : ++i) %= n;
+		if ((cur = (poly[i] - poly[j]).norm2()) &gt; diam) diam = cur, besti = i, bestj = j;
+	} while (i != l || j != r);
+	printf("%.6lf %.6lf %.6lf %.6lf\n", poly[besti].x, poly[besti].y, poly[bestj].x, poly[bestj].y);
+	return diam;
+}
+
+int main() {
+	int i;
+	scanf("%d%d", &amp;n, &amp;d);
+	for (i = 0; i &lt; n; ++i) p[i].read(); p[n] = p[0];
+	for (i = 0; i &lt; n; ++i) l[i] = line(p[i + 1], p[i]), l[i].translate(d);
+	n = HPI(n, l, q, r);
+	assert(n &gt;= 0);
+	convDiameter(n, r);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><del><strong>坑1：</strong>注意 POJ 上不滋磁 <code>&lt;bits/stdc++.h&gt;</code>，提交时注意下。</del></p>
+		<p><strong>坑2：</strong>在求半平面交的时候有可能所有半平面的交集时一条直线或一个点，此时计算交点可能会出现 <code>inf</code> 或 <code>nan</code>，一个解决方案是将一开始所有的边<strong>向外缩进 $eps$ 的距离</strong>。</p>
+	</body>
+</html>

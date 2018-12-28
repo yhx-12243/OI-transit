@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4561][lg3268][JLOI2016]圆的异或并</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在平面直角坐标系中给定 $n$ 个圆。已知这些圆两两没有交点，即两圆的关系只存在相离和包含。</p>
+		<p>求这些圆的异或面积并。异或面积并为：当一片区域在奇数个圆内则计算其面积，当一片区域在偶数个圆内则不考虑。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 2 \times 10^5$)，代表圆的个数。</p>
+		<p>接下来 $n$ 行，每行三个整数 $x, y, r$ ($-10^8 \leq x, y \leq 10^8; 1 \leq r \leq 10^8$)，表示一个圆心在 $(x, y)$，半径为 $r$ 的圆。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有圆的异或面积并除以圆周率 $\pi$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>由于这些圆两两之间没有焦点，因此只需要知道每个圆在<em>奇区域</em> (i.e. 被奇数个圆包含) 中还是<em>偶区域</em> (i.e. 被偶数个点包含) 中。这样的话，若一个圆在奇区域中则<em>加上半径的平方</em>，是偶区域则<em>减去半径的平方</em>。我们用 $f_i$ 表示圆 $i$ 内部的区域的奇偶性，奇区域为 $1$，偶区域为 $-1$。</p>
+		<p>那怎么判断呢？暴力判断可是 $O \left( n^2 \right)$ 的。那有什么简捷的方法呢？对了，就是我们<del>无所不能的最可爱的</del><strong>扫描线</strong>。</p>
+		<p>注意到圆之间包含的传递性，因此这些圆之间可以看成类似一个树形结构。<del>(虽然说对这题没什么帮助)</del></p>
+		<p>我们考虑一条扫描线 $x = x_0$ 去截所有的圆，把截得的交点排成一列。如果一个交点使得经过后被覆盖的圆数 $+1$ (下半圆弧)，则将它冠以 <code>(</code>，如果经过后被覆盖的圆数 $-1$ (上半圆弧)，则冠以 <code>)</code>。</p>
+		<p>于是，一条扫描线所截得的所有交点可以对应到一个<strong>合法的括号序列</strong>。</p>
+		<p>当 $x_0$ 改变一个微小的增量 $\Delta x$ 时，这个括号序列在大多数情况下并不发生改变。我们需要寻找括号序列改变的时刻——即扫描线的<em>事件</em>。</p>
+		<p>容易发现，对于一个圆 $\left( x - x_0 \right)^2 + \left( y - y_0 \right)^2 = r^2$，当且仅当在 $x_0 - r$ 处和 $x_0 + r$ 处是一个扫描线的<em>事件</em>——即会对扫描线中的<strong>括号序列</strong>产生影响。</p>
+		<p>于是，将所有 $n$ 个圆的 $2n$ 个<em>事件</em>合并起来，就是整个扫描线算法对应的<em>事件</em>——在两个事件之间，整个括号序列<strong>不发生改变</strong>，在遇到一个事件时，括号序列要么添加一对括号，要么删除一对括号。</p>
+		<p>由于操作有动态添加和删除元素，因此可以使用<strong>平衡树</strong>来维护。</p>
+		<p>对于一个括号序列，每加一对括号 <code>()</code>，设该位置原先后面的元素 (i.e. 即 <code>set::lower_bound</code>) 为 <code>)</code>，可以说明这个括号与那个为 <code>)</code> 的括号是<strong>父子关系</strong>，因此它的 $f$ 值与前面哪个圆的 $f$ 值<em>互为相反数</em>。</p>
+		<p>如果该位置后面的元素为 <code>(</code>，则说明这个括号与那个为 <code>(</code> 的括号是<strong>兄弟关系</strong>，故 $f$ 值与对应圆的 $f$ 值<em>相等</em>。</p>
+		<p>这样以来，我们就可以维护所有的 $f$ 值了。</p>
+		<p>平衡树部分，可以使用 <code>std::set</code> 来完成，其中两个括号比较函数就是它们所对应的圆弧与扫描线 $x = x_0$ 的交点的纵坐标 (之间的关系)。</p>
+		<p>具体实现时，<code>)</code> 可以使用这个圆的编号来表示，<code>(</code> 可以使用这个圆的编号的<em>相反数</em> (或按位取反) 来表示，这样就减少了一维关键字。</p>
+		<p>时间复杂度当然就是 $O \left( n \log n \right)$ 啦。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 200010
+
+typedef long long ll;
+
+struct sweepLine {
+	int x, id; // appear &gt;= 0, disappear &lt; 0
+	sweepLine (int _x = -1, int _id = -1) : x(_x), id(_id) {}
+	inline bool operator &lt; (const sweepLine &amp;B) const {return x &lt; B.x;}
+} sl[N * 2];
+
+int curX;
+int n, cnt = 0;
+int x[N], y[N], r[N], f[N];
+
+inline ll sqr(int x) {return (ll)x * x;}
+inline long double getY(int id) {return id &gt;&gt; 31 ? -sqrtl(sqr(r[~id]) - sqr(curX - x[~id])) + y[~id] : sqrtl(sqr(r[id]) - sqr(curX - x[id])) + y[id];} // upper &gt;= 0, lower &lt; 0
+
+struct evCmp {
+	bool operator () (const int &amp;x, const int &amp;y) {
+		long double yx = getY(x), yy = getY(y);
+		return yx &lt; yy - 1e-8 || (yx &lt; yy + 1e-8 &amp;&amp; x &lt; y);
+	}
+};
+
+typedef std::set &lt;int, evCmp&gt; set;
+set s;
+
+int main() {
+	int i, _i; ll ans = 0;
+	set::iterator it;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) {
+		scanf("%d%d%d", x + i, y + i, r + i);
+		sl[cnt++] = sweepLine(x[i] - r[i], i);
+		sl[cnt++] = sweepLine(x[i] + r[i], ~i);
+	}
+	std::sort(sl, sl + cnt);
+	for (_i = 0; _i &lt; cnt; ++_i) {
+		curX = sl[_i].x, i = sl[_i].id;
+		if (i &gt;&gt; 31) s.erase(i), s.erase(~i);
+		else {
+			it = s.lower_bound(i);
+			f[i] = (it == s.end() ? 1 : *it &gt;&gt; 31 ? f[~*it] : -f[*it]);
+			s.insert(~i), s.insert(i);
+		}
+	}
+	for (i = 0; i &lt; n; ++i) ans += (ll)r[i] * r[i] * f[i];
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 <code>std::set</code> 的 (<code>int</code>) 比较函数的写法。</p>
+		<p><strong>坑2：</strong>注意下半圆弧和上半圆弧的处理，不要数组越界。</p>
+	</body>
+</html>

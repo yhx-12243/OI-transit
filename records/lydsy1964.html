@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy1964]三维凸包</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>三维凸包问题是一个基础的三维计算几何问题，不过这次你只需要做一个简单版的三维凸包问题就行了。</p>
+
+		<h3>输入格式</h3>
+		<p>输入共五行，每行三个整数，表示一个点的坐标。点的个数为 $5$ 个。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，保留两位小数，表示三维凸包的体积。</p>
+
+		<h3>题解</h3>
+		<p>先考虑低维的情况。对于一维空间的三个点，一定是按照顺序排列的，不放设为 $A, B, C$，且 $B$ 在 $A, C$ 之间。</p>
+		<p>则它们的凸包是线段 $AC$，且有 $\left| AC \right| = \dfrac 12 \left( \left| AB \right| + \left| BC \right| + \left| AC \right| \right)$。</p>
+		<p>对于二维的情况，即空间中有四个点，设为 $A, B, C, D$，有如下两种情况：</p>
+		<ol>
+			<li><p>凸包为 $\triangle ABC$。此时它的面积等于 $\mathrm{Area} = \dfrac 12 \left( S_{\triangle ABC} + S_{\triangle ABD} + S_{\triangle ACD} + S_{\triangle BCD} \right)$。</p></li>
+			<li><p>凸包为凸四边形 $ABCD$。经过分析可知，它的面积也等于 $\mathrm{Area} = \dfrac 12 \left( S_{\triangle ABC} + S_{\triangle ABD} + S_{\triangle ACD} + S_{\triangle BCD} \right)$。</p></li>
+		</ol>
+		<p>综上，四个点凸包的面积等于它们去掉一个点中构成的三角形 (二维单形) 的面积之和的一半。</p>
+		<p>可以类比归纳，猜想五个点凸包的体积等于它们去掉一个点构成的四面体 (三维单形) 的体积之和的一半。</p>
+		<p>现在简单说明一下正确性：</p>
+		<p>对于凸包内部的一个点 $M$ (凸组合中的一个元素)，不妨设它在一般位置 (即不存在三点共线，四点共面等情况)。不放设它被四面体 $ABCD$ 包围 (否则可以交换编号解决)，我们考虑剩下的四个四面体 $P-ABC, P-ABD, P-ACD, P-BCD$，若 $P$ 在四面体 $ABCD$ 内部，则这四个四面体中<strong>恰好一个包含点 $M$</strong>。</p>
+		<p>若 $P$ 不在四面体 $ABCD$ 中，则这四个四面体在 $ABCD$ 中的部分的并集恰好为 $ABCD$，且两两不交。因此 $M$ 也恰好属于其中一个四面体。</p>
+		<p>于是对凸包内部的每个点 $M$，它恰好会被两个四面体统计到。于是总体积就应该等于这五个四面体体积之和的一半了。</p>
+		<p>即 $\mathrm{Volume} = \dfrac 12 \left( V_{D-ABC} + V_{P-ABC} + V_{P-ABD} + V_{P-ACD} + V_{P-BCD} \right)$。</p>
+		<p>注：四面体的体积公式：四面体 $A-BCD$ 的体积等于 $\dfrac 16 \left| \mathrm{triple} \left( \overrightarrow {AB}, \overrightarrow {AC}, \overrightarrow {AD} \right) \right| = \dfrac 16 \left| \overrightarrow {AB} \cdot \left( \overrightarrow {AC} \times \overrightarrow {AD} \right) \right|$。</p>
+		<p>时间复杂度 $O(1)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const double eps = 1e-8;
+
+#define lt(x, y) ((x) &lt; (y) - eps)
+#define gt(x, y) ((x) &gt; (y) + eps)
+#define le(x, y) ((x) &lt;= (y) + eps)
+#define ge(x, y) ((x) &gt;= (y) - eps)
+#define eq(x, y) (le(x, y) &amp;&amp; ge(x, y))
+#define dot(x, y, z) (((y) - (x)) * ((z) - (x)))
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+#define triple(x, y, z) ((x) * ((y) ^ (z)))
+
+struct vec3 {
+	double x, y, z;
+	vec3 (double x0 = 0, double y0 = 0, double z0 = 0) : x(x0), y(y0), z(z0) {}
+	vec3 * read() {scanf("%lf%lf%lf", &amp;x, &amp;y, &amp;z); return this;}
+	inline vec3 operator - () const {return vec3(-x, -y, -z);}
+	inline vec3 operator + (const vec3 &amp;B) const {return vec3(x + B.x, y + B.y, z + B.z);}
+	inline vec3 operator - (const vec3 &amp;B) const {return vec3(x - B.x, y - B.y, z - B.z);}
+	inline vec3 operator * (double k) const {return vec3(x * k, y * k);}
+	inline vec3 operator / (double k) const {return *this * (1.0 / k);}
+	inline double operator * (const vec3 &amp;B) const {return x * B.x + y * B.y + z * B.z;}
+	inline vec3 operator ^ (const vec3 &amp;B) const {return vec3(y * B.z - z * B.y, z * B.x - x * B.z, x * B.y - y * B.x);}
+	inline double norm2() const {return x * x + y * y + z * z;}
+	inline double norm() const {return sqrt(x * x + y * y + z * z);}
+	inline bool operator &lt; (const vec3 &amp;B) const {return lt(x, B.x) || le(x, B.x) &amp;&amp; (lt(y, B.y) || le(y, B.y) &amp;&amp; lt(z, B.z));}
+	inline bool operator == (const vec3 &amp;B) const {return eq(x, B.x) &amp;&amp; eq(y, B.y) &amp;&amp; eq(z, B.z);}
+};
+
+inline double volume(const vec3 A, const vec3 B, const vec3 C, const vec3 D) {return triple(B - A, C - A, D - A);}
+
+vec3 A, B, C, D, E;
+
+int main() {
+	A.read(), B.read(), C.read(), D.read(), E.read();
+	printf("%.2lf\n", (fabs(volume(A, B, C, D))
+					 + fabs(volume(A, B, C, E))
+					 + fabs(volume(A, B, D, E))
+					 + fabs(volume(A, C, D, E))
+					 + fabs(volume(B, C, D, E))) / 12.0);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意求四面体体积是混合积乘以 $\dfrac 16$，而且这个求出来的是<strong>有向体积</strong>，而原题需要五个无向体积相加再乘以 $\dfrac 12$，故需要取绝对值 <code>fabs</code>。</p>
+	</body>
+</html>

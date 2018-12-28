@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj70]解方程</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个整系数多项式方程 $a_0 + a_1 x + a_2 x^2 + \cdots + a_n x^n = 0$，求它在模质数 $p$ 意义下的所有根。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, p$ ($3 \leq p \leq 10^5; 1 \leq n &lt; p - 1$)，表示多项式的次数和模数。</p>
+		<p>第二行 $n + 1$ 个整数 $a_0, a_1, \cdots, a_n$ ($0 \leq a_i &lt; p; a_n \neq 0$)，表示这个多项式。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行 $p$ 个整数，对于第 $i$ 个整数，如果 $i-1$ 是原方程的根输出 $1$，否则输出 $0$。</p>
+
+		<h3>题解</h3>
+		<p>显然通过求根公式去求解是不太靠谱的，注意到 $p \leq 10^5$，于是我们可以尝试将所有的点值都求出来后注意判断是否为 $0$。那具体该如何求出所有的点值呢？</p>
+		<p>注意到如果 $p$ 是 Fermat 素数 $2^{2^n} + 1$，则可以使用<strong>快速数论变换 (FNTT)</strong>，做一次长度为 $2^n$ 的 DNTT，从而得到 $\omega, \omega^2, \cdots, \omega^{2^n}$ (其中 $\omega$ 为 $2^{2^n} + 1$ 的原根) 处的点值。又 $0$ 的点值等于 $a_0$，因此我们就得到了所有的点值。</p>
+		<p>对于 $p$ 非 Fermat 素数的情形也是类似的。</p>
+		<p>不妨设原多项式 $f(x)$ 的次数 $\deg f$ 为 $p - 2$。设 $n = p - 1$，则多项式的次数就是 $n - 1$。我们令 $\omega$ 为素数 $p$ 的一个原根，则 $\left\{ 1, \omega, \omega^2, \cdots, \omega^{n-1} \right\} = \{ 1, 2, 3, \cdots, p - 1 \}$ 组成了 $p$ 的一个缩系 (简化剩余系) $\mathbb Z_p^*$。</p>
+		<p>于是我们所要求的就是对于每个 $k \in [0, n - 1)$，求出 $f \left( \omega^k \right)$ 的值。代入多项式的表达式，我们得到</p>
+		<p>$$ f \left( \omega^k \right) = \sum_{i=0}^{n-1} a_i \omega^{k i} \tag 1 \label 1 $$</p>
+		<p>怎么处理这个式子呢？这里有一个技巧：</p>
+		<p>注意到恒等式 $\dbinom {a + b} 2 = \dbinom a2 + \dbinom b2 + a b$ (其实就是下降幂二项式定理)，我们将 $k \cdot i$ 拆开，代入 $\eqref 1$ 式，得到</p>
+		<p>$$ A_k = f \left( \omega^k \right) = \sum_{i=0}^{n-1} a_i \cdot \omega^{\binom {k + i} 2 - \binom k2 - \binom i2} = \omega^{-\binom k2} \cdot \sum_{i=0}^{n-1} \left( a_i \cdot \omega^{-\binom i2} \right) \cdot \omega^{\binom {k + i} 2} $$</p>
+		<p>于是你可以发现，右边的和式其实是一个<strong>卷积</strong>的形式！</p>
+		<p>于是我们处理出 $u_i = a_i \cdot \omega^{\binom i2}$，以及 $v_i = \omega^{\binom i2}$，对两个序列做一次卷积即可。不过要注意 $u$ 要翻转，即 $u^R$ 和 $v$ 做卷积。</p>
+		<p>这里使用二项式系数 $\dbinom n2$ 而不是 $\dfrac {n^2} 2$ 的原因在于，原根的阶 $n$ 是一个偶数，这会导致 $\dfrac {i^2} 2$ 在模 $n$ 下一定不存在，而 $\dbinom i2$ 在模 $n$ 意义下一定存在，但 $\dbinom i2$ 不一定等于 $\dbinom {n + i} 2$。</p>
+		<p>还有就是，这个卷积在模 $p$ 意义下进行，因此不能使用 FNTT，可以使用 FFT。由于最大的系数不会很大，因此直接使用 <code>double</code> 或 <code>long double</code> 即可。</p>
+		<p>总时间复杂度 $O \left( p \log p \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 530000
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef int vec[N], *pvec;
+typedef long long ll;
+typedef std::complex &lt;double&gt; C;
+
+ll mod;
+int n, _n;
+vec a, c, r, u, v, w;
+
+namespace Poly {
+	int l, n;
+	vec rev;
+	C x[N], y[N];
+
+	void FFT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		int i; *rev = 0; *x = C(1);
+		for (i = 1; i &lt; n; ++i) rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+		for (i = 1; i &lt;= l; ++i) x[1 &lt;&lt; (l - i)] = C(cos(ldexp(M_PI, 1 - i)), sin(ldexp(M_PI, 1 - i)));
+		for (i = 3; i &lt; n; ++i) x[i] = x[i ^ (i &amp; -i)] * x[i &amp; -i];
+	}
+
+	void DFT(C *d, C *t) {
+		int i, len = 1, delta = n; C *j, *k, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = y[k - j] * k[len], k[len] = *k - R, *k += R;
+			len &lt;&lt;= 1;
+		}
+	}
+
+	C B1[N], B2[N], B3[N];
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		FFT_init(lg2(deg) + 1);
+		int i; double iv = 1.0 / n;
+		for (i = 0; i &lt; deg; ++i) B1[i] = a[i], B2[i] = b[i];
+		DFT(B1, B3); DFT(B2, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] *= B3[i];
+		DFT(B1, B3); std::reverse(B3 + 1, B3 + n);
+		for (i = 0; i &lt; n; ++i) c[i] = (ll)round(B3[i].real() * iv) % mod;
+	}
+}
+
+int primitiveRoot() {
+	int i, j; ll c;
+	for (i = 2; i &lt; mod; ++i) {
+		for (c = i, j = 1; c != 1; c = c * i % mod, ++j);
+		if (j == mod - 1) return i;
+	}
+	return -1;
+}
+
+int main() {
+	int i;
+	scanf("%d%lld", &amp;_n, &amp;mod); n = mod - 1;
+	for (i = 0; i &lt;= _n; ++i) scanf("%d", a + i);
+	putchar(48 + !*a), putchar(32);
+	for (*w = 1, w[1] = primitiveRoot(), i = 2; i &lt; mod; ++i) w[i] = (ll)w[i - 1] * w[1] % mod;
+	for (i = 0; i &lt; n; ++i) u[n - 1 - i] = (ll)w[(n - i * (i - 1ll) / 2 % n) % n] * a[i] % mod;
+	for (i = 0; i &lt; n * 2 - 1; ++i) v[i] = w[i * (i - 1ll) / 2 % n];
+	Poly::Mul(3 * (n - 1), u, v, c);
+	for (i = 0; i &lt; n; ++i) r[w[i]] = (ll)c[n - 1 + i] * w[(n - i * (i - 1ll) / 2 % n) % n] % mod;
+	for (i = 1; i &lt;= n; ++i) printf("%d%c", !r[i], i == n ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $\dbinom i2$ 不一定等于 $\dbinom {n + i} 2$，因此不能直接上循环卷积，需要使用普通卷积或一些其它的手段。</p>
+		<p><strong>坑2：</strong>在写 (复数) FFT 时需要注意三角函数的精度和速度问题。具体实现可参见上面代码。</p>
+	</body>
+</html>

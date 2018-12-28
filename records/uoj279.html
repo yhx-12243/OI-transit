@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj279]题目交流通道</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定好了难度，雄心勃勃的吉米多出题斯基开始寻找智慧的神犇星球的居民出题。</p>
+		<p>然而吉米多出题斯基没有料到，神犇星球的居民告诉吉米多出题斯基：“今年神犇星球经济不景气，大家都想宅在家里，哪有心思出来出题呢？”</p>
+		<p>为了挽救这一局面，吉米多出题斯基决定为神犇星球建一些高速传送通道促进该星球各地区之间交流题目。</p>
+		<p>神犇星球有 $n$ 座小城。对于任意两座小城 $u, v$ ($u \neq v$)，吉米多出题斯基想在 $u, v$ 之间建立一个传送时间为 $w(u, v)$ 的<strong>无向</strong>传送通道，其中 $w(u, v)$ 为不超过 $k$ 的非负整数。建成后，神犇星球的居民可从一座小城出发经过一个或若干个传送通道到达另一座小城交流题目，花费的时间为所有经过的传送通道的传送时间之和。</p>
+		<p>吉米多出题斯基还没有决定每一个传送通道的传送时间取值，只是对于任意两座小城 $u, v$，决定了从 $u$ 出发到达 $v$ 的最短时间要恰好等于 $d(u, v)$。但吉米多出题斯基日理万机，于是他找到了你，请你帮助吉米多出题斯基数一数有多少种不同的满足条件的传送通道建设方案吧！</p>
+		<p>由于方案数可能很大，你只用输出方案数对 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 取模后的结果。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, k$ ($1 \leq n \leq 400; 0 \leq k \leq 10^9$)。</p>
+		<p>接下来 $n$ 行，每行有 $n$ 个非负整数，第 $i$ 行的第 $j$ 个数表示 $d(i, j)$ ($0 \leq d(i, j) \leq 10^9$) 的值。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示方案数对 $998244353$ 取模的结果。如果无解，则方案数为 $0$。</p>
+
+		<h3>题解</h3>
+		<p>先判断是否无解，这个比较容易，只需检验是否满足自反性 ($d(i, i) = 0$)、对称性 ($d(i, j) = d(j, i)$)、传递性 (三角不等式，$d(i, j) \leq d(i, k) + d(k, j)$) 和边权范围即可，时间复杂度为 $O \left( n^3 \right)$。</p>
+		<p>接下来先考虑 $d(i, j) \geq 1$ ($i \neq j$) 的情况。</p>
+		<p>由 Floyd 算法的性质，对于两个点 $i, j$，如果存在点 $k$ 使得 $d(i, j) = d(i, k) + d(k, j)$，那么只需 $w(i, j) \geq d(i, j)$ 即可。</p>
+		<p>否则，必须有 $w(i, j) = d(i, j)$。可以证明，满足这两个条件的 $w$ 对应的最短路 $d$ 数组也满足这个条件。</p>
+		<p>于是可以在 $O \left( n^3 \right)$ 的时间内统计出对于每个 $(i, j)$ 点对是否存在满足上述等式的 $k$，然后直接计算即可。</p>
+		<hr />
+		<p>然后是存在 $d(i, j) = 0$ 的情况。这个就不是那么好办了，因为 $d(i, j) = d(i, k) + d(k, j)$ 时并不能保证 $w(i, j)$ 可以大于 $d(i, j)$，因为可能出现 $d(i, k) = 0$ 的情况。</p>
+		<p>又该怎么处理呢？其实我们可以这样操作：</p>
+		<p>我们将所有满足 $d(i, j) = 0$ 的<strong>极大连通块</strong>缩成一个点，用大写字母表示 (如 $I, J$)。那么剩下的新图就满足 $d(I, J) \geq 1$ 了。</p>
+		<p>我们先考虑<strong>块间的边</strong>的情况。对于一对连通块 $I, J$，显然对 $\forall i \in I, \forall j \in J, d(i, j)$ 的值都是一定的，这是因为连通块内部边权为 $0$，我们把这个值记作 $d(I, J)$。</p>
+		<p>那么如果存在新的连通块 $K$ 满足 $d(I, J) = d(I, K) + d(K, J)$，则跨越 $I, J$ 的所有边只需要 $\geq d(I, J)$ 即可，于是有 $\left( w_\max - d(I, J) + 1 \right)^{|I| \cdot |J|}$ 种方案 (其中 $w_\max$ 最大边权，即题面中的 $k$)。</p>
+		<p>如果不存在，则必须存在<strong>至少一条边</strong> $(i, j)$ 满足 $w(i, j) = d(I, J)$，故方案数应为</p>
+		<p>$$ \left( w_\max - d(I, J) + 1 \right)^{|I| \cdot |J|} - \left( w_\max - d(I, J) \right)^{|I| \cdot |J|} $$</p>
+		<p>于是可以在 $O \left( n^3 \right)$ 的时间内完成连通块之间的边权问题。</p>
+		<hr />
+		<p>接下来是连通块内部的边权分布，容易发现这里面的方案数只和连通块大小有关。</p>
+		<p>又因为连通块内部任意两个点之间的距离均为 $0$，因此距离为 $0$ 的边应该是<em>连通的</em>，因此我们就要统计某种意义下 "连通图" 的个数。</p>
+		<p>注意到我们当时求连通图个数用的是 DP，我们用类似地思想来解决问题。</p>
+		<p>设 $G_n$ 表示 $n$ 个点的 "图" 的个数，即 $G_n = \left( w_\max + 1 \right)^{\binom n2}$，$F_n$ 表示 $n$ 个点的 "连通图" 的个数。</p>
+		<p>枚举 $1$ 号点所在的 "连通块" 的大小，可得</p>
+		<p>$$ F_n = G_n - \sum_{i=1}^{n-1} \binom {n-1} {i-1} F_i G_{n-i} $$</p>
+		<p>最后只需对每个连通块 $I$，令答案乘以 $F_{|I|}$ 即可，时间复杂度 $O \left( n^3 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 420
+
+typedef long long ll;
+const ll mod = 998244353;
+
+int n, K, V = 0;
+int d[N][N], c[N][N];
+int p[N], size[N], ver[N];
+int fact[N], finv[N], G[N], f[N];
+
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+bool test(int x, int y, bool un = false) {
+	if ((x = ancestor(x)) == (y = ancestor(y))) return true;
+	if (un) size[x] &gt; size[y] ? std::swap(x, y) : (void)0, p[x] = y, size[y] += size[x];
+	return false;
+}
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+inline ll C(int n, int r) {return (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+bool init() {
+	int i, j, k;
+	for (i = 1; i &lt;= n; ++i)
+		for (j = 1; j &lt;= n; ++j) scanf("%d", d[i] + j);
+	for (i = 1; i &lt;= n; ++i)
+		for (j = i; j &lt;= n; ++j)
+			if (d[i][j] &gt; (-(i != j) &amp; K) || d[i][j] != d[j][i]) return false;
+	for (k = 1; k &lt;= n; ++k)
+		for (i = 1; i &lt;= n; ++i)
+			for (j = 1; j &lt;= n; ++j)
+				if (d[i][j] &gt; d[i][k] + d[k][j]) return false;
+				else c[i][j] += d[i][j] == d[i][k] + d[k][j];
+	return true;
+}
+
+void init_dp() {
+	int i, j;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+	for (i = 1; i &lt;= n; ++i) G[i] = PowerMod(K + 1, i * (i - 1) / 2);
+	for (i = 1; i &lt;= n; ++i)
+		for (f[i] = G[i], j = 1; j &lt; i; ++j)
+			f[i] -= PowerMod(K, j * (i - j), C(i - 1, j - 1) * f[j] % mod * G[i - j] % mod),
+			f[i] += f[i] &gt;&gt; 31 &amp; mod;
+}
+
+int main() {
+	int i, j, k, u, v; ll ans = 1, cur;
+	scanf("%d%d", &amp;n, &amp;K);
+	if (!init()) return putchar(48), putchar(10), 0;
+	for (i = 1; i &lt;= n; ++i) p[i] = i, size[i] = 1;
+	for (i = 1; i &lt;= n; ++i)
+		for (j = i + 1; j &lt;= n; ++j) if (!d[i][j]) test(i, j, true);
+	init_dp();
+	for (i = 1; i &lt;= n; ++i) if (p[i] == i) ver[++V] = i, ans = ans * f[size[i]] % mod;
+	for (i = 1; u = ver[i], i &lt; V; ++i)
+		for (j = i + 1; v = ver[j], j &lt;= V; ++j) {
+			cur = PowerMod(K - d[u][v] + 1, size[u] * size[v]);
+			if (c[u][v] &lt;= size[u] + size[v]) cur -= PowerMod(K - d[u][v], size[u] * size[v]);
+			ans = ans * cur % mod;
+		}
+	printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>DP 转移时不要忘记乘以二项式系数 $\dbinom {n-1} {i-1}$。</p>
+		<p><strong>坑2：</strong>注意等式 $d(I, J) = d(I, K) + d(K, J)$ 中需要满足 $K$ 不能是 $I, J$ 中的点。因此判断是可以判断满足上述不等式的<strong>单点</strong>是否超过 $|I| + |J|$ 个。</p>
+	</body>
+</html>

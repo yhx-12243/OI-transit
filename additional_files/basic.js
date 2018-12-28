@@ -22,7 +22,7 @@ const
 			'uoj' : [[/\d+/], 'http://uoj.ac/problem/@0'],
 			'loj' : [[/\d+/], 'https://loj.ac/problem/@0'],
 			'simpleoj' : [[/\d+/], 'http://10.49.27.23/problem?id=@0'],
-			'soj' : [[/\d+/], 'http://61.153.16.137:8001/problem/@0'],
+			'soj' : [[/\d+/], 'http://10.49.18.71/problem/@0'],
 			'cf' : [[/\d+/, /[A-Z]\d*/], 'https://codeforces.com/contest/@0/problem/@1'],
 			'cc' : [[/\w+/], 'https://www.codechef.com/problems/@0/'],
 			'spoj' : [[/\w+/], 'http://www.spoj.com/problems/@0/']
