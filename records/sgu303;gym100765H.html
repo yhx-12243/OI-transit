@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[sgu303][CodeforcesGym100765H]Great Berland Wall</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>平面上有 $n$ 条线段，它们只在端点处相交，且围成了若干个封闭图形。</p>
+		<p>每条线段有一个权值 $v$。有两个点 $P, Q$ 分别位于两个封闭图形中。你需要选择一个线段的子集 $S$，使得 $P, Q$ 无法不穿过 $S$ 中线段互相到达。你需要使 $S$ 中线段的权值和最小。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($5 \leq n \leq 300$)，表示线段的数量。</p>
+		<p>接下来的 $n$ 行，每行五个整数 $x_1, y_1, x_2, y_2, v$ ($-10000 \leq x_1, y_1, x_2, y_2 \leq 10000; 1 \leq v \leq 1000$)，表示其中一条线段的起点是 $\left( x_1, y_1 \right)$，终点是 $\left( x_2, y_2 \right)$，权值为 $v$。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数，表示最小的权值和。</p>
+		<p>接下来输出一组方案，其中第二行需要输出你选择的线段子集的大小 $\left| S \right|$。</p>
+		<p>第三行输出 $\left| S \right|$ 个正整数，表示你所选的 $\left| S \right|$ 条线段的编号 (按照输入顺序给出)，如果有多组解，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>对于平面图，我们考虑它的对偶图。可以注意到 $P, Q$ 可以对应到对偶图中的某一个顶点，而我们要将 $P, Q$ <em>"割掉"</em>，在对偶图中就相当于是一个<strong>点割集</strong>。</p>
+		<p>由于权值又要求最小，因此我们所求的就是<strong>最小割</strong>，而且是两点间的最小割。因此使用<em>最大流最小割定理</em>后直接跑 Dinic 即可。</p>
+		<p>至于输出方案，直接 bfs 后看哪些边是一端被搜到一端未被搜到的。</p>
+		<p>于是现在问题的关键是如何建立出这张平面图以及它的对偶图。</p>
+		<p><del>显然，使用高大上的 DCEL (Doubly Connected Edge List, 双向连接边表) 可以轻松解决这个问题，但是在这里不需要这么麻烦去动用 <abbr title="Doubly Connected Edge List, 双向连接边表">DCEL</abbr> 这种数据结构。</del></p>
+		<p>首先，原图还是可以用一般的邻接表创建出来的。如果我们能够把这张平面图的每个区域 ("面") 求出来，以及每条边属于哪个区域 (注意，这里需要使用 <abbr title="Doubly Connected Edge List, 双向连接边表">DCEL</abbr> 的思想，将一条边拆成两条边，分别属于两个不同的面)，于是由对偶原理 (原图的面就是对偶图的点)，就可以得到它的对偶图 (的结构)。</p>
+		<p>那怎么枚举每个 "面" 呢？我们使用 dfs 的方法，对于每一条<strong>未搜过</strong>的边，	沿该方向<strong>逆时针</strong>搜索，去找到 "最靠左" 的边，不停搜下去直到遇到已经搜过的边，这样我们就可以得到一个内封闭区域 (逆时针方向) 或最外面的无穷区域 (顺时针方向)。</p>
+		<p>至于怎么找到 "最靠左" 的边，可以用以下方法：</p>
+		<p>设当前搜索的边是 $X \to Y$，我们判断 $X \to Y \to Z$ 是否比 $X \to Y \to W$ 更优，则分两种情况：</p>
+		<ol>
+			<li><p>$Y$ 和 $W$ 分居直线 $XY$ 的两侧。此时，直接比较 $\overrightarrow {XY} \times \overrightarrow {XZ}$ 和 $\overrightarrow {XY} \times \overrightarrow {XW}$ 的<strong>符号</strong>即可。</p></li>
+			<li>$Y$ 和 $W$ 在直线 $XY$ 的同侧。此时，只需观察 $\overrightarrow {YZ} \times \overrightarrow {YW}$ 是否 $&lt; 0$ 即可。</p></li>
+		</ol>
+		<p>于是，我们可以在 $O(n)$ 的时间内找到所有的区域 ("面")，而寻找 $P, Q$ 在哪个区域 ("面") 中，可以暴力枚举每个区域，然后使用 <strong>"点是否在多边形内部"</strong> 算法判断 (具体见<a href="../templates.html#cg03" target="_blank">模板</a>)，如果不在任何一个多边形内部，则说明它在最外面的无穷区域中。</p>
+		<p>找到所属的区域后，令这两个点为源点和汇点，所有边均连成<strong>无向边</strong> (即两边都可以有流)，求这个网络的<strong>最大流</strong>即可。</p>
+		<p>总时间复杂度 $O \left( n^3 \right)$ (平面图边数与点数呈线性关系)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+namespace Flow {
+	#define ad(x) (((x - 1) ^ 1) + 1)
+
+	const int N = 2000, M = 100000;
+
+	struct edge {
+		int u, v, f;
+		edge (int u0 = 0, int v0 = 0, int f0 = 0) : u(u0), v(v0), f(f0) {}
+	} e[M];
+
+	int V = 2, E = 0, si = 1, ti = 2, flow;
+	int first[N], next[M];
+	int dep[N], cur[N], que[N];
+
+	inline void addedge(int u, int v, int f) {
+		e[++E] = edge(u, v, f); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u, f); next[E] = first[v]; first[v] = E;
+	}
+
+	bool bfs() {
+		int h, t = 1, i, x, y;
+		memset(dep, -1, sizeof dep);
+		que[0] = si; dep[si] = 0;
+		for (h = 0; h &lt; t; h++){
+			if ((x = que[h]) == ti) return true;
+			for (i = first[x]; i; i = next[i])
+				if (dep[y = e[i].v] == -1 &amp;&amp; e[i].f) {
+					que[t++] = y;
+					dep[y] = dep[x] + 1;
+				}
+		}
+		return false;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		for (int &amp;i = cur[x]; i; i = next[i])
+			if (dep[e[i].v] == dep[x] + 1 &amp;&amp; e[i].f) {
+				a = std::min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c; e[ad(i)].f += c;
+				if((f += c) == lim) return f;
+			}
+		return f;
+	}
+
+	int Dinic() {
+		for (flow = 0; bfs(); flow += dfs(si, INT_MAX))
+			memcpy(cur, first, sizeof cur);
+		return flow;
+	}
+
+	int ans[N];
+	void cut() {
+		int i;
+		for (i = 1; i &lt;= E; ++i)
+			if (~dep[e[i].u] &amp;&amp; !~dep[e[i].v]) ans[++*ans] = (i + 1) &gt;&gt; 1;
+		printf("%d\n", *ans);
+		for (i = 1; i &lt;= *ans; ++i) printf("%d%c", ans[i], i == *ans ? 10 : 32);
+	}
+}
+
+namespace Geometry {
+	const int N = 2000;
+	#define dot(x, y, z) (((y) - (x)) * ((z) - (x)))
+	#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+	struct vec2 {
+		int x, y;
+		vec2 (int x0 = 0.0, int y0 = 0.0) : x(x0), y(y0) {}
+		vec2 * read() {scanf("%d%d", &amp;x, &amp;y); return this;}
+		inline vec2 operator - () const {return vec2(-x, -y);}
+		inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+		inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+		inline vec2 operator * (double k) const {return vec2(x * k, y * k);}
+		inline vec2 operator / (double k) const {return *this * (1.0 / k);}
+		inline int operator * (const vec2 &amp;B) const {return x * B.x + y * B.y;}
+		inline int operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}
+		inline int norm2() const {return x * x + y * y;}
+		inline double norm() const {return sqrt(x * x + y * y);}
+		inline bool operator &lt; (const vec2 &amp;B) const {return x &lt; B.x || (x == B.x &amp;&amp; y &lt; B.y);}
+	} p[N];
+
+	struct edge {
+		int u, v, w;
+		edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+	} e[N];
+
+	typedef std::vector &lt;int&gt; vector;
+	typedef std::map &lt;vec2, int&gt; map;
+	map Vm;
+	int Eh = 0, V = 0, E = 0, F = 0;
+	int area, infArea = 0, s, t;
+	int belF[N], first[N], next[N];
+	vector face[N];
+
+	inline void addedge(int u, int v, int w) {
+		e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+	}
+
+	inline int getID(const vec2 P) {
+		map::iterator it = Vm.find(P);
+		return it == Vm.end() ? p[++V] = P, Vm.emplace(P, V), V : it-&gt;second;
+	}
+
+	inline bool judge(const vec2 A, const vec2 B, const vec2 C, const vec2 D) {
+		int C1 = cross(A, B, C), C2 = cross(A, B, D), C3 = cross(B, C, D);
+		return (C1 ^ C2) &gt;&gt; 31 ? C2 &gt;&gt; 31 : C3 &gt;&gt; 31;
+	}
+
+	void dfs(int i) {
+		int j, x = e[i].u, y = e[i].v, z, bestE = 0;
+		vec2 *bestV = NULL; belF[i] = F; area += p[x] ^ p[y];
+		face[F].push_back(i);
+		for (j = first[y]; j; j = next[j]) {
+			if ((z = e[j].v) == x) continue;
+			if (!bestV || judge(p[x], p[y], p[z], *bestV))
+				bestV = p + z, bestE = j;
+		}
+		if (bestE &amp;&amp; belF[bestE] != F) dfs(bestE);
+	}
+
+	inline int collinear(const vec2 u, const vec2 v, const vec2 P) {int p = cross(P, u, v); return p ? 0 : 1 + (dot(P, u, v) &lt;= 0);}
+
+	int contain(vector &amp;poly, const vec2 P) {
+		int i, in = 0, n = poly.size(); vec2 *u, *v;
+		for (i = 0; i &lt; n; ++i) {
+			u = p + poly[i][e].u, v = p + poly[i][e].v;
+			if (collinear(*u, *v, P) == 2) return 2;
+			if (u-&gt;y &gt; v-&gt;y) std::swap(u, v);
+			if (P.y &gt;= v-&gt;y || P.y &lt; u-&gt;y) continue;
+			in ^= cross(P, *u, *v) &gt;= 0;
+		}
+		return in;
+	}
+
+	int getPoint() {
+		int i; vec2 P; P.read();
+		for (i = 1; i &lt;= F; ++i)
+			if (i != infArea &amp;&amp; contain(face[i], P)) return i;
+		return infArea;
+	}
+
+	void main() {
+		int i, u, v, w; vec2 B;
+		scanf("%d", &amp;Eh);
+		for (i = 0; i &lt; Eh; ++i) u = getID(*B.read()), v = getID(*B.read()), scanf("%d", &amp;w), addedge(u, v, w);
+		for (i = 1; i &lt;= E; ++i)
+			if (!belF[i] &amp;&amp; (++F, area = 0, dfs(i), area &lt; 0)) infArea = F;
+		assert(infArea), s = getPoint(), t = getPoint();
+	}
+}
+
+int main() {
+	int i;
+	Geometry::main();
+	for (i = 1; i &lt;= Geometry::E; i += 2) Flow::addedge(Geometry::belF[i], Geometry::belF[i + 1], Geometry::e[i].w);
+	Flow::si = Geometry::s, Flow::ti = Geometry::t; Flow::V = Geometry::F;
+	printf("%d\n", Flow::Dinic()); Flow::cut();
+	return 0; 
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在网络流连边时，由于方向的确定性，因此需要连<strong>无向边</strong>。(无向图的割集)</p>
+		<p><strong>坑2：</strong>判断两个点是否更优 (寻找 "最靠左" 的边)，要先判断是否在直线的两侧，不能直接叉积。</p>
+		<p><strong>坑3：</strong>判断点是否在简单多边形内部时，注意边界情况 (沿 $x$ 轴平行的射线遇到了交点)。</p>
+	</body>
+</html>

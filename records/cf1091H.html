@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces1091H]New Year and the Tricolore Recreation</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Alice 和 Bob 在玩一个游戏，这个游戏在一个有 $n$ 行、无穷多列的棋盘中进行。</p>
+		<p>每一行有三个棋子，分别为蓝色、白色和红色。在游戏开始之前和每一轮操作之后，下列两个条件必须满足：</p>
+		<ol>
+			<li><p>任何两个棋子不能在同一格中。</p></li>
+			<li><p>对于每行，蓝色棋子在白色棋子的左边，白色棋子在红色棋子的左边。</p></li>
+		</ol>
+		<p>在游戏开始前，它们会选择一个 "禁止数" $f$。接着，两个玩家分别开始自己的回合。如果某一时刻一个玩家<strong>无法进行任何一个合法的操作</strong>，则它就输掉了游戏。</p>
+		<p>定义合法集合 $S$ 为所有为不超过两个素数的乘积的数 (即 $2, 3, 4, 5, 6, 7, 9, 10, 11, 13, 14, 15, 17, 19, \cdots$)，除掉 $1$ 和 "禁止数" $f$ 后的集合。</p>
+		<p>对于每一时刻，合法的操作如下：</p>
+		<p>如果是 Alice 操作，她首先选择 $S$ 中的一个整数 $k$，然后她可以选择将<strong>某一个</strong>蓝色棋子向右移动 $k$ 格或将<strong>某一行的蓝色棋子和白色棋子</strong>同时向右移动 $k$ 格。</p>
+		<p>如果是 Bob 操作，和 Alice 类似，首先选择 $k \in S$，接着他可以选择将某一个红色棋子向左移动 $k$ 格或将同行的红色棋子与白色棋子同时左移 $k$ 格。</p>
+		<p>两个玩家在操作的过程中，要始终保持这个棋盘满足一开始的两个条件。</p>
+		<p>假设两个玩家都十分聪明，请求出如果 Alice/Bob 先手，谁会获得最终的胜利。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, f$ ($1 \leq n \leq 10^5; 2 \leq f \leq 2 \times 10^5$)，分别表示棋盘的行数以及 "禁止数" 的值。</p>
+		<p>接下来的 $n$ 行，每行三个整数 $b_i, w_i, r_i$ ($-10^5 \leq b_i &lt; w_i &lt; r_i \leq 10^5$)，表示第 $i$ 行中蓝色、白色、红色棋子的位置。</p>
+
+		<h3>输出格式</h3>
+		<p>输出两行，每行一个字符串。</p>
+		<p>第一行表示如果 Alice 先手，谁会获得胜利；第二行表示如果 Bob 先手，谁会获得胜利。</p>
+
+		<h3>题解</h3>
+		<p>如果我们把每一行看成两堆石子，大小为相邻两个棋子之间的空格子数 (即大小分别为 $w_i - b_i - 1$ 和 $r_i - w_i - 1$)，则我们一共得到了 $2n$ 堆石子。</p>
+		<p>我们考虑每次操作，比如 Alice 的。</p>
+		<p>对于某一行，设它两堆石子的大小分别为 $u, v$，则如果她将蓝色棋子向右移动，则新的石子堆就变成 $\left( u', v' \right) \gets \left( u - k, v \right)$，如果将蓝色棋子和白色棋子同时右移，则新的石子堆就相当于 $\left( u', v' \right) \gets \left( u, v - k \right)$。</p>
+		<p>也就是说，Alice 的每次操作，就相当于选择 $k \in S$，然后任取一堆 (大小至少为 $k$ 的) 石子，将其取走 $k$ 个。</p>
+		<p>由对称性，Bob 的操作同理。也就是说，Alice 的操作和 Bob 的操作其实是等价的。</p>
+		<p>因此，我们只需考虑这个游戏是先手必胜，还是后手必胜。</p>
+		<p>注意到 $2n$ 堆石子是相互独立的，因此我们只需考虑只有一堆石子的情形，算出它的 SG 值，然后由 Sprague-Grundy 定理，将其异或起来就得到了整个游戏的 SG 值。</p>
+		<p>那一堆石子的 SG 值又该如何计算呢？由 SG 函数的定义，它等于所有能转移到的状态集合的 SG 值的 mex。</p>
+		<p>显然 $S$ 集合容易用筛法预处理。那么，暴力转移 SG 值的话，那将是 $O \left( H^2 \right)$ 的复杂度 (其中 $H$ 指的是石子堆的大小上限)。</p>
+		<p>而我们通常的转移使用的是<strong>填表法</strong>，如果我们使用<strong>刷表法</strong>，又会有什么样的改动呢？</p>
+		<p>注意对于 $x \in S, \forall n$，都有 $sg(n) \neq sg(n - x)$。
+		<p>我们用若干个 <code>bitset</code> 记录<strong>哪些 $n$ 的 SG 值 $sg(n)$ 不能等于 $k$</strong>。</p>
+		<p>那么对于 $n$，我们只需扫描一遍，找到第一个没有限制的 $k_0$，于是可以令 $sg(n) \gets k_0$。</p>
+		<p>然后由转移方程，只需令表示 $k_0$ 的 <code>bitset</code> 填充所有的 $n + k$，其中 $k \in S$。</p>
+		<p>于是总时间复杂度为 $O \left( \dfrac {H^2} \omega \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 200054
+
+typedef std::bitset &lt;N&gt; bit;
+
+int n, forbid;
+int pn = 0, c[N], p[18000], sg[N];
+bit mark[100], fy;
+
+void init(int n) {
+	int i, j, v;
+	for (i = 2; i &lt;= n; ++i) {
+		if (!c[i]) p[pn++] = i;
+		for (j = 0; j &lt; pn &amp;&amp; (v = i * p[j]) &lt;= n; ++j)
+			if (c[v] = p[j], !(i % p[j])) break;
+		fy.set(i, !((c[i] &amp;&amp; c[i / c[i]]) || i == forbid));
+	}
+	*mark = fy | fy &lt;&lt; 1;
+	for (i = 2; i &lt;= n; ++i) {
+		int &amp;r = sg[i]; for (; mark[r].test(i); ++r); mark[r] |= fy &lt;&lt; i;
+	}
+}
+
+int main() {
+	int i, u, v, w, cur = 0;
+	scanf("%d%d", &amp;n, &amp;forbid); init(N - 1);
+	for (i = 1; i &lt;= n; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), cur ^= sg[v - u - 1] ^ sg[w - v - 1];
+	puts(cur ? "Alice\nBob" : "Bob\nAlice");
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意初始时要令 <code>mark[0]</code> 等于 $S$ 集合，且之后<strong>不能用</strong> <code>mark[0]</code> 直接替代 $S$ 集合。</p>
+	</body>
+</html>

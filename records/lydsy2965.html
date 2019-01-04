@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2965]保护古迹</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>某校由于历史悠久，校园中有大量的名胜古迹。为了更好地保护这些古迹，学校决定用篱笆将这些古迹围起来。</p>
+		<p>现在已知有 $p$ 个地点的古迹需要保护。这些古迹可以看做二维平面上的整数点。有 $n$ 个点可以作为篱笆的端点，这些端点的坐标也为二维平面上的整数。端点用 $1$ 到 $n$ 的整数编号。</p>
+		<p>有 $m$ 对端点之间可以修建篱笆。用 $(u, v, w)$ 描述一段可以修建的篱笆，表示端点 $u$ 和端点 $v$ 之间可以花费 $w$ 的代价修建一段。篱笆都看做直线段。为了方便设计，这些可以修建的篱笆都是不会相交的 (只会在端点处相交)。</p>
+		<p>将一个古迹围起来是指存在一个由篱笆构成的简单多边形，这个古迹在该多边形内部。</p>
+		<p>由于经费问题，学校希望修建篱笆的花费最小。你需要输出将至少 $1$ 个，$2$ 个，…，$p$ 个古迹围起来的最小花费。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $p, n, m$ ($p \leq 10; n \leq 100; m \leq \dbinom n2$)，分别表示古迹的个数，端点个数和可以修建的篱笆条数。</p>
+		<p>接下来 $p$ 行，每行包含两个整数 $X_i, Y_i$ ($-10^9 \leq X_i, Y_i \leq 10^9$)，表示每个古迹的坐标。</p>
+		<p>接下来 $n$ 行，每行包含两个整数 $x_i, y_i$ ($-10^9 \leq x_i, y_i \leq 10^9$)，表示每个端点的坐标。这些端点按照输入的顺序依次用 $1$ 到 $n$ 的整数编号。</p>
+		<p>最后 $m$ 行，每行包含三个非负整数 $u, v, w$ ($1 \leq u, v \leq n; 0 \leq w \leq 10^6$)，表示可以在端点 $u$ 和端点 $v$ 之间花 $w$ 的代价修建一段篱笆。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $p$ 行，每行一个整数，第 $i$ 行的整数表示将至少 $i$ 个古迹围起来的最小花费。</p>
+
+		<h3>题解</h3>
+		<p>可以看出，这道题大体和 <a href="sgu303%3Bgym100765H.html" target="_blank">Great Berland Wall</a> 类似，还是在平面图上求一个类似割集的东西的大小。</p>
+		<p>在那道题中，我们要找一个关于 $P, Q$ 的最小点割集 (最小割)，而这里将某个古迹 $A$ 保护起来就相当于需要寻找关于 $A$ 和<em>无穷区域</em>的最小点割集。</p>
+		<p>因此还是类似地使用最大流最小割定理，变成最大流问题。</p>
+		<p>但这里有多个古迹，又该怎么处理呢？</p>
+		<p>注意到 $p \leq 10$，我们只需要<strong>暴力枚举</strong>哪些古迹被保护，分别算出最小值后然后统计答案，这样也就是 $2^{10} = 1024$ 次网络流的问题。</p>
+		<p>现在的问题是如何寻找关于一个点集 $C$ 和某一个点 (无穷区域) 的最小点割集。</p>
+		<p>我们可以建立一个超级源点 $S$，向 $C$ 中的每一个点连一条权为 $+ \infty$ 的边。这样关于 $S$ 和无穷区域的点割集就是关于点集 $C$ 和无穷区域的点割集。</p>
+		<p>这是因为，新图中，$S$ 到 $C$ 中点的边的权为 $+ \infty$，因此肯定不会作为割集所割的边。</p>
+		<p>于是我们就可以跑正常的网络流啦。至于点的定位问题，还是详见那篇题解。总时间复杂度 $O \left( 2^p n^3 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+namespace Flow {
+	#define ad(x) (((x - 1) ^ 1) + 1)
+
+	const int N = 100000, M = 100000;
+
+	struct edge {
+		int u, v, f;
+		edge (int u0 = 0, int v0 = 0, int f0 = 0) : u(u0), v(v0), f(f0) {}
+	} e[M];
+
+	int V = 2, E = 0, si = 1, ti = 2, flow;
+	int first[N], next[M];
+	int dep[N], cur[N], que[N];
+
+	inline void addedge(int u, int v, int f1, int f2 = 0) {
+		e[++E] = edge(u, v, f1); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u, f2); next[E] = first[v]; first[v] = E;
+	}
+
+	bool bfs() {
+		int h, t = 1, i, x, y;
+		memset(dep, -1, sizeof dep);
+		que[0] = si; dep[si] = 0;
+		for (h = 0; h &lt; t; h++){
+			if ((x = que[h]) == ti) return true;
+			for (i = first[x]; i; i = next[i])
+				if (dep[y = e[i].v] == -1 &amp;&amp; e[i].f) {
+					que[t++] = y;
+					dep[y] = dep[x] + 1;
+				}
+		}
+		return false;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		for (int &amp;i = cur[x]; i; i = next[i])
+			if (dep[e[i].v] == dep[x] + 1 &amp;&amp; e[i].f) {
+				a = std::min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c; e[ad(i)].f += c;
+				if((f += c) == lim) return f;
+			}
+		return f;
+	}
+
+	int Dinic() {
+		for (flow = 0; bfs(); flow += dfs(si, INT_MAX))
+			memcpy(cur, first, sizeof cur);
+		return flow;
+	}
+
+	inline void reset() {memset(first, 0, (V + 1) &lt;&lt; 2), V = 2, E = 0, si = 1, ti = 2;}
+}
+
+namespace Geometry {
+	const int N = 10000;
+	#define dot(x, y, z) (((y) - (x)) * ((z) - (x)))
+	#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+	typedef long long ll;
+	typedef std::vector &lt;int&gt; vector;
+
+	struct vec2 {
+		ll x, y;
+		vec2 (int x0 = 0.0, int y0 = 0.0) : x(x0), y(y0) {}
+		vec2 * read() {scanf("%lld%lld", &amp;x, &amp;y); return this;}
+		inline vec2 operator - () const {return vec2(-x, -y);}
+		inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+		inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+		inline vec2 operator * (ll k) const {return vec2(x * k, y * k);}
+		inline ll operator * (const vec2 &amp;B) const {return x * B.x + y * B.y;}
+		inline ll operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}
+		inline ll norm2() const {return x * x + y * y;}
+		inline bool operator &lt; (const vec2 &amp;B) const {return x &lt; B.x || (x == B.x &amp;&amp; y &lt; B.y);}
+	} p[N], Anc[N];
+
+	struct edge {
+		int u, v, w;
+		edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+	} e[N];
+
+	int n = 0, Eh = 0, V = 0, E = 0, F = 0;
+	int infArea = 0, anc[N];
+	int belF[N], first[N], next[N];
+	ll area;
+	vector face[N];
+
+	inline void addedge(int u, int v, int w) {
+		e[++E] = edge(u, v, w); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u, w); next[E] = first[v]; first[v] = E;
+	}
+
+	inline bool judge(const vec2 A, const vec2 B, const vec2 C, const vec2 D) {
+		ll C1 = cross(A, B, C), C2 = cross(A, B, D), C3 = cross(B, C, D);
+		return (C1 ^ C2) &gt;&gt; 63 ? C2 &gt;&gt; 63 : C3 &gt;&gt; 63;
+	}
+
+	void dfs(int i) {
+		int j, x = e[i].u, y = e[i].v, z, bestE = 0;
+		vec2 *bestV = NULL; belF[i] = F; area += p[x] ^ p[y];
+		face[F].push_back(i);
+		for (j = first[y]; j; j = next[j]) {
+			if ((z = e[j].v) == x) continue;
+			if (!bestV || judge(p[x], p[y], p[z], *bestV))
+				bestV = p + z, bestE = j;
+		}
+		if (bestE &amp;&amp; belF[bestE] != F) dfs(bestE);
+	}
+
+	inline int collinear(const vec2 u, const vec2 v, const vec2 P) {int p = cross(P, u, v); return p ? 0 : 1 + (dot(P, u, v) &lt;= 0);}
+
+	int contain(vector &amp;poly, const vec2 P) {
+		int i, in = 0, n = poly.size(); vec2 *u, *v;
+		for (i = 0; i &lt; n; ++i) {
+			u = p + poly[i][e].u, v = p + poly[i][e].v;
+			if (collinear(*u, *v, P) == 2) return 2;
+			if (u-&gt;y &gt; v-&gt;y) std::swap(u, v);
+			if (P.y &gt;= v-&gt;y || P.y &lt; u-&gt;y) continue;
+			in ^= cross(P, *u, *v) &gt;= 0;
+		}
+		return in;
+	}
+
+	int getPoint(const vec2 &amp;P) {
+		for (int i = 1; i &lt;= F; ++i)
+			if (i != infArea &amp;&amp; contain(face[i], P)) return i;
+		return infArea; // should not be this
+	}
+
+	void main() {
+		int i, u, v, w; vec2 B;
+		scanf("%d%d%d", &amp;n, &amp;V, &amp;Eh);
+		for (i = 0; i &lt; n; ++i) Anc[i].read();
+		for (i = 1; i &lt;= V; ++i) p[i].read();
+		for (i = 0; i &lt; Eh; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), addedge(u, v, w);
+		for (i = 1; i &lt;= E; ++i)
+			if (!belF[i] &amp;&amp; (++F, area = 0, dfs(i), area &lt; 0)) infArea = F;
+		assert(infArea);
+		for (i = 0; i &lt; n; ++i) anc[i] = getPoint(Anc[i]);
+	}
+}
+
+int ans[12];
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+int main() {
+	int i, j, pop, D;
+	using Geometry::n; using Geometry::E; using Geometry::belF; using Geometry::e; using Geometry::anc;
+	memset(ans, 127, sizeof ans); Geometry::main();
+	for (i = 0; i &lt; 1 &lt;&lt; n; ++i) {
+		for (j = 1; j &lt;= E; j += 2) Flow::addedge(belF[j], belF[j + 1], e[j].w, e[j].w);
+		Flow::si = Flow::V = Geometry::F + 1;
+		for (pop = j = 0; j &lt; n; ++j)
+			if (i &gt;&gt; j &amp; 1) Flow::addedge(Flow::si, anc[j], INT_MAX), ++pop;
+		Flow::ti = Geometry::infArea;
+		for (D = Flow::Dinic(); pop; down(ans[pop--], D));
+		Flow::reset();
+	}
+	for (i = 1; i &lt;= n; ++i) printf("%d\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>记得把网络流中的边和流量清零。<del>如果有时间可以写动态加边删边的网络流</del>。</p>
+		<p><strong>坑2：</strong>注意在确定无穷区域时要令 <code>infArea = F</code> 而不是 <code>i</code> <del>(不知道上一份代码为什么又过了)</del>。</p>
+	</body>
+</html>

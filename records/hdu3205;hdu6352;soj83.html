@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[hdu3205][hdu6352][soj83]因式分解</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 L 最近在研究因式分解，他最近学到了一个公式 $x^n - 1 = (x-1) \left( x^{n - 1} + x^{n - 2} + \cdots + 1 \right)$。</p>
+		<p>然而众所周知，因式分解需要分解到底，也就是分解出的几个因式都应该是既约的。然而上面的公式并不一定做到了这一点。</p>
+		<p>于是小 L 希望你帮他将这个式子分解为首项系数为 $1$ 的整系数既约多项式的乘积。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 5 \times 10^5$)，表示分解的式子中的 $x^n$ 次项次数。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $k$，表示分解出的既约因式个数。</p>
+		<p>接下来 $k$ 行，每行描述一个因式。其中第一个整数 $l$ 表示这个因式的次数，接来下 $l + 1$ 个整数依次表示它的 $l, l - 1, \cdots, 0$ 次项的系数。</p>
+
+		<h3>题解</h3>
+		<p>由<a href="../memos/17.html" target="_blank">分圆多项式</a>相关理论，可以得到</p>
+		<p>$$ x^n - 1 = \prod_{d \mid n} \Phi_d (x) \tag 1 \label 1 $$</p>
+		<p>也就是说，你需要对若干个 $d$ 求出 $\Phi_d (x)$。</p>
+		<p>如果我们对 $\eqref 1$ 式两端取<strong>对数</strong>，则有</p>
+		<p>$$ \log \left( x^n - 1 \right) = \sum_{d \mid n} \log \Phi_d (x) $$</p>
+		<p>可以看出，这是一个 Möbius 变换 (Dirichlet 前缀和) 的形式。</p>
+		<p>因此，如果想求某个特定的 $\Phi_n (x)$，可以利用下式：</p>
+		<p>$$ \log \Phi_n (x) = \sum_{d \mid n} \mu \left( \frac nd \right) \cdot \log \left( x^d - 1 \right) $$</p>
+		<p>两边取指数，就有</p>
+		<p>$$ \Phi_n (x) = \prod_{d \mid n} \left( x^d - 1 \right)^{\mu(n/d)} $$</p>
+		<p>由于 $\mu(n) \in \{-1, 0, 1\}$，因此我们要算的就是若干个多项式的乘积除以若干个多项式。比如 $\Phi_{12} (x) = \dfrac {(x^2 - 1) (x^{12} - 1)} {(x^4 - 1) (x^6 - 1)}$。</p>
+		<p>我们使用<strong>暴力的</strong>乘除法，由于 $n$ 的平方松因子只有 $2^{\omega(n)} \leq 64$ 个，因此每次暴力作模 $x^{\phi(n)}$ 意义下的乘除法即可，每次乘除是 $O \left( \phi(n) \right)$ 的 (由于只有两项)。</p>
+		<p>因此计算单个 $\Phi_n (x)$ 的复杂度为 $O \left( 2^{\omega(n)} \phi(n) \right)$，可以近似放缩成 $64 \phi(n)$。</p>
+		<p>于是总的时间复杂度就是对 $n$ 的每个因子求 $\Phi_d (x)$ 的复杂度，不超过 $\displaystyle 64 \cdot \sum_{d \mid n} \phi(d) = 64 n$，因此可以通过 (其实这个算法的常数非常小，跑得非常快)。</p>
+		<p>一个简单的常数优化是通过<strong>分圆多项式系数的对称性</strong>，因此可以只在模 $x^{\left \lfloor \phi(n) / 2 \right \rfloor}$ 的意义下进行除法，注意特判 $n = 1$ 的情形。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 500100
+
+int n;
+int ft[N], a[N];
+int pn = 0, mu[N], phi[N], p[80000];
+
+void sieve(int n) {
+	int i, j, v; phi[1] = mu[1] = 1;
+	for (i = 2; i &lt;= n; ++i) {
+		if (!phi[i]) p[pn++] = i, mu[i] = -1, phi[i] = i - 1;
+		for (j = 0; j &lt; pn &amp;&amp; (v = i * p[j]) &lt;= n; ++j)
+			if (i % p[j]) mu[v] = -mu[i], phi[v] = phi[i] * (p[j] - 1);
+			else {mu[v] = 0, phi[v] = phi[i] * p[j]; break;}
+	}
+}
+
+void solve(int id, int n) {
+	int i, j, d, phin = phi[n], maintain = phin &gt;&gt; 1;
+	*a = 1; memset(a + 1, 0, maintain &lt;&lt; 2); printf("%d ", phin);
+	for (i = 1; i &lt;= id; ++i)
+		if (d = ft[i], !(n % d) &amp;&amp; mu[n / d] == 1)
+			for (j = maintain; j &gt;= d; --j) a[j] -= a[j - d];
+	for (i = 1; i &lt;= id; ++i)
+		if (d = ft[i], !(n % d) &amp;&amp; mu[n / d] == -1)
+			for (j = d; j &lt;= maintain; ++j) a[j] += a[j - d];
+	std::reverse_copy(a, a + (phin - maintain), a + (maintain + 1));
+	for (j = 0; j &lt;= phin; ++j) printf("%d%c", a[j], j == phin ? 10 : 32);
+}
+
+int main() {
+	int i;
+	scanf("%d", &amp;n); sieve(n);
+	for (i = 1; i * i &lt;= n; ++i)
+		if (!(n % i) &amp;&amp; (ft[++*ft] = i, i * i != n))
+			ft[++*ft] = n / i;
+	printf("%d\n1 1 -1\n", *ft);
+	std::sort(ft + 1, ft + (*ft + 1));
+	for (i = 2; i &lt;= *ft; ++i) solve(i, ft[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在 HDU 中的<del>坑爹的</del>排序方式和输出格式。</p>
+		<p><strong>坑2：</strong>由于使用了对称性优化，因此要对因式 $x - 1$ 进行特判。</p>
+	</body>
+</html>

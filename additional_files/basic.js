@@ -28,21 +28,30 @@ const
 			'spoj' : [[/\w+/], 'http://www.spoj.com/problems/@0/']
 		},
 		FLDict = {
+			'Always' : '',
 			'bestFy' : 'https://bestfy.cnblogs.com/',
+			'_ChenKerui' : '',
 			'daklqw' : 'https://daklqw.cnblogs.com/',
+			'ddfsb' : '',
+			'ddpag' : 'https://blog.zhangzisu.cn/#/',
+			'des3ns1tized_' : 'https://www.karriganasta.xyz/',
 			'lych_cys' : 'https://blog.csdn.net/lych_cys/',
+			'lbn187' : '',
+			'lyx_cjz' : '',
+			'Memory_of_winter' : 'https://www.cnblogs.com/Memory-of-winter/',
 			'miaom' : 'https://mioam.github.io/',
 			'mrsrz' : 'https://mrsrz.cnblogs.com/',
+			'nbdhhzh' : '',
 			'qiqi20021026' : 'https://bomb-chicken.github.io/',
+			'remember' : '',
 			'shaochengxi' : 'https://scx117.cnblogs.com/',
 			'skylee' : 'https://skylee03.cnblogs.com/',
 			'wanglichao1121' : 'https://wanglichao1121.coding.me/',
-			'Wonderrr' : 'https://www.karriganasta.xyz/',
-			'wzf2000' : 'https://wzf2000.zhzx-oier.top/',
-			'ZhangZisu' : 'https://blog.zhangzisu.cn/#/' 
+			'weng_233' : '',
+			'wzf2000' : 'https://wzf2000.zhzx-oier.top/'
 		};
 
-	persons = ['bestFy', '_ChenKerui', 'daklqw', 'ddpag', 'lbn187', 'lych_cys', 'lyx_cjz', 'miaom', 'mrsrz', 'nbdhhzh', 'qiqi20021026', 'shaochengxi', 'skylee', 'twinkle_', 'wanglichao1121', 'Wonderrr', 'wzf2000', 'ZhangZisu'];
+	persons = Object.keys(FLDict);
 	win.getStorage = localStorage.getItem.bind(localStorage);
 	win.setStorage = localStorage.setItem.bind(localStorage);
 
