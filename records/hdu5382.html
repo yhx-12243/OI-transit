@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[hdu5382]GCD?LCM!</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>令 $$ F(n) = \sum_{i=1}^n \sum_{j=1}^n \left[ \left[ i, j \right] + \left( i, j \right) \geq n \right] $$</p>
+		<p>$$ S(n) = \sum_{i=1}^n F(i) $$</p>
+		<p>其中 $\left[ i, j \right], \left( i, j \right)$ 分别表示 $i$ 和 $j$ 的最小公倍数和最大公约数。</p>
+		<p>给定 $n$，你需要求出 $S(n) \bmod 258280327$ (一个素数) 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10^5$)，表示数据组数。</p>
+		<p>接下来的 $n$ 行，每行包含一个正整数 $n$ ($n \leq 10^6$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $T$ 行，每行一个整数，表示 $S(n) \bmod 258280327$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>注意到 $\left[ i, j \right] + \left( i, j \right) \geq n$ 不好处理，我们考虑它的反面，即令 $\displaystyle f(n) = \sum_{i=1}^n \sum_{j=1}^n \left[ \left[ i, j \right] + \left( i, j \right) \leq n \right]$。</p>
+		<p>注意到如果 $i &gt; n \vee j &gt; n$，必有 $\left[ i, j \right] &gt; n$，从而 $\left[ i, j \right] + \left( i, j \right) &gt; n$。</p>
+		<p>因此，其实 $f(n)$ 就等于 $\displaystyle f(n) = \sum_{i \geq 1} \sum_{j \geq 1} \left[ \left[ i, j \right] + \left( i, j \right) \leq n \right]$。<p/>
+		<p>于是答案就等于 $$ \sum_{i=1}^n \left( i^2 - f(i - 1) \right) = \dfrac 16 n (n + 1) (2 n + 1) - \sum_{i=1}^{n-1} f(i) $$</p>
+		<p>由于 $n \leq 10^6$，于是我们考虑预处理出所有的 $f(n)$ 然后 $O(1)$ 查询。</p>
+		<p>为了简化问题，我们先来讨论一个更简单的问题：</p>
+		<p><strong>给定正整数 $n$，你需要找到有多少对 $i, j$，满足 $\left[ i, j \right] + \left( i, j \right) = n$</strong>。也就是求出 $f(n)$ 的差分序列，记作 $\tau(n)$。</p>
+		<p>我们枚举 $d = \left( i, j \right)$，设 $i = i_0 d, j = j_0 d$，则有 $i_0 \perp j_0$ (即 $\left( i_0, j_0 \right) = 1$)。</p>
+		<p>此时 $\left[ i, j \right] = \dfrac {i j} {\left( i, j \right)} = d i_0 j_0$，因此 $\left[ i, j \right] + \left( i, j \right) = d \cdot \left( i_0 j_0 + 1 \right)$。</p>
+		<p>我们期望 $d \cdot \left( i_0 j_0 + 1 \right) = n$，如果满足条件了，则令 $\tau \left( d \cdot \left( i_0 j_0 + 1 \right) \right) \uparrow 1$ (这里 $a \uparrow b$ 表示 <code>a += b</code>)。</p>
+		<p>我们计算一下这样的时间复杂度：</p>
+		<p>对于一个固定的 $d$，这样的 $\left( i_0, j_0 \right)$ 在<strong>不考虑互素条件</strong>情况下有 $O \left( \dfrac nd \log \dfrac nd \right)$ 对，因此总的时间复杂度为 $O \left( n \log n + \dfrac n2 \log \dfrac n2 + \cdots + \right) = O \left( n \log^2 n \right)$，不可通过。</p>
+		<p>注意到对一组 $i_0 \perp j_0$，它会更新 $i_0 j_0 + 1, 2 \left( i_0 j_0 + 1 \right), 3 \left( i_0 j_0 + 1 \right)$……也就是说，一次更新会影响某个 $v$ 以及所有它的倍数下标的位置。</p>
+		<p>因此我们可以对于每组 $i_0, j_0$ 更新一次，然后做一遍 <a href="loj2476.html#DS" target="_blank">Dirichlet 前缀和 (Möbius 变换)</a> 即可，总的时间复杂度就降为枚举 $i_0, j_0$ 的复杂度，即 $O \left( n \log n + T \right)$，已经可以通过此题了。</p>
+		<p>不过这题是可以出到 $n = 10^7$ 的，此时上面的算法就又过不去了。</p>
+		<p>考虑 $\tau(n)$ 的意义，其实就是对 $n$ 的每个因子 $d$，求出有多少对<strong>互素的整数</strong>满足 $i_1 j_1 + 1 = \dfrac nd$。</p>
+		<p>定义 $g(n)$ 表示有多少对互素的整数 $a \perp b$ 满足 $n = a \cdot b$。</p>
+		<p>容易证明 $g(n) = 2^{\omega(n)}$，其中 $\omega(n)$ 表示 $n$ 的不同素因子个数。</p>
+		<p>另外，又有 $$ \tau(n) = \sum_{d \mid n} g \left( \frac nd - 1 \right) = \sum_{d \mid n} g \left( d - 1 \right) $$</p>
+		<p>可以看出又是一个 <em>Dirichlet 前缀和</em>的形式。</p>
+		<p>我们可以用线性筛法求出 $g(n)$，然后向右平移 $1$ 个单位再做一次 Dirichlet 前缀和就能得到 $\tau(n)$ —— $f(n)$ 的差分序列，然后做两次前缀和即可得到 $f(n)$ 的前缀和序列。</p>
+		<p>总时间复杂度就是做 Dirichlet 前缀和的复杂度，为 $O \left( n \log \log n + T \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1000054
+#define gcd std::__gcd
+
+typedef long long ll;
+const ll mod = 258280327;
+
+int pn = 0, c[N], p[80000];
+int omg[N];
+ll f[N];
+
+inline ll S2(int n) {return n * (n + 1ll) * (n &lt;&lt; 1 | 1) / 6;}
+
+void init() {
+	int i, j, k, v;
+	memset(c, -1, sizeof c); omg[1] = 1;
+	for (i = 2; i &lt; N; ++i) {
+		if (!~c[i]) p[pn] = i, c[i] = pn++, omg[i] = 2;
+		for (j = 0; j &lt;= c[i] &amp;&amp; (v = i * p[j]) &lt; N; ++j)
+			c[v] = j, omg[v] = omg[i] &lt;&lt; (j != c[i]);
+	}
+	for (i = 1; i &lt; N; ++i) f[i] = omg[i - 1];
+	for (v = 0; v &lt; pn; ++v)
+		for (j = 1, k = i = p[v]; k &lt; N; ++j, k += i) f[k] += f[j];
+	for (i = 2; i &lt; N; ++i) f[i] = (f[i] + f[i - 1]) % mod;
+	for (i = 2; i &lt; N; ++i) f[i] += f[i - 1];
+}
+
+int main() {
+	int T, n; ll ans; init();
+	for (scanf("%d", &amp;T); T; --T)
+		scanf("%d", &amp;n), ans = (S2(n) - f[n - 1]) % mod, printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>线性筛 $g(n)$ 时不要忘记令 $g(1) = 1$，以及 $g(n)$ 需要平移后再做 Dirichlet 前缀和。</p>
+	</body>
+</html>

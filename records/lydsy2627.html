@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2627]JZPKIL</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定整数 $n, x, y$，求 $$ \sum_{i=1}^n \left( i, n \right)^x \left[ i, n \right]^y \tag 1 \label 1 $$</p>
+		<p>其中 $\left[ i, j \right], \left( i, j \right)$ 分别表示 $i$ 和 $j$ 的最小公倍数和最大公约数。</p>
+		<p>答案模 $10^9 + 7$ 输出。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 100$)，表示数据组数。</p>
+		<p>接下来的 $n$ 行，每行三个非负整数 $n, x, y$ ($1 \leq n \leq 10^9; 0 \leq x, y \leq 3000$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $T$ 行，每行一个整数，表示所求的式子模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>首先，由 $\left( a, b \right) \cdot \left[ a, b \right] = a \cdot b$，$\eqref 1$ 式可以化成</p>
+		<p>$$ \sum_{i=1}^n \left( i, n \right)^x \frac {i^y n^y} {\left( i, n \right)^y} = n^y \sum_{i=1}^n \left( i, n \right)^{x-y} \cdot i^y \tag 2 \label 2 $$</p>
+		<p>设 $f(n) = n^{x-y}$，将其反演后得到函数 $g(n)$ (即 $g = f \ast \mu$)，则 $f = g \ast 1$，于是 $\eqref 2$ 式可以变成</p>
+		<p>$$ n^y \sum_{i=1}^n i^y \sum_{d \mid i \wedge d \mid n} g(d) = n^y \sum_{d \mid n} g(d) \sum_{d \mid i \wedge i \leq n} i^y \tag 3 \label 3 $$</p>
+		<p>令 $i = j \cdot d$，则有</p>
+		<p>$$ n^y \sum_{d \mid n} d^y g(d) \sum_{j \leq n/d} j^y \tag 4 \label 4 $$</p>
+		<p>注意到最右边的和式，它是 $\displaystyle \sum_{j \leq N} j^y$ 的形式，由多项式基础可知它是一个 $y + 1$ 次的多项式，记作 $P(N)$，于是 $\eqref 4$ 可以化成</p>
+		<p>$$ n^y \sum_{d \mid n} d^y g(d) P \left( \frac nd \right) \tag 5 \label 5 $$</p>
+		<p>由于 $g = f \ast \mu$，将其代入 $\eqref 5$ 即得</p>
+		<p>$$ n^y \sum_{d \mid n} d^y P \left( \frac nd \right) \sum_{e \mid d} e^{x-y} \mu \left( \frac de \right) \tag 6 \label 6 $$
+		<p>令 $a = \dfrac de, b = \dfrac nd, c = e$。化简 $\eqref 6$ 式，可得</p>
+		<p>$$ n^y \sum_{a b c = n} \mu(a) \cdot P(b) \cdot a^y \cdot c^x \tag 7 \label 7 $$</p>
+		<p>注意到 $\eqref 7$ 式可以看成三个函数 ($\mathbf I^y \cdot \mu, P, \mathbf I^x$) 的 Dirichlet 卷积，如果这三个函数都具有积性，那么整个函数也将会有积性，从而可以使用积性函数的性质进行计算。</p>
+		<p>很遗憾 $P(n)$ 是个多项式，它不具有积性。不过，我们可以将 $P(n)$ 拆成若干项，每一项形如 $n^i$ 的形式，这样整个式子又将重新获得积性。</p>
+		<p>因此，我们可以枚举 $P(n)$ 的某一项 $e_i n^i$，代入 $\eqref 7$ 式后可以得到</p>
+		<p>$$ e_i \cdot n^y \sum_{a b c = n} \mu(a) \cdot b^i \cdot a^y \cdot c^x = e_i \cdot n^{x + y} \sum_{a b c = n} \mu(a) \cdot a^{y - x} \cdot b^{i - x} \tag 8 \label 8 $$</p>
+		<p>因为对于固定的 $i$，$y - x, i - x$ 都是常数，我们将其记为 $X, Y$，因此我们要求的就是</p>
+		<p>$$ F(n) = \sum_{a b c = n} \mu(a) \cdot a^X \cdot b^Y \tag 9 \label 9 $$</p>
+		<p>由于 $F$ 具有积性，因此我们可以假设 $n = p^\alpha$，那么由于 $\mu(a) \neq 0$ (否则无贡献)，因此 $a$ 只能取 $1$ 或 $p$。</p>
+		<p>如果 $a = 1$，剩下的部分就是 $\displaystyle \sum_{b c = p^\alpha} b^Y$，相当于 $1^Y + p^Y + p^{2 Y} + \cdots + p^{\alpha Y}$，是一个经典的等比数列求和。</p>
+		<p>如果 $a = p$，则 $\mu(a)$ 部分相当于一个负号，而剩下的部分恰好也是 $\displaystyle \sum_{b c = p^{\alpha - 1}} b^Y$，用类似的方法推得它也是一个等比数列求和。</p>
+		<p>于是 $F \left( p^\alpha \right)$ 可以在 $O(1)$ 时间内求出。</p>
+		<p>从而 $F(n)$ 可以在 $O \left( \omega(n) \right)$ 时间内求出 (忽略分解质因数的时间，其中 $\omega(n)$ 为 $n$ 的不同素因子个数)。</p>
+		<p>注意到 $\eqref 7$ 中 $P(n)$ 是一个 $y + 1$ 次多项式，因此我们需要求 $y + 1$ 遍 $f(n)$，从而单次的时间复杂度就是 $O \left( \mathrm{Factorization}(n) + y \cdot \omega(n) \right)$，其中 $\mathrm{Factorization}(n)$ 表示对 $n$ 分解质因数的时间，通常使用 Pollard-Rho 实现，那么就是 $O \left( n^{1/4} \right)$。</p>
+		<hr />
+		<p>数论部分已经完成，接下来是如何得到 $P(x)$ 的系数 $e_i$。</p>
+		<p>由于 $P(n)$ 表示自然数幂和，由 <a href="https://en.wikipedia.org/wiki/Faulhaber's_formula" target="_blank">Faulhaber 公式</a>可以得到</p>
+		<p>$$ P(n) = \dfrac 1 {y + 1} \sum_{i=0}^{p+1} (-1)^i \binom {y + 1} i B_i n^{m - i + 1} \tag {10} \label {10} $$
+		<p>其中 $B_n$ 表示第 $n$ 个 <a href="https://en.wikipedia.org/wiki/Bernoulli_number" target="_blank">Bernoulli 数</a>，$B_1 = - \dfrac 12$。</p>
+		<p>将 $n = 1$ 代入 $\eqref {10}$ 式即可得到 Bernoulli 数的递推式 ($n \geq 1$)：</p>
+		<p>$$ \sum_{i=0}^n \binom {n + 1} i B_i = 0 $$</p>
+		<p>因此可以在 $O \left( y^2 \right)$ 的时间内完成。</p>
+		<p>因此总时间复杂度 $O \left( y^2 + T \cdot \left( n^{1/4} + y \cdot \omega(n) \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef std::pair &lt;ll, int&gt; pr;
+typedef std::map &lt;ll, int&gt; map;
+const ll mod = 1000000007, inv2 = (mod + 1) / 2, inv6 = (mod + 1) / 6;
+
+namespace NT {
+	const int MAX = 1000000, MAXP = 80000;
+	int pn = 0, c[MAX], p[MAXP];
+	map result;
+
+	ll gcd(ll a, ll b) {return b ? gcd(b, a % b) : a;}
+
+	inline ll MulMod(ll a, ll b, ll m) {
+		ll t = (a * b - (ll)((long double)a * b / m) * m) % m;
+		return t + (t &gt;&gt; 63 &amp; m);
+	}
+
+	ll PowerMod(ll a, ll n, ll m) {
+		if (!n) return 1ll;
+		ll s = PowerMod(a, n &gt;&gt; 1, m);
+		s = MulMod(s, s, m);
+		return n &amp; 1 ? MulMod(s, a, m) : s;
+	}
+
+	void sieve(int n) {
+		int i, j, v;
+		for (i = 2; i &lt;= n; ++i) {
+			if (!c[i]) p[pn++] = i;
+			for (j = 0; j &lt; pn &amp;&amp; (v = i * p[j]) &lt;= n; ++j)
+				if (c[v] = p[j], !(i % p[j])) break;
+		}
+	}
+
+	const int test[8] = {2, 3, 5, 7, 11, 13, 82, 373};
+	bool Miller_Rabin(ll n) {
+		if (n &lt; MAX) return !c[n] &amp;&amp; n &gt; 1;
+		int c, i, j; ll s = n - 1, u, v;
+		for (c = 0; !(s &amp; 1); ++c, s &gt;&gt;= 1);
+		for (i = 0; i &lt; 8; ++i) {
+			if (!(n % test[i])) return false;
+			u = PowerMod(test[i], s, n);
+			for (j = 0; j &lt; c; ++j, u = v)
+				if (v = MulMod(u, u, n), u != 1 &amp;&amp; u != n - 1 &amp;&amp; v == 1) return false;
+			if (u != 1) return false;
+		}
+		return true;
+	}
+
+	ll Pollard_Rho(ll n, int c) {
+		ll i = 1, k = 2, x = rand() % (n - 1) + 1, y = x, p;
+//		printf("Pollard_Rho %lld %d\n", n, c);
+		for (; k &lt;= 131072; ) {
+			x = (MulMod(x, x, n) + c) % n;
+			p = gcd((ull)(y - x + n) % n, n);
+			if (p != 1 &amp;&amp; p != n) return p;
+			if (++i == k) y = x, k &lt;&lt;= 1;
+		}
+		return 0;
+	}
+
+	inline void push(ll prime, int alpha) {
+		map::iterator it = result.find(prime);
+		it == result.end() ? (void)result.insert(pr(prime, alpha)) : (void)(it-&gt;second += alpha);
+	}
+
+	void factor(ll n) {
+		int i, j, k; ll p;
+		for (i = 0; n != 1; )
+			if (n &gt;= MAX) {
+				if (Miller_Rabin(n)) {push(n, 1); return;}
+				for (k = 97; !(p = Pollard_Rho(n, k)); --k);
+				factor(p); n /= p;
+			} else {
+				i = (c[n] ? c[n] : n);
+				for (j = 0; !(n % i); n /= i, ++j);
+				push(i, j);
+			}
+	}
+
+	void init() {
+		char *p_ = new char; srand(time(NULL) + (ll)p_); delete p_;
+		sieve(MAX - 1);
+	}
+}
+
+const int N = 3200;
+
+ll n;
+int alpha, beta;
+int cnt, d[50];
+ll p[50];
+ll B[N], fact[N], finv[N];
+
+ll PowerMod(ll a, ll n, ll c = 1) {for (n %= mod - 1, n += n &gt;&gt; 63 &amp; (mod - 1); n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+inline ll CC(int n, int r) {return fact[n - 1] * finv[r] % mod * finv[n - r] % mod;}
+
+void init() {
+	int i, j;
+	for (*fact = i = 1; i &lt; N; ++i) fact[i] = fact[i - 1] * i % mod;
+	--i; finv[i] = PowerMod(fact[i], -1);
+	for (; i; --i) finv[i - 1] = finv[i] * i % mod;
+	*B = 1, B[1] = inv2 - 1, B[2] = inv6;
+	for (i = 4; i &lt; N; i += 2) {
+		for (j = 0; j &lt; i; j += 2) B[i] = (B[i] + B[j] * CC(i + 1, j)) % mod;
+		B[i] = inv2 - B[i], B[i] += B[i] &gt;&gt; 63 &amp; mod;
+	}
+	++B[1];
+}
+
+ll compute(ll n, int x, int y) {
+	int i, d; ll p, q, fy, S, ret = 1;
+	for (i = 0; i &lt; cnt; ++i) {
+		p = ::p[i] % mod, d = ::d[i];
+		fy = (q = PowerMod(p, y)) - PowerMod(p, x);
+		S = (q == 1 ? d : PowerMod(q - 1, -1, PowerMod(q, d) - 1));
+		ret = ret * ((fy * S + 1) % mod) % mod;
+	}
+	return ret + (ret &gt;&gt; 63 &amp; mod);
+}
+
+void work() { 
+	int i; ll coe, ans = 0;
+	scanf("%lld%d%d", &amp;n, &amp;alpha, &amp;beta);
+	NT::result.clear(); NT::factor(n); cnt = 0;
+	for (map::iterator it = NT::result.begin(); it != NT::result.end(); ++it) p[cnt] = it-&gt;first, d[cnt++] = it-&gt;second;
+	for (i = 0; i &lt;= beta; ++i) {
+		if (!(coe = B[i] * CC(beta + 1, i) % mod)) continue;
+		ans = (ans + coe * compute(n, beta - alpha, (beta - i + 1) - alpha)) % mod;
+	}
+	printf("%lld\n", PowerMod(n % mod, alpha + beta, ans));
+}
+
+int main() {
+	int T; NT::init(); init();
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>还是要注意，在对等比数列求和，不要忘记特判公比为 $1$ 的情况 (在上面就是 $Y = 0$ 的情况)！</p>
+		<p><strong>坑2：</strong>注意到快速幂中次数可能大量出现次数，因此在 <code>PowerMod</code> 函数中应先将 $n$ 对 $mod - 1$ 取模！</p>
+		<p><strong>坑3：</strong>注意合理控制时间复杂度以及常数，比如说利用 $B_{2n + 1} = 0$ ($n \geq 1$) 的性质。</p>
+	</body>
+</html>

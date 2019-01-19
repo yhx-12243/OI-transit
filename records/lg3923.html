@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg3923]大学数学题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定正整数 $n$，请构造一个 $n$ 元有限域 $\mathbb F_n$，或说明它不存在。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($2 \leq n \leq 350$)。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $k$，若存在 $n$ 元有限域则 $k = 0$，否则 $k = -1$。</p>
+		<p>若存在 $n$ 元有限域，则接下来输出 $\mathbb F_n$ 的加法表和乘法表，具体格式如下：</p>
+		<p>设有限域中的元素为 $\left\{ 0, 1, 2, \cdots, n - 1 \right\}$，$0$ 为加法单位元，$1$ 为乘法单位元。
+		<p>先输出加法表，共 $n$ 行，每行 $n$ 个整数。其中第 $i + 1$ 行的第 $j + 1$ 个数表示有限域中 $i + j$ 的运算结果。</p>
+		<p>接着输出乘法表，共 $n$ 行，每行 $n$ 个整数。其中第 $i + 1$ 行的第 $j + 1$ 个数表示有限域中 $i \cdot j$ 的运算结果。</p>
+
+		<h3>题解</h3>
+		<p>由有限域的基础理论，<strong>存在 $n$ 阶有限域 $\mathbb F_n$ 当且仅当 $n$ 为素数的幂</strong>。</p>
+		<p>当 $n \in \mathbb P$ 时，我们只需取一个<em>素域</em>即可，即 $\bmod n$ 意义下的加法与乘法 <del>(所构成的环)</del>。</p>
+		<p>若 $n = p^{\alpha}$ ($\alpha \geq 2$)，则由域扩张理论，<strong>$\mathbb F_n$ 一定是其素域 $\mathbb F_p$ 的 $n$ 次有限扩张</strong>。</p>
+		<p>因此，我们需要找到一个在 $\mathbb F_p$ 中不可约的 $\alpha$ 次多项式 $f(x)$，可以通过打表或<em>枚举加整除判断</em>完成。</p>
+		<p>记 $\mathrm i$ 为 $f(x)$ 的一个根，将 $\mathbb F_p$ 进行单纯代数扩张即可得到 $\mathbb F_{p^\alpha}$。</p>
+		<p>在 $\mathbb F_{p^\alpha}$ 中，$1, \mathrm i, \mathrm i^2, \cdots, \mathrm i^{\alpha-1}$ 为它的一组基底，由于 $\mathbb F_{p^\alpha}$ 是有限域，因此 $\mathbb F_{p^\alpha}$ 中的每一个元素可以表示成如下形式：</p>
+		<p>$$ a_0 + a_1 \mathrm i + a_2 \mathrm i^2 + \cdots + a_{\alpha-1} \mathrm i^{\alpha-1} \tag 1 \label 1 $$</p>
+		<p>容易验证一共有 $p^n$ 个不同的元素。</p>
+		<p>对于域中元素的加法，直接将对应的 $a_i$ 相加后 $\bmod p$ 即可，对于乘法，将 $\eqref 1$ 式看成 <em>"多项式"</em>，然后相乘，最后对 $f(x)$ 取模即可 (由于 $f \left( \mathbb i \right) = 0$)。</p>
+		<p>时间复杂度 $O \left( p^{2 \alpha} \alpha^2 \right) = O \left( n^2 \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 360
+
+const int P[7][7] = {
+	{7, 11, 19, 37, 67, 131, 283}, // 2 : 4, 8, 16, 32, 64, 128, 256
+	{10, 34, 86, 250, -1, -1, -1}, // 3 : 9, 27, 81, 243
+	{27, 131, -1, -1, -1, -1, -1}, // 5 : 25, 125
+	{50, 345, -1, -1, -1, -1, -1}, // 7 : 49, 343
+	{122, -1, -1, -1, -1, -1, -1}, // 11 : 121
+	{171, -1, -1, -1, -1, -1, -1}, // 13 : 169
+	{292, -1, -1, -1, -1, -1, -1}, // 17 : 289
+};
+
+int n, id, p, a = 0;
+int poly[20];
+int pn = 0, c[N], pr[75];
+
+void sieve(int n) {
+	int i, j, v;
+	memset(c, -1, sizeof c); *c = c[1] = 0;
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i]) pr[pn] = i, c[i] = pn++;
+		for (j = 0; j &lt;= c[i] &amp;&amp; (v = i * pr[j]) &lt;= n; ++j) c[v] = j;
+	}
+}
+
+inline void expand(int x, int *r) {for (int i = 0; i &lt; a; r[i++] = x % p, x /= p);}
+
+inline int compress(int *r) {int i, x = 0; for (i = a; i; x = x * p + r[--i]); return x;}
+
+int add(int x, int y) {
+	int i, X[a], Y[a];
+	expand(x, X), expand(y, Y);
+	for (i = 0; i &lt; a; ++i) X[i] = (X[i] + Y[i]) % p;
+	return compress(X);
+}
+
+int mul(int x, int y) {
+	int i, j, X[a], Y[a], Z[20] = {0};
+	expand(x, X), expand(y, Y);
+	for (i = 0; i &lt; a; ++i)
+		for (j = 0; j &lt; a; ++j) Z[i + j] += X[i] * Y[j];
+	for (i = a * 2 - 2; i &gt;= a; --i) {
+		Z[i] = -Z[i] % p, Z[i] += Z[i] &gt;&gt; 31 &amp; p;
+		for (j = 1; j &lt;= a; ++j) Z[i - j] = (Z[i - j] + poly[a - j] * Z[i]) % p;
+	}
+	return compress(Z);	
+}
+
+int main() {
+	int m, i, j;
+	sieve(N - 1);
+	scanf("%d", &amp;n); p = pr[id = c[n]];
+	for (m = n; !(m % p); m /= p, ++a);
+	if (n == 1 || m != 1) return puts("-1"), 0;
+	putchar(48), putchar(10);
+	if (a == 1) {
+		for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; n; ++j)
+			printf("%d%c", (i + j) % n, j == n - 1 ? 10 : 32);
+		for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; n; ++j)
+			printf("%d%c", i * j % n, j == n - 1 ? 10 : 32);
+	} else {
+		for (m = P[id][a - 2], i = 0; i &lt;= a; poly[i++] = m % p, m /= p);
+		for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; n; ++j)
+			printf("%d%c", add(i, j), j == n - 1 ? 10 : 32);
+		for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; n; ++j)
+			printf("%d%c", mul(i, j), j == n - 1 ? 10 : 32);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>由定义，$n = 1$ 时其实是不存在大小为 $1$ 的域的，因为域要求加法单位元和乘法单位元不同。</p>
+		<p><strong>坑1：</strong>注意当 $\alpha = 1$ 时多项式是可以任意的，因为此时 $\mathbb F_p$ 就是一个素域，即熟知的模 $n$ 意义下的代数。</p>
+	</body>
+</html>

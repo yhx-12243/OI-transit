@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj2978][THUSC2017]杜老师</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $L, R$，求从 $L$ 到 $R$ 的这 $R - L + 1$ 个数中能选出多少个不同的子集，满足子集中所有的数的乘积是一个完全平方数。特别地，空集也算一种选法，定义其乘积为 $1$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($1 \leq T \leq 100$)，表示测试数据组数。</p>
+		<p>接下来 $T$ 行，第 $i + 1$ 行包含两个正整数 $L_i, R_i$ 表示第 $i$ 组测试数据的 $L, R$，保证 $1 \leq L_i \leq R_i \leq 10^7$。
+
+		<h3>输出格式</h3>
+		<p>输出 $T$ 行，每行一个非负整数，表示一共可以选出多少个满足条件的子集，答案对 $998244353$ 取模。</p>
+
+		<h3>题解</h3>
+		<p>和往常一样，我们定义 $n$ 的<a href="loj509.html" target="_blank"><dfn>平方特征</dfn></a>，为 $n$ 除以 $d$ 所得的商，其中 $d$ 为最大的整除它的平方数。用等式表示即为，</p>
+		<p>$$ \xi(n) = n \cdot \left( \max_{d^2 \mid n} d^2 \right)^{-1} = \prod_{p \in \mathbb P, 2 \nmid v_p(n)} p^{v_p(n)} $$</p>
+		<p>由于平方特征一定是<strong>平方松</strong> (square-free) 的，因此根据第二个等号右边，一个平方特征 (或平方松的数) 可以看成一个素因子的集合，如 $30 \sim \left\{ 2, 3, 5 \right\}$，我们暂且称这个集合为 $n$ 的<dfn>平方特征集合</dfn>。</p>
+		<p>那么，若干个数的乘积是完全平方数的充要条件是，<strong>它们的平方特征集合的对称差为空集</strong>。</p>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 10000054
+
+typedef long long ll;
+const int mod = 998244353, Fy = 6400, Pfy = 840;
+typedef std::bitset &lt;Pfy&gt; bit;
+
+int L, R;
+int pn = 0, c[N], sqch[N], p[664800];
+bit lb[Pfy];
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void sieve(int n) {
+	int i, j, v;
+	memset(c, -1, sizeof c); sqch[1] = 1;
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i]) p[pn] = i, c[i] = pn++, sqch[i] = i;
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt; c[i]; ++j) c[v] = j, sqch[v] = sqch[i] * p[j];
+		if (v &lt;= n) c[v] = j, sqch[v] = (sqch[i] % p[j] ? sqch[i] * p[j] : sqch[i] / p[j]);
+	}
+}
+
+bool insert(bit &amp;x) {
+	for (int i = Pfy - 1; i &gt;= 0; --i)
+		if (x.test(i)) {
+			if (lb[i].any()) x ^= lb[i];
+			else return lb[i] = x, true;
+		}
+	return false;
+}
+
+void work() {
+	int i, n, m, ans = 0; bit t;
+	scanf("%d%d", &amp;L, &amp;R);
+	if (R - L &gt;= 2 * ceil(sqrt(R)))
+		for (i = 0; i &lt; pn &amp;&amp; p[i] &lt;= R; ++i) ans += R / p[i] != (L - 1) / p[i];
+	else {
+		for (n = L; n &lt;= R; ++n) {
+			for (t.reset(), m = sqch[n]; m != 1; m /= p[i])
+				if (i = c[m], p[i] &gt; R - L) {++ans; break;} else t.set(i);
+			if (m == 1) ans += insert(t);
+		}
+		for (i = 0; i &lt; Pfy; ++i) lb[i].reset();
+	}
+	printf("%lld\n", PowerMod(2, R - L + 1 - ans));
+}
+
+int main() {
+	int T; sieve(N - 1);
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

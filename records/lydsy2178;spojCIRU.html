@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2178][spoj CIRU]圆的面积并</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给出 $n$ 个圆，求它们并的面积。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 1000$)，表示圆的个数。</p>
+		<p>接下来的 $n$ 行，每行三个整数 $x_i, y_i, r_i$ ($|x_i|, |y_i| \leq 1000; 0 \leq r_i \leq 1000$)，表示有一个圆心为 $\left( x_i, y_i \right)$，半径为 $r_i$ 的圆。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数 $U$，表示圆并的面积，保留三位小数。</p>
+
+		<h3>题解</h3>
+		<p>在 <a href="lydsy1845%3Blg4406.html" target="_blank">[CQOI2005]三角形面积并</a> 一题中，我们给出了一种求三角形面积并的算法——精确 Simpson 积分法，它运用了扫描线的思想，一段一段的计算整个图形的面积，时间复杂度 $O \left( n^3 \log n \right)$。</p>
+		<p>而在 <a href="lydsy1502%3Blg4207.html" target="_blank">[NOI2005]月下柠檬树</a> 一题中，对于<del>乱七八糟的形状的</del>面积并，由于图形的连通性，我们直接<del>暴力地</del>使用 Simpson 积分法完成了问题，它的时间复杂度为 $O \left( - n \log eps \right)$。</p>
+		<p>那么在这道题 (圆的面积并) 中，我们又应该怎么处理呢？</p>
+		<p>显然 Simpson 积分还是理论可行的，但是由于圆的位置可能会比较松散，因此需要我们切割成好几个地方分别积分，不好实现。</p>
+		<p>现在我们换一种思路。如果题目要我们求圆并的周长，那么我们还是可以非常容易在 $O \left( n^2 \right)$ 时间内求出的。</p>
+		<p>我们可以枚举每一个圆，计算它对周长并 (答案) 的贡献。对于一个圆，我们枚举所有与它<strong>相交</strong> (边界相交，不含内含的情形) 的圆，然后算出被覆盖的圆弧区间并打上标记。最后对这些标记区间求个并 (即线段并)，剩余的部分就是 "裸露在外面" 的弧长，也就是它对周长并 (答案) 的贡献。</p>
+		<p>(注：其实这个思想已经在 <a href="lydsy1043%3Blg2510.html" target="_blank">[HAOI2008]下落的圆盘</a> 中体现过了，故具体实现可以参见那一篇的题解)</a>
+		<p>但是我们现在要求的是面积，而不是周长。面积与周长之间，又能想到什么联系呢？注意到面积可以看成<strong>区域积分</strong>，周长可以看成<strong>环积分</strong>。因此，答案就浮现在眼前了——没错，就是 <strong>Green 公式</strong>。
+		<div class="panel panel-success">
+			<div class="panel-heading">Green 公式</div>
+			<div class="panel-body">
+				<p>设 $C$ 是平面上的简单闭曲线，$D$ 是以 $C$ 为边界的闭区域。设 $L, M$ 是关于 $x, y$ 的二元函数，且在 $D$ 处有定义及有偏导，则有</p>
+				<p>$$ \oint_C \left( L \mathrm dx + M \mathrm dy \right) = \iint_D \left( \frac {\partial M} {\partial x} - \frac {\partial L} {\partial y} \right) \mathrm dx \mathrm dy $$</p>
+			</div>
+		</div>
+		<p>证明的话先对最简单的区域讨论，然后逐步拓展。<del>可以在任何一本高等数学/数学分析书中找到</del>。</p>
+		<p>特别地，令 $L(x, y) = -y, M(x, y) = x$，就有 $$ \oint_C \left( x \mathrm dy - y \mathrm dx \right) = \iint_D 2 \mathrm dx \mathrm dy = 2 \mathrm{area} (D) $$</p>
+		<p>于是似乎我们只需计算 $\displaystyle \oint_C \left( x \mathrm dy - y \mathrm dx \right)$ 的值即可。</p>
+		<p>由于 $C$ 是一段圆弧，我们可以表示成：</p>
+		<p>$$ \begin{cases} x = x_0 + r \cdot \cos \theta \\ y = y_0 + r \cdot \sin \theta \end{cases} \quad \alpha \leq \theta \leq \beta $$</p>
+		<p>从而有 \begin{align*}
+\oint_C \left( x \mathrm dy - y \mathrm dx \right) &amp;= \oint_C \left( \left( x_0 + r \cos \theta \right) \mathrm dy - \left( y_0 + r \sin \theta \right) \mathrm dx \right) \\
+&amp;= \int_\alpha^\beta \left( \left( x_0 + r \cos \theta \right) \mathrm d \left( y_0 + r \sin \theta \right) - \left( y_0 + r \sin \theta \right) \mathrm d \left( x_0 + r \cos \theta \right) \right) \\
+&amp;= \int_\alpha^\beta \left( \left( x_0 + r \cos \theta \right) r \cos \theta \mathrm d \theta + \left( y_0 + r \sin \theta \right) r \sin \theta \mathrm d \theta \right) \\
+&amp;= r \int_\alpha^\beta \left( \left( x_0 + r \cos \theta \right) \cdot \cos \theta + \left( y_0 + r \sin \theta \right) \cdot \sin \theta \right) \mathrm d \theta \\
+&amp;= r \int_\alpha^\beta \left( x_0 \cos \theta + y_0 \sin \theta + r \right) \mathrm d \theta \\
+&amp;= r \left( r \theta + x_0 \sin \theta - y_0 \cos \theta \right) \bigg|_\alpha^\beta
+\end{align*}</p>
+		<p>也就是说，在最后的整个是区域中，每一段圆弧 $\left( x_0, y_0, r, \alpha, \beta \right)$ 对最后积分值 (答案) 的贡献都是 $\displaystyle \frac r2 \left( r \theta + x_0 \sin \theta - y_0 \cos \theta \right) \bigg|_\alpha^\beta$。</p>
+		<p>于是，我们还是只需要对每一个圆弧统计答案即可。</p>
+		<p>因此和那道题类似，还是对于每一个圆，枚举所有与其相交的圆，对覆盖的弧区间打上标记，最后取标记并的补集，就是所要计算的区间 (即裸露在外的弧长)。</p>
+		<p>且这个弧长是符合 Green 公式的条件的，即外边界逆时针，内边界逆时针。</p>
+		<p>总时间复杂度 $O \left( n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1054
+
+const double eps = 2e-10, pi2 = M_PI * 2.0;
+
+#define lt(x, y) ((x) &lt; (y) - eps)
+#define gt(x, y) ((x) &gt; (y) + eps)
+#define le(x, y) ((x) &lt;= (y) + eps)
+#define ge(x, y) ((x) &gt;= (y) - eps)
+#define eq(x, y) (le(x, y) &amp;&amp; ge(x, y))
+#define dot(x, y, z) (((y) - (x)) * ((z) - (x)))
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+struct vec2 {
+	double x, y;
+	vec2 (double x0 = 0.0, double y0 = 0.0) : x(x0), y(y0) {}
+	vec2 * read() {scanf("%lf%lf", &amp;x, &amp;y); return this;}
+	inline vec2 operator - () const {return vec2(-x, -y);}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline vec2 operator * (double k) const {return vec2(x * k, y * k);}
+	inline vec2 operator / (double k) const {return *this * (1.0 / k);}
+	inline double operator * (const vec2 &amp;B) const {return x * B.x + y * B.y;}
+	inline double operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}
+	inline double norm2() const {return x * x + y * y;}
+	inline bool operator &lt; (const vec2 &amp;B) const {return x &lt; B.x || (x == B.x &amp;&amp; y &lt; B.y);}
+};
+
+inline double f(vec2 O, double r, double t) {return r * (r * t + O.x * sin(t) - O.y * cos(t));}
+
+enum relation {outside = 0, intersective = 1, contained = 2, containing = 3};
+
+relation circle_relation(const vec2 O1, double r1, const vec2 O2, double r2) {
+	double d = (O1 - O2).norm2();
+	if (le((r1 + r2) * (r1 + r2), d)) return outside;
+	if (ge((r1 - r2) * (r1 - r2), d)) return le(r1, r2) ? contained : containing;
+	return intersective;
+}
+
+void intersection(const vec2 O1, double r1, const vec2 O2, double r2, double &amp;beg, double &amp;end) {
+	vec2 O12 = O2 - O1;
+	double d2 = O12.norm2(), d = sqrt(d2),
+	Cos = ((r1 + r2) * (r1 - r2) + d2) / (2.0 * d * r1),
+	sAng = acos(Cos), iAng = atan2(O12.y, O12.x);
+	iAng &lt; 0.0 ? iAng += pi2 : 0.0;
+	(beg = iAng - sAng) &lt; 0.0 ? beg += pi2 : 0.0;
+	(end = iAng + sAng) &gt;= pi2 ? end -= pi2 : 0.0;
+}
+
+int n;
+double r[N];
+vec2 O[N], l[N * 2];
+relation rel[N];
+
+int main() {
+	int i, j, cnt; double il, ir, la, ans = 0.0;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i)
+		if (O[i].read(), scanf("%lf", r + i), le(r[i], 0)) --i, --n;
+	for (i = 0; i &lt; n; ++i) {
+		for (j = 0; j &lt; n; ++j)
+			if ((rel[j] = circle_relation(O[i], r[i], O[j], r[j])) == contained)
+				if (!eq(r[i], r[j]) || i &gt; j) break;
+		if (j &lt; n) continue;
+		for (cnt = j = 0; j &lt; n; ++j)
+			if (rel[j] == intersective) {
+				intersection(O[i], r[i], O[j], r[j], il, ir);
+				if (il &lt;= ir) l[cnt++] = vec2(il, ir);
+				else l[cnt++] = vec2(0, ir), l[cnt++] = vec2(il, pi2);
+			}
+		l[cnt++] = vec2(pi2, pi2); std::sort(l, l + cnt);
+		for (la = j = 0; j &lt; cnt; ++j)
+			if (la &lt; l[j].x) ans += f(O[i], r[i], l[j].x) - f(O[i], r[i], la), la = l[j].y;
+			else if (la &lt; l[j].y) la = l[j].y;
+	}
+	printf("%.3lf\n", ans * 0.5);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意多个圆重合的情况，此时不能算重也不能算漏，因此我们可以规定这种情况标号小的圆覆盖标号大的圆，从而保证只计算了一次。</p>
+		<p><strong>坑2：</strong>算出来积分要除以 $2$ 不要忘记，还有统计裸露弧长时不要忘记最后一段。</p>
+	</body>
+</html>
