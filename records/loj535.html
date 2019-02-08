@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj535]花火</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>$n$ 个烟火排成一排，从左到右高度分别为 $h_1, h_2, \cdots, h_n$，这些高度两两不同。
+		<p>每次可以选择两个相邻的烟火交换，这样的交换可以进行任意多次。</p>
+		<p>还可以选择两个不相邻的烟火交换，<strong>但这样的交换至多进行一次</strong>。</p>
+		<p>你的任务是用最少次数的交换，使这些烟火从左到右的高度递增。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 3 \times 10^5$)。</p>
+		<p>第二行包含 $n$ 个正整数 $h_1, h_2, \cdots, h_n$ ($1 \leq h_i \leq n$，$h_i$ 互不相同)，相邻整数之间用一个空格隔开。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最少的交换次数。</p>
+
+		<h3>题解</h3>
+		<p>首先，如果不允许不相邻的元素交换，则容易看出，答案就等于原排列的<strong>逆序对数</strong>。</p>
+		<p>这是因为，我们每做一次相邻的对换，如果 $h_i &gt; h_{i+1}$，则逆序对数 $- 1$；如果 $h_i &lt; h_{i+1}$，则逆序对数 $+ 1$。因此最少次数的交换就是每次贪心地选 $h_i &gt; h_{i+1}$ 的对进行交换即可，故最少的交换次数就等于原排列的逆序数。</p>
+		<p>那现在允许不相邻的元素交换，又将如何变化呢？</p>
+		<p>首先能意识到的是，我们能将这次 "不相邻的交换" (确切地说，应该是 "不一定相邻的交换") 放到第一次执行，对答案不产生影响。</p>
+		<p>这个其实不难理解，如果你像 <a href="lydsy4371%3Buoj233.html" target="_blank">[IOI2015]Sorting</a> 一题一样，把下标的交换看作值的交换即可。</p>
+		<hr />
+		<p>因此我们的问题又转化为了：给定一个非升序的排列 (即不是已经排完序的) $h$，你需要寻找一对数 $i &lt; j$，使得交换 $h_i$ 和 $h_j$ 后<strong>新排列的逆序对数尽可能得少</strong>。</p>
+		<p>根据<a href="lydsy2141.html" target="_blank">这一题</a>的经验，交换 $h_i$ 和 $h_j$ 后逆序对的变换量等于 $\displaystyle \sum_{k=i}^{j-1} \left( \mathrm{sgn} \left( h_k - h_i \right) + \mathrm{sgn} \left( h_j - h_k \right) \right)$。</p>
+		<p>从这个式子可以看出，如果 $h_i &lt; h_j$，则这次交换一定是不优的 (还不如不交换)。</p>
+		<p>因此以下假设 $h_i &gt; h_j$。我们考察上式的意义，它其实等于 <strong>"满足 $i &lt; k &lt; j$ 且 $h_i &gt; h_k &gt; h_j$ 的 $k$ 的个数"</strong> 的 $-2$ 倍再减 $1$。</p>
+		<p>于是我们就要最大化 <strong>"满足 $i &lt; k &lt; j$ 且 $h_i &gt; h_k &gt; h_j$ 的 $k$ 的个数"</strong>。</p>
+		<p>看得出这是一个什么形式吗？对，就是<big><strong>二维数点</strong></big>！</p>
+		<p>如果我们对每个元素对应到二维平面上的一个点 $\left( i, h_i \right)$，我们就是要找到 (所连直线斜率 $&lt; 0$ 的) 一对点，且以它们为<strong>左上角</strong>和<strong>右下角</strong>的 (边平行于坐标轴的) 矩形内部所包含的点的个数尽可能得多。</p>
+		<hr />
+		<p>这么一来，又有很多<del>显而易见的</del>结论了：</p>
+		<p>首先，对于最优解的 $i, j$，不存在 $i' &lt; i$ 满足 $h_{i'} &gt; h_i$，同理也不存在 $j'$ 满足 $j' &gt; j \wedge h_{j'} &lt; h_j$。<del>(证明略)</del></p>
+		<p>于是我们只需考虑前缀最大值集合 $U$ 和后缀最小值集合 $D$，它们才是有可能对答案产生贡献的点。</p>
+		<p>接下来的操作稍微具有一点技(hen)巧(zi)性(ran)：</p>
+		<p>由于我们是要统计点的个数，因此我们考虑，什么情况下，一个点 $\left( u, h_u \right)$ 才能被统计到？</p>
+		<p>考虑对 $i$ 的要求。很显然，是 $i &lt; u \wedge h_i &gt; h_u$。注意到 $U$ 中对应的决策的 $h$ 是单调递增的，因此 $h_i &gt; h_u$ 条件可以看成是 $i \geq x$，其中 $x$ 是满足 $h_x &gt; h_u$ 的最小 $x \in U$，是一个关于 $u$ 的函数。</p>
+		<p>即可以看成 $x(u) \leq i &lt; u$，同理对于 $j$，也可以得到一个不等式 $u &lt; j \leq y(u)$。</p>
+		<p>可以发现，这是一个<strong>矩形内部数点问题</strong>！也就是说，对于一个 $i$，我们可以构造一个矩形 $R_u = \left[ x(u), u \right) \times \left( u, y(u) \right]$，如果 $(i, j) \in R_u$，则点 $u$ 就能被统计到。</p>
+		<hr />
+		<p>于是，问题就转化成，给定若干个矩形，你需要寻找一个点，使得覆盖这个点的矩形个数尽可能得多。</p>
+		<p>使用扫描线 + 线段树即可，至此问题解决 (需要一个区间求 $\max$ 的线段树)。</p>
+		<p>时间复杂度 $O \left( n \log n \right)$ (原排列的逆序对数可以通过归并排序或树状数组在 $O \left( n \log n \right)$ 时间内得到)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 300054
+
+typedef long long ll;
+
+struct sweepLine {
+	int Left, Right, y, type;
+	sweepLine (int l = 0, int r = 0, int _y = 0, int _type = 0) : Left(l), Right(r), y(_y), type(_type) {}
+	inline bool operator &lt; (const sweepLine &amp;B) const {return y &lt; B.y || (y == B.y &amp;&amp; type &gt; B.type);}
+} sl[N * 2];
+
+int n, cnt = 0;
+int a[N], u[N], d[N], b[N], fy[N];
+int x[N * 4], tag[N * 4];
+ll Inv = 0;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline bool cmp(const int x, const int y) {return a[x] &lt; a[y];}
+
+void add(int id, int L, int R, int ql, int qr, int v) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) {tag[id] += v, x[id] += v; return;}
+	int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1;
+	if (ql &lt;= M) add(lc, L, M, ql, qr, v);
+	if (qr &gt; M) add(rc, M + 1, R, ql, qr, v);
+	x[id] = std::max(x[lc], x[rc]) + tag[id];
+}
+
+void merge_sort(int L, int R) {
+	if (L + 1 == R) return;
+	int M = (L + R) / 2, i = L, j = M, c = L;
+	merge_sort(L, M), merge_sort(M, R), memcpy(fy + L, b + L, (R - L) &lt;&lt; 2);
+	for (; i &lt; M &amp;&amp; j &lt; R; b[c++] = (fy[i] &lt;= fy[j] ? fy[i++] : (Inv += M - i, fy[j++])));
+	i &lt; M ? memcpy(b + c, fy + i, (M - i) &lt;&lt; 2) : memcpy(b + c, fy + j, (R - j) &lt;&lt; 2);
+}
+
+int main() {
+	int i, x, y, X, Y, max = 0;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	for (*a = INT_MAX, i = n; i; --i) a[i] &lt; a[d[*d]] &amp;&amp; (d[++*d] = i);
+	for (*a = 0, i = 1; i &lt;= n; ++i) a[i] &gt; a[u[*u]] &amp;&amp; (u[++*u] = i);
+	memcpy(b, a, (n + 1) &lt;&lt; 2), merge_sort(1, n + 1);
+	std::reverse(d + 1, d + (*d + 1));
+	for (i = 1; i &lt;= n; ++i) {
+		x = std::upper_bound(u + 1, u + (*u + 1), i, cmp) - u;
+		y = std::lower_bound(u + 1, u + (*u + 1), i) - (u + 1);
+		X = std::upper_bound(d + 1, d + (*d + 1), i) - d;
+		Y = std::lower_bound(d + 1, d + (*d + 1), i, cmp) - (d + 1);
+		if (x &lt;= y &amp;&amp; X &lt;= Y) sl[cnt++] = sweepLine(x, y, X, 1), sl[cnt++] = sweepLine(x, y, Y, -1);
+	}
+	std::sort(sl, sl + cnt);
+	for (i = 0; i &lt; cnt; ++i) add(1, 1, *u, sl[i].Left, sl[i].Right, sl[i].type), up(max, ::x[1]);
+	printf("%lld\n", Inv - max * 2);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>和 <a href="soj326.html" target="_blank">[soj326]魔法学校</a> 一样，线段树的标记是不需要下传的，只需要在 <code>update()</code> 时加上 <code>tag[]</code> 即可。</p>
+		<p><strong>坑2：</strong>注意预处理得到的后缀最小值 $D$ 的下标是反序的，记得在 <code>lower_bound</code>/<code>upper_bound</code> 前 <code>reverse</code> 一下。</p>
+	</body>
+</html>

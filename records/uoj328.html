@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj328]量子破碎</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个长度为 $2^n$，下标依次为 $0 \sim 2^n - 1$ 的数组。你需要和交互库玩若干轮游戏。</p>
+		<p>每轮游戏开始时，数组里只有 $a[x] = a[y] = \dfrac 1 {\sqrt 2}$ ($x \neq y$)，剩下的元素都是 $0$。</p>
+		<p>你需要编写一个函数和交互库进行多轮交互，求出 $x \oplus y$ 的值 (每轮中 $x \oplus y$ 不变)：</p>
+		<ul>
+			<li><code>query_xor(n, t)</code>
+			<ul>
+				<li>$n$ 表示 $a$ 的长度是 $2^n$，$t$ 表示子任务编号。</li>
+				<li>你的返回值是 $x \oplus y$ 的答案。</li>
+			</ul></li>
+		</ul>
+		<p>你可以通过以下两种操作来确定这个值:</p>
+		<ul>
+			<li><code>query()</code>
+			<ul>
+				<li>向交互库做一次询问。</li>
+				<li>交互库会随机返回一个下标，具体来说返回 $x$ 的概率恰好是 $a[x]^2$。</li>
+				<li>返回 $x$ 之后，会开始新的一轮，交互库重新随机一对 $x$ 和 $y$ 保证 $x \oplus y$ 不变 (在所有满足条件的 $x, y$ 中等概率随机，有可能不变），然后重新给数组 $a$ 赋值，使得数组里只有 $a[x] = a[y] = \dfrac 1 {\sqrt 2}$ ($x \neq y$)，剩下的元素都是 $0$。</li>
+			</ul></li>
+			<li><code>manipulate(A, i)</code>
+			<ul>
+				<li><p>向交互库做一次操作，给出一个 $2 \times 2$ 的<strong>实正交矩阵</strong> $A$。</p></li>
+				<li><p>交互库会把数组 $a$ 更新，具体来说，对于每个二进制第 $i$ ($i$ 是传入的参数) 位为 $0$ 的数 $x$，令 $$ \begin{pmatrix} a'[x] &amp; a' \left[ x + 2^i \right] \end{pmatrix} = \begin{pmatrix} a[x] &amp; a \left[ x + 2^i \right] \end{pmatrix} \cdot \begin{pmatrix} A[0, 0] &amp; A[0, 1] \\ A[1, 0] &amp; A[1, 1] \end{pmatrix} $$ 则 $a[x]$ 将更新为 $a'[x]$，$a \left[ x + 2^i \right]$ 将更新为 $a' \left[ x + 2^i \right]$。</p></li>
+				<li><p>可以证明，如果 $A$ 是实正交矩阵，则此时 $a[x]^2$ 的和始终为 $1$。</p></li>
+			</ul></li>
+		</ul>
+
+		<h3>实现细节</h3>
+		<p>本题只支持 C/C++。</p>
+		<p>你只能提交一个源文件实现如上所述的 query_xor 函数，并且遵循下面的命名和接口。你需要包含头文件 quantumbreak.h。</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">int query_xor(int n, int t);
+</code></pre>
+		<p>函数 query, manipulate 的接口信息如下。</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">int query();
+void manipulate(double A[][2], int i);
+void arbitary_manipulate(double A[][2], int i);
+double arbitary_query(int x);
+</code></pre>
+
+		<h3>题解</h3>
+		<p>考察这样的变换过程，是不是感觉很熟悉，和之前学过的什么变换非常相似？</p>
+		<p>对，就是快速 Walsh 变换 (FWT)！</p>
+		<p>快速 Walsh 变换在那时做 "异或卷积" 的时候非常有用，而这道题恰恰也是异或，因此一定有很大的联系。</p>
+		<p>不过之前所学的 FWT 的作用矩阵都是 $\begin{pmatrix} 1 &amp; 1 \\ 1 &amp; -1 \end{pmatrix}$，它并不是一个正交矩阵。</p>
+		<p>这导致了逆 FWT 后需要两边除以 $2^n$ (其实就是该变换的行列式，行列式的另一个意义就是缩放因子)</p>
+		<p>因此，如果我们对整个变换乘以一个线性因子，让它的行列式为 $1$，又会发生什么呢？(注意正交矩阵的行列式一定为 $1$！)</p>
+		<p>此时，变换矩阵就变成了 $\begin{pmatrix} \dfrac 1 {\sqrt 2} &amp; \dfrac 1 {\sqrt 2} \\ \dfrac 1 {\sqrt 2} &amp; -\dfrac 1 {\sqrt 2} \end{pmatrix}$。可以验证，它的确是一个 (行列式为 $1$) 的正交矩阵。</p>
+		<p>那么，如果我们称这个变换为<dfn>规范 FWT</dfn> 的话，则那么规范 FWT 的逆变换就是它本身。</p>
+		<p>现在，我们给出规范 FWT 的定义形式。设 $\left\{ a_k \right\}$ 是一个长度为 $2^n$ 的序列，下标为 $0, 1, \cdots, 2^n - 1$，则 $\left\{ a_k \right\}$ 的规范 FWT $\left\{ b_k \right\}$ 满足</p>
+		<p>$$ b_k = \frac 1 {2^{n/2}} \sum_i (-1)^{\left| i \cap k \right|} a_i \tag 1 \label 1 $$</p>
+		<p>我们考虑对原序列 $\left\{ a_k \right\}$ 作规范 FWT (即将原序列的定义代入 $\eqref 1$ 式)，则得到的序列中的第 $k$ 项就应该等于</p>
+		<p>$$ b_k = \frac 1 {2^{(n+1)/2}} \left( (-1)^{\left| x \cap k \right|} + (-1)^{\left| y \cap k \right|} \right) \tag 2 \label 2 $$</p>
+		<p>可以发现，$b_k^2$ 要么等于 $0$，要么等于 $\dfrac 1 {2^{n-1}}$。</p>
+		<p>注意到 $\sum\limits_k b_k^2 = 1$，因此一定有 $2^{n-1}$ 个 $k$ 满足 $b_k = 0$，$2^{n-1}$ 个 $k$ 满足 $b_k \neq 0$ (且都相同)。也就是说，此时如果做一次 <code>query()</code>，就会等概率返回那 $2^{n-1}$ 个元素中的任意一个。</p>
+		<p>我们去寻找 $b_k \neq 0$ 的充要条件。回到 $\eqref 2$ 式，也就是说明</p>
+		<p>$$ (-1)^{\left| x \cap k \right|} = (-1)^{\left| y \cap k \right|} $$</p>
+		<p>即 $$ \left| x \cap k \right| \equiv \left| y \cap k \right| \pmod 2 \tag 3 \label 3 $$</p>
+		<p>又因为 $|i \oplus j| = |i| + |j| - 2|i \cap j| \equiv |i| + |j| \pmod 2$ 且 $\left( x \oplus y \right) \cap k = \left( x \cap k \right) \oplus \left( y \cap k \right)$，因此 $\eqref 3 \Leftrightarrow$</p>
+		<p>$$ \left| \left( x \oplus y \right) \cap k \right| \equiv 0 \pmod 2 $$</p>
+		<p>我们又神奇般地重新见到了 $x \oplus y$ 这个不变量！</p>
+		<p>因此，如果我们此时做一次 <code>query()</code>，设得到了整数 $k$，我们就能知道，答案 ($x \oplus y$) 和 $k$ 进行<strong>按位与</strong>操作，所得的数的二进制展开式中 $1$ 的个数一定为偶数 (或对应一个偶数元集合)。</p>
+		<p>如果 $k$ 是随机返回的话，我们期望可以淘汰掉至少一半的元素！</p>
+		<p>实现时，可以用一个数组或 <code>std::bitset</code> 来存储当前还有可能的元素，注意不能将 $0$ 包含。这样在期望 $n$ 次之后，会剩下唯一的元素，那个元素就是我们所求的 $x \oplus y$。</p>
+		<p>期望操作次数 $O \left( n^2 \right)$。</p>
+		
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "quantumbreak.h"
+#include &lt;bits/stdc++.h&gt;
+#define parity __builtin_parity
+
+typedef std::bitset &lt;65536&gt; bit;
+double M[2][2] = {{M_SQRT1_2, M_SQRT1_2}, {M_SQRT1_2, -M_SQRT1_2}};
+
+int query_xor(int n, int) {
+	int i, r, T, mask = ~(-1 &lt;&lt; n); bit F;
+	for (i = 1; i &lt;= mask; ++i) F.set(i);
+	for (T = 0; F.count() &gt; 1; ++T) {
+		for (i = 0; i &lt; n; ++i) manipulate(M, i);
+		for (r = query(), i = 1; i &lt;= mask; ++i)
+			parity(i &amp; r) &amp;&amp; (F.reset(i), 0);
+	}
+	return F._Find_first();
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意候选元素集合为 $\left[ 1, 2^n - 1 \right]$，不能包含 $0$。一方面因为题目规定 $x \neq y$，另一方面是 $0$ 和任何数进行<strong>按位与</strong>操作后得到的数一定是 $0$，其中 $1$ 的个数当然是偶数啦！于是就会导致死循环了。</p>
+	</body>
+</html>

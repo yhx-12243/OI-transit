@@ -46,6 +46,7 @@ const
 			'remember' : '',
 			'shaochengxi' : 'https://scx117.cnblogs.com/',
 			'skylee' : 'https://skylee03.cnblogs.com/',
+			'suncongbo' : 'https://www.cnblogs.com/suncongbo/',
 			'wanglichao1121' : 'https://wanglichao1121.coding.me/',
 			'weng_233' : '',
 			'wzf2000' : 'https://wzf2000.zhzx-oier.top/'

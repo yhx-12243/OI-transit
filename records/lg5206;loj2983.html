@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg5206][loj2983][WC2019]数树</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>本题包含三个问题：
+		<ul>
+			<li><p>问题 0：已知两棵 $n$ 个节点的树的形态 (两棵树的节点标号均为 $1$ 至 $n$)，其中第一棵树是红树，第二棵树是蓝树。</p>
+			<p>要给予每个节点一个 $\left[ 1, y \right]$ 中的整数，使得对于任意两个节点 $p, q$，如果存在一条路径 $\left( a_1 = p, a_2, \cdots, a_m = q \right)$ 同时属于这两棵树，则 $p, q$ 必须被给予相同的数。求给予数的方案数。</p></li>
+			<li><p>问题 1：已知蓝树，对于红树的所有 $n^{n-2}$ 种选择方案，求问题 0 的答案之和。</p></li>
+			<li><p>问题 2：对于蓝树的所有 $n^{n-2}$ 种选择方案，求问题 1 的答案之和。</p></li>
+		</ul>
+		<p>提示：$n$ 个节点的树一共有 $n^{n-2}$ 种。</p>
+		<p>在不同的测试点中，你将可能需要回答不同的问题。我们将用 $\mathrm{op}$ 来指代你需要回答的问题编号 (对应上述 0、1、2)。</p>
+		<p>由于答案可能很大，因此你只需要输出答案对 $998244353$ 取模的结果即可。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, y, \mathrm{op}$ ($3 \leq n \leq 10^5; 1 \leq y &lt; 998244353; op \in \{0, 1, 2\}$)。</p>
+		<p>如果 $\mathrm{op} = 0$，则接下来的 $2 (n - 1)$ 行，前 $(n - 1)$ 行每行描述一条蓝树的边，后 $(n - 1)$ 行，每行描述一条红树的边。</p>
+		<p>如果 $\mathrm{op} = 1$，则接下来的 $(n - 1)$ 行，每行描述一条蓝树的边。</p>
+		<p>如果 $\mathrm{op} = 2$，则接下来没有输入。</p>
+		<p>描述边的各行将包含两个用空格隔开的整数，分别表示被这条边连接的两个点的编号。点的编号是从 $1$ 开始的。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示对应问题的答案对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>先来看问题 0。</p>
+		<p>稍微转化一下，就能得到，对于任意一条两棵树的<strong>公共边</strong> $e = (u, v)$，$u$ 的颜色和 $v$ 的颜色必须相同。因此，设 $G$ 是两棵树的公共边所生成的子图，则 $G$ 的每个连通块的颜色必须相同，故染色方案数等于 $y^k$，其中 $k$ 为 $F$ 的连通块个数。</p>
+		<p>有一个显然的结论：<strong>$n$ 阶树的边的子集 $F$ 生成的子图的连通块个数等于 $n - |F|$</strong>。(证明：利用树/森林的无圈性)</p>
+		<p>因此答案就等于 $y^{n-|G|}$，其中 $|G|$ 表示两棵树的公共边数。</p>
+		<p>排序后线性扫一遍 (或使用 <code>map</code>) 即可，时间复杂度 $O \left( n \log n \right)$ (或 $O(n)$)。</p>
+		<hr />
+		<p>然后来看问题 1 和问题 2。</p>
+		<p>首先，一个显然的事实是 $n$ 个点的有标号无根树的数目为 $n^{n-2}$，证明戳<a href="soj299.html" target="_blank">这儿</a>。</p>
+		<p>接着，在解决这两个问题之前，先来看一个引理：</p>
+		<p id="lemma"><strong>有一个由 $k$ 棵树 (连通块) 构成的森林，每棵树的大小分别为 $a_1, a_2, \cdots, a_k$，记 $n = a_1 + a_2 + \cdots + a_k$ 为森林的阶数，则这棵森林的生成超树 (即以这棵森林为生成森林的树) 的数量为 $n^{k-2} \cdot a_1 a_2 \cdots a_k$</strong>。</p>
+		<p>证明的话，这里还是提供两种思路 (Prufer 序列和 Kirchhoff's Matrix-Tree 定理，<a href="#skip">戳这儿跳过证明</a>)：</p>
+		<p>证明一 (Prufer 序列)：</p>
+		<p>我们将每个连通块缩成一个大点，记为 $\bar 1, \bar 2, \cdots, \bar k$。考虑这 $k$ 个点构成的 $k^{k-2}$ 棵树，每棵树唯一对应着一个 Prufer 序列，记为 $\mathbf p = \left[ p_1, p_2, \cdots, p_k \right]$。且点 $\bar i$ 的度数 $d \left( \bar i \right)$ 就等于 <em>$\bar i$ 在 $p$ 中的出现次数</em> $+ 1$。</p>
+		<p>考虑这样一棵树 $\mathbf p$ 还原到原树有多少种方案：对于每个点 $\bar i$，在原树中是 $a_i$ 个点，它所连出去的 $d \left( \bar i \right)$ 条边对应到原树中，就是 $a_i^{d \left( \bar i \right)}$ 种选择。</p>
+		<p>因此总方案数就等于</p>
+		<p>\begin{align*}
+&amp; \sum_{\mathbf p} \prod_{i=1}^k a_i^{d \left( \bar i \right)} \\
+=&amp; \left( \prod_{i=1}^k a_i \right) \cdot \sum_{\mathbf p} \prod_{i=1}^k a_i^{i \, 在 \, p \, 中的出现次数} \\
+=&amp; \left( \prod_{i=1}^k a_i \right) \cdot \sum_{\mathbf p} \prod_{i=1}^{k-2} a_{p_i} \\
+=&amp; \left( \prod_{i=1}^k a_i \right) \prod_{i=1}^{k-2} \sum_{i=1}^k a_i \qquad \left( 乘法分配律 \right) \\
+=&amp; n^{k-2} \cdot \prod_{i=1}^k a_i
+\end{align*}</p>
+		<p>证明二 (Kirchhoff's Matrix-Tree 定理)：</p>
+		<p>众所周知，Kirchhoff's Matrix-Tree 不仅可以用来作一般图的计数，也可以用来做<strong>带权树</strong>的计数，其中这里的带权树指的是，每一条边 $e$ 都有一个边权 $w_e$，每棵树的权定义为构成它的所有边的边权乘积。</p>
+		<p>我们只要把矩阵中的 $-1$ 换成边权<strong>的相反数</strong>，主对角线上的元素还是保持矩阵每行每列和为 $0$。这样矩阵的任何一个代数余子式的值就等于所有生成树的权值之和。</p>
+		<p>还是考虑将每个连通块缩成一个大点，并记为 $\bar 1, \bar 2, \cdots, \bar k$，只是我们这回不考虑每个点的贡献，而是每条边的贡献。</p>
+		<p>考虑一条连接 $\bar i$ 和 $\bar j$ 的边，还原到原树中，就是第 $i$ 连通块和第 $j$ 个连通块任取一个点，故共有 $a_i a_j$ 种选择。</p>
+		<p>因此这个矩阵 Kirchhoff 矩阵的第 $i$ 行第 $j$ 列 ($i \neq j$) 就应该等于 $- a_i a_j$，第 $i$ 行第 $i$ 列就应该等于 $a_i \cdot \left( n - a_i \right)$。</p>
+		<p>我们取代数余子式 $C_{11}$，则答案等于：</p>
+		<p>\begin{vmatrix}
+a_2 \left( n - a_2 \right) &amp; - a_2 a_3 &amp; - a_2 a_4 &amp; \cdots &amp; - a_2 a_{k-1} &amp; - a_2 a_k \\
+- a_3 a_2 &amp; a_3 \left( n - a_3 \right) &amp; - a_3 a_4 &amp; \cdots &amp; - a_3 a_{k-1} &amp; - a_3 a_k \\
+- a_4 a_2 &amp; - a_4 a_3 &amp; a_4 \left( n - a_4 \right) &amp; \cdots &amp; - a_4 a_{k-1} &amp; - a_4 a_k \\
+\vdots &amp; \vdots &amp; \vdots &amp; \ddots &amp; \vdots &amp; \vdots \\
+- a_{k-1} a_2 &amp; - a_{k-1} a_3 &amp; - a_{k-1} a_4 &amp; \cdots &amp; a_{k-1} \left( n - a_{k-1} \right) &amp; - a_{k-1} a_k \\
+- a_k a_2 &amp; - a_k a_3 &amp; - a_k a_4 &amp; \cdots &amp; - a_k a_{k-1} &amp; a_k \left( n - a_k \right)
+\end{vmatrix}</p>
+		<p>提取每<strong>列</strong>的公因子，得到 $a_2 a_3 \cdots a_k$ 乘以行列式</p>
+		<p>\begin{vmatrix}
+n - a_2 &amp; - a_2 &amp; - a_2 &amp; \cdots &amp; - a_2 &amp; - a_2 \\
+- a_3 &amp; n - a_3 &amp; - a_3 &amp; \cdots &amp; - a_3 &amp; - a_3 \\
+- a_4 &amp; - a_4 &amp; n - a_4 &amp; \cdots &amp; - a_4 &amp; - a_4 \\
+\vdots &amp; \vdots &amp; \vdots &amp; \ddots &amp; \vdots &amp; \vdots \\
+- a_{k-1} &amp; - a_{k-1} &amp; - a_{k-1} &amp; \cdots &amp; n - a_{k-1} &amp; - a_{k-1} \\
+- a_k &amp; - a_k &amp; - a_k &amp; \cdots &amp; - a_k &amp; n - a_k
+\end{vmatrix}</p>
+		<p>然后和 <a href="soj299.html" target="_blank">[soj299]树计数</a> 一样，将第 $2 \sim k - 1$ 行均加到第一行，并利用 $n = a_1 + a_2 + \cdots + a_k$，于是行列式变为</p>
+		<p>\begin{vmatrix}
+a_1 &amp; a_1 &amp; a_1 &amp; \cdots &amp; a_1 &amp; a_1 \\
+- a_3 &amp; n - a_3 &amp; - a_3 &amp; \cdots &amp; - a_3 &amp; - a_3 \\
+- a_4 &amp; - a_4 &amp; n - a_4 &amp; \cdots &amp; - a_4 &amp; - a_4 \\
+\vdots &amp; \vdots &amp; \vdots &amp; \ddots &amp; \vdots &amp; \vdots \\
+- a_{k-1} &amp; - a_{k-1} &amp; - a_{k-1} &amp; \cdots &amp; n - a_{k-1} &amp; - a_{k-1} \\
+- a_k &amp; - a_k &amp; - a_k &amp; \cdots &amp; - a_k &amp; n - a_k
+\end{vmatrix}</p>
+		<p>提取 $a_1$ 后，将第一行乘以 $a_{i+1}$ 加到第 $i$ 行，得到：</p>
+		<p>\begin{vmatrix}
+1 &amp; 1 &amp; 1 &amp; 1 &amp; \cdots &amp; 1 &amp; 1 \\
+0 &amp; n &amp; 0 &amp; 0 &amp; \cdots &amp; 0 &amp; 0 \\
+0 &amp; 0 &amp; n &amp; 0 &amp; \cdots &amp; 0 &amp; 0 \\
+0 &amp; 0 &amp; 0 &amp; n &amp; \cdots &amp; 0 &amp; 0 \\
+\vdots &amp; \vdots &amp; \vdots &amp; \vdots &amp; \ddots &amp; \vdots &amp; \vdots &amp; \\
+0 &amp; 0 &amp; 0 &amp; 0 &amp; \cdots &amp; n &amp; 0 \\
+0 &amp; 0 &amp; 0 &amp; 0 &amp; \cdots &amp; 0 &amp; n
+\end{vmatrix}</p>
+		<p>由上三角行列式的性质可以推出它等于 $n^{k-2}$，之前我们又提取过 $a_1 a_2 \cdots a_k$，故最终的答案仍然是 $n^{k-2} \cdot a_1 a_2 \cdots a_k$。</p>
+		<hr id="skip" />
+		<p>回到原问题。<del>相信有人会问，上面这个引理有什么用呢？待会儿你就知道了</del>。</p>
+		<p>先来看问题 1，也就是给定一棵树 $T$，你需要对所有的树 $U$，求出 $y^{n - \left| T \cap U \right|}$ 之和。用式子表达就是 $\displaystyle \sum_U y^{n - \left| T \cap U \right|}$。</p>
+		<p>注意到 $\left| T \cap U \right|$ 不好处理，它是一个集合交运算。</p>
+		<p>考虑当时我们做数论和式变换 (集合并卷积) 时的技巧，遇到 $\gcd$ ($\cup$) 就做 Möbius 反转变换 (快速 Möbius 变换)，它是整除 (子集) 偏序意义下的变换 (反演)。因此，我们需要做集合意义下的变换/反演。</p>
+		<p>那集合意义下的变换是什么呢？对，就是<strong>快速 Möbius 变换</strong> (FMT)！确切地说，应该是<strong>子集和变换</strong>！</p>
+		<p>我们用 $\hat f$ 表示序列 $f$ 的<a href="vijos%20%234.html" target="_blank">快速 Möbius 变换 (子集和变换)</a>，依定义，有</p>
+		<p>$$ \hat f_i = \sum_{j \subseteq i} f_j \tag 1 \label 1 $$</p>
+		<p>同理，称满足 $\eqref 1$ 式的 $f$ 为 $\hat f$ 的 Möbius 逆变换 (子集和逆变换)。</p>
+		<p>考察 (关于集合大小的) 幂函数 $f_i = x^{|i|}$ 的子集和变换，由 $\eqref 1$ 式及二项式定理，可以得到，</p>
+		<p>$$ \hat f_i = \sum_{j \subseteq i} f_j = \sum_{j \subseteq i} x^{|j|} = \sum_{u=0}^{|i|} \dbinom {|i|} u x^u = \left( 1 + x \right)^{|i|} $$</p>
+		<p>可以发现一个美妙的性质：(关于集合大小的) 幂函数的子集和变换恰好等于自变量平移 $1$ 个单位的结果！</p>
+		<p>因此容易得到，幂函数的子集和逆变换就应该等于自变量平移 $-1$ 个单位的结果，即 $x^{|i|}$ 的子集和逆变换为 $\left( x - 1 \right)^{|i|}$。</p>
+		<p>用等式表达就是，$$ x^{|i|} = \sum_{j \subseteq i} \left(x - 1 \right)^{|i|} \tag 2 \label 2 $$</p>
+		<p>于是我们就有落脚点了。对原式中的 $y^{n - \left| T \cap U \right|}$ 做<strong>子集和逆变换</strong>，利用 $\eqref 2$ 式，就能得到：(当然也可以使用容斥来理解，<del>不过能裸上公式当然最好</del>)</p>
+		<p>\begin{align*}
+&amp; \sum_U y^{n - \left| T \cap U \right|} \\
+=&amp; y^n \sum_U \left( \frac 1y \right)^{\left| T \cap U \right|} \\
+=&amp; y^n \sum_U \sum_{D \subseteq T \cap U} \left( \frac 1y - 1 \right)^{\left| D \right|} \qquad \left( \eqref 2 \right) \\
+=&amp; y^n \sum_U \sum_{D \subseteq T, D \subseteq U} \left( \frac 1y - 1 \right)^{\left| D \right|} \\
+=&amp; y^n \sum_{D \subseteq T} \left( \frac {1 - y} y \right)^{\left| D \right|} \sum_{D \subseteq U} 1 \\
+=&amp; \sum_{D \subseteq T} y^{n - \left| D \right|} (1 - y)^{\left| D \right|} \sum_{D \subseteq U} 1
+\end{align*}</p>
+		<p>注意到最右边的 $\displaystyle \sum_{D \subseteq U} 1$，它计数的就是森林 $D$ 的生成超树 (即以 $D$ 为生成森林的树) 的个数！</p>
+		<p>由<a href="#lemma">引理</a>，它等于 $n^{k-2} \cdot a_1 a_2 \cdots a_k$，其中 $a_1, a_2, \cdots, a_k$ 分别为森林中每个连通块的大小。由最开始的结论，有 $k = n - |D|$。</p>
+		<p>于是式子可以变为：</p>
+		<p>\begin{align*}
+&amp; \sum_{D \subseteq T} y^{n - \left| D \right|} (1 - y)^{\left| D \right|} \sum_{D \subseteq U} 1 \\
+=&amp; \sum_{D \subseteq T} y^k (1 - y)^{n - k} n^{k-2} \prod_{i=1}^k a_i \\
+=&amp; \frac {(1 - y)^n} {n^2} \sum_{D \subseteq T} \left( \frac {n \cdot y} {1 - y} \right)^k \prod_{i=1}^k a_i \\
+=&amp; \frac {(1 - y)^n} {n^2} \sum_{D \subseteq T} \prod_{i=1}^k \frac {n \cdot y} {1 - y} \cdot a_i
+\end{align*}</p>
+		<p>上式中 $\sum$ 的左端是一个常数，先忽略它，右端中我们令 $w = \dfrac {n \cdot y} {1 - y}$，则等式就变成</p>
+		<p>$$ \sum_{D \subseteq T} \prod_{i=1}^k \left( w \cdot a_i \right) \tag 3 \label 3 $$</p>
+		<p>它的组合意义是，枚举每棵 $T$ 的生成森林，设它把图分成了大小为 $a_1, a_2, \cdots, a_k$ 的连通块，对答案贡献 $\left( w \cdot a_1 \right) \cdot \left( w \cdot a_2 \right) \cdots \left( w \cdot a_k \right)$。</p>
+		<p>可以发现，这可以使用树形 DP 来解决，和 <a href="simpleoj288.html" target="_blank">[SimpleOJ288]掘地求升</a> 类似，$a_1 a_2 \cdots a_k$ 可以看成在每一个连通块中选一个点去使用魔法 (即乘 $w$)</p>
+		<p>用 $f_i, g_i$ 表示以 $i$ 为根的子树中，$i$ 所在的连通分量是否使用过魔法 (即乘 $w$)，所有方案的贡献 (即 $\left( w \cdot a_1 \right) \cdots \left( w \cdot a_k \right)$) 之和。</p>
+		<p>对于边界状态 (叶节点和未转移的节点) $i$，显然有 $f_i = 1, g_i = w$。</p>
+		<p>考虑从子节点 $c$ 转移。对于 $f_i$，有两种方案：一种是 $(i, c) \notin D$，一种是选边 $(i, c) \in D$。</p>
+		<ol>
+			<li><p>若 $(i, c) \notin D$，则 $c$ 所在的连通块<strong>已经完整</strong>，因此要乘以 $g_c$。故这部分的贡献是 $f_i \cdot g_c$。</p></li>
+			<li><p>若 $(i, c) \in D$，则 $c$ 所在的连通块也不能使用魔法 (即乘 $w$)，故这部分为 $f_i \cdot f_c$。</p></li>
+		</ol>
+		<p>把两部分贡献相加即可得到新的 $f'_i$。</p>
+		<p>然后是 $g_i$ 的转移，还是考虑边 $(i, c)$ 是否属于森林 $D$。</p>
+		<ol>
+			<li><p>若 $(i, c) \notin D$，则 $c$ 所在的连通块<strong>也需要完整</strong>，故这部分为 $g_i \cdot g_c$。</p></li>
+			<li><p>若 $(i, c) \in D$，则又分为两种情况：</p>
+			<ol>
+				<li><p>$c$ 所在的连通块已经使用过魔法 (即乘 $w$)。此时剩余部分就不能使用魔法，故这部分为 $f_i \cdot g_c$。</p></li>
+				<li><p>$c$ 所在的连通块还未使用魔法 (即乘 $w$)。此时剩下的部分必须使用魔法，故这部分为 $g_i \cdot f_c$。</p></li>
+			</ol></li>
+		</ol>
+		<p>综上，新的 $g'_i$ 应该等于三部分的和：$g'_i = g_i g_c + f_i g_c + g_i f_c$。</p>
+		<p>因此最后 $\eqref 3$ 式的值就应该等于 $g_r$，其中 $r$ 为根节点，然后乘以左边的常数 $\dfrac {(1 - y)^n} {n^2}$ 即得问题 1 的答案。</p>
+		<p>时间复杂度 $O(n)$。</p>
+		<hr />
+		<p>最后来看一下问题 2。即对所有的 "树对" $(T, U)$，求出 $y^{n - \left| T \cap U \right|}$ 之和。用公式表达就是 $\displaystyle \sum_T \sum_U y^{n - \left| T \cap U \right|}$。</p>
+		<p>还是做<strong>子集和逆变换</strong>，可得</p>
+		<p>\begin{align*}
+&amp; \sum_T \sum_U y^{n - \left| T \cap U \right|} \\
+=&amp; y^n \sum_T \sum_U \left( \frac 1y \right)^{\left| T \cap U \right|} \\
+=&amp; y^n \sum_T \sum_U \sum_{D \subseteq T, D \subseteq U} \left( \frac 1y - 1 \right)^{\left| D \right|} \\
+=&amp; y^n \sum_{D \subseteq K_n} \left( \frac {1 - y} y \right)^{\left| D \right|} \left( \sum_{D \subseteq T} 1 \right) \left( \sum_{D \subseteq U} 1 \right) \\
+=&amp; \sum_{D \subseteq K_n} y^{n - \left| D \right|} (1 - y)^{\left| D \right|} \left( \sum_{D \subseteq T} 1 \right)^2
+\end{align*}</p>
+		<p>利用 $\displaystyle \sum_{D \subseteq T} 1 = n^{k-2} \cdot a_1 a_2 \cdots a_k$，代入后可得</p>
+		<p>\begin{align*}
+&amp; \sum_{D \subseteq K_n} y^{n - \left| D \right|} (1 - y)^{\left| D \right|} \left( \sum_{D \subseteq T} 1 \right)^2 \\
+=&amp; \sum_{D \subseteq K_n} y^k (1 - y)^{n - k} n^{2 k - 4} \prod_{i=1}^k a_i^2 \\
+=&amp; \frac {(1 - y)^n} {n^4} \sum_{D \subseteq K_n} \left( \frac {n^2 \cdot y} {1 - y} \right)^k \prod_{i=1}^k a_i^2 \\
+=&amp; \frac {(1 - y)^n} {n^4} \sum_{D \subseteq K_n} \prod_{i=1}^k \frac {n^2 \cdot y} {1 - y} \cdot a_i^2
+\end{align*}</p>
+		<p>$\sum$ 的左边仍然是一个常数，在右端还是可以令 $w = \dfrac {n^2 \cdot y} {1 - y}$。于是我们要求的就是</p>
+		<p>$$ \sum_{D \subseteq K_n} \prod_{i=1}^k \left( w \cdot a_i^2 \right) \tag 4 \label 4 $$</p>
+		<p>和 $\eqref 3$ 式唯一不同的是，当时我们枚举 $D$ 为 $T$ 的边集的子集，可以使用树形 DP。而这次 $D$ 可以是<strong>任何一个满足<em>无圈</em>的边集</strong>，因此直接计算好似乎遇到了困难。</p>
+		<p>我们可以换一个角度来思考，注意到右边的 $a_i$ 只和 $D$ 生成的森林的<strong>各个连通块大小</strong>有关。</p>
+		<p>因此如果我们枚举这 $n$ 个点的连通情况，又该如何呢？</p>
+		<p>对于一种指定的连通情况，设各个连通块的大小分别为 $a_1, a_2, \cdots, a_k$。则连通块内部的连边方案数就相当于在每个连通块中构成一棵树的方案数 (要注意 $D$ 是无圈的哦)，故为 $a_1^{a_1-2} a_2^{a_2-2} \cdots a_k^{a_k-2}$。</p>
+		<p>那么它对答案的贡献就应该等于 $\displaystyle \left( w^k \prod_{i=1}^k a_i^2 \right) \cdot \left( \prod_{i=1}^k a_i^{a_i-2} \right) = w^k \prod_{i=1}^k a_i^{a_i}$。</p>
+		<p>接下来就是要枚举这样的连通块了。</p>
+		<p>我们考虑生成函数，注意到这些点是有标号的，因此考虑指数生成函数 (E.G.F.，因为相乘时为自动乘上一个组合数)，又因为这些 "盒子" (即连通块) 是无序的，因此最后还要除以一个 $k!$。</p>
+		<p>综上，记 $\displaystyle f(x) = \sum_{i \geq 1} \left( w \cdot i^i \right) \frac {x^i} {i!}$，则最终的方案数的指数生成函数就等于 $1 + f + \dfrac {f^2} {2!} + \dfrac {f^3} {3!} + \cdots + \dfrac {f^k} {k!} + \cdots = \mathrm e^f = \exp f$。</p>
+		<p>其中 $\exp f$ 的第 $n_0$ 项就是 $n = n_0$ 时 $\eqref 4$ 式的值。</p>
+		<p>所以只需拉一坨多项式板子即可，时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+
+const int MP = 530000;
+
+typedef int vec[MP], *pvec;
+typedef long long ll;
+const ll mod = 998244353, pmod = mod - 1, half_mod = (mod + 1) / 2, root = 31;
+const int N = 100054;
+
+int n, C;
+vec fact, inv, finv;
+
+inline int &amp; reduce(int &amp;x) {return x += (x &gt;&gt; 31 &amp; (int)mod);}
+inline ll &amp; half(ll &amp;x) {return x = (x &gt;&gt; 1) + (-(x &amp; 1) &amp; half_mod);}
+ll PowerMod(ll a, int n, ll c = 1) {for (n %= pmod, n += n &gt;&gt; 31 &amp; pmod, a %= mod; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(int n) {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt;= n; ++i) inv[i] = (mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+struct edge {
+	int u, v;
+	edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+	edge * read() {scanf("%d%d", &amp;u, &amp;v); if (u &gt; v) std::swap(u, v); return this;}
+	inline bool operator &lt; (const edge &amp;B) const {return u &lt; B.u || (u == B.u &amp;&amp; v &lt; B.v);}
+	inline bool operator == (const edge &amp;B) const {return u == B.u &amp;&amp; v == B.v;}
+};
+
+namespace Subtask1 {
+	edge e[N], f[N];
+
+	int main() {
+		int i, j, g = n;
+		for (i = 1; i &lt; n; ++i) e[i].read(); std::sort(e + 1, e + n);
+		for (i = 1; i &lt; n; ++i) f[i].read(); std::sort(f + 1, f + n);
+		for (j = i = 1; i &lt; n; g -= f[j] == e[i++])
+			for (; j &lt; n &amp;&amp; f[j] &lt; e[i]; ++j);
+		return printf("%lld\n", PowerMod(C, g)), 0;
+	}
+}
+
+namespace Subtask2 {
+	edge e[N * 2];
+	int E = 0, first[N], next[N * 2];
+	int w, f[N], g[N];
+
+	inline void addedge(int u, int v) {
+		e[++E] = edge(u, v); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u); next[E] = first[v]; first[v] = E;
+	}
+
+	void dfs(int x, int px = 0) {
+		int i, y;
+		f[x] = 1, g[x] = w;
+		for (i = first[x]; i; i = next[i])
+			if ((y = e[i].v) != px) {
+				dfs(y, x);
+				g[x] = ((ll)g[x] * (f[y] + g[y]) + (ll)f[x] * g[y]) % mod; // f[x] . g[y] + g[x] . f[y] cont, g[x] . g[y] cut.
+				f[x] = (ll)f[x] * (f[y] + g[y]) % mod; // f[x] . f[y] cont, f[x] . g[y] cut.
+			}
+	}
+
+	int main() {
+		int i, u, v; ll ans;
+		if (C == 1) return printf("%lld\n", PowerMod(n, n - 2)), 0;
+		for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+		w = n * (PowerMod(1 - C, -1) - 1ll) % mod, dfs(1);
+		ans = PowerMod(n, -2, PowerMod(1 - C, n, g[1]));
+		printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+		return 0;
+	}
+}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) {
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3, B4, B5, B6, B7;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = PowerMod(n, mod - 2);
+		DNTT(a, c); DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c); std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+
+	void Inv(int deg, pvec a, pvec b) {
+		int len, i; ll iv = half_mod;
+		*b = PowerMod(*a, mod - 2); b[1] = 0;
+		*B1 = *a; B1[1] = a[1];
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
+			NTT_init(len + 2);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B1[i] = 0;
+			DNTT(b, B2); DNTT(B1, B3);
+			for (i = 0; i &lt; n; ++i) reduce(B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod);
+			DNTT(B2, B3); std::reverse(B3 + 1, B3 + n); half(iv);
+			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B3[i] * iv % mod;
+			for (; i &lt; n; ++i) b[i] = 0, B1[i] = a[i];
+		}
+	}
+
+	void Diff(int deg, vec a, vec b) {for (int i = 1; i &lt;= deg; ++i) b[i - 1] = (ll)a[i] * i % mod;}
+
+	void Intg(int deg, vec a, vec b, int ct = 0) {for (int i = 1; i &lt;= deg; ++i) b[i] = (ll)a[i - 1] * inv[i] % mod, *b = ct;}
+
+	void Ln(int deg, vec a, vec b) {
+		if (!--deg) {*b = 0; return;}
+		int i, j = deg * 2 - 1; NTT_init(lg2(j) + 1);
+		Diff(deg, a, B4), Inv(deg, a, B5);
+		for (i = deg; i &lt; n; ++i) B4[i] = B5[i] = 0;
+		Mul(j, B4, B5, B6); Intg(deg, B6, b);
+	}
+
+	void Exp(int deg, vec a, vec b) {
+		int len, i, n = 2;
+		*b = 1; b[1] = 0;
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len, n &lt;&lt;= 1) {
+			Ln(n, b, B7); *B7 = 1;
+			for (i = 1; i &lt; n; ++i) reduce(B7[i] = a[i] - B7[i]);
+			for (; i &lt; n &lt;&lt; 1; ++i) B7[i] = b[i] = 0;
+			Mul((n &lt;&lt; 1) - 1, b, B7, B6);
+			for (i = 0; i &lt; n; ++i) b[i] = B6[i];
+			for (; i &lt; n &lt;&lt; 1; ++i) b[i] = 0;
+		}
+	}
+}
+
+namespace Subtask3 {
+	vec f, g;
+
+	int main() {
+		int i; ll w, ans;
+		if (C == 1) return printf("%lld\n", PowerMod(n, 2 * (n - 2))), 0;
+		init(n), w = (ll)n * n % mod * (PowerMod(1 - C, -1) - 1) % mod;
+		for (i = 1; i &lt;= n; ++i) reduce(f[i] = PowerMod(i, i, finv[i] * w % mod));
+		Poly::Exp(n + 1, f, g);
+		ans = PowerMod(n, -4, PowerMod(1 - C, n, (ll)g[n] * fact[n] % mod));
+		printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+		return 0;
+	}
+}
+
+int main() {
+	int op; scanf("%d%d%d", &amp;n, &amp;C, &amp;op);
+	return op ? (op == 1 ? Subtask2::main() : Subtask3::main()) : Subtask1::main();
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>当 $y = 1$ 时会出现分母为 $0$ 的情况，需要特判。不过此时的情况是非常平凡的——每一种树的答案都是 $1$，因此总答案就是我们的枚举量，即 $n^{(n-2) \cdot \mathrm{op}}$。</p>
+		<p><strong>坑2：</strong>注意 DP $f_i, g_i$ 时的先后问题，不要让新的 $f_i$ 去更新旧的 $g_i$。</p>
+	</body>
+</html>
