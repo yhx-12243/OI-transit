@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj461]新年的 Dog 划分</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>这是一道<strong>交互题</strong>。</p>
+		<p>有一张 $n$ 个点 $m$ 条边的无向图，你可以进行若干次询问：每次询问你可以给出一些点对，这些点对对应一个道路的集合，交互库会回答如果将 $m$ 条边变在这个集合的边去掉之后剩下的图是否仍然连通。注意边 $(x, y)$ 和 $(y, x)$ 是等价的，一次询问中一条边加入多次和加入一次的效果相同。</p>
+		<p>你需要在 <strong>$2000$ 次询问</strong>内判断这张图是否是二分图，如果是二分图，请返回二分图的一侧；如果不是二分图，请返回空集。可以证明，因为点数 $\geq 2$ 的连通二分图的一部分不可能为空集。</p>
+
+		<h3>任务</h3>
+		<p>你需要实现下面的过程：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">std::vector &lt;int&gt; check_bipartite(int vsize);
+</code></pre>
+		<p>其中 <code>vsize</code> 是点的数量，也就是题目描述中的 $n$。</p>
+		<p>你可以调用以下过程和交互库进行交互：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">bool query(std::vector &lt;std::pair &lt;int, int&gt; &gt; banned_edges);
+</code></pre>
+		<p>其中 <code>banned_edges</code> 是一个包含点对的 <code>std::vector</code>，表示你要去掉的点对。当图仍然连通时返回值为 <code>true</code>，否则为 <code>false</code>。你必须保证所有点对合法，否则你将的得到 0 分。所谓点对合法就是值点对中的<strong>每个编号都必须合法，且两个点不能相同</strong>。</p>
+
+		<h3>题解</h3>
+		<p>考虑如何刻画连通性。我们可以尝试使用二分边：</p>
+		<p>直观感受下，对于一个 "边" 的序列 $e_1, e_2, \cdots, e_k$ (这里 $e_i$ 不一定是原图中存在的边)，如果去掉的边越多，这个图就越可能不连通。</p>
+		<p>如果一张图是连通的，去掉这 $k$ 条边后变得不连通，则一定存在唯一的 $1 &lt; i \leq k$ 是的去掉前 $i - 1$ 条边 ($e_1, e_2, \cdots, e_{i-1}$) 后连通，去掉前 $i$ 条边 ($e_1, e_2, \cdots, e_i$) 后图不再连通；也就是说，这个<em>连通性</em>具有<strong>可二分性质</strong>。</p>
+		<p>而且，此时 $e_i$ 这条边一定是在原图中的，不然它不会直接导致整张图的连通性改变。</p>
+		<p>于是我们就找到了图中的一条边 $(u, v)$。我们先假设图 $G = \left( V_1, V_2; E \right)$ 是二分图，且 $u \in V_1, v \in V_2$。</p>
+		<p>由于阶数 $\geq 2$ 的连通二分图的二部划分是唯一的，因此如果我们对于每个点，都得到一条它<strong>与已知点</strong>的连边情况，就可以一一确定所有点分别在哪一部分。</p>
+		<p>因此，现在的任务就是去得到每个点分别与哪个已知点连通。</p>
+		<p>设已知点的集合为 $K$ (初始时 $K = \left\{ u, v \right\}$)。设未知点的序列为 $v_1, v_2, \cdots, v_k$。用类似的二分方法，可以找到一个 $i \in \left( 1, K \right]$ 使得去掉 $K$ 与 $v_1, v_2, \cdots v_i$ 的 (所有) 连边后图不再连通，去掉 $K$ 与 $v_1, v_2, \cdots v_{i-1}$ 的连边后图仍然连通。</p>
+		<p>此时 $K$ 与 $v_i$ 中一定有连边，因此我们可以判断它属于 $V_1$ 还是 $V_2$。</p>
+		<p>具体地，我们对于去掉 $K$ 与 $v_1, v_2, \cdots, v_{i-1}$ 的 (所有) 连边后的图，记为 $H$，将 $K \cap V_1$ (即 $V_1$ 中的所有已知点) 与 $v_i$ 的连边去掉，询问连通性后即可得到 $v_i$ 是否向 $K \cap V_2$ 中连边，同理可以得到 $v_i$ 是否向 $K \cap V_1$ 中连边。</p>
+		<p>如果 $v_i$ 既向 $V_1$ 中连边，又向 $V_2$ 中连边。由图的连通性可知存在奇环，故图不是二分图，返回空集。</p>
+		<p>如果 $v_i$ 仅向某一侧 (如 $V_1$) 连边，则说明 $v_i$ 属于另一侧 (如 $V_2$)。</p>
+		<p>如果 $v_i$ 既不向 $V_1$ 中连边，又不向 $V_2$ 中连边，则 $H$ 本身不连通，故这种情况不会发生。</p>
+		<p>故我们可以确定每个点在二分图的哪一个部分。由图的连通性，可以唯一确定每个点的部分 (或判定它不是二分图)。</p>
+		<p>最后来分析一下时间复杂度，由于对于每个点，我们只需要花 $\log n + O(1)$ 次询问，因此总询问次数不会超过 $n \log n + O(n)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "graph.h"
+#include &lt;bits/stdc++.h&gt;
+
+typedef std::vector &lt;int&gt; vec;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;pr&gt; vecP;
+
+int n;
+vec Lv, Rv, LR, rem;
+vecP E, F;
+
+int get_first() {
+	int L = 1, R = n - 1, M, i;
+	for (; L &lt; R; query(E) ? L = M + 1 : R = M)
+		for (E.clear(), M = (L + R) / 2, i = 1; i &lt;= M; ++i) E.emplace_back(0, i);
+	return R;
+}
+
+vec check_bipartite(int n) {
+	char *_ = new char; srand(time(0) + (long long)_); delete _;
+	int i, j, v, L, R, M; bool bel_left, bel_right;
+	::n = n, Lv.push_back(0), Rv.push_back(get_first()), LR.push_back(0), LR.push_back(Rv.back());
+	for (i = 1; i &lt; n; ++i) i == Rv.back() || (rem.push_back(i), 0);
+	for (std::random_shuffle(rem.begin(), rem.end()); !rem.empty(); rem.erase(rem.begin() + R)) {
+		for (L = 0, R = rem.size() - 1; L &lt; R; query(E) ? L = M + 1 : R = M)
+			for (E.clear(), M = (L + R) / 2, i = LR.size() - 1; i &gt;= 0; --i)
+				for (j = 0; j &lt;= M; ++j) E.emplace_back(LR[i], rem[j]);
+		for (E.clear(), i = LR.size() - 1; i &gt;= 0; --i)
+			for (j = 0; j &lt; R; ++j) E.emplace_back(LR[i], rem[j]);
+		v = rem[R];
+		for (F = E, i = Lv.size() - 1; i &gt;= 0; --i) F.emplace_back(Lv[i], v); bel_left = query(F);
+		for (F = E, i = Rv.size() - 1; i &gt;= 0; --i) F.emplace_back(Rv[i], v); bel_right = query(F);
+		if (bel_left &amp;&amp; bel_right) return vec();
+		else if (bel_left) Lv.push_back(v);
+		else if (bel_right) Rv.push_back(v);
+		else throw "orzfy";
+		LR.push_back(v);
+	}
+	return rand() &amp; 1 ? Lv : Rv;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><del><strong>坑1：</strong>注意点的编号从 $0$ 开始。</del></p>
+		<p><strong>坑2：</strong>注意图 $H$ 中要去掉 $K$ 与 $v_1, v_2, \cdots, v_{i-1}$ 的所有连边，否则图几乎一定是连通的。</p>
+	</body>
+</html>

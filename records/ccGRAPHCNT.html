@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[codechef GRAPHCNT]Counting on a directed graph</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个 $n$ 个点 (从 $1$ 到 $n$ 标号) $m$ 条边的有向图。请统计无序对 $(x, y)$ ($x \neq y$) 的个数，其中 $(x, y)$ 满足存在一条从 $1$ 到 $x$ 的路径，和一条从 $1$ 到 $y$ 的路径，且两条路径除了点 $1$ 之外没有公共点。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($1 \leq n \leq 10^5; 0 \leq m \leq 5 \times 10^5$)。</p>
+		<p>接下来的 $m$ 行，每行包含两个正整数 $u, v$，表示有一条从 $u$ 到 $v$ 的有向边。</p>
+		<p>图中保证没有重边或自环 (即为有向简单图)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示无序对的个数。</p>
+
+		<h3>题解</h3>
+		<p>首先设 $A$ 为所有 $1$ 能到达的点的集合。显然只有这些点才能对答案产生贡献，故先 dfs 一遍，然后去取 $A$ 导出的子图 $G \left[ A \right]$。</p>
+		<p>还是考虑<a href="../memos/18.html" target="_blank">支配树</a>，设 $v$ 为支配树上 $x$ 和 $y$ 的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>，则如果 $v$ 不为根节点 $1$，则 $v$ <strong>同时支配</strong> $x$ 和 $y$，也就是说，任何一条从 $1$ 到 $x$ 的路径以及从 $1$ 到 $y$ 的路径，都会经过同一个点—— $v$。因此 $(x, y)$ <strong>不是</strong>满足条件的无序对。</p>
+		<p>如果 $\mathrm{LCA}(x, y) = 1$，此时存在一条从 $1$ 到 $x$ 的路径和一条 $1$ 到 $y$ 的路径，它们的交为 $\{1\}$。证明还是参见<a href="../memos/18.html" target="_blank">支配树及其应用</a>。</p>
+		<p>因此我们把问题转化为了，求有多少个无序对 $(x, y)$，满足 $\mathrm{LCA}(x, y) = 1$。</p>
+		<p>这个求出支配树之后直接统计一下就好了，它等于 $1$ 的所有子树的两两 $size$ 乘积之和。</p>
+		<p>时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 100054, M = N * 16;
+
+int V, E, Es = 0;
+int to[M], next[M], p[N];
+int first[N], inv_first[N], S_first[N];
+int cnt = 0, o[N], id[N];
+int S[N], I[N], size[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline void addedge(int u, int v, int *fst) {to[++Es] = v; next[Es] = fst[u]; fst[u] = Es;}
+
+namespace U {
+	int p[N], w[N], st[N];
+
+	inline void init() {for (int i = 1; i &lt;= V; ++i) w[i] = p[i] = i;}
+	inline void update(int &amp;x, const int y) {id[S[x]] &gt; id[S[y]] ? x = y : 0;}
+
+	int ancestor(int x) {
+		int i = 0;
+		for (; x != p[x]; st[++i] = x, x = p[x]);
+		for (st[i + 1] = x; i; p[st[i]] = x, --i) update(w[st[i]], w[st[i + 1]]);
+		return x;
+	}
+
+	inline int get_min(int x) {return ancestor(x), w[x];}
+}
+
+void dfs(int x) {
+	int i, y; o[++cnt] = x, id[x] = cnt;
+	for (i = first[x]; i; i = next[i])
+		if (!id[y = to[i]]) p[y] = x, dfs(y);
+}
+
+void solve() {
+	int i, j, x, y, r;
+	dfs(1), U::init();
+	for (i = 1; i &lt;= V; ++i) S[i] = i;
+	for (j = cnt; j &gt; 1; --j) {
+		for (r = INT_MAX, i = inv_first[ x = o[j] ]; i; i = next[i])
+			id[y = to[i]] &amp;&amp; (down(r, id[ id[y] &lt; id[x] ? y : S[U::get_min(y)] ]), 0);
+		U::p[x] = p[x], S[x] = o[r], addedge(S[x], x, S_first);
+		for (i = S_first[ x = o[j - 1] ]; i; i = next[i])
+			r = U::get_min(y = to[i]), I[y] = (S[r] == x ? x : r);
+	}
+	for (; ++j &lt;= cnt; ) x = o[j], I[x] != S[x] &amp;&amp; (I[x] = I[I[x]]);
+}
+
+int main() {
+	int i, u, v, cur = 0; ll ans;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v, first), addedge(v, u, inv_first);
+	solve();
+	for (i = 1; i &lt;= V; ++i) size[i] = 1;
+	for (i = cnt; i &gt; 1; --i) v = o[i], size[I[v]] += size[v];
+	ans = cnt - 1;
+	for (i = 2; i &lt;= V; ++i) if (I[i] == 1) ans += (ll)cur * size[i], cur += size[i];
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>要先 dfs 一遍取 $A$ 导出的子图，然后在计算 <code>semi[]</code> 的时候记得只能取在 $A$ 中的点。</p>
+	</body>
+</html>

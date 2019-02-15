@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj365]组合数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $A$，你需要求所有的二元组 $(n, m)$，满足 $0 \leq m \leq n \leq 10^6$ 且 $\dbinom nm = A$。</p>
+
+		<h3>输入格式</h3>
+		<p>由于 $A$ 可能很大，因此题目给出 $A$ 的<strong>标准分解式</strong>。</p>
+		<p>第一行包含一个正整数 $l$，表示 $A$ 的标准分解式中素数的个数。</p>
+		<p>接下来的 $l$ 行，每行包含两个正整数 $p_i, \alpha_i$，描述 $A$ 的一个素因子。</p>
+		<p>题中的 $\displaystyle A = \prod_{i=1}^l p_i^{\alpha_i} = p_1^{\alpha_1} p_2^{\alpha_2} \cdots p_l^{\alpha_l}$。</p>
+		<p>保证 $p_i &lt; p_{i+1}$ 为素数，$1 \leq \alpha_i \leq 2 \times 10^6$ 为正整数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出若干行，每行描述一组解 $(n, m)$。如果有多组解，按照 $n$ 为第一关键字，$m$ 为第二关键字进行排序。</p>
+		<p>如果无解，则什么也不用输出。</p>
+
+		<h3>题解</h3>
+		<p>首先容易注意到二项式系数 $\dbinom nm$ 当固定 $n$ 时 $m$ 是对称且单峰的 (证明略)。</p>
+		<p>因此我们考虑<strong>枚举</strong>所有的 $n$，然后在杨辉三角的<strong>每一行</strong>中取寻找对应的 $m$。</p>
+		<p>由二项式系数的对称单峰性，每一行中一个数出现的次数一定为 $0, 1, 2$。</p>
+		<p>接下来就是如何定位的问题。</p>
+		<p>这个并不难，由于每一行是单峰的，说明两侧分别是单调的。由对称性，只需考虑一侧的情况进行二分。</p>
+		<p>但是二项式系数非常大 (是指数级增长的)，怎么判断大小关系呢？</p>
+		<p>可以使用<strong>对数</strong>！</p>
+		<p>由公式 $\dbinom nm = \dfrac {n!} {m! (n-m)!}$，则可以得到 $\ln \dbinom nm = \ln n! - \ln m! - \ln (n-m)!$，而 $\ln n!$ 就恰好是 $n + 1$ 的<strong>对数 Gamma 函数</strong> <code>lgamma</code>。</p>
+		<p>而一开始的 $A$，我们也可以通过乘除转加减的方法通过对数运算法则来计算 $\ln A$。</p>
+		<p>因此我们就得到了二分点。</p>
+		<p>由于对数运算是浮点运算，难免会有误差。因此我们在二分后，如果需要精确判断的话，还要通过其它方法。</p>
+		<p>比如随机 (或固定) 取几个大素数 $P$，计算 $A \bmod P$ 和 $\dbinom nm \bmod P$ 是否相等，这个都是容易计算的。</p>
+		<p>考虑到误差，在实际计算时，如果二分到 $m$，可以检验 $m - 2$ 到 $m + 2$。</p>
+		<p>当然，这种取模 Hash 的方法由非常小的概率出问题，此时，如果它通过了所有的模数，则采用暴力因子分解 (使用公式) 的算法取检验即可。暴力因子分解的时间复杂度是 $O \left( n \log n \right)$ 的。</p>
+		<p>由于期望下暴力因子分解的次数是 $O(1)$ 的，因此总时间复杂度还是 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1000054
+#define ctz __builtin_ctz
+
+typedef long long ll;
+typedef long double ld;
+typedef std::pair &lt;int, int&gt; pr;
+
+const ll mod[5] = {353448299, 666666667, 998244353, 1000000007, 1000000009};
+
+int n, m[5] = {1, 1, 1, 1, 1};
+int fact[5][N], finv[5][N];
+int last = -1, cur_i = 1;
+pr d[N];
+ld ln, lft[N];
+
+ll PowerMod(ll a, int n, ll mod, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Judger {
+	int pn = 0, c[N], a[N], b[N], p[78540];
+	int d[78540];
+
+	void sieve(int n) {
+		int i, j, v; pn = 0;
+		memset(c, -1, sizeof c);
+		for (i = 2; i &lt;= n; ++i) {
+			if (!~c[i]) p[pn] = i, c[i] = pn++, a[i] = b[i] = 1;
+			for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt; c[i]; ++j) c[v] = j, a[v] = 1, b[v] = i;
+			if (v &lt;= n) c[v] = j, a[v] = a[i] + 1, b[v] = b[i];
+		}
+	}
+
+	void factor(int n, int sign) {
+		for (; n != 1; n = b[n]) d[c[n]] += sign * a[n];
+	}
+
+	bool accurate(int n, int r) {
+		int i, j = 0; sieve(n);
+		for (i = 0; i &lt; pn; ++i) d[i] = 0;
+		for (i = n; i &gt; n - r; --i) factor(i, 1);
+		for (i = r; i &gt; 1; --i) factor(i, -1);
+		for (i = 0; i &lt; pn; ++i)
+			if (d[i] &amp;&amp; (p[i] != ::d[j].first || d[i] != ::d[j++].second)) return false;
+		return j == ::n;
+	}
+}
+
+void init() {
+	int i, j; scanf("%d", &amp;n);
+	assert(n);
+	for (i = 0; i &lt; n; ++i) {
+		scanf("%d%d", &amp;d[i].first, &amp;d[i].second);
+		ln += d[i].second * log(d[i].first);
+		for (j = 0; j &lt; 5; ++j)
+			m[j] = PowerMod(d[i].first, d[i].second, mod[j], m[j]);
+	}
+}
+
+int binary_search(int n) {
+	if (!~last) {
+		if (lft[n] - lft[n / 2] - lft[n - n / 2] &lt; ln - 0.01) return -1; last = n / 2;
+	}
+	for (; last; --last)
+		if (lft[n] - lft[last - 1] - lft[n - last + 1] &lt; ln - 1e-6) break;
+	return last == 1 &amp;&amp; lft[n] - lft[last] - lft[n - last] &gt; ln + .5 ? -2 : last;
+}
+
+bool judge(int n, int r) {
+	int i;
+	for (i = 0; i &lt; 5; ++i)
+		if ((ll)fact[i][n] * finv[i][n - r] % mod[i] * finv[i][r] % mod[i] != m[i]) return false;
+	return Judger::accurate(n, r);
+}
+
+int main() {
+	int i, j, k, *F, *I;
+	for (j = 0; j &lt; 5; ++j) {
+		F = fact[j], I = finv[j];
+		for (*F = i = 1; i &lt; N; ++i) F[i] = (ll)F[i - 1] * i % mod[j];
+		--i, I[i] = PowerMod(F[i], mod[j] - 2, mod[j]);
+		for (; i; --i) I[i - 1] = (ll)I[i] * i % mod[j];
+	}
+	init();
+	*lft = lft[1] = 0.0;
+	for (i = 2; i &lt;= 1000000; ++i) {
+		lft[i] = lgammal(i + 1);
+		if (j = binary_search(i), j == -2) break;
+		if (~j)
+			for (k = std::max(j - 2, 0); k &lt;= j + 2 &amp;&amp; k &lt;= i / 2; ++k)
+				if (judge(i, k))
+					printf("%d %d\n", i, k), k * 2 != i &amp;&amp; printf("%d %d\n", i, i - k);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>调用数学库函数 <code>lgamma</code> 会比较慢，因此可以预先把 $1 \sim n$ 的 <code>lgamma</code> 值存下来。在使用浮点数时最好使用 <code>long double</code>。</p>
+		<p><strong>坑2：</strong>如果输入不是因子分解式而是数值，则可以使用对数运算法则，先计算常用对数 (以 $10$ 为底的对数)，再计算自然对数。</p>
+		<p>如 $\lg 192837465 = \lg \left( 1.92837465 \times 10^8 \right) = 8 + \lg 1.92837465$，且 $\ln x = \lg x \cdot \ln 10$。</p>
+		<p><strong>坑3：</strong>当然这题也可以不用二分，因为 $\dbinom nm \leq \dbinom {n + 1} m$，故决策 $m$ 是单调递减的。因此，我们可以先找到 $n$ 使得 $\dbinom n {\left \lfloor \dfrac n2 \right \rfloor} \geq A$，然后<strong>递减地枚举 $m$</strong> 即可。</p>
+	</body>
+</html>

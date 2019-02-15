@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg4716][loj140]最小树形图</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>这是一道模板题。</p>
+		<p>给定包含 $n$ 个结点， $m$ 条有向边的一个图。试求一棵以结点 $r$ 为根的最小树形图，并输出最小树形图每条边的权值之和，如果没有以 $r$ 为根的最小树形图，输出 $-1$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, r$ ($1 \leq n \leq 100; 1 \leq m \leq 10000; 1 \leq r \leq n$)，意义同题目所述。</p>
+		<p>接下来 $m$ 行，每行包含三个正整数 $u, v, w$ ($1 \leq u, v \leq n; 1 \leq w \leq 10^6$)，表示图中存在一条从 $u$ 指向 $v$ 的权值为 $w$ 的有向边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，如果原图中存在以 $r$ 为根的最小树形图，就输出最小树形图每条边的权值之和，否则输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>先是判断最小树形图是否存在。这个并不是很难，只需要以 $r$ 为根遍历一下整棵树，如果能全部遍历完则存在树形图 (dfs 树就是)，否则一定不存在。</p>
+		<p>不过怎么求<em>最小</em>树形图呢？下面给出一个由<em>朱永津</em>和<em>刘振宏</em>在 1965 年发明的算法，(并在两年后被 <em>Jack Edmonds</em> 独立发现)，故得名<strong>朱-刘-Edmonds 算法</strong>，该算法的时间复杂度为 $O \left( n \cdot m \right)$，且可以在实现过程中判断无解情形。</p>
+		<p>该算法的流程如下：</p>
+		<ol>
+			<li><p>删除图中的所有自环。这一步虽然对算法的正确性没有影响，但它保证了时间复杂度为 $O \left( n \cdot m \right)$。</p>
+			<p>设删去自环后得到的图为 $G_1 = \left( V_1, E_1 \right)$，根为 $r_1$。令 $i \gets 1, W \gets 0$。</p></li>
+			<li><p>(最短弧集) 对于每个点 $v \in V_i; v \neq r_i$，寻找终点为 $v$ 的有向边 $e \in E_i$。如果不存在这样的边则返回<strong>不存在</strong>，否则用 $M_v$ 表示这样的 $e$ 中权值最小的边。</p></li>
+			<li><p>对于所有 $v$，令 $W \gets W + M_v.w$。</p></li>
+			<li><p>如果所有边 $M_v$ 的集合构成树，则该树就是 $G_i$ 的最小树形图，转到步骤 8。</p></li>
+			<li><p>(缩圈) 此时，所有边 $M_v$ 构成了若干个环和一些树边 (即<strong>基环外向树</strong>)。</p>
+			<p>对于每个<strong>圈</strong> $C$，我们构造一个新点 $C$ 代表这个圈，不在圈上的点 $v$ 仍不变。</p></li>
+			<li><p>(重新定权) 令 $V_{i+1}$ 为将步骤 5 中所有的 $C$ 和 $v$ 构成的集合。对 $(u \to v) \in E_i$，如果 $u, v$ 在新图中的对应点 $u', v'$ <strong>不同</strong>，则令新的权值 $w' = w - M_v.w$，将边 $u' \xrightarrow{w'} v'$ 插入到边集 $E_{i+1}$ 中。。</p></li>
+			<li><p>(循环) 令 $i \gets i + 1$，转到步骤 2。</p></li>
+			<li><p style="color: gray">// 此时，$W$ 就是<strong>最小树形图的边权和</strong>。</p></li>
+			<p>(展开) 如果 $i &gt; 1$，则对于 $G_{i-1}$ 中的每个环 $C$，考虑 $G_i$ 中的 $M_C$，设它对应到 $G_{i-1}$ 中是边 $u \to v$，则在 $G_{i-1}$ 的环 $C$ 中去掉<strong>指向 $v$ 的边</strong>，即得到图 $G_{i-1}$ 的最小树形图。</p></li>
+			<li><p>令 $i \gets i - 1$，如果 $i = 1$，则算法结束，否则转到步骤 8。</p></li>
+		</ol>
+		<p>正确性的证明这里略去，可以参见论文。步骤 4 的正确性还是比较好说明的：即，如果此时所有边 $M_v$ 构成的集合不是最小树形图，则一定存在一个 $v$，它在真正的最小树形图中，指向它的边的权值 $&lt; M_v$，矛盾。</p>
+		<p>现在再来一下时间复杂度。</p>
+		<p>由于在步骤 1 中去掉了所有的自环，因此每个圈的长度至少为 $\geq 2$。</p>
+		<p>如果某一轮在步骤 4 中没有转到步骤 8，则说明此时找到圈，故缩圈后点数<strong>至少减少 $1$</strong>，即 $\left| V_{i+1} \right| \leq \left| V_i \right| - 1$。</p>
+		<p>而当 $\left| V_i \right| = 1$ 时，不存在圈，故一定会跳转到步骤 8 (现在证明了该算法的有穷性)。</p>
+		<p>又因为每次 2 ~ 7 的过程中的时间复杂度是 $O \left( \left| E \right| \right)$ 的，且这一部分的算法至多运行 $\left| V \right|$ 次，故总时间复杂度就是 $O \left( \left| V \right| \left| E \right| \right)$。</p>
+		<p><strong>但是，如果没有在步骤 1 中去掉所有自环，则缩完圈后就可能存在长度为 $1$ 的平凡圈，从而 2 ~ 7 的过程可能会运行超过 $\left| V \right|$ 次</strong>。</p>
+		<p style="color: red">番外：1986 年 Tarjan 等人提出了一个在 $O \left( \left| V \right| \log \left| V \right| + \left| E \right| \right)$ 的时间内求出一般有向图的最小树形图的方法，不过由于实现太复杂这里略去。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 108, M = 25400, INF = 0x3f3f3f3f;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int V, E, r, ans = 0;
+int first[N], next[M];
+int p[N], min[N], used[N], cyc[N];
+int cyc_cnt = 0, stamp = 0;
+
+int main() {
+	int i, u, v, w;
+	scanf("%d%d%d", &amp;V, &amp;E, &amp;r);
+	for (i = 1; i &lt;= E; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), u == v || (e[i] = edge(u, v, w), 0);
+	for (; ; V = cyc_cnt, E = w, r = cyc[r]) {
+		memset(min, 63, (V + 1) &lt;&lt; 2);
+		for (i = 1; i &lt;= E; ++i)
+			if (e[i].w &lt; min[e[i].v]) min[e[i].v] = e[i].w, p[e[i].v] = e[i].u;
+		memset(cyc, 0, (V + 1) &lt;&lt; 2); cyc_cnt = w = 0;
+		for (i = 1; i &lt;= V; ++i)
+			if (i != r) {
+				if (min[i] &gt;= INF) return puts("-1"), 0;
+				ans += min[i], ++stamp;
+				for (u = i; !(u == r || cyc[u] || used[u] == stamp); u = p[u]) used[u] = stamp;
+				if (!(u == r || cyc[u]) &amp;&amp; (v = u, ++cyc_cnt)) do cyc[v] = cyc_cnt; while (v = p[v], u != v); // new cycle
+			}
+		if (!cyc_cnt) break;
+		for (i = 1; i &lt;= V; ++i) cyc[i] || (cyc[i] = ++cyc_cnt);
+		for (i = 1; i &lt;= E; ++i)
+			cyc[e[i].u] == cyc[e[i].v] || (e[++w] = edge(cyc[e[i].u], cyc[e[i].v], e[i].w - min[e[i].v]), 0);
+	}
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意缩圈时保持 $O \left( \left| E \right| \right)$ 的复杂度，即不要重复走过一个圈。</p>
+		<p><strong>坑2：</strong>还是不要忘记去除图中的自环。</p>
+	</body>
+</html>

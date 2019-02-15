@@ -12,7 +12,7 @@ const
 
 	var
 		DisplayDict = {'Luogu' : '洛谷', 'SPOJ' : 'Sphere OJ', 'SOJ' : 'Simple OJ/Stupid OJ', 'Local' : '本地', 'Unknown' : '一些看似不是很知名的 OJ，快去问一问大佬们吧'},
-		NormDict = {'lydsy' : 'Lydsy', 'lg' : 'Luogu', 'vijos' : 'Vijos', 'hdu' : 'HDU', 'poj' : 'POJ', 'uoj' : 'UOJ', 'loj' : 'LibreOJ', 'simpleoj' : 'SOJ', 'soj' : 'SOJ', 'cf' : 'Codeforces', 'cc' : 'Codechef', 'spoj' : 'SPOJ'},
+		NormDict = {'lydsy' : 'Lydsy', 'lg' : 'Luogu', 'vijos' : 'Vijos', 'hdu' : 'HDU', 'poj' : 'POJ', 'uoj' : 'UOJ', 'loj' : 'LibreOJ', 'simpleoj' : 'SOJ', 'soj' : 'SOJ', 'cf' : 'Codeforces', 'gym' : 'Codeforces', 'cc' : 'Codechef', 'spoj' : 'SPOJ'},
 		SiteDict = {
 			'lydsy' : [[/\d+/], 'https://www.lydsy.com/JudgeOnline/problem.php?id=@0'],
 			'lg' : [[/[TU]?\d+/], 'https://www.luogu.org/problemnew/show/@0'],
@@ -24,6 +24,7 @@ const
 			'simpleoj' : [[/\d+/], 'http://10.49.27.23/problem?id=@0'],
 			'soj' : [[/\d+/], 'http://10.49.18.71/problem/@0'],
 			'cf' : [[/\d+/, /[A-Z]\d*/], 'https://codeforces.com/contest/@0/problem/@1'],
+			'gym' : [[/\d+/, /[A-Z]\d*/], 'https://codeforces.com/gym/@0/problem/@1'],
 			'cc' : [[/\w+/], 'https://www.codechef.com/problems/@0/'],
 			'spoj' : [[/\w+/], 'http://www.spoj.com/problems/@0/']
 		},

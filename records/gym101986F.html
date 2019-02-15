@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[CodeforcesGym101986F]Pizza Delivery</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $n$ 个点 $m$ 条边的有向图，起点为 $1$，终点为 $2$，保证存在从 $1$ 到 $2$ 的路径。</p>
+		<p>你需要对于图中的每条边 $e$，求出将其反向后，$1$ 到 $2$ 的最短路是变短了、不变，还是变长了 (不存在视为变为 $+ \infty$)，各条边之间相互独立。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($2 \leq n \leq 10^5; 1 \leq m \leq 10^5$)，表示点数和边数。</p>
+		<p>接下来的 $m$ 行，每行包含三个正整数 $u, v, w$ ($1 \leq u, v \leq n; u \neq v; 1 \leq w \leq 10^5$)，表示有一条从 $u$ 到 $v$、长度为 $w$ 的有向边。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每条边，(按输入顺序) 输出一行，包含一个字符串：</p>
+		<p>输出 <code>HAPPY</code>，如果 $1$ 到 $2$ 的最短路变短了。</p>
+		<p>输出 <code>SOSO</code>，如果 $1$ 到 $2$ 的最短路长度不变。</p>
+		<p>输出 <code>SAD</code>，如果 $1$ 到 $2$ 的最短路变长了或 (反向后) 不存在从 $1$ 到 $2$ 的路径。</p>
+
+		<h3>题解</h3>
+		<p>先使用 Dijkstra 求出以 $1$ 为源点的单源最短路，以及以 $2$ 为终点的单源最短路 (反向)。</p>
+		<p>先来判断一条边反向后最短路是否会变短。</p>
+		<p>这个很简单，将边 $(u, v)$ 反向后最短路会变短的充要条件是 $\mathrm{dist}(1, v) + w(u, v) + \mathrm{dist}(u, 2) &lt; \mathrm{dist}(1, 2)$，证明略。</p>
+		<p>由于我们对 $\forall v \in V$ 求出了 $\mathrm{dist}(1, v)$ 以及 $\mathrm{dist}(v, 2)$，因此直接枚举每条边进行判断即可。</p>
+		<hr />
+		<p>接下来的问题就是最短路长度是否会变长 (接下来不考虑变短情况，只分为<strong>变长</strong>和<strong>不变长</strong>。</p>
+		<p>首先，如果边 $(u, v)$ <strong>不</strong>出现在任何一条最短路中，则将其反向后最短路肯定不会变长。因此，我们只需要考虑所有<strong>可能出现在最短路中的边</strong>的集合，没错，就是<strong>最短路网</strong>。</p>
+		<p>仿照 <a href="lgT7025.html" target="_blank">[lgT7025]miaom 与 +1 (一)</a>，构建出原图的最短路网。$(u, v)$ 在最短路网中的充要条件为 $\mathrm{dist}(1, u) + w(u, v) + \mathrm{dist}(v, 2) = \mathrm{dist}(1, 2)$。</p>
+		<p>考虑最短路网中的一条边 $(u, v)$，如果它是最短路必经边，则将其反向后最短路一定会变长；反之，如果它<strong>不是</strong>最短路必经边，那么将其反向后，由于还有其它路径，故最短路不变长。</p>
+		<p>于是，我们只需要求出哪些边是最短路必经边即可。那哪些点是 "最短路必经边" 呢？对，就是<strong>最短路网</strong>中的必经边 (支配边)。</p>
+		<p>必经边的求法有两种：</p>
+		<ol>
+			<li><p>由于它是一张 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，因此可以使用 dfs (或拓扑排序) + DP 的方法求得，具体方法还是参见<a href="lgT7025.html" target="_blank">那道题</a>。</p></li>
+			<li><p>对于一般的有向 (连通) 图，我们已经会求这张图中任何一个终点的<strong>必经点</strong> (支配点，使用支配树理论)。那如何求必经边呢？</p>
+			<p>还是一个经典的方法：<strong><a href="soj13.html" target="_blank">裂边</a></strong>。将边 $e = (u, v)$ 拆分成两条边 $(u, e')$ 和 $(e', v)$。那么 $e$ 为必经边 $\Rightarrow$ 新图中 $e'$ 为必经点 (支配点)。</p>
+			<p>然后就可以用支配树的构造算法做了。</p>
+		</ol>
+		<p>总时间复杂度 $O \left( (n + m) \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 200054, M = N * 8;
+const ll INF = 0x3f3f3f3f3f3f3f3fll;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[N];
+
+int V, E, Es = 0;
+int to[M], next[M], p[N];
+int of[N], orf[N], gf[N], inf[N], sef[N];
+int cnt = 0, o[N], id[N];
+int S[N], I[N];
+ll d1[N], d2[N];
+char ans[M];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline void addedge(int u, int v, int *fst) {to[++Es] = v; next[Es] = fst[u]; fst[u] = Es;}
+inline void addedgeW(int u, int v, int w, int *fst) {e[++Es] = edge(u, v, w); next[Es] = fst[u]; fst[u] = Es;}
+
+namespace SP {
+	struct node {
+		int to; ll dist;
+		node (int _to = 0, ll _dist = 0) : to(_to), dist(_dist) {}
+		inline bool operator &lt; (const node &amp;B) const {return dist &gt; B.dist;}
+	};
+
+	std::priority_queue &lt;node&gt; pq;
+
+	void Dijkstra(int si, ll *d, int *fst) {
+		int i, y; node t;
+		for (i = 1; i &lt;= V; ++i) d[i] = (i == si ? 0 : INF);
+		for (pq.emplace(si, 0); !pq.empty(); ) {
+			t = pq.top(), pq.pop();
+			if (d[t.to] &lt; t.dist) continue;
+			for (i = fst[t.to]; i; i = next[i])
+				if (t.dist + e[i].w &lt; d[y = e[i].v])
+					d[y] = t.dist + e[i].w, pq.emplace(y, d[y]);
+		}
+	}
+}
+
+namespace U {
+	int p[N], w[N], st[N];
+
+	inline void init() {for (int i = 1; i &lt;= V + E; ++i) w[i] = p[i] = i;}
+	inline void update(int &amp;x, const int y) {id[S[x]] &gt; id[S[y]] ? x = y : 0;}
+
+	int ancestor(int x) {
+		int i = 0;
+		for (; x != p[x]; st[++i] = x, x = p[x]);
+		for (st[i + 1] = x; i; p[st[i]] = x, --i) update(w[st[i]], w[st[i + 1]]);
+		return x;
+	}
+
+	inline int get_min(int x) {return ancestor(x), w[x];}
+}
+
+void dfs(int x) {
+	int i, y; o[++cnt] = x, id[x] = cnt;
+	for (i = gf[x]; i; i = next[i])
+		if (!id[y = to[i]]) p[y] = x, dfs(y);
+}
+
+void solve() {
+	int i, j, x, y, r;
+	dfs(1), assert(id[2]), U::init();
+	for (i = 1; i &lt;= V + E; ++i) S[i] = i;
+	for (j = cnt; j &gt; 1; --j) {
+		for (r = INT_MAX, i = inf[ x = o[j] ]; i; i = next[i])
+			id[y = to[i]] &amp;&amp; (down(r, id[ id[y] &lt; id[x] ? y : S[U::get_min(y)] ]), 0);
+		U::p[x] = p[x], S[x] = o[r], addedge(S[x], x, sef);
+		for (i = sef[ x = o[j - 1] ]; i; i = next[i])
+			r = U::get_min(y = to[i]), I[y] = (S[r] == x ? x : r);
+	}
+	for (; ++j &lt;= cnt; ) x = o[j], I[x] != S[x] &amp;&amp; (I[x] = I[I[x]]);
+}
+
+int main() {
+	int i, u, v, w; ll path; edge *pe;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 0; i &lt; E; ++i)
+		scanf("%d%d%d", &amp;u, &amp;v, &amp;w), addedgeW(u, v, w, of), addedgeW(v, u, w, orf);
+	SP::Dijkstra(1, d1, of), SP::Dijkstra(2, d2, orf), assert((path = d1[2]) == d2[1]);
+	for (i = 0, pe = e + 1; i &lt; E; ++i, pe += 2) {
+		if (d1[pe-&gt;v] + pe-&gt;w + d2[pe-&gt;u] &lt; path) ans[i] = -1;
+		if (d1[pe-&gt;u] + pe-&gt;w + d2[pe-&gt;v] == path) {
+			addedge(pe-&gt;u, (V + 1) + i, gf), addedge((V + 1) + i, pe-&gt;v, gf),
+			addedge(pe-&gt;v, (V + 1) + i, inf), addedge((V + 1) + i, pe-&gt;u, inf);
+		}
+	}
+	solve();
+	for (i = 2; i != 1; i = I[i]) i &gt; V &amp;&amp; (assert(!ans[i - V - 1]), ans[i - V - 1] = 1);
+	for (i = 0; i &lt; E; ++i)
+		puts(~ans[i] ? (ans[i] ? "SAD" : "SOSO") : "HAPPY");
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>支配边最好通过裂边操作来求得，这样也可以有效地避免<strong>重边</strong>的情况 (数据中是允许重边的)，因为 $u, v$ 是支配点 $\not\Rightarrow$ $(u, v)$ 是支配边。</p>
+		<p><strong>坑2：</strong>数组要开足够大，点的编号不要用重。</p>
+	</body>
+</html>

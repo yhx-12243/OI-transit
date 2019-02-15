@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg5180][模板]支配树</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张有向图，保证 $1$ 号点可以到达所有点。求从 $1$ 号点出发，每个点能支配的点的个数 (包括自身)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 2 \times 10^5; m \leq 3 \times 10^5$)，表示点数和边数。</p>
+		<p>接下来的 $m$ 行，每行包含两个正整数 $u, v$，表示有一条从 $u$ 到 $v$ 的有向边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n$ 个整数，表示每个点能支配的点的个数。</p>
+
+		<h3>题解</h3>
+		<p>题目即构造出原 (有向) 图的支配树，然后求每个点的子树大小。</p>
+		<p>支配树的相关理论可以参见便笺 "<a href="../memos/18.html" target="_blank">支配树及其应用</a>"。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$ (最坏复杂度，即为<em>路径压缩、<strong>不</strong>按秩合并</em>的并查集复杂度)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 200054, M = N * 12;
+
+int V, E, Es = 0;
+int to[M], next[M], p[N];
+int first[N], inv_first[N], S_first[N];
+int cnt = 0, o[N], id[N];
+int S[N], I[N], ans[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline void addedge(int u, int v, int *fst) {to[++Es] = v; next[Es] = fst[u]; fst[u] = Es;}
+
+namespace U {
+	int p[N], w[N], st[N];
+
+	inline void init() {for (int i = 1; i &lt;= V; ++i) w[i] = p[i] = i;}
+	inline void update(int &amp;x, const int y) {id[S[x]] &gt; id[S[y]] ? x = y : 0;}
+
+	int ancestor(int x) {
+		int i = 0;
+		for (; x != p[x]; st[++i] = x, x = p[x]);
+		for (st[i + 1] = x; i; p[st[i]] = x, --i) update(w[st[i]], w[st[i + 1]]);
+		return x;
+	}
+
+	inline int get_min(int x) {return ancestor(x), w[x];}
+}
+
+void dfs(int x) {
+	int i, y; o[++cnt] = x, id[x] = cnt;
+	for (i = first[x]; i; i = next[i])
+		if (!id[y = to[i]]) p[y] = x, dfs(y);
+}
+
+void solve() {
+	int i, j, x, y, r;
+	dfs(1), assert(cnt == V), U::init();
+	for (i = 1; i &lt;= V; ++i) S[i] = i;
+	for (j = V; j &gt; 1; --j) {
+		for (r = INT_MAX, i = inv_first[ x = o[j] ]; i; i = next[i])
+			y = to[i], down(r, id[ id[y] &lt; id[x] ? y : S[U::get_min(y)] ]);
+		U::p[x] = p[x], S[x] = o[r], addedge(S[x], x, S_first);
+		for (i = S_first[ x = o[j - 1] ]; i; i = next[i])
+			r = U::get_min(y = to[i]), I[y] = (S[r] == x ? x : r);
+	}
+	for (; ++j &lt;= V; ) x = o[j], I[x] != S[x] &amp;&amp; (I[x] = I[I[x]]);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v, first), addedge(v, u, inv_first);
+	solve();
+	for (i = 1; i &lt;= V; ++i) ans[i] = 1;
+	for (i = V; i &gt; 1; --i) v = o[i], ans[I[v]] += ans[v];
+	for (i = 1; i &lt;= V; ++i) printf("%d%c", ans[i], i == V ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在求<em>半支配点</em>的时候要满足 $id[z] &gt; id[x]$，因此初始时要置所有点的<em>半支配点</em>为 $+ \infty$。</p>
+		<p><strong>坑2：</strong>注意比较的时候使用的是 dfs 序而不是点的编号，还有就是<em>半支配点</em>是和<strong>生成外向树</strong> (树形图) 有关的，不是恒定的；<em>支配点</em>只和有向图与起点有关，与生成树无关。</p>
+	</body>
+</html>

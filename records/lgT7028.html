@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lgT7028]miaom 与 +1 (二)</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>这次 <samp>+1</samp> 需要 lose weight，所以 <samp>+1</samp> 不再挑着最短的路走，而是随机挑一条可行路径走。而且每天走到的地方都不一样了 (但起点一样)。</p>
+		<p>而 miaom 知道她的每天的终点，而他想知道 <samp>+1</samp> 每个必经过的点。所以他想让你帮他算出这些点的编号的和。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, S$ ($n \leq 10^5; m \leq 3 \times 10^5; 1 \leq S \leq n$)，分别表示图的点数、边数和起点。</p>
+		<p>接下来 $m$ 行，每行包含两个正整数 $u, v$，表示有一条从 $u$ 到 $v$ 的有向边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n$ 个整数，第 $i$ 个整数表示点 $i$ 必经点的编号的和，$x = S$ 时输出 $S$。</p>
+
+		<h3>题解</h3>
+		<p>由<a href="../memos/18.html" target="_blank">支配树</a>相关理论，设 $S$ 到 $v$ 的必经点依次为 $v_1, v_2, \cdots, v_k$，则在支配树中，根节点 $S$ 到 $v$ 的路径即为 $S \to v_1 \to v_2 \to \cdots \to v_k$。</p>
+		<p>因此求出支配树后，只需要求一个<strong>链上前缀和</strong>即可。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 200054, M = N * 12;
+
+int V, E, Es = 0, si;
+int to[M], next[M], p[N];
+int first[N], inv_first[N], S_first[N];
+int cnt = 0, o[N], id[N];
+int S[N], I[N], ans[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline void addedge(int u, int v, int *fst) {to[++Es] = v; next[Es] = fst[u]; fst[u] = Es;}
+
+namespace U {
+	int p[N], w[N], st[N];
+
+	inline void init() {for (int i = 1; i &lt;= V; ++i) w[i] = p[i] = i;}
+	inline void update(int &amp;x, const int y) {id[S[x]] &gt; id[S[y]] ? x = y : 0;}
+
+	int ancestor(int x) {
+		int i = 0;
+		for (; x != p[x]; st[++i] = x, x = p[x]);
+		for (st[i + 1] = x; i; p[st[i]] = x, --i) update(w[st[i]], w[st[i + 1]]);
+		return x;
+	}
+
+	inline int get_min(int x) {return ancestor(x), w[x];}
+}
+
+void dfs(int x) {
+	int i, y; o[++cnt] = x, id[x] = cnt;
+	for (i = first[x]; i; i = next[i])
+		if (!id[y = to[i]]) p[y] = x, dfs(y);
+}
+
+void solve() {
+	int i, j, x, y, r;
+	dfs(si), assert(cnt == V), U::init();
+	for (i = 1; i &lt;= V; ++i) S[i] = i;
+	for (j = V; j &gt; 1; --j) {
+		for (r = INT_MAX, i = inv_first[ x = o[j] ]; i; i = next[i])
+			y = to[i], down(r, id[ id[y] &lt; id[x] ? y : S[U::get_min(y)] ]);
+		U::p[x] = p[x], S[x] = o[r], addedge(S[x], x, S_first);
+		for (i = S_first[ x = o[j - 1] ]; i; i = next[i])
+			r = U::get_min(y = to[i]), I[y] = (S[r] == x ? x : r);
+	}
+	for (; ++j &lt;= V; ) x = o[j], I[x] != S[x] &amp;&amp; (I[x] = I[I[x]]);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d%d%d", &amp;V, &amp;E, &amp;si);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v, first), addedge(v, u, inv_first);
+	solve();
+	for (i = 1; i &lt;= V; ++i) ans[i] = i;
+	for (i = 2; i &lt;= V; ++i) v = o[i], ans[v] += ans[I[v]];
+	for (i = 1; i &lt;= V; ++i) printf("%d%c", ans[i], i == V ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>要注意这道题的起点不再是 $1$ 了哦~</p>
+	</body>
+</html>

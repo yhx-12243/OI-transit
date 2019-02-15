@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[kattisFF]Flashing Fluorescents</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个灯，每个灯都有一个按钮，排成一排。按下一个开关将会改变灯泡状态。</p>
+		<p>灯泡改变需要一秒钟，你可以在任何一个时间按下一个按钮，但是它会在下一秒起作用。在每一秒前，你都可以选择并按下一个按钮。</p>
+		<p>灯的开关具有传递性。即第 $i$ 秒前如果按下开关 $j$，那么第 $i$ 秒灯泡 $j$ 状态发生变化，第 $i + 1$ 秒灯泡 $j + 1$ 发生变化，第 $i + 2$ 秒，灯泡 $j + 2$ 发生变化，这些变化可以相互抵消。</p>
+		<p>给出初始状态，问最少需要多少秒可以点亮所有的灯。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个长度为 $n$ ($1 \leq n \leq 16$) 的 $\texttt 0/\texttt 1$ 串，其中第 $i$ 个字符为 $1$ 如果灯泡 $i$ 是亮的，为 $0$ 如果灯泡 $i$ 是暗的。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示使所有灯都点亮所需的最小时间。</p>
+
+		<h3>题解</h3>
+		<p>首先可以证明答案一定 $\leq n$。</p>
+		<p>考虑构造一个 $n$ 秒的答案：即如果第 $1$ 秒前 (第 $0$ 秒末) 灯泡 $1$ 是暗的，我们将其点亮，否则不动；</p>
+		<p>其次如果第 $2$ 秒前 (第 $1$ 秒末) 灯泡 $2$ 是暗的 (考虑第 $1$ 秒的影响)，则将其点亮，否则不动。以此类推，第 $i$ 秒的操作使得：<strong>在第 $i$ 秒及其后面，灯泡 $i$ 处于亮的状态</strong>。</p>
+		<p>于是答案就不超过了 $n$ 了。又因为第 $t$ 秒末所有灯泡都亮着并不能保证第 $t + 1$ 秒末所有灯泡都处于亮的状态，因此我们可以考虑<strong>枚举答案</strong>然后判断。</p>
+		<p>我们设枚举的答案为 $t$，就是要判断是否存在一种操作序列使得 $t$ 秒后所有灯泡都亮。</p>
+		<p>我们把所有灯泡的亮 (0) 暗 (1) 状态看作一个 $n$ 位二进制数，或 $\mathbb F_2$ 意义下的 $n$ 维向量 $\mathbf v_0$。由于时间是确定的，因此每次操作就相当于异或上一个数 (或加上一个向量)，最终就是要判断是否可以在每一个时刻取一个合适的向量，使得最终可以异或出 (线性组合出) 初始的灯泡向量 $\mathbf v_0$。</p>
+		<p>可以用类似 DP (递推) 的思想完成，即用 $f_{i, \mathbf v}$ 表示最后 $i$ 秒中之内能否异或出 $\mathbf v$。然后暴力枚举选择哪个向量 (连同不选一共 $n + 1$ 种情形) 进行转移。</p>
+		<p>这样就可以完成 $O \left( 2^n n \right)$ 的时间内完成判断。</p>
+		<p>加上枚举答案的复杂度，总时间复杂度 $O \left( 2^n n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef std::bitset &lt;65538&gt; bit;
+
+int n, m, M;
+int v[18];
+bit fy[2], *x = fy, *y = fy + 1;
+
+void insert() {
+	int i, j; bool flag;
+	for (i = 0; i &lt;= M; y-&gt;set(i++, flag))
+		for (flag = x-&gt;test(i), j = 0; j &lt; 16 &amp;&amp; !flag; ++j) flag |= x-&gt;test(i ^ v[j]);
+	std::swap(x, y);
+}
+
+int main() {
+	int i = 0, j, f, g; char s[54];
+	scanf("%s", s), n = strlen(s);
+	m = ~strtol(s, NULL, 2) &amp; (M = ~(f = -1 &lt;&lt; n));
+	for (x-&gt;set(0); !x-&gt;test(m); insert(), ++i)
+		for (g = (f &gt;&gt;= 1) &amp; M, j = 0; j &lt; n; ++j)
+			v[j] = g &gt;&gt; j &amp; M;
+	printf("%d\n", i);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意一组向量要一起插入，因为每一秒钟的 $n$ 个向量只能选择其一 (或不选)。</p>
+	</body>
+</html>
