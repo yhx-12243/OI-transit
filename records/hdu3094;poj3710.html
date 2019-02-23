@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[hdu3094]A tree game/[poj3710]Christmas Game</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p style="color: red">注：由于这两道题都是 Green Hackenbush (绿色博弈) 的题，下面讲解的是对一般有根图的 Green Hackenbush 问题的求解。而那两题的输入中，一题保证是树，一题保证是仙人掌森林，都可以套用下面一般算法求解。故代码也没有给出具体题目的代码。</p>
+		<p>现在来介绍 Green Hackenbush 问题。</p>
+		<p>有一张无向连通图，允许有自环和重边，其中 $1$ 号节点为根。有两个玩家轮流操作，每次可以选择图中的一条边并删去它。</p>
+		<p>每一次操作结束后，检查图中所有的连通块 (注意到图可能会被删得不连通)，<strong>并删掉除了 <em>$1$ 号点所在的连通块</em>之外的所有连通块</strong>。(即删除不与 $1$ 号点连通的所有点)。</p>
+		<img class="center-block" src="uploads/77.png" alt="Green Hackenbush" />
+		<p>如果轮到某个玩家操作时，只剩下节点 $1$ 了 (即没有边可删)，则该玩家输掉游戏。容易证明，Green Hackenbush 是一个 ICG (公平组合游戏)。</p>
+		<p>给定一个状态，求先手必胜还是后手必胜，并求出该状态的 SG 值 (由于是 ICG，故 SG 值是良定义的)。</p>
+
+		<h3>输入格式</h3>
+		<p style="color: red">这里给出一般 Green Hackenbush 问题的输入格式，具体问题可以看 OJ 上的输入格式。</p>
+		<p>第一行包含两个非负整数 $n, m$ ($1 \leq n \leq 5 \times 10^5; 0 \leq m \leq 1.5 \times 10^6$)，表示无向图的点数和边数。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n$)，描述无向图中的一条边。</p>
+
+		<h3>输出格式</h3>
+		<p style="color: red">这里给出一般 Green Hackenbush 问题的输出格式，具体问题可以看 OJ 上的输出格式。</p>
+		<p>输出一行一个整数，表示该状态的 SG 值。</p>
+
+		<h3>题解</h3>
+		<p>我们使用<del>像柯西方程一样的</del> "层层推进" 法来解决该问题。</p>
+		<p>考虑这个删连通块的过程。<strong>如果 $G$ 是一棵树，则这个删边过程可以等价于删子树过程</strong>。</p>
+		<hr />
+		<p>先考虑最简单的情况：<a href="../memos/14.html" target="_blank">链</a>。</p>
+		<p>设 $G$ 是一个 $n + 1$ 阶链 $P_{n+1}$，即 $G$ 有 $n$ 条边，且 $1$ 为链的一端。</p>
+		<p>则删除链上的一条边，就相当于删除一端的若干点，且这一端是固定的 (就是 $1$ 号点的另一端)。</p>
+		<p>因此，这个游戏可以看作是一个最简单的取石子游戏 (只有一堆)，因此 $P_{n+1}$ 的 SG 值为 $n$。</p>
+		<hr />
+		<p>接下来考虑稍稍复杂的情况：<a href="../memos/14.html" target="_blank">树</a>。</p>
+		<p>默认这里的树以 $1$ 为根。</p>
+		<p>根据打表 + 猜想，可以得到这样一个结论：</p>
+		<p id="colon"><strong>(Colon principle) 一棵树的 SG 值等于所有以 "$1$ 的子节点" 为根的子树的 SG 值加 $1$ 后的异或和</strong>。</p>
+		<p>对树的阶数使用归纳法。当 $\left| T \right| \leq 2$ 时结论显然。</p>
+		<p>考虑一般的 $K$ 阶树，分为两种情况：</p>
+		<ol>
+			<li><p>$d(1) = 1$，即根节点的度数为 $1$。</p>
+			<img class="center-block" src="uploads/78.png" alt="证明 1" />
+			<p>由于这个证(wo)明(bi)比(jiao)较(lan)好就直接拉图片了……(source: <a href="https://wenku.baidu.com/view/25540742a8956bec0975e3a8.html" target="_blank">https://wenku.baidu.com/view/25540742a8956bec0975e3a8.html</a>)</p></li>
+			<li><p>$d(1) &gt; 1$，即根节点度数大于 $1$。</p>
+			<p>这个时候，我们把根节点 $1$ 分裂成 $d(1)$ 个节点，变成 $d(1)$ 个 Green Hackenbush 游戏，每次可以任选一个 Green Hackenbush 游戏进行删边，直到所有的 Green Hackenbush 游戏都结束。</p>
+			<p>容易证明，此时原游戏与新的 $d(1)$ 个 Green Hackenbush 游戏的和是等价的。</p>
+			<p>而新的 Green Hackenbush 游戏中，根节点的度数均为 $1$，因此 SG 值等于子树 SG 值加 $1$，而新的 $d(1)$ 个 Green Hackenbush 游戏是互相独立的，因此由 Sprague-Grundy 定理，新的 SG 值就等于所有这样的子树 SG 值加 $1$ 后的异或和。</p></li>
+		</ol>
+		<p>因此在这里我们就解决了树的部分，已经可以 AC <a href="http://acm.hdu.edu.cn/showproblem.php?pid=3094" target="_blank">[hdu3094]A tree game</a> 了。</p>
+		<hr />
+		<p>然后我们来分析最复杂的情况：一般图。</p>
+		<p>在分析一般图之前，先来分析仙人掌图。</p>
+		<p>和树一样的，仙人掌也有一个结论：</p>
+		<p><strong>(Fusion principle) 对于图中一个长为 $k$ 的环，我们可以将它缩为一个点 $C$。然后所有与 "环中的点" 相连的边都连向点 $C$，<em>如果 $k$ 为奇数，新建一个孤立点 $i$ 与 $C$ 相连</em>。这样得到的新图和原图具有<em>相同的 SG 值</em></strong>。</p>
+		<p>这个结论的证明非常复杂，这里略去，有兴趣的同学可以参考这方面的论文。</p>
+		<p>于是我们对仙人掌 dfs (或 tarjan) 一下，得到所有环的大小然后构建新图，然后就像树一样做即可。因此现在我们解决了仙人掌的问题，可以 AC <a href="http://poj.org/problem?id=3710" target="_blank">[poj3710]Christmas Game</a>了。</p>
+		<hr />
+		<p>有了仙人掌的铺垫，最后转到一般图的过程就不难了。</p>
+		<p>要指出的是，Fusion principle 不仅对仙人掌成立，对一般图都是成立的。因此我们可以得到这个定理的一个推论：</p>
+		<p><strong>(Fusion principle') 对一个一般的无向连通图，考虑它的一个<em>边双连通分量</em>，我们将其缩为一个点 $B$。然后所有与这个边双相连的边 (即桥边) 都指向点 $B$，<em>如果这个边双中有奇数条边，则新建一个孤立点 $i$ 与 $B$ 相连</em>。这样得到的新图和原图具有<em>相同的 SG 值</em></strong>。</p>
+		<p>它的证明比较容易，只需要利用 Fusion principle 即可，具体证明就留给读者了。</p>
+		<p>这样来说，实现也不难，只需利用 Tarjan 算法进行边双连通分量缩点即可，缩点后就得到了一棵树，然后套用树的算法就完成了所有的 Green Hackenbush 问题。</p>
+		<hr />
+		<p>当然，Green Hackenbush 还可以是图不连通的情况，此时我们需要对每个连通分量指定一个根 (通常题目会给出)，然后就可以把它看作是<strong>多个独立的 Green Hackenbush 游戏的和</strong>，只需要对每个 Green Hackenbush 游戏分别求解，然后使用 Sprague-Grundy 定理进行合并即可。</p>
+		<p>总时间复杂度 $O \left( \left| V \right| + \left| E \right| \right)$。</p>
+
+		<h3>代码</h3>
+
+		<p style="color: red">这里只给出 Green Hackenbush (绿色博弈) 的模板，具体情况要视题目的输入输出格式而定。</p>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) (((x - 1) ^ 1) + 1)
+
+const int N = 510000, M = 2040000 * 2;
+
+int n, V, E, Es;
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace U {
+	int p[N];
+
+	int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+	bool test(int x, int y, bool un = false) {
+		if ((x = ancestor(x)) == (y = ancestor(y))) return true;
+		return un &amp;&amp; (p[x] = y), false;
+	}
+}
+
+namespace Green_Hackenbush {
+	int to[M], first[N], Tfirst[N], next[M];
+	int cnt = 0, id[N], low[N];
+	bool bridge[M];
+	int bcc_cnt = 0, bcc[N], root;
+
+	void init() {
+		Es = 0;
+		memset(first, 0, sizeof first);
+		memset(Tfirst, 0, sizeof Tfirst);
+		memset(id, 0, sizeof id);
+		memset(bridge, false, sizeof bridge);
+		std::iota(U::p, U::p + (V + 1), 0);
+	}
+
+	inline void addedge(int u, int v, int *fst) {
+		to[++Es] = v; next[Es] = fst[u]; fst[u] = Es;
+		to[++Es] = u; next[Es] = fst[v]; fst[v] = Es;
+	}
+	
+	void dfs(int x, int px = 0) {
+		int i, y; id[x] = low[x] = ++cnt;
+		for (i = first[x]; i; i = next[i]) {
+			if (!id[y = to[i]]) {
+				dfs(y, x);
+				down(low[x], low[y]);
+				if (id[x] &lt; low[y])
+					bridge[ad(i)] = bridge[i] = true;
+			} else if (y != px) down(low[x], id[y]);
+		}
+	}
+
+	int dfs2(int x, int px = 0) {
+		int i, y, ret = 0, loop = 0;
+		for (i = Tfirst[x]; i; i = next[i])
+			if ((y = to[i]) != px)
+				y == x ? ++loop : (ret ^= dfs2(y, x) + 1);
+		return ret ^ (loop &gt;&gt; 1 &amp; 1);
+	}
+
+	// you should ensure it is a connected graph with root 1
+	int main() {
+		int i, u, v;
+		scanf("%d%d", &amp;V, &amp;E); init();
+		for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v, first);
+		dfs(1);
+		for (i = 1; i &lt;= Es; i += 2)
+			if (!bridge[i]) U::test(to[i], to[i + 1], true);
+		for (bcc_cnt = 0, i = 1; i &lt;= V; ++i)
+			if (U::p[i] == i) bcc[i] = ++bcc_cnt;
+		root = bcc[U::ancestor(1)];
+		for (i = 1; i &lt;= E * 2; i += 2)
+			u = U::ancestor(to[i]), v = U::ancestor(to[i + 1]), addedge(u, v, Tfirst);
+		return dfs2(root);
+	}
+}
+
+int main() {
+	printf("%d\n", Green_Hackenbush::main());
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>具体实现时，可以把边双内部的点缩成自环，然后最后进行树的 dfs 时统计自环数量的一半是奇数还是偶数来决定是否 $+ 1$。</p>
+	</body>
+</html>

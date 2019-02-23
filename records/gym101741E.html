@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[CodeforcesGym101741E]Code-Cola Plants</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张有向无环图 (可能有重边)，给定两个点 $a, b$，你需要找到一棵以 $a$ 为根的生成外向树和一棵以 $b$ 为根的生成内向树，使得<strong>这两棵树没有公共边</strong>。输出任意一组方案或说明无解。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据，以 EOF 结尾。每组数据的格式如下：</p>
+		<p>第一行包含四个正整数 $n, m, a, b$ ($2 \leq n \leq 5 \times 10^5; 1 \leq m \leq 10^6; 1 \leq a, b \leq n$)，分别表示图的阶数 (同时也是树的阶数)、图的边数，两棵树的根。其中 $a$ 可以等于 $b$。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq n$)，描述图中的一条从 $x_i$ 到 $y_i$ 的有向边。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出格式如下：</p>
+		<p>如果存在至少一组解，则第一行输出字符串 <code>YES</code>，紧跟着两行分别表示<strong>以 $a$ 为根的生成外向树</strong>和<strong>以 $b$ 为根的生成内向树</strong>中的所有边在输入中的编号，其中每行输出 $n - 1$ 个互不相同的<strong>无序</strong>整数。</p>
+		<p>如果不存在解，则输出一行一个字符串 <code>NO</code>。</p>
+
+		<h3>题解</h3>
+		<p>我们考虑构成一棵生成外向树所需的条件。</p>
+		<p>首先，它需要 $n$ 个点。除了根 $a$ 之外，还需要 $n - 1$ 个点，而这些 $n - 1$ 个点都需要一条入边。</p>
+		<p>也就是说，一棵生成外向树需要<strong>两两配对</strong>的 $n - 1$ 个点和 $n - 1$ 条边 (即点的边的<strong>终点</strong>)。</p>
+		<p>但是，任意这样配对后的 $n - 1$ 个点和 $n - 1$ 条边都是一棵生成外向树吗？答案是肯定的。</p>
+		<p>否则，说明形成了至少一个 (有向) 环，这与题目中的描述 (有向无环图) 矛盾。</p>
+		<p>因此我们只需找到这样的一个配对即可。</p>
+		<p>同理，对于一棵生成内向树，我们同样需要对这 ($b$ 除外的) $n - 1$ 个点寻找 $n - 1$ 条边，使得点是对应边的<storng>起点</strong>，反之亦然。</p>
+		<p>也就是说，我们还是要找一个这样的配对。</p>
+		<p>但是题目规定，<strong>两棵树不能有公共边</strong>，也就是说这两组配对不能由公共的元素 (边)。</p>
+		<p>因此如果我们把点看成两类点 (第一组配对的点和第二组配对的点)，边也看成新的点的话，这两组配对就相当于一个<strong>二分图匹配</strong>，即点为左部，边为右部的一个匹配。</p>
+		<p>而左部的 $2 n - 2$ 个点由于要构成树，因此必须在匹配中。也就是说，我们要寻找二分图的一个完美匹配 (确切地说，应该叫<strong>完全匹配</strong>，因为完美匹配需要<strong>两侧所有的点都在匹配中</strong>)。</p>
+		<p>因此，我们可以对这张二分图求一遍<strong>最大匹配</strong>。如果最大匹配数 $&lt; 2 n - 2$，则说明无解。</p>
+		<p>否则一定有解，我们只需将这张二分图的最大匹配按照刚才所讲的方法进行还原，即可得到所需要的两棵树。</p>
+		<p>如果使用匈牙利算法进行二分图匹配，时间复杂度将会是 $O \left( m^2 \right)$，无法通过。</p>
+		<p>因此需要使用 Dinic 或 Hopcroft-Karp 算法来匹配，这样复杂度就是 $O \left( m \sqrt m \right)$，就能通过此题了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+const int N = 500054 * 2, M = 1000054 * 2;
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace Hopcroft_Karp {
+	#define ad(x) (((x - 1) ^ 1) + 1)
+
+	const int N = ::N * 2 + ::M, M = ::M * 4;
+
+	struct edge {
+		int u, v;
+		edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+	} e[M];
+
+	int V1, V2, V, E, ans, max_dep;
+	int first[N], next[M], match[N];
+	int dep[N], que[N]; bool used[N];
+
+	inline void init(int _V1, int _V2) {
+		V1 = _V1, V2 = _V2, V = V1 + V2, E = 0; memset(first, 0, (V + 1) &lt;&lt; 2), memset(match, 0, (V + 1) &lt;&lt; 2);
+	}
+
+	inline void addedge(int u, int v) {
+		e[++E] = edge(u, v); next[E] = first[u]; first[u] = E;
+//		e[++E] = edge(v, u); next[E] = first[v]; first[v] = E;
+	}
+
+	bool bfs() {
+		int h, t = 0, i, x, y, z;
+		memset(dep, -1, (V + 1) &lt;&lt; 2); max_dep = INT_MAX;
+		for (i = 1; i &lt;= V1; ++i) if (!match[i]) que[t++] = i, dep[i] = 0;
+		for (h = 0; h &lt; t; h++) {
+			if (dep[x = que[h]] &gt;= max_dep) return true;
+			for (i = first[x = que[h]]; i; i = next[i])
+				if (dep[y = e[i].v] == -1) {
+					if (dep[y] = dep[x] + 1, z = match[y]) dep[z] == -1 &amp;&amp; (dep[z] = dep[y] + 1, que[t++] = z);
+					else down(max_dep, dep[y] + 1);
+				}
+		}
+		return max_dep &lt; INT_MAX;
+	}
+
+	bool dfs(int x) {
+		int i, y;
+		for (i = first[x]; i; i = next[i])
+			if (!used[y = e[i].v] &amp;&amp; dep[x] &lt; max_dep &amp;&amp; dep[y] == dep[x] + 1)
+				if (used[y] = true, !match[y] || dfs(match[y]))
+					return match[x] = y, match[y] = x, true;
+		return false;
+	}
+
+	int main() {
+		int i;
+		for (ans = 0; bfs(); ) {
+			memset(used + (V1 + 1), false, V2);
+			for (i = 1; i &lt;= V1; ++i) ans += !match[i] &amp;&amp; dfs(i);
+		}
+		return ans;
+	}
+}
+
+int V, E, src, snk;
+int ans1[N], ans2[N];
+
+using Hopcroft_Karp::init;
+using Hopcroft_Karp::addedge;
+using Hopcroft_Karp::match;
+
+void work() {
+	int i, u, v;
+	init(E, 2 * V);
+	for (i = 1; i &lt;= E; ++i) cin &gt;&gt; u &gt;&gt; v, u == v || u == snk || v == src || (addedge(i, E + v), addedge(i, E + V + u), 0);
+	if (Hopcroft_Karp::main() == 2 * (V - 1)) {
+		cout &lt;&lt; "YES\n"; *ans1 = *ans2 = 0;
+		for (i = 1; i &lt;= V; ++i) i == src || (ans1[++*ans1] = match[E + i]), i == snk || (ans2[++*ans2] = match[E + V + i]);
+		for (i = 1; i &lt;= *ans1; ++i) cout &lt;&lt; ans1[i] &lt;&lt; (i == *ans1 ? '\n' : ' ');
+		for (i = 1; i &lt;= *ans2; ++i) cout &lt;&lt; ans2[i] &lt;&lt; (i == *ans2 ? '\n' : ' ');
+	} else cout &lt;&lt; "NO\n";
+}
+
+int main() {
+	std::ios::sync_with_stdio(false);
+	for (; cin &gt;&gt; V &gt;&gt; E &gt;&gt; src &gt;&gt; snk; ) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意这题的常数非常紧！写 Dinic 很容易 TLE 掉，写 Hopcroft-Karp 算法时还需要一些珂技：比如需要左部为边，右部为点才能通过 (因为代表 "边" 的那部的点的度数恒为 $2$)。</p>
+		<p><del>貌似写 Hopcroft-Karp 的时候不加最大深度限制反而跑得更快？</del></p>
+		<p><strong>坑2：</strong>其实这道题的标算并不是暴力匹配，而是利用有一部的点的度数为 $2$ 的性质优化图论的算法。</p>
+	</body>
+</html>

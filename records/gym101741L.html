@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[CodeforcesGym101741L]Increasing Costs</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $n$ 个点 $m$ 条边的连通无向简单图 $G$，每条边 $e$ 有一个边权 $w_e$。我们令 $d_i$ 表示 $1 \sim i$ 的最短路。</p>
+		<p>对于 $G$ 中的一条边 $e$，我们将其从 $G$ 中<strong>删掉</strong>，得到 $G \setminus \{e\}$。设 $d'_i$ 表示 $G \setminus \{e\}$ 中 $1 \sim i$ 的最短路 (如果不连通则为 $+ \infty$)，则定义 $e$ 的影响值为 $d_i \neq d'_i$ 的 $i$ 的数量。</p>
+		<p>你需要对于图中的每条边，求出它的影响值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($2 \leq n \leq 2 \times 10^5; n - 1 \leq m \leq 2 \times 10^5$)，表示图的点数和边数。</p>
+		<p>接下来 $m$ 行，每行包含三个正整数 $u_i, v_i, c_i$ ($1 \leq u_i, v_i \leq n; 1 \leq c_i \leq 10^9$)，描述图中从 $u_i$ 到 $v_i$ 的一条边，边权为 $c_i$。
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 行，每行一个整数，按照输入顺序输出每条边的影响值。</p>
+
+		<h3>题解</h3>
+		<p>如果看过<a href="gym101986F.html" target="_blank">这道题</a>的话应该对最短路必经点/边以及支配树的概念有一个比较清晰的认识了吧……</p>
+		<p>类似地，我们首先要得到最短路网——就是<strong>可能出现在最短路中的 (有向) 边</strong>。</p>
+		<p>可以证明，在这道题的背景下，有向边 $u \to v$ 在最短路网中的充要条件是 $\mathrm{dist}(1, u) + w(u, v) = \mathrm{dist}(1, v)$。</p>
+		<p>如果一条边不满足这个条件，则它显然不会作为最短路中的边——不然肯定变亏。</p>
+		<p>反之，则任取一条 $1 \sim u$ 的最短路，再通过这条边走向 $v$，就是一条从 $1$ 到 $v$ 的最短路。</p>
+		<hr />
+		<p>因此，如果一条边 $e$ 不在最短路网中，则将它删除后不影响 $1$ 到其它点的最短路。</p>
+		<p>否则，将其删去后，如果某个 $i$ 使得 $d_i \neq d'_i$，说明<strong>在新的最短路网中 $1$ 与 $i$ 不连通</strong>。</p>
+		<p>于是，我们把问题转化成了——对于最短路网中的每条边，求出将其删去后，$1$ 与多少个点不连通。</p>
+		<p>这不就是支配树裸题吗？</p>
+		<p>我们使用裂边操作，用<a href="gym101986F.html" target="_blank">那道题</a>的方法求出支配树，然后只需要询问一个<strong>代表边的点</strong>的子树中由多少个 "代表点的点"。</p>
+		<p>当然，由于这张图是 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，因此也可以使用<a href="lydsy2815.html" target="_blank">倍增 LCA</a> 的方法求支配树，或者使用 dfs + DP 解决。</p>
+		<p>总时间复杂度 $O \left( (n + m) \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 600054, M = N * 4;
+const ll INF = 0x3f3f3f3f3f3f3f3fll;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[N];
+
+int V, E, A, Es = 0;
+int to[M], next[M], p[N];
+int of[N], gf[N], inf[N], sef[N];
+int cnt = 0, o[N], id[N];
+int S[N], I[N], size[N];
+ll d[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline void addedge(int u, int v, int *fst) {to[++Es] = v; next[Es] = fst[u]; fst[u] = Es;}
+inline void addedgeW(int u, int v, int w, int *fst) {e[++Es] = edge(u, v, w); next[Es] = fst[u]; fst[u] = Es;}
+
+namespace SP {
+	struct node {
+		int to; ll dist;
+		node (int _to = 0, ll _dist = 0) : to(_to), dist(_dist) {}
+		inline bool operator &lt; (const node &amp;B) const {return dist &gt; B.dist;}
+	};
+
+	std::priority_queue &lt;node&gt; pq;
+
+	void Dijkstra(int si, ll *d, int *fst) {
+		int i, y; node t;
+		for (i = 1; i &lt;= V; ++i) d[i] = (i == si ? 0 : INF);
+		for (pq.emplace(si, 0); !pq.empty(); ) {
+			t = pq.top(), pq.pop();
+			if (d[t.to] &lt; t.dist) continue;
+			for (i = fst[t.to]; i; i = next[i])
+				if (t.dist + e[i].w &lt; d[y = e[i].v])
+					d[y] = t.dist + e[i].w, pq.emplace(y, d[y]);
+		}
+	}
+}
+
+namespace U {
+	int p[N], w[N], st[N];
+
+	inline void init() {for (int i = 1; i &lt;= A; ++i) w[i] = p[i] = i;}
+	inline void update(int &amp;x, const int y) {id[S[x]] &gt; id[S[y]] ? x = y : 0;}
+
+	int ancestor(int x) {
+		int i = 0;
+		for (; x != p[x]; st[++i] = x, x = p[x]);
+		for (st[i + 1] = x; i; p[st[i]] = x, --i) update(w[st[i]], w[st[i + 1]]);
+		return x;
+	}
+
+	inline int get_min(int x) {return ancestor(x), w[x];}
+}
+
+void dfs(int x) {
+	int i, y; o[++cnt] = x, id[x] = cnt;
+	for (i = gf[x]; i; i = next[i])
+		if (!id[y = to[i]]) p[y] = x, dfs(y);
+}
+
+void solve() {
+	int i, j, x, y, r;
+	dfs(1), U::init();
+	for (i = 1; i &lt;= A; ++i) S[i] = i;
+	for (j = cnt; j &gt; 1; --j) {
+		for (r = INT_MAX, i = inf[ x = o[j] ]; i; i = next[i])
+			id[y = to[i]] &amp;&amp; (down(r, id[ id[y] &lt; id[x] ? y : S[U::get_min(y)] ]), 0);
+		U::p[x] = p[x], S[x] = o[r], addedge(S[x], x, sef);
+		for (i = sef[ x = o[j - 1] ]; i; i = next[i])
+			r = U::get_min(y = to[i]), I[y] = (S[r] == x ? x : r);
+	}
+	for (; ++j &lt;= cnt; ) x = o[j], I[x] != S[x] &amp;&amp; (I[x] = I[I[x]]);
+}
+
+int main() {
+	int i, u, v, w; edge *pe;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 0; i &lt; E; ++i)
+		scanf("%d%d%d", &amp;u, &amp;v, &amp;w), addedgeW(u, v, w, of), addedgeW(v, u, w, of);
+	SP::Dijkstra(1, d, of);
+	for (i = 1, pe = e + 1; i &lt;= E * 2; ++i, ++pe)
+		if (d[pe-&gt;u] + pe-&gt;w == d[pe-&gt;v])
+			addedge(pe-&gt;u, V + i, gf), addedge(V + i, pe-&gt;v, gf),
+			addedge(pe-&gt;v, V + i, inf), addedge(V + i, pe-&gt;u, inf);
+	A = V + E * 2; solve();
+	for (i = 1; i &lt;= V; ++i) size[i] = 1;
+	for (i = cnt; i &gt; 1; --i) v = o[i], size[I[v]] += size[v];
+	for (i = 1; i &lt;= E; ++i) printf("%d\n", id[V + i * 2] ? size[V + i * 2] : id[V + i * 2 - 1] ? size[V + i * 2 - 1] : 0);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意原图中给出的是无向边 $(u, v)$，因此输出时需要枚举是 $u \to v$ 在最短路网中还是 $v \to u$ 在最短路网中还是都不在。</p>
+	</body>
+</html>

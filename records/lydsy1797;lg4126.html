@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy1797][lg4126][AHOI2009]最小割</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $n$ 个点 $m$ 条边的有向网络，其中 $s$ 为源点，$t$ 为汇点。你需要对于网络中的每条边，判断它<strong>是否可能是某个最小割的边</strong>，以及<strong>是否一定是所有最小割的边</strong>。</p>
+		<p>这里的最小割指的是使得 $s, t$ 不再连通的边集，且边权和最小。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个正整数 $n, m, s, t$ ($n \leq 4000; m \leq 60000; 1 \leq s, t \leq n; s \neq t$)，分别表示网络的点数、边数、源点编号和汇点编号。</p>
+		<p>接下来 $m$ 行，每行包含三个正整数 $u, v, c$ ($1 \leq u, v \leq n; u \neq v; 1 \leq c \leq 10^5$)，表示网络中存在一条从 $u$ 到 $v$ 的有向边，边权为 $c$。</p>
+		<p><strong>注意网络中可能存在重边</strong>。</p>
+
+		<h3>输出格式</h3>
+		<p>按照输入顺序，对于每条有向边 $e$，输出一行，包含两个整数。第一个整数表示 $e$ 是否可能出现在最小割中 (是为 $1$，否为 $0$，下同)，第二个整数表示 $e$ 是否一定出现在最小割中。</p>
+
+		<h3>题解</h3>
+		<p>首先，回顾一下<strong>边割集</strong>的定义：</p>
+		<p>边割集 $E$ 是一个子集，使得 $G \setminus E$ 中 $u, v$ 不连通。</p>
+		<p>如果我们取一个点集 $V$ 的子集 $S$，使得 $s \in S, t \notin S$。令 $T = V \setminus S$，则 $t \in T, s \notin S$。</p>
+		<p>此时，$\mathrm{Cross}(S, T)$ (或 $e(S, T)$，即起点在 $S$，终点在 $T$ 中的边构成的集合) 是一个<strong>边割集</strong>，而且还是一个<strong>极小边割集</strong> (即它的任何一个子集都不是边割集)。</p>
+		<p>首先，最小割显然是极小割 (极小边割集)，而可以证明，所有的极小割都可以化为上面的情况 (只有两个连通分量)，因此我们只需考虑点集所有这样的<strong>划分</strong>即可。</p>
+		<p>回忆最大流最小割定理的证明，其中有一步是证明<strong>任何一个流的流量不超过任何一个割的容量</strong>。</p>
+		<p>它的证明过程是：设 $f$ 为任意满足条件的流，不妨设 $cut$ 是一个极小割 (否则取它的极小割子集，不影响结论)。则 $cut$ 把整张图<strong>划分</strong>成了 $S, T$ 两个部分，其中 $s \in S, t \in T$。</p>
+		<p>然后考虑和式 $\displaystyle \sum_{u \in S} \sum_{v \in T} f(u, v)$，可以归纳证明它就等于流的值 $\left| f \right|$。由<strong>容量限制</strong>关系，由 $f(u, v) \leq c(u, v)$。因此</p>
+		<p>$$ \left| f \right| = \sum_{u \in S} \sum_{v \in T} f(u, v) \leq \sum_{u \in S} \sum_{v \in T} c(u, v) = \left| cut \left( S, T \right) \right| $$</p>
+		<hr />
+		<p>从这个证明中，也可以看出：若 $f$ 是 (任意一个) 最大流，则如果 $cut \left( S, T \right)$ 是最小割的充要条件是，对于 $\forall u \in S, v \in T, f(u, v) = c(u, v)$，因为上述所有的不等号都要取等。</p>
+		<p>于是，我们得到了：<span style="color: green">设 $f$ 为任意的一个最大流，如果一条边没有<strong>满流</strong> (即 $f(u, v) &lt; c(u, v)$)，则边 $(u, v)$ (如果存在) <strong>一定不出现在最小割中</strong></span>。</p>
+		<p>这个结论告诉我们，只需要在满流的边中讨论问题即可。</p>
+		<p>考虑满流边 $(u, v)$。显然在残量网络 $G_f$ 中存在从 $v$ 到 $u$ 的边。如果 $G_f$ 中<ctrong>存在从 $u$ 到 $v$ 的有向路径</strong> $u = x_0 \to x_1 \to x_2 \to \cdots \to x_{k-1} \to x_k = v$，我们证明 $(u, v)$ 一定不出现在最小割中。</p>
+		<p>反之，设最小割 $cut \left( S, T \right)$ 中 $u \in S, v \in T$，容易证明一定存在一个 $i$ ($0 \leq i &lt; k$) 使得 $x_i \in S, x_{i+1} \in T$。由于 $\left( x_i, x_{i+1} \right) \in G_f \Rightarrow f \left( x_i, x_{i+1} \right) &lt; c \left( x_i, x_{i+1} \right)$，与<span style="color: green">绿色结论</span>矛盾。</p>
+		<p>因此，满流边 $(u, v)$ 可能出现在最小割中的<strong>必要条件</strong>是<strong>在 $G_f$ 中不存在从 $u$ 到 $v$ 的路径</strong>。</p>
+		<p>这个条件也是充分的。即，如果在 $G_f$ 中不存在从 $u$ 到 $v$ 的路径。则我们将 $G_f$ 中<strong>能到达 $s$ 的点</strong>扔到 $S$ 中，<strong>$t$ 能到达的点</strong>扔到 $T$ 中，其余的点随便放 (要注意一个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 中的点只能放到一个集合中</abbr>)。这样我们就得到了 $s$ 和 $t$ 的最小割。</p>
+		<p>也就是说，判断一条边 $\left( u \to v \right)$ 是否可能出现在最小割中 (问题 1)，只需要判断 $f(u, v)$ 是否等于 $c(u, v)$ 且 $G_f$ 中是否存在从 $u$ 到 $v$ 的路径。<strong style="color: red">$\left( u \to v \right)$ 是最小割可行边的充要条件是，$f(u, v) = c(u, v)$，且在残量网络 $G_f$ 中不存在从 $u$ 到 $v$ 的路径</strong>。</p>
+		<hr />
+		<p>接下来探究边 $\left( u \to v \right)$ 一定出现在最小割中的等价条件。</p>
+		<p>首先，显然地，$\left( u \to v \right)$ 必须是可行边 <del>(否则都不可行了，必须出现谈都别谈)</del>。</p>
+		<p>我们考虑 $u, v$ 在 $G_f$ 中所在的强连通分量。如果 <span style="color: blue">$u$ 和 $s$ 在同一个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 中，$v$ 和 $t$ 在同一个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 中</span>，则 $\left( u \to v \right)$ 是必须边。</p>
+		<p>因为每一个最小割一定不会 "割掉" 某个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr>，即一定是 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 作为整体参与。否则，容易推出与<span style="color: green">绿色结论</span>矛盾。</p>
+		<p>如果 $u, v$ 不满足<span style="color: blue">蓝色条件</span>，则我们将 $u$ 所在的 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 和 $v$ 所在的 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> "合并"，显然 $s$ 和 $t$ 不会在一起，这样按照上面的构造方法，也能得到一个 $s$ 和 $t$ 的最小割。</p>
+		<p>而此时 $u, v$ 在一个 (广义的) 强连通分量中，故 $u, v$ 不会被 "割断"。故 $\left( u \to v \right)$ 不一定出现在 (所有) 最小割中。</p>
+		<p>因此，<strong style="color: red">$\left( u \to v \right)$ 是最小割必须边的充要条件是，$\left( u \to v \right)$ 是最小割可行边，且在残量网络 $G_f$ 中 $u$ 与 $s$ 处于同一个强连通分量，$v$ 与 $t$ 处于同一个强连通分量</strong>。</p>
+		<hr />
+		<p>最后是实现。这个问题并不难，对于第一个条件：由于对于满流边 $\left( u, v \right)$，在 $G_f$ 中一定存在从 $v$ 到 $u$ 的边。因此，不存在从 $u$ 到 $v$ 的路径 &#8660; $u$ 和 $v$ 在 $G_f$ 中处于<storng>不同的</strong>强连通分量。
+		<p>对于第二个条件，也可以直接判断。</p>
+		<p>至于求强连通分量，可以使用 Tarjan 的 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 算法 (进行缩点)，然后判断它们缩点后是否是同一个点 (处在同一个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 中) 即可。</p>
+		<p>总时间复杂度即为最大流的时间复杂度。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 4054;
+
+namespace Flow {
+	#define ad(x) ((x - 1 ^ 1) + 1)
+
+	const int N = ::N, M = 127000;
+
+	struct edge {
+		int u, v, f;
+		edge (int u0 = 0, int v0 = 0, int f0 = 0) : u(u0), v(v0), f(f0) {}
+	} e[M];
+
+	int V = 2, E = 0, si = 1, ti = 2, flow;
+	int first[N], next[M];
+	int dep[N], cur[N], que[N];
+
+	void init(int _V, int s = 1, int t = 2) {V = _V, si = s, ti = t;}
+
+	inline void addedge(int u, int v, int f) {
+		e[++E] = edge(u, v, f); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u); next[E] = first[v]; first[v] = E;
+	}
+
+	bool bfs() {
+		int h, t = 1, i, x, y;
+		memset(dep, -1, sizeof dep);
+		que[0] = si; dep[si] = 0;
+		for (h = 0; h &lt; t; h++) {
+			if ((x = que[h]) == ti) return true;
+			for (i = first[x]; i; i = next[i])
+				if (dep[y = e[i].v] == -1 &amp;&amp; e[i].f) {
+					que[t++] = y;
+					dep[y] = dep[x] + 1;
+				}
+		}
+		return false;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		for (int &amp;i = cur[x]; i; i = next[i])
+			if (dep[e[i].v] == dep[x] + 1 &amp;&amp; e[i].f) {
+				a = std::min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c; e[ad(i)].f += c;
+				if((f += c) == lim) return f;
+			}
+		return f;
+	}
+
+	int Dinic() {
+		for (flow = 0; bfs(); flow += dfs(si, INT_MAX))
+			memcpy(cur, first, sizeof cur);
+		return flow;
+	}
+}
+
+int V, E;
+int cnt = 0, id[N], low[N];
+int stc = 0, sta[N], top[N];
+bool instack[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+void dfs(int x) {
+	int i, y; id[x] = low[x] = ++cnt; instack[x] = true; sta[stc++] = x;
+	for (i = Flow::first[x]; i; i = Flow::next[i]) if (Flow::e[i].f) {
+		if (!id[y = Flow::e[i].v]) dfs(y), down(low[x], low[y]);
+		else if (instack[y]) down(low[x], id[y]);
+	}
+	if (id[x] == low[x])
+		for (y = 0; y != x; )
+			y = sta[--stc], instack[y] = false, top[y] = x;
+}
+
+int main() {
+	int i, u, v, w; Flow::edge *pe;
+	scanf("%d%d%d%d", &amp;V, &amp;E, &amp;u, &amp;v), Flow::init(V, u, v);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), Flow::addedge(u, v, w);
+	Flow::Dinic();
+	for (i = 1; i &lt;= V; ++i) if (!id[i]) dfs(i);
+	for (i = 0, pe = Flow::e + 1; i &lt; E; ++i, pe += 2)
+		pe-&gt;f || top[pe-&gt;u] == top[pe-&gt;v] ? puts("0 0") : printf("1 %d\n", top[Flow::si] == top[pe-&gt;u] &amp;&amp; top[pe-&gt;v] == top[Flow::ti]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意最终 <code>tarjan</code> 时不要搜索剩余流量为 $0$ 的边 (因为它不在 $G_f$ 中，和 Dinic 中的 <code>bfs</code> 和 <code>dfs</code> 类似)。</p>
+	</body>
+</html>

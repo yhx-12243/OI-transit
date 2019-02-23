@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4784][lg3687][uoj290][loj2250][ZJOI2017]仙人掌</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>如果一个<strong>无自环无重边无向连通图</strong>的任意一条边最多属于一个简单环，我们就称之为仙人掌。所谓简单环即不经过重复的结点的环。</p>
+		<img class="center-block" src="http://img.uoj.ac/utility/what-is-cactus.png" alt="什么是仙人掌" />
+		<p>给定一张<strong>无自环无重边的无向连通图</strong>，你需要在图上连上一些新的边，使得图形成一个仙人掌。求有多少种合法的加边方案数。</p>
+		
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。</p>
+		<p>第一行包含一个正整数 $T$ ($T \leq 5 \times 10^5$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含两个正整数 $n, m$ ($\sum n \leq 5 \times 10^5; n - 1 \leq m \leq \dbinom n2; \sum m \leq 10^6$)，表示图中的点数与边数。</p>
+		<p>接下来 $m$ 行，每行两个整数 $u, v$ ($1 \leq u, v \leq n, u \neq v$)，表示图中的一条边。保证输入的图是连通无向简单图。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个一个整数，表示方案数模 $998244353$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>首先，如果给出的图 $G$ 本身就不是仙人掌，那么显然方案数是 $0$。判断仙人掌非常简单，<del>相信经常写 validator 的同学一定已经很熟练了</del>，Tarjan 一下然后判断 $\left| E \right| = \left| V \right| - 1 + B$ 是否成立，其中 $B$ 为非平凡点双连通分量个数。</p>
+		<p>假设给出的图 $G$ 是个仙人掌。我们考虑加边，并使它还是仙人掌。</p>
+		<p>和之前类似地，仙人掌的边分为两种：一种是<strong>桥边</strong>，一种是<strong>环内边</strong>。</p>
+		<p>假设我们加了一条边 $(u, v)$，由原图的连通性，至少存在一条从 $u$ 到 $v$ 的路径。我们要说明，这条路径中<strong>只包含桥边</strong>。</p>
+		<p><del>其实这是显然的</del>。反之，如果经过了一条环内边 $f$，则 $f$ 就属于至少两个简单环了，与新图是仙人掌矛盾。</p>
+		<p>因此，我们每加一条边，其实本质就是<strong>覆盖仙人掌的一段 (连续的) 树边</strong>。</p>
+		<p>由于<strong>环内边</strong>在这题中毫无用武之地，因此我们索性把它<em>去掉</em>，于是我们得到了一个森林。</p>
+		<p>任务就变成：你要在森林中加边 $(u, v)$，其中 $u, v$ 在同一棵树中，且必须形成仙人掌。</p>
+		<hr />
+		<p>由于 $u, v$ 在一棵树中，因此森林中树与树之间就<strong>独立了</strong>，因此我们这里第一次使用<strong>乘法原理</strong>，考虑每一棵树，最后把答案乘起来。</p>
+		<p>接下来，因为我们注意到，在树 $T$ 上加一条边，相当于覆盖树 $T$ 的一条路径 <del>(写过仙人掌 generator 的都知道)</del>，而且<strong>一条树边 $e$ 至多只能被一条新边覆盖到</strong> (否则 $e$ 就属于至少两个简单环了)，而且反之亦然：即<strong>如果每条树边至多被一条新边覆盖到，所得到的图一定是一个仙人掌</strong>。</p>
+		<p>而且，由于要保证图是简单图，因此每加一条边，<strong>至少需要覆盖 $2$ 条树边</strong>。</p>
+		<hr />
+		<p>现在我们换一个思路，不考虑边的覆盖情况，而是考虑每个点所关联的边的覆盖情况。</p>
+		<p>显然，对于每个点 $x$，有三种情况：</p>
+		<ol>
+			<li><p>一条路径 "<strong>穿过</strong>" 了点 $x$，即覆盖的 $(u, v)$ 在 $T$ 中的路径为 $u \to \cdots \to u_1 \to x \to v_1 \to \cdots \to v$。</p></li>
+			<li><p>一条路径以 $x$ 作为端点。即 $u = x$ 或 $v = x$。</p></li>
+			<li><p>一条路径和 $x$ 没有交点。</p></li>
+		</ol>
+		<p><span style="color: red">由于一条路径至少需要覆盖 $2$ 条树边，因此它至少 "穿过" 一个点</span> <del>(否则这题就没法 $O(n)$ 做了)</del>。</p>
+		<p>考虑点 $x$ 所关联的边 $E_0$，如果一条路径 "穿过" $x$，则至少有两条边 $e_1, e_2 \in E_0$ 都被这条路径覆盖了。</p>
+		<p>否则，只有 $1$ 条或 $0$ 条路径被覆盖。</p>
+		<p>设 $x$ 的度数为 $N$，于是这 $N$ 条边就形成一个 "匹配" ——即配对后的边已经会被同一条路径所覆盖——还有若干条孤立边 (情况 2 和情况 3)。</p>
+		<p>令人惊喜的是，这个映射 (覆盖方案 &#8596; 匹配) 在<span style="color: red">红色条件</span>下是一个<strong>双射</strong>！</p>
+		<p>对于任何一种配对方案，显然我们可以找到对每个点的邻边进行匹配的方案。</p>
+		<p>而且，对于任何一种匹配方案，容易归纳证明，我们都可以找到唯一一种配对方案与之对应。</p>
+		<p>因此，这个计数问题就被等价转化为了对每个点的邻边进行匹配，现在<strong>第二次使用乘法原理</strong>，将每个点的匹配结果乘起来。</p>
+		<hr />
+		<p>用 $A_n$ 表示 $n$ 条边进行 (不一定完全) 匹配的方案数，换句话说，就是完全图 $K_n$ 的边独立集个数。</p>
+		<p>再转化一下，$A_n$ 就是 $n$ 个元素的<strong>对合置换</strong> (Involution) 的个数。</p>
+		<p>其中对合置换 $\sigma$ 满足 $\sigma^2 = I$，亦即它的循环表示中，每个循环的长度均不超过 $2$。</p>
+		<p>考虑元素 $n$ 被置换成了啥。</p>
+		<ul>
+			<li><p>如果元素 $n$ 被置换成了 $n$，则剩下的就是 $n - 1$ 个元素的对合置换，方案数为 $A_{n-1}$。</p></li>
+			<li><p>如果元素 $n$ 被置换成了 $i$ ($1 \leq i \leq n - 1$)，则元素 $i$ <strong>必须被置换成 $n$</strong> (由于循环长度不超过 $2$)，剩下的是 $n - 2$ 个元素的对合置换。</p>
+			<p>选择 $i$ 有 $n - 1$ 种方案，剩下的元素有 $A_{n-2}$ 种方案，故一共有 $\left( n - 1 \right) A_{n-2}$ 种方案。</p></li>
+		</ul>
+		<p>综上，$$ A_n = A_{n-1} + \left( n - 1 \right) A_{n-2} \tag {$ \href{http://oeis.org/A000085}{\textrm{A000085}} $} $$</p>
+		<hr />
+		<p>因此，整个问题就已经基本解决了：先预处理出 $A$ 数组，然后将判定读入的图是否是仙人掌，如果不是输出 $0$，否则将所有的<strong>环内边</strong>去掉后，对于每棵树，求出每个点的度数 $d_i$，将所有的 $A_{d_i}$ 相乘，就是答案。</p>
+		<p>总时间复杂度 $O \left( \sum n + \sum m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) (((x - 1) ^ 1) + 1)
+
+typedef long long ll;
+const int N = 500054, M = N * 4;
+const ll mod = 998244353;
+
+int V, E, Es;
+int to[M], first[N], next[M];
+int cnt = 0, id[N], low[N];
+int top = 0, stack[N];
+int bcc_cnt = 0, deg[N];
+bool bridge[M];
+int invl[N]; // count of involutions (A000085)
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+inline void addedge(int u, int v) {
+	to[++Es] = v; next[Es] = first[u]; first[u] = Es;
+	to[++Es] = u; next[Es] = first[v]; first[v] = Es;
+}
+
+void dfs(int x, int px = 0) {
+	int i, y, z;
+	id[x] = low[x] = ++cnt; stack[++top] = x;
+	for (i = first[x]; i; i = next[i])
+		if (!id[y = to[i]]) {
+			dfs(y, x), down(low[x], low[y]);
+			if (id[x] &lt; low[y]) bridge[ad(i)] = bridge[i] = true;
+			if (id[x] == low[y])
+				for (++bcc_cnt, z = 0; z != y; )
+					z = stack[--top];
+			else if (id[x] &lt; low[y]) --top;
+		} else if (y != px) down(low[x], id[y]);
+}
+
+void work() {
+	int i, u, v; ll ans = 1;
+	scanf("%d%d", &amp;V, &amp;E); bcc_cnt = cnt = Es = 0;
+	memset(first, 0, (V + 1) &lt;&lt; 2);
+	memset(id, 0, (V + 1) &lt;&lt; 2);
+	memset(deg, 0, (V + 1) &lt;&lt; 2);
+	memset(bridge, false, E * 2 + 1);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1);
+	if (E != V - 1 + bcc_cnt) {putchar(48); putchar(10); return;}
+	for (i = 1; i &lt;= E * 2; ++i) deg[to[i]] += bridge[i];
+	for (i = 1; i &lt;= V; ++i) ans = ans * invl[deg[i]] % mod;
+	printf("%lld\n", ans);
+}
+
+int main() {
+	int T, i;
+	for (*invl = invl[1] = 1, i = 2; i &lt; N; ++i) invl[i] = (invl[i - 1] + (i - 1ll) * invl[i - 2]) % mod;
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意控制初始化的复杂度，以及不要漏掉清除某些数组。</p>
+		<p><strong>坑2：</strong>注意点双缩点的方法，栈只能弹到 $y$。</p>
+	</body>
+</html>

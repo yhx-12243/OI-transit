@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2688]Green Hackenbush</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个古老的游戏叫做 Green Hackenbush，游戏是这样进行的：两个人轮流在一棵树上删边，每次删边后不与根联通的子树直接被删去，不能删边的游戏者输。</p>
+		<p>Alice 和 Bob 也在玩这个游戏，不过他们面对的是 $n$ 棵树，第 $i$ 棵树是含有 $a_i$ 个节点的二叉树。先手的 Alice 想知道自己有多大的概率获胜。</p>
+		<p>我们假设 Alice 和 Bob 都无限聪明，且 $k$ 个节点的二叉树是在所有 $C_k$ 种二叉树中等概率均匀随机的。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 100$)，表示二叉树的个数。</p>
+		<p>第二行包含 $n$ 个正整数 $a_i$ ($a_i \leq 100$)，表示第 $i$ 棵二叉树的点数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示 Alice 获胜的概率，保留 $6$ 位小数。</p>
+
+		<h3>题解</h3>
+		<p>众所周知，$n$ 阶 (有序) 二叉树的个数为 $C_n = \dfrac 1 {2 n + 1} \dbinom {2 n} n$ 个，其中 $C_n$ 为 Catalan 数。</p>
+		<p>我们考虑当时我们如何得到这个结论 (Catalan 数) 的。我们是枚举左右子树的大小，然后得到：</p>
+		<p>$$ C_{n+1} = \sum_{i=0}^n C_i C_{n-i} $$</p>
+		<p>这可以看作一个 DP 方程。</p>
+		<p>那和 Catalan 数一样，对于带 SG 值的问题，也可以采用枚举左右子树大小进行 DP 的方式。</p>
+		<p>我们记 $f_{i, j}$ 表示 $i$ 个节点的二叉树中，有多少种的 SG 值为 $j$，边界为 $f_{1, 0} = 1$。</p>
+		<p>考虑转移，分为两种情况：</p>
+		<ol>
+			<li><p>一个子树为空。</p>
+			<p>此时由 <a href="hdu3094%3Bpoj3710.html#colon" target="_blank">Colon principle</a> 的第一条，新树的 SG 值等于原树的 SG 值加 $1$，考虑左右子树，故转移为：</p>
+			<p>$$ f_{i+1, j+1} \uparrow f_{i, j} \cdot 2 $$ (其中 $a \uparrow b$ 表示 <code>a += b</code>)</p></li>
+			<li><p>两个子树均非空。</p>
+			<p>由 <a href="hdu3094%3Bpoj3710.html#colon" target="_blank">Colon principle</a> 的第二条。新树的 SG 值等于左子树的 SG 值加 $1$，异或上 "右子树的 SG 值加 $1$)，因此转移就是</p>
+			<p>$$ f_{i+1, (u+1) \oplus (v+1)} \uparrow f_{j, u} f_{i-j, v} $$ (对于所有 $1 \leq j \leq i - 1, u, v$)</p></li>
+		</ol>
+		<p>于是我们就得到了对所有 $i, j$，$i$ 阶二叉树中 SG 值为 $j$ 的个数。</p>
+		<p>而原题是多棵二叉树，即多个独立的 Green Hackenbush 游戏的和，因此最后只需要做一个异或的合并即可。这个合并就是一个简单的背包问题，直接背包 DP 即可，具体的方程这里就不再写了。</p>
+		<p>最后不要忘记除以总数，得到概率数而不是方案数。答案就等于 SG 值非零的 DP 值之和，或 $1$ 减去 SG 值为 $0$ 的概率。</p>
+		<p>时间复杂度 $O \left( n^4 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 128
+
+int n, S;
+int a[N];
+bool us[N];
+double C[N], f[N][N], g[N][N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+int main() {
+	int i, j, k, u, v; double r;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) scanf("%d", a + i), up(S, a[i]), us[a[i]] = true;
+	for (*C = i = 1; i &lt;= S; ++i) C[i] = C[i - 1] * (4 * i - 2) / (i + 1);
+	f[1][0] = 1.0;
+	for (i = 2; i &lt;= S; ++i) {
+		for (j = 1; j &lt; N; ++j) f[i][j] += 2.0 * f[i - 1][j - 1];
+		for (j = 1, k = i - 2; k; ++j, --k)
+			for (u = 1; u &lt; N; ++u)
+				for (v = 1; v &lt; N; ++v)
+					f[i][u ^ v] += f[j][u - 1] * f[k][v - 1];
+	}
+	for (i = 2; i &lt;= S; ++i) if (us[i])
+		for (r = 1.0 / C[i], j = 0; j &lt; N; ++j) f[i][j] *= r;
+	memcpy(g[0], f[*a], N &lt;&lt; 3);
+	for (i = 1; i &lt; n; ++i)
+		for (u = 0; u &lt; N; ++u)
+			for (v = 0; v &lt; N; ++v)
+				g[i][u ^ v] += g[i - 1][u] * f[a[i]][v];
+	printf("%.6lf\n", 1.0 - g[--n][0]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>要适当估计 SG 值的范围，以免 DP 过少或过多。这里给出一个界：<strong>$n$ 阶树的 SG 值不超过 $n - 1$</strong>。</p>
+		<p><del><strong>坑2：</strong>DP 时要使用 <code>double</code>，并注意精度问题。</del></p>
+	</body>
+</html>

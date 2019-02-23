@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[AtCoder3727,Regular87E]Prefix-free Game</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于字符串 $s$ 和 $t$，我们称之为<strong>前缀松</strong> (prefix-free) 当且仅当 $s$ <strong>不是</strong> $t$ 的前缀且 $t$ 也<strong>不是</strong> $s$ 的前缀。</p>
+		<p>令 $L$ 为一个正整数。一个字符串集合称之为<dfn>好的</dfn>字符串集合 $S$ 当且仅当下列两个条件为真：</p>
+		<ol>
+			<li><p>$\forall s \in S$，$1 \leq \left| s \right| \leq L$，且 $s$ 只由 $\texttt 0$ 和 $\texttt 1$ 构成。</p></li>
+			<li><p>$\forall s, t \in S, s \neq t$，都有 $s$ 与 $t$ <strong>前缀松</strong>。</p></li>
+		</ol>
+		<p>现在有一个<dfn>好的</dfn>字符串集合 $S$，Alice 和 Bob 在 $S$ 上玩游戏。他们交替操作，Alice 先手。</p>
+		<p>每次，他们可以在 $S$ 中加入一个 (不在 $S$ 中出现过的) 字符串 $s_0$，且需要满足 $S \cup \left\{ s_0 \right\}$ 也是<dfn>好的</dfn>字符串集合。</p>
+		<p>如果轮到某个玩家操作时，不存在满足条件的 $s_0$，则该玩家输掉游戏。你需要回答，如果 Alice 和 Bob 都使用最优策略，则谁会赢得游戏。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, L$ ($n \leq 10^5; L \leq 10^{18}$)，表示集合 $S$ 的大小和指定的数。</p>
+		<p>接下来 $n$ 行，每行一个字符串 $s_i$ ($\displaystyle \sum_{i=1}^n \left| s_i \right| \leq 10^5$)，描述 $S$ 中的元素。保证 $s_i$ 两两不同且构成一个<dfn>好的</dfn>字符串集合。</p>
+
+		<h3>输出格式</h3>
+		<p>如果 Alice (先手) 必胜，输出 <code>Alice</code>，否则 (后手 Bob 必胜)，输出 <code>Bob</code>。</p>
+
+		<h3>题解</h3>
+		<p>我们考虑初始集合为空 (即 $n = 0$) 的情况，此时，这个游戏 <del>(显然是先手必胜的)</del> 的状态就<strong>只和 $L$ 有关</strong>了。</p>
+		<p>现在需要考虑一下空串的问题。因此我们把问题转化一下：</p>
+		<p><strong>给定一棵深度为 $L$ 的满二叉树 (即 $\texttt 0/\texttt 1$ Trie 树，节点数为 $2^{L+1} - 1$)，Alice 和 Bob 轮流取点，保证任意时刻某个点不能使另一个点的祖先</strong>。</p>
+		<p>这样我们就对空串 (根节点) 做了一个比较合理的解释：即根节点可以存在，且如果存在只能单独存在，因为它是任何其它节点的祖先。</p>
+		<p>现在我们来讨论 $L = 0$ 的情况。显然先手取根即可，故 $SG(0) = 1$。</p>
+		<p>然后是 $L = 1$。此时先手可以取根，转移到空局面 (SG 值为 $0$)，或者取走一个叶节点，转到 $L = 0$ (即 SG 值为 $1$) 的局面。故 $SG(1) = 2$。</p>
+		<p>同理，对 $L = 2$ 的局面，可以分析出，它可以转移到空局面 ($0$)、一个 $L = 1$ 的局面 ($2$)、或者一个 $L = 1$ 的局面和 $L = 0$ 的局面的和 ($2 \oplus 1 = 3$)。故 $SG(2) = \mathrm{mex}(0, 2, 3) = 1$。</p>
+		<p>容易归纳发现，任何 $L = n$ 的局面，都可以转移到空局面、一个 $n - 1$ 的局面、一个 $n - 1$ 的局面和一个 $n - 2$ 的局面的和、($n - 1$ 的局面，$n - 2$ 的局面，以及 $n - 3$ 的局面的和)、……，故有</p>
+		<p>$$ SG(n) = \mathrm{mex} \left\{ 0, SG(n - 1), SG(n - 1) \oplus SG(n - 2), SG(n - 1) \oplus SG(n - 2) \oplus SG(n - 3), \cdots, SG(n - 1) \oplus SG(n - 2) \oplus \cdots \oplus SG(0) \right\} $$</p>
+		<p>经打表发现，$SG(n) = \mathrm{lowbit}(n + 1)$。</p>
+		<p>下面我们来证明这个结论 (<a href="#skip">跳过证明</a>)：</p>
+		<p>设 $a_n = SG(n + 1)$。则 $a_1 = 1, a_2 = 2, a_n = \mathrm{mex} \left\{ 0, a_{n-1}, a_{n-1} \oplus a_{n-2}, \cdots, a_{n-1} \oplus a_{n-2} \oplus \cdots \oplus a_1 \right\}$。</p>
+		<p>我们使用归纳法。设 $a_n = \mathrm{lowbit}(n)$ 对 $n &lt; N$ 成立。考虑 $n = N$ 的情形。</p>
+		<p>令 $\displaystyle G_n = \bigoplus_{i=1}^n \mathrm{lowbit}(i)$，容易证明 $G_n$ 为第 $n$ 个格雷码 (Gray Code)，因此 $G_n$ 互不相同。</p>
+		<p>改写 $a_n$ 的定义，我们得到：</p>
+		<p>$$ a_n = \mathrm{mex} \left\{ 0, G_{n-1} \oplus G_{n-2}, G_{n-1} \oplus G_{n-3}, \cdots G_{n-1} \right\} $$</p>
+		<p>令 $S_n = \left\{ 0, G_{n-1} \oplus G_{n-2}, G_{n-1} \oplus G_{n-3}, \cdots G_{n-1} \right\}$。</p>
+		<p>一方面，由于 $\mathrm{lowbit}(n) = G_{n-1} \oplus G_n$，由于 $G_n$ 互不相同，故 $\mathrm{lowbit}(n) \notin S_n$。</p>
+		<p>另一方面，记 $k = \log_2 \mathrm{lowbit}(n)$，考虑区间 $\left[ n - \mathrm{lowbit}(n), n \right)$，这个区间上的所有数除了最低 $k$ 位外其余都相同，注意到格雷码可以成二进制码的<strong>差分</strong>，因此它们的格雷码除了最低 $k$ 位外其余都相同。</p>
+		<p>因此考虑对所有的 $i \in \left[ n - \mathrm{lowbit}(n), n \right)$，$G_{n-1} \oplus G_i$ 恰好取遍 $0, 1, \cdots, 2^k - 1$。</p>
+		<p>综上，$a_n = \operatorname{\mathrm{mex}} S = 2^k = \mathrm{lowbit}(n)$。</p>
+		<hr id="skip" />
+		<p>接下来考虑原问题。相当于在一棵满二叉树中，有些点已经被取走，我们把这些点的所有祖先节点和后代节点都删掉，可以发现剩下的图恰好构成一个<strong>满二叉树森林</strong>，即若干个满二叉树的<a href="../memos/14.html" target="_blank">直和</a>。</p>
+		<p>也就是说，我们可以将它看作<strong>若干个满二叉树局面的和</strong>。</p>
+		<p>因此由 Sprague-Grundy 定理，直接将这些 $\mathrm{lowbit}$ 值异或起来即可。</p>
+		<p>由于 $n \geq 1$，因此根节点 (空串) 一定会被删掉，我们也不需要考虑空串的问题啦。</p>
+		<p>你说这个森林中各个二叉树的大小怎么求？当然是建立 Trie 树后 dfs 一遍啦~</p>
+		<p>时间复杂度 $O \left( \sum \left| s_i \right| \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lowbit(x) ((x) &amp; -(x))
+
+typedef long long ll;
+const int N = 100054, Z = N * 2;
+
+ll L;
+int n, cnt = 1, d[Z][2];
+char s[N];
+
+void append(char *s) {
+	char *p = s; int t = 1, id;
+	for (; *p; ++p)
+		id = *p &amp; 1, t = (d[t][id] ? d[t][id] : (d[t][id] = ++cnt));
+}
+
+ll dfs(int t, ll dep) {return t ? dfs(d[t][0], dep - 1) ^ dfs(d[t][1], dep - 1) : lowbit(dep + 1);}
+
+int main() {
+	scanf("%d%lld", &amp;n, &amp;L);
+	for (int i = 0; i &lt; n; ++i) scanf("%s", s), append(s);
+	puts(dfs(1, L) ? "Alice" : "Bob");
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $SG(n) = \mathrm{lowbit}(n + 1)$ 而不是 $\mathrm{lowbit}(n)$，<del>当然你改变深度的定义也是没有问题滴~</del></p>
+		<p><strong>坑2：</strong>如果存在 $n = 0$ 的情况，要视题意是否允许 $s$ 为空串，如果不允许，需要单独把根节点扣掉，变成两个二叉树。</p>
+	</body>
+</html>

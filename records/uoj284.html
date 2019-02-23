@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj284]快乐游戏鸡</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个结点的树，其中 $1$ 号结点是根。每次玩家可以在树上行走，走过一条边需要 $1$ 秒的时间，但只能往当前所在的点的某个儿子走，不能往父亲走。每次游戏需要从 $s$ 号结点走到 $t$ 号结点去。</p>
+		<p>玩家有一个总死亡次数，初始为 $0$。每个结点上有一个程序猿和一个参数 $w_i$，如果走到结点 $i$ 的时候，当前总的死亡次数小于 $w_i$，那么玩家就会立刻死亡并回到起点 $s$，且该死亡过程不需要时间；如果总死亡次数大于等于 $w_i$，那么玩家就能熟练地对付程序猿从而安然无恙。<strong>注意每次游戏时不需要考虑 $s$ 和 $t$ 上的程序猿</strong>。</p>
+		<p>该游戏会进行若干轮，每轮会清空总死亡次数并给出一组新的 $s, t$。现在请你对于每一轮游戏输出走到 $t$ 所需要的最短时间 (单位为秒)。</p>
+		<p>保证每个询问的 $s$ 可以到达 $t$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 3 \times 10^5$)，表示树的结点数。</p>
+		<p>第二行包含 $n$ 个正整数，其中第 $i$ 个表示 $w_i$ ($1 \leq w_i \leq 10^9$)。</p>
+		<p>第三行包含 $n - 1$ 个正整数，其中第 $i$ 个表示 $i + 1$ 号点的父亲结点 $f_{i+1}$ ($1 \leq f_i &lt; i$)。</p>
+		<p>第四行一个正整数 $q$ ($q \leq 3 \times 10^5$) 表示游戏轮数。</p>
+		<p>接下来 $q$ 行，每行两个正整数 $s, t$ ($1 \leq s, t \leq n$)，表示一轮游戏。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行一个整数，表示每轮游戏的答案。</p>
+
+		<h3>题解</h3>
+		<p>先考虑链上的问题怎么处理。</p>
+		<p>假设这条链的一端为 $1$ (根节点)，且形态为 $1 \to 2 \to 3 \to \cdots \to n$。那么走法是唯一的，就是向右硬撞。我们就是要对于这些询问快速模拟这个过程。</p>
+		<p><del>(由于在线算法需要可持久化数据结构)</del> 我们把询问离线，考虑固定起点 $s$，计算若干个不同终点的答案。</p>
+		<p>注意到，如果存在 $s &lt; i &lt; j$ 且 $w_i \geq w_j$，那么 $j$ 这个节点是没用的 (确切地说，我们不会在点 $j$ 处死亡，因为此时总死亡次数 $\geq w_i$ 了)。因此，对于给定的 $s$，<strong>只有子区间 $\left[ s, n \right]$ 中的前缀最大值会对答案由贡献</strong>。</p>
+		<p>也就是说，我们在不停地往右走的过程中，不断地与 "前缀最大值" 发生 "碰撞"，然后回到起点，继续重复向右走。则设区间 $\left[ s, t \right]$ ($t$ 为终点) 的最大值为 $M$。则在整个过程中一共会 "碰撞" $M$ 次后然后直接 (畅通无阻地) 到达 $t$。</p>
+		<p>设 $\left[ s, t \right]$。这些前缀最大值分别为 $a_1, a_2, a_3, \cdots, a_k$，对应的值分别为 $W_1, W_2, W_3, \cdots, W_k$ ($W_i = w_{a_i}, W_i &lt; W_{i+1}$)，则 $a_i$ 会被 "碰撞" 到 $\left( W_i - W_{i-1} \right)$ 次，故需要 $a_i \cdot \left( W_i - W_{i-1} \right)$ 的时间。故总时间由以下表达式给出：</p>
+		<p>$$ \textrm{total time} = \left( \sum_{i=1}^k a_i \cdot \left( W_i - W_{i-1} \right) \right) + \left( t - s \right) $$</p>
+		<p>$t - s$ 这项我们先扔下单独不管，因此我们所要维护的就是左边的和式。</p>
+		<hr />
+		<p>Solution: 考虑用<strong>单调栈</strong>维护前缀最大值以及 <strong>$a_i \cdot \left( W_i - W_{i-1} \right)$ 的后缀和</strong>。每次向左扩展一个点 (即 $s$ 减少 $1$)，相当于在单调栈中插入一个元素 (并删去栈顶的若干元素)。</p>
+		<p>对于一个询问，我们直接二分出 $M$ 是哪个 $W_i$，然后利用预处理的后缀和减一减即可。</p>
+		<p>时间复杂度 $O \left( n + q \log n \right)$。</p>
+		<hr />
+		<p>接下来考虑一般树上的问题怎么做。</p>
+		<p>首先注意到 $t$ 一定是 $s$ 的后代节点 (即 $t$ 在以 $s$ 为根的子树中)。我们先特判掉 $s = t$ 或 $s = p_t$ 的情形，剩下的情形中<storng>至少需要经过一个程序猿</strong>。</p>
+		<p>类似地，可以通过树上倍增或其它方法求得 $s$ 到 $t$ 的路径上的最大 $w_i$，记为 $M$。</p>
+		<p>不过这里一个非常重要的不同点是，<strong>在树上存在分叉，即有多个决策可供选择</strong>，因此需要合理选择去 "撞" 哪个点，从而获得最短的总时间。</p>
+		<p>我们考虑贪心。假设你当前<em>挂</em>的次数等于 $M$ 了，显然直接走 (最短路) 即可，此时的时间为 $dep_t - dep_s$，否则你是无论如何也不能直接走向 $t$ 的。因此我们就希望<strong>早点死早点复活</strong>，也就是说，如果你当前<em>挂</em>了 $l$ 次，你需要找到一个<strong>距离起点 $s$ 尽可能近的，且权值 (参数) $&gt; l$ 的点</strong>进行 "碰撞"。</p>
+		<p>也就是说，你需要对某个起点 $s$ 和每个 $l$，求出权值 $&gt; l$ 的点中距离 $s$ 最近的点。我们用 $\mathcal W(l)$ 表示这个点的权值。</p>
+		<p>首先，<strong>我们有 $\mathcal W(l) \leq \mathcal W(l + 1)$</strong>。证明：设权值 $&gt; l + 1$ 的点中距离 $s$ 最近的点为 $v$，权值为 $w$。则权值 $&gt; l$ 的点中距离 $s$ 最近的点，要么是 $v$，要么是权值为 $l + 1$ 的点 (此时 $\mathcal W(l) = l + 1$)，因此 $\mathcal W(l) \leq \mathcal W(l + 1)$。</p>
+		<p>因此，<strong>$\mathcal W(l)$ 具有单调性</strong>。我们还是考虑使用<strong>单调栈</strong>进行维护，即存储这些 <strong>$\mathcal W(l)$ 改变的位置</strong>。</p>
+		<p>考虑扩展一个点。如果这个点只有一个子节点，则跟链上的做法一样，相当于单点插入，否则，我们要 "合并" 两个 "单调栈"。</p>
+		<hr />
+		<p>乍一看单调栈的合并没有 (像线段树一样) 简洁的做法，因此又该怎么办呢？没错，就是<strong>启发式合并</strong>！如果我们把两个单调栈 (或者说<strong>有序表</strong>) 进行合并，如果我们每次使用<strong>暴力算法</strong>将小的有序表合并到大的有序表，则时间复杂度就是 $O \left( n \log n \right)$！</p>
+		<p>而有序表的合并由经典的 $O(n)$ 算法 (参见归并排序)。而这里的有序表的长度是不超过当前子树的大小的。因此，我们可以考虑使用 "<em>轻重链剖分</em>" 的思想，将其它小的子树合并到最大的一棵子树中去。</p>
+		<p>这样合并的总复杂度就变为了 $O \left( n \log n \right)$，询问由于有二分，因此还是 $O \left( q \log n \right)$，故总时间复杂度 $O \left( (n + q) \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define E f[x].back()
+#define EB emplace_back
+using std::vector;
+
+typedef long long ll;
+const int N = 300054, LN = 19, INF = 0x3f3f3f3f;
+
+struct node {
+	int dis, max; ll suf;
+	node (int _d = 0, int _m = 0, ll _s = 0) : dis(_d), max(_m), suf(_s) {}
+	inline bool operator &lt; (const node &amp;B) const {return max &gt; B.max;}
+} B[N], C[N];
+
+int n, q;
+int fc[N], nc[N];
+int P[LN][N], *p = *P, dep[N], size[N], prf[N];
+int M[LN][N], *w = *M, rank[N], qry[N];
+ll ans[N];
+vector &lt;int&gt; qs[N];
+vector &lt;node&gt; f[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void link(int x, int px) {nc[x] = fc[px], fc[px] = x;}
+
+int jump_until(int x, int d, int &amp;ret) {
+	ret = 0;
+	for (int i = LN - 1; i &gt;= 0; --i) if (dep[x] - (1 &lt;&lt; i) &gt;= d) up(ret, M[i][x]), x = P[i][x];
+	return x;
+}
+
+inline void insert(int x, const node &amp;v) {
+	for (; v.max &gt;= E.max; f[x].pop_back());
+	if (v.dis != E.dis || f[x].size() == 1) f[x].EB(v.dis, v.max, E.suf + (ll)E.dis * (E.max - v.max));
+}
+
+void dfs(int x) {
+	int i, j, y, &amp;z = prf[x], offset, I, J, max; size[x] = 1;
+	for (y = fc[x]; y; y = nc[y])
+		dep[y] = dep[x] + 1, dfs(y), size[y] &gt; size[z] ? z = y : 0, size[x] += size[y];
+	if (z) {
+		for (f[x].swap(f[z]), rank[x] = rank[z] + 1, y = fc[x]; y; y = nc[y]) if (y != z) {
+			offset = rank[x] - rank[y] - 1, J = f[y].size() - 1;
+			for (I = 0; f[x].size() &gt; 1 &amp;&amp; E.dis &gt;= f[y][1].dis + offset; f[x].pop_back()) B[I++] = E; std::reverse(B, B + I);
+			for (j = 0; j &lt; J; ++j) (C[j] = f[y][j + 1]).dis += offset;
+			for (i = j = 0; i &lt; I || j &lt; J; )
+				insert(x, i == I || (j != J &amp;&amp; C[j].dis &lt;= B[i].dis) ? C[j++] : B[i++]);
+		}
+	} else f[x].EB(0, INF, 0), rank[x] = 0;
+	f[x].EB(rank[x], 0, E.suf + (ll)(E.dis) * E.max);
+	for (int id : qs[x]) {
+		if ((y = qry[id]) == x) {ans[id] = 0; continue;}
+		else if (p[y] == x) {ans[id] = 1; continue;}
+		else ans[id] = dep[y] - dep[x];
+		assert(jump_until(p[y], dep[x], max) == x);
+		auto it = std::upper_bound(f[x].begin(), f[x].end(), node(0, max)); --it;
+		ans[id] += (ll)rank[x] * max + it-&gt;suf - E.suf + (ll)it-&gt;dis * (it-&gt;max - max);
+	}
+	for (; !f[x].empty() &amp;&amp; w[x] &gt;= E.max; f[x].pop_back());
+	f[x].EB(rank[x], w[x], E.suf + (ll)E.dis * (E.max - w[x]));
+}
+
+int main() {
+	int i, x;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", w + i);
+	for (x = 2; x &lt;= n; ++x)
+		for (scanf("%d", p + x), link(x, p[x]), i = 0; i &lt; LN - 1 &amp;&amp; P[i][x]; ++i)
+			P[i + 1][x] = P[i][P[i][x]], M[i + 1][x] = std::max(M[i][x], M[i][P[i][x]]);
+	scanf("%d", &amp;q);
+	for (i = 0; i &lt; q; ++i) scanf("%d%d", &amp;x, qry + i), qs[x].EB(i);
+	dfs(1);
+	for (i = 0; i &lt; q; ++i) printf("%lld\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>合并有序表的时候注意深度相同的情况，以及两个有序表的下标的<em>偏移量</em> (offset)。</p>
+		<p><strong>坑2：</strong>二分的时候注意边界情况，合理使用 <code>lower_bound</code> 还是 <code>upper_bound</code>。还有，由于有序表进行过<storng>归并操作</strong>，因此 $M$ <strong>不一定恰好等于某个 $W_i$</strong>。</p>
+	</body>
+</html>

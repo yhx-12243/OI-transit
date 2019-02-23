@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj285]数据分块鸡</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>区间求和是这么一个问题：给你长度为 $n - 1$ 的数组，下标编号为 $\left[ 1, n \right)$。有 $q$ 个询问，其中第 $j$ 个询问是要求下标区间在 $\left[ l_j, r_j \right)$ 内所有数的和。</p>
+		<p>数据分块鸡不会前缀和，它只知道分块大法好。它会将该数组切成若干小块，假设分界点为 $a_0, a_1, a_2, \dots, a_k$，其中 $a_0 = 1, a_k = n$，那么第 $i$ 块覆盖的下标区间即为 $\left[ a_i, a_{i+1} \right)$，并会存储这个区域内所有元素的和。</p>
+		<p>每次查询 $\left[ l_j, r_j \right)$ 数据分块鸡总会尽可能利用整块存储的信息，并在边界处进行微调。会遇到如下几种情况：</p>
+		<ul>
+			<li><p>存在 $\left[ a_i, a_{i+1} \right)$ 使得 $\left[ l_j, r_j \right) = \left[ a_i, a_{i+1} \right)$，那么数据分块鸡将直接使用该块内存储的元素总和，需要花费 $1$ 的代价；</p></li>
+			<li><p>如果不是，若存在 $\left[ a_i, a_{i+1} \right)$ 使得 $\left[ l_j, r_j \right) \subseteq \left[ a_i, a_{i+1} \right)$，那么数据分块鸡将会用该块内存储的元素总和减去不在询问区间内的元素总和以求得答案，需要花费 $\left( l_j - a_i \right) + \left( a_{i+1} - r_j \right)$ 的代价；</p></li>
+			<li><p>如果不是上面任何一种情况，那么询问区间一定会跨越多个块。对于每一块：</p>
+			<ul>
+				<li><p>首先如果 $\left[ a_i, a_{i+1} \right) \subseteq \left[ l_j, r_j \right)$，那么这一整块的元素总和将会被加进答案，需要花费 $1$ 的代价。</p></li>
+				<li><p>除此之外，如果 $\left[ a_i, a_{i+1} \right)$ 与 $\left[ l_j, r_j \right)$ 有交，那么 $\left[ l_j, r_j \right)$ 肯定是覆盖了该块的一个前缀或一个后缀。此时数据分块鸡会在如下两种计算方法里进行抉择，选取代价最小的计算方法：</p>
+				<ul>
+					<li>要么直接求和计算，花费的代价为两个区间交集的元素个数；</li>
+					<li>要么拿块内元素总和减去不在询问区间内的元素总和，花费的代价为该块内包含的元素个数减去两个区间交集的元素个数。</li>
+				</ul></li>
+			</ul></li>
+		</ul>
+		<p>最后总代价为每步的代价之和。</p>
+		<p>现在，给你 $n$ 和这 $q$ 个询问，请你帮数据分块鸡决定分块的分界点使得总代价最小吧！</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($2 \leq n \leq 50000; 1 \leq q \leq 10^5$)。</p>
+		<p>接下来 $q$ 行，每行包含两个正整数 $l_i, r_i$ ($1 \leq l_i &lt; r_i \leq n$)，表示询问区间 $\left[ l_i, r_i \right)$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最小代价。</p>
+
+		<h3>题解</h3>
+		<p>容易想到一个 trivial 的 DP：令 $f_i$ 表示当前最后一块的端点为 $i$ 时，$\left[ 1, i \right)$ 的所有块对答案的贡献的最小值，则有边界 $f_1 = 0$ 和转移</p>
+		<p>$$ f_i = \min_{1 \leq j &lt; i} \left( f_j + \mathrm{weight} (j, i) \right) \tag 1 \label 1 $$</p>
+		<p>其中 $\mathrm{weight} (i, j)$ 表示当 $\left[ i, j \right)$ 为一块时对答案的贡献。最后的结果自然就是 $f_n$ 啦。</p>
+		<p>不过这样做的时间复杂度是 $O \left( n^2 q \right)$ 的无法接受，因此我们要进行优化。</p>
+		<p>进行优化有两个方面：一方面是提高计算 $\mathrm{weight} (i, j)$ 的速度，另一方面是对 DP 本身进行优化。</p>
+		<hr />
+		<p>先来优化第一部分：<strong>提高 $\mathrm{weight} (i, j)$ 的计算速度</strong>。</p>
+		<p>此时，我们已经知道了一个分块区间 $\sigma = \left[ L, R \right)$，我们要求对于所有的询问，区间 $\sigma$ 对最后答案的贡献 (即题目中的 "代价")。</p>
+		<p>设询问为 $l, r$。则一共分为以下 $6$ 种情况：</p>
+		<ol>
+			<li><p>(proper subset) $L \leq l \leq r \leq R$。即询问为 $\sigma$ 的 (真) 子集。</p>
+			<p>由题意，此时的代价应该等于 $\left( R - L \right) + \left( l - r \right)$。</p></li>
+			<li><p>(proper superset) $l \leq L \wedge R \leq r$。即 $\sigma$ 为询问的 (真) 子集。</p>
+			<p>由题意，此时区间 $\sigma$ 对 "<em>总代价</em>" 的贡献就等于 $1$。</p></li>
+			<li><p style="color: gray">以下设 $M = \left \lfloor \dfrac {L + R} 2 \right \rfloor$。</p>
+			<p>(left intersect less) $l &lt; L \leq r \leq M$。即询问和 $\sigma$ <strong>交于 $\sigma$ 的一个前缀</strong>，且前缀的长度不超过 $\sigma$ 的一半。</p>
+			<p>此时的代价的为 $r - L$。</p></li>
+			<li><p>(left intersect more) $l &lt; L \wedge M &lt; r &lt; R$。即询问和 $\sigma$ <strong>交于 $\sigma$ 的一个前缀</strong>，且该前缀的长度已经超过 $\sigma$ 的一半。</p>
+			<p>此时的代价为 $R - r$。</p></li>
+			<li><p>(right intersect less)$M \leq l \leq R &lt; r$。即询问和 $\sigma$ 交于 $\sigma$ 的一个后缀，且后缀的长度不超过 $\sigma$ 的一半。</p>
+			<p>此时的代价为 $R - l$。</p></li>
+			<li><p>(left intersect more) $L &lt; l &lt; M \wedge R &lt; r$。即询问和 $\sigma$ 交于 $\sigma$ 的一个后缀，且该后缀的长度已经超过 $\sigma$ 的一半。</p>
+			<p>此时的代价为 $l - L$。</p></li>
+		</ol>
+		<p>比较特殊地，如果 $L = l, R = r$，则该询问会被计算两遍，不过这两遍所算得的代价分别为 $0$ 和 $1$，而它的实际代价恰好也是 $1$，<del>因此我们就不管它了</del>。</p>
+		<p>固定 $L, R$，把 $l, r$ 当作变量。如果我们将这些量画在坐标平面上，不难发现，所有 $6$ 个不等式都代表着平面上的一个矩形 (或无限矩形)！也就是说，这些统计问题都可以化为平面上的<strong>二维数点</strong>问题！</p>
+		<p>我们需要统计的量有：所有这些点的<strong>数量</strong>、<strong>横坐标之和</strong>以及<strong>纵坐标之和</strong>。</p>
+		<p>由于一开始无法知道在 DP 时需要进行哪些区间 $\left[ L, R \right)$ 的统计，因此离线 + 树状数组被 pass 了，<del>分治法什么鬼也被 pass 了</del>，剩下的只有<strong>可持久化线段树</strong>了。</p>
+		<p>对，就是可持久化线段树，<del>在线降维的法宝</del>。用其中一维统计右端点，线段树内部统计左端点，然后两次 (或一次) query 就可以得到任意一个区间的信息，比如<strong>数量</strong>、<strong>左端点之和</strong>以及<strong>右端点之和</strong>。</p>
+		<p>于是可以在 $O \left( (n + q) \log n \right)$ 时间预处理后，$O \left( \log n \right)$ 得到任意一个 $\mathrm{weight} (i, j)$ 的值。</p>
+		<hr />
+		<p>接下来是第二部分：<strong>对 DP 本身进行优化</strong>。</p>
+		<p>注意转移方程 $\eqref 1$ 的形式，容易发现它是一个经典的 <strong>1D-1D 动态规划模型</strong>。<del>故我们尝试计算它是否符合四边形不等式。</del></p>
+		<p><del>通过分类讨论以及归纳的方法，可以证明，$\mathrm{weight} (i, j)$ 满足四边形不等式，即 $\mathrm{weight} (i, j) + \mathrm{weight} (i + 1, j + 1) \leq \mathrm{weight} (i, j + 1) + \mathrm{weight} (i + 1, j)$。</del></p>
+		<p><del>由<strong>四边形不等式定理</strong></del>，我们得到了决策单调性：设 $f_i$ 的决策点为 $pos_i$ (即 $f_i = f_{pos_i} + \mathrm{weight} \left( pos_i, i \right)$)，则有 $pos_i \leq pos_{i+1}$。</p>
+		<p>对，就是 $pos_i \leq pos_{i+1}$。我们可以进行<strong>决策单调性优化</strong>。</p>
+		<p>设 $pos_i = j$，如果我们在 DP	$f_{i+1}$ 的时候直接从 $j$ 开始 <code>for</code>，那么，非常抱歉，这样的复杂度还是 $O \left( n^2 \right)$。因为，和<a href="cf721E.html" target="_blank">这道题</a>不同，<strong>较小的 $j$ 可能更新许多较大的 $i$</strong>。</p>
+		<p>这一点启发我们换一种思路：与其对于每个 $i$，找到合适的 $j$，不如<strong>对于每个 $j$，看看 $1 \sim j$ 中，它能更新哪些 $i$</strong>？</p>
+		<p>对，我们可以使用单调队列来维护这个问题 (即对于每个 $j$ 能更新哪些 $i$)。确切地说，应该是单调的<strong>双向队列</strong>。由决策单调性，这个队列的单调性是显然的。</p>
+		<p>每加入一个新的 $j$，设队尾为 $t$，它所 "管辖" 的范围为 $\left[ Pos_t, n \right]$。我们比较一下用 $j$ 更新 $Pos_t$ 和用 $t$ 更新 $Pos_t$ 哪个划算。如果用 $j$ 更新 $Pos_t$ 更划算，则由决策单调性，后面 $&gt; Pos_t$ 的所有值都可以用 $j$ 去更新。因此直接将 $t$ "弹出" 队列，然后重复操作 (对于新的队尾)</p>
+		<p>如果用 $t$ 更新更划算，则说明 $j$ 只能 "管辖" $\left[ Pos_t, n \right]$ 的一个后缀 (甚至没有)。不管是哪种，我们都可以通过<strong>二分</strong>的方式找到 $j$ 所 "管辖" 的区间的左端点。</p>
+		<p>而对于计算一个 $f_i$，像一般的单调队列一样，我们可以去<em>队首</em>逐个弹出元素，知道剩下最后一个 "管辖" 了 $i$ 的 $j$，从 $j$ 更新 $i$ 即可。</p>
+		<hr />
+		<p>于是我们就可以在 $O \left( (n + q) \log n + n \log^2 n \right)$ 的时间内<del>愉快地</del>解决了这个问题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 50054
+
+typedef long long ll;
+typedef std::vector &lt;int&gt; vector;
+
+namespace S5T {
+	struct node {
+		ll X, Y; int v, lc, rc;
+		node (ll _X = 0, ll _Y = 0, int _v = 0, int _lc = 0, int _rc = 0) : X(_X), Y(_Y), v(_v), lc(_lc), rc(_rc) {}
+	} x[20030731 / 3];
+
+	int cnt = 0;
+
+	int add(int id, int L, int R, int h, int tl, int tr) {
+		int nid = ++cnt; ++(x[nid] = x[id]).v, x[nid].X += tl, x[nid].Y += tr;
+		if (L == R) return nid; int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[nid].lc = add(x[id].lc, L, M, h, tl, tr) : (x[nid].rc = add(x[id].rc, M + 1, R, h, tl, tr));
+		return nid;
+	}
+
+	node range(int id1, int id2, int L, int R, int ql, int qr) {
+		if (L &gt; R || id1 == id2) return node();
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return node(x[id2].X - x[id1].X, x[id2].Y - x[id1].Y, x[id2].v - x[id1].v);
+		int M = (L + R - 1) &gt;&gt; 1;
+		if (qr &lt;= M) return range(x[id1].lc, x[id2].lc, L, M, ql, qr);
+		if (ql &gt; M) return range(x[id1].rc, x[id2].rc, M + 1, R, ql, qr);
+		node a = range(x[id1].lc, x[id2].lc, L, M, ql, M), b = range(x[id1].rc, x[id2].rc, M + 1, R, M + 1, qr);
+		return node(a.X + b.X, a.Y + b.Y, a.v + b.v);
+	}
+}
+
+int n, q;
+int root[N];
+vector queries[N];
+int h, t, que[N], pos[N];
+ll f[N];
+
+ll queryWeight(int L, int R) {
+	int M = (L + R) / 2; ll ret = 0;
+	// proper subset
+	ST::node proper_subset = ST::range(root[L - 1], root[R], 1, n, L, R);
+	ret += (ll)proper_subset.v * (R - L) + proper_subset.X - proper_subset.Y;
+	// proper superset
+	ST::node proper_superset = ST::range(root[R - 1], root[n], 1, n, 1, L);
+	ret += proper_superset.v;
+	// left intersect less
+	ST::node li_less = ST::range(root[L - 1], root[M], 1, n, 1, L - 1);
+	ret += li_less.Y - (ll)li_less.v * L;
+	// left intersect more
+	ST::node li_more = ST::range(root[M], root[R], 1, n, 1, L - 1);
+	ret += (ll)li_more.v * R - li_more.Y;
+	// right intersect less
+	ST::node ri_less = ST::range(root[R], root[n], 1, n, M + 1, R);
+	ret += (ll)ri_less.v * R - ri_less.X;
+	// right intersect more
+	ST::node ri_more = ST::range(root[R], root[n], 1, n, L, M);
+	ret += ri_more.X - (ll)ri_more.v * L;
+	return f[L] + ret;
+}
+
+int main() {
+	int i, j, L, R, M;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 0; i &lt; q; ++i) scanf("%d%d", &amp;L, &amp;R), queries[R].push_back(L);
+	for (i = 1; i &lt;= n; ++i) {
+		root[i] = root[i - 1];
+		for (int v : queries[i]) root[i] = ST::add(root[i], 1, n, v, v, i);
+	}
+	h = t = 0, f[1] = 0, que[t] = 1, pos[t++] = 2;
+	for (i = 2; i &lt;= n; ++i) {
+		for (; h + 1 &lt; t &amp;&amp; pos[h + 1] &lt;= i; ++h);
+		j = que[h], f[i] = queryWeight(j, i);
+		if (i == n) break;
+		for (; h &lt; t &amp;&amp; i &lt; pos[t - 1] &amp;&amp; queryWeight(i, pos[t - 1]) &lt;= queryWeight(que[t - 1], pos[t - 1]); --t);
+		if (h == t) {que[t] = i, pos[t++] = i; continue;}
+		if (queryWeight(i, n) &gt; queryWeight(que[t - 1], n)) continue;
+		for (L = std::max(i, pos[t - 1]) + 1, R = n; L &lt; R; )
+			M = (L + R) / 2, queryWeight(i, M) &lt;= queryWeight(que[t - 1], M) ? R = M : (L = M + 1);
+		que[t] = i, pos[t++] = L;
+	}
+	printf("%lld\n", f[n]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>DP 时注意队列为空的情况，二分时注意边界。(其实二分时的右端点可以设为最后一个 "被删" 元素所 "管辖" 的区间的左端点)</p>
+	</body>
+</html>
