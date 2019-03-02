@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4786][lg3689][uoj292][loj2252][ZJOI2017]多项式</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一个 $n$ 次的系数为 $0$ 或 $1$ 的多项式 $f(x)$，我们在模 $2$ 意义下计算 $g(x) = f(x)^m$，则 $g(x)$ 为一个 $nm$ 次的多项式，它有 $nm + 1$ 个系数，将这些系数从<strong>高位到低位</strong>写下来，就可以得到一个长度为 $nm + 1$ 的 $\texttt 0/\texttt 1$ 字符串。</p>
+		<p>例如对于多项式 $f(x) = x^3 + x + 1$，计算 $g(x) = f(x)^3 = x^9 + x^7 + x^6 + x^5 + x^2 + x + 1$，这样我们得到了一个长度为 $10$ 的字符串 <samp>1011100111</samp>。</p>
+		<p>给定有一个次数为 $n$ 的多项式 $f(x)$，整数 $m, L, R$ 以及一个长度为 $K$ 的 $\texttt 0/\texttt 1$ 串 $t$。令 $s$ 为 $f(x)^m$ 得到的字符串，$s[L, R]$ 为 $s$ 的第 $L$ 个字符到第 $R$ 个字符，求 $t$ 在 $s[L, R]$ 中出现了多少次。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 5$) 表示数据组数。</p>
+		<p>对于每组数据，第一行输入五个正整数 $n, m, K, L, R$ ($n \leq 18; m \leq 10^{16}; K \leq 18; 1 \leq L \leq R \leq n m + 1$)。</p>
+		<p>第二行包含一个长度为 $n + 1$ 的 $\texttt 0/\texttt 1$ 串，表示多项式 $f(x)$ 的系数，其中第 $i$ 位表示 $f(x)$ 的第 $n - i + 1$ 次系数。</p>
+		<p>第三行包含一个长度为 $K$ 的字符串，表示字符串 $t$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示 $t$ 的出现次数。</p>
+
+		<h3>题解</h3>
+		<p>首先，模 $2$ 意义下的多项式乘法有一个显然但重要的性质：$f(x)^2 \equiv f \left( x^2 \right) \pmod 2$，即 $\displaystyle \left( \sum_{i=0}^n a_i x^i \right)^2 \equiv \sum_{i=0}^n a_i x^{2i} \pmod 2$。</p>
+		<p>证明：<a href="../memos/17.html#th-4-2" target="_blank"><del>模意义下的二项式定理</del></a> 交叉项都消掉了不就只剩下平方项了吗！</p>
+		<p>因此，我们可以使用快速幂的思想计算 $f(x)^m$。</p>
+		<p>(等等：怎么计算 $f(x)^{2^a} \cdot f(x)^{2^b}$？)</p>
+		<p>为什么要这么做啊？难道你忘记了<a href="../templates.html#nt02" target="_blank"><strong>递归版的 <code>PowerMod</code></strong></a> ($f(x)^{2k+1} = \left( f(x)^k \right)^2 \cdot f(x)$)？而一个多项式乘以 $f(x)$ (不超过 $18$ 次) 是很快的！</p>
+		<p>因此我们可以在 $O \left( n^2 m \log m \right)$ 的时间内得到这个多项式 $g(x)$，可以获得 $30$ 分。</p>
+		<hr />
+		<p>不过由于原题只需要求某个<strong>较短</strong>的 $\texttt 0/\texttt 1$ 串 $t$ 在 $f(x)$ 的一个子串中的出现次数，因此我们并不需要知道整个串的具体信息，只需要知道<storng>它和串 $t$ 的某种联系</strong>。</p>
+		<p>先不考虑子串 (即假设 $L = 1, R = n m + 1$)，我们考虑计算在整个串 $s$ 中，$t$ 出现了多少次。</p>
+		<p>和上面讲的一样，我们使用快速幂的思想 (分治) 来计算 $f(x)^m$。我们可以在计算的某一步中<strong>不存储 $f(x)^k$，而只存储 $f(x)^k$ 对应的串中 $t$ 出现了几次</strong>。然而这样转移不太方便，因为一个子串 $t$ 在乘的过程中可能就面目全非了。</p>
+		<p>但是，注意到 $t$ 的长度 $K = \left| t \right|$ 只有 $18$。如果我们记录一下<strong>所有长为 $K$ 的串</strong>在 $f(x)^k$ 中的出现次数，那么接下来相乘的时候，是不是就不需要其它信息了呢？</p>
+		<p>看起来似乎是对的。由于 $F(x)^2 = F \left( x^2 \right)$，因此 $F \left( x^2 \right)$ 中<strong>每连续的 $K$ 项可以由 $F(x)$ 的连续 $\left \lceil \dfrac K2 \right \rceil$ 项决定</strong>。因此我们如果记录所有长为 $K$ 的串的出现次数，是可以推出 $F(x)^2$ 中的各串出现次数的。</p>
+		<p>当然，我们还需要考虑奇数次幂的情形——计算 $F(x)^2 \cdot f(x) = F \left( x^2 \right) \cdot f(x)$。此时，乘积的的第 $N \sim N + K$ 次项系数与 $F(x)^2$ 的第 $N - n$ 到 $N + K$ 次项系数有关，于是，我们必须知道 $F(x)$ 系数中<strong>的连续 $\left \lceil \dfrac {(n + 1) + K} 2 \right \rceil$ 个</strong>。</p>
+		<p>从这里我们可以看出，$K$ 必须大于 $n$。<strong>因此，当数据中的 $K \leq n$ 时</strong>，我们维护所有长为 $n + 1$ 的串的出现情况。也就是说，<strong>对所有情形</strong>，我们维护所有长为 $\max \left\{ K, n + 1 \right\}$ 的串的出现次数。</p>
+		<p>这样我们就可以成功使用类似动态规划的思想进行转移了。下面记 $u = \max \left\{ K, n + 1 \right\}$。</p>
+		<p>具体地，存在一个映射 $\mathcal E_l : S_n \to S_n$，其中 $S_n$ 为长度为 $u$ 的 $\texttt 0/\texttt 1$ 串的集合。如果把 $F(x)$ 的第 $N$ 次项到第 $N - u + 1$ 次项看成一个 $\texttt 0/\texttt 1$ 串 $s_0$ (次数小于 $0$ 的项的系数规定为 $0$)，那么 $\mathcal E_l \left( s_0 \right)$ 就是 $F(x)^2$ 的第 $2N$ 次项到第 $2N - u + 1$ 次项所对应的 $\texttt 0/\texttt 1$ 串。</p>
+		<p>同样，还存在一个映射 $\mathcal E_h : S_n \to S_n$，和 $\mathcal E_l$ 一样，不过这时 $s_0$ 的像 $\mathcal E_h \left( s_0 \right)$ 为 $F(x)^2$ 的<strong>第 $2N + 1$ 次项到第 $2N - u$ 次项</strong>所对应的 $\texttt 0/\texttt 1$ 串。</p>
+		<p>这两个映射 $\mathcal E_l$ 和 $\mathcal E_h$ 可以在分治之前预处理 <del>(打表)</del> 出来。</p>
+		<p>对奇数的情况，略显复杂，我们定义映射 $\mathcal O_l : S_n \to S_n$。还是设 $s_0$ 为 $F(x)$ 的第 $N$ 次项到第 $N - u + 1$ 次项所对应的 $\texttt 0/\texttt 1$ 串，则 $\mathcal O_l \left( s_0 \right)$ 为 <strong>$F(x)^2 \cdot f(x)$ 中第 $2N$ 次项到第 $2N - u + 1$ 次项所对应的 $\texttt 0/\texttt 1$ 串</strong>。可以证明，$\mathcal O_l \left( s_0 \right)$ 由 $s_0$ <strong>唯一确定</strong>。</p>
+		<p>同样还可以定义 $\mathcal O_h : S_n \to S_n$。和 $\mathcal E_h$ 类似，它的像为 $F(x)^2 \cdot f(x)$ 中第 $2N + 1$ 次项到第 $2N - u$ 次项所对应的 $\texttt 0/\texttt 1$ 串。类似地，也可以证明是唯一确定的。</p>
+		<p>于是转移就非常方便了：考虑当前分治的那位是<em>偶数的情形</em>还是<em>奇数的情形</em>。不妨设为<em>奇数的情形</em>，则我们只需 $$ f_{i + 1, \mathcal O_l (j)} \uparrow f_{i, j}, f_{i + 1, \mathcal O_h (j)} \uparrow f_{i, j} $$ 即可 (其中 $a \uparrow b$ 表示 <code>a += b</code>)。</p>
+		<p>不过这样由产生了一个问题。在这样转移的过程中，如果 $\displaystyle \sum_j f_{i, j} = M$，则 $\displaystyle \sum_j f_{i + 1 j} = 2 M$，这在<em>偶数的情形</em>中是成立的，而在<em>奇数的情形</em>中是<strong>不成立的</strong>！(应该是 $2 M + u$)。</p>
+		<p>这是因为，我们在转移的过程中，只把 $N = 0, 1, \cdots, M - 1$ 的情形转移到 $N = 0, 1, \cdots, 2 M - 1$ 的情形。而在<em>奇数的情形</em>中，我们还需要知道 $N = 2 M, 2 M + 1, \cdots, 2 M + u - 1$ 时的值。</p>
+		<p>这个问题解决方案<del>听起来有点搞笑</del>，就是<strong>暴力维护当前 $f(x)^k$ 的最高若干位</strong> (比如 $128$ 位足够了，可以使用 <code>__int128</code>)，由于 $u \leq 19$，因此直接从这个 <code>__int128</code> 中拿最高 $u$ 个数塞进去即可。</p>
+		<p>现在问题就彻底解决了，时间复杂度 $O \left( 2^u \log m \right)$。</p>
+		<hr />
+		<p>最后还剩下一个问题，就是如果维护出 $s$ 的子串信息。这个已经不是实质性的难点了，这里简要介绍算法如下：</p>
+		<p>首先，由于信息的可减性，我们只需求出 $t$ 在 $s$ 的<strong>一个前缀</strong>中出现的次数，然后跑两遍减一减即得最终答案。</p>
+		<p>那前缀 (设长度为 $L$) 怎么跑呢？如果我们跑出整个串在用 <code>__int128</code> 中的信息去减，那显然是有问题的，因为 $L$ 可能会和 $n m + 1$ 相差甚远 (于是你做减法甚至不如暴力一个一个枚举)，那该怎么办呢？</p>
+		<p>注意到这个 <code>__int128</code> 中存储了当前 $f(x)^k$ 的最高 $128$ 位，也就是说，它给了你大约 $100$ 位的<strong>缓冲空间</strong>，也就是说，你可以对 $M$ 的值作一个 $100$ 以内的<strong>微调</strong>。</p>
+		<p>那么，与其从 $n m + 1$ 一下子微调到 $L$，还不如在分治的过程中<strong>顺带微调掉</strong>。</p>
+		<p>也就是说，比如现在的这个循环中，后面还有 $4$ 步，我们就把 $M$ 微调到 $\left \lceil \dfrac L {16} \right \rceil$，如果后面还有 $3$ 步，就把 $M$ 微调到 $\left \lceil \dfrac L8 \right \rceil$。<del>(如果你经常写多项式板子应该对这个是比较清楚的)</del>。</p>
+		<p>微调过程的代码实现在代码中的 $70 \sim 78$ 行，其中变量 <code>PS</code> 就是上文中的 $M$，变量 <code>JS</code> 就是我们所需要得到的目标值。</p>
+		<p>整个微调的过程恰好也是利用这个 <code>__int128</code> 中存储的信息来进行的，<del>因此这个 <code>__int128</code> 是必不可少的</del>。当然，如果你们的机子是 $32$ 位的话，可以使用一个 <code>std::bitset</code> 来代替这个 <code>__int128</code>。</p>
+		<p>如果写法正常的话，最低位应该恒定是 $0$，是不用进行微调的。<del>当然如果你写的丑的话，也许还要对其进行微调……</del></p>
+		<p>不过微调的速度还是挺快的，并不影响最后的复杂度。总时间复杂度还是 $O \left( 2^u \log m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (63 - __builtin_clzll(x))
+
+typedef unsigned int uint;
+typedef long long ll;
+typedef unsigned __int128 lll;
+const int N = 21, N2 = 525000;
+
+int n, ns, f, rf, s;
+int ALL;
+ll m, L, R, DALL;
+char f_str[N], s_str[N];
+int even_lo[N2], even_hi[N2], odd_lo[N2], odd_hi[N2];
+ll dp[2][N2];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+namespace bin {
+	uint revi[N2];
+
+	inline ll squarel(ll x) {
+		x = (x &amp; 0x00000000ffff0000ll) &lt;&lt; 16 | (x &amp; 0x00000000000ffffll);
+		x = (x &amp; 0x0000ff000000ff00ll) &lt;&lt; 8 | (x &amp; 0x000000ff000000ffll);
+		x = (x &amp; 0x00f000f000f000f0ll) &lt;&lt; 4 | (x &amp; 0x000f000f000f000fll);
+		x = (x &amp; 0x0c0c0c0c0c0c0c0cll) &lt;&lt; 2 | (x &amp; 0x0303030303030303ll);
+		return (x &amp; 0x2222222222222222ll) &lt;&lt; 1 | (x &amp; 0x1111111111111111ll);
+	}
+
+	const lll _2_64_1 = (lll)1 &lt;&lt; 64 | 1;
+	const lll sm128[6][2] = {{0xffffffff00000000ll, 0x00000000ffffffffll},
+		{0x00000000ffff0000ll * _2_64_1, 0x000000000000ffffll * _2_64_1},
+		{0x0000ff000000ff00ll * _2_64_1, 0x000000ff000000ffll * _2_64_1},
+		{0x00f000f000f000f0ll * _2_64_1, 0x000f000f000f000fll * _2_64_1},
+		{0x0c0c0c0c0c0c0c0cll * _2_64_1, 0x0303030303030303ll * _2_64_1},
+		{0x2222222222222222ll * _2_64_1, 0x1111111111111111ll * _2_64_1}};
+
+	inline lll square128(lll x) {
+		x = (x &amp; sm128[0][0]) &lt;&lt; 32 | (x &amp; sm128[0][1]);
+		x = (x &amp; sm128[1][0]) &lt;&lt; 16 | (x &amp; sm128[1][1]);
+		x = (x &amp; sm128[2][0]) &lt;&lt; 8 | (x &amp; sm128[2][1]);
+		x = (x &amp; sm128[3][0]) &lt;&lt; 4 | (x &amp; sm128[3][1]);
+		x = (x &amp; sm128[4][0]) &lt;&lt; 2 | (x &amp; sm128[4][1]);
+		return (x &amp; sm128[5][0]) &lt;&lt; 1 | (x &amp; sm128[5][1]);
+	}
+
+	inline ll mull(ll x, int y) {
+		ll ret = 0;
+		for (int i = 31; i &gt;= 0; --i) (y &gt;&gt; i &amp; 1) &amp;&amp; (ret ^= x &lt;&lt; i);
+		return ret;
+	}
+
+	inline lll mul128(lll x, int y) {
+		lll ret = 0;
+		for (int i = 31; i &gt;= 0; --i) (y &gt;&gt; i &amp; 1) &amp;&amp; (ret ^= x &lt;&lt; i);
+		return ret;
+	}
+
+	void init_rev() {for (int i = 1; i &lt; N2; ++i) revi[i] = revi[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; 31;}
+}
+
+ll solve(ll pos) {
+	int i, b, *lo, *hi; lll C = rf;
+	ll ret = 0, PS = n, JS, *cur = *dp, *nxt = dp[1];
+	memset(nxt, 0, 8 &lt;&lt; n); for (i = 0; i &lt; n; ++i) ++nxt[(f &lt;&lt; i) &amp; ALL];
+	for (b = lg2(m) - 1; b &gt;= 0; --b) {
+		std::swap(cur, nxt); memset(nxt, 0, 8 &lt;&lt; n);
+		m &gt;&gt; b &amp; 1 ? (lo = odd_lo, hi = odd_hi) : (lo = even_lo, hi = even_hi);
+		for (i = 0; i &lt;= ALL; ++i) nxt[lo[i]] += cur[i], nxt[hi[i]] += cur[i];
+		PS = PS &lt;&lt; 1, up(JS = ((pos - 1) &gt;&gt; b) + 1, n);
+		if (m &gt;&gt; b &amp; 1) {
+			C = bin::mul128(bin::square128(C), rf) &lt;&lt; 2;
+			for (i = 0; i &lt; n; ++i, ++PS) ++nxt[ bin::revi[C &gt;&gt; i &amp; ALL] &gt;&gt; (32 - n) ];
+			for (; PS &gt; JS; C &gt;&gt;= 1, --PS) --nxt[ bin::revi[C &amp; ALL] &gt;&gt; (32 - n) ];
+		} else {
+			C = bin::square128(C) &lt;&lt; 1;
+			for (; PS &gt; JS; C &gt;&gt;= 1, --PS) --nxt[ bin::revi[C &amp; ALL] &gt;&gt; (32 - n) ];
+		}
+	}
+	for (JS = pos; PS &gt; JS; C &gt;&gt;= 1, --PS) --nxt[ bin::revi[C &amp; ALL] &gt;&gt; (32 - n) ];
+	for (i = ~(-1ll &lt;&lt; (n - ns)); i &gt;= 0; --i) ret += nxt[s &lt;&lt; (n - ns) | i];
+	return ret;
+}
+
+void work() {
+	int i; ll si, sif;
+	scanf("%d%lld%d%lld%lld%s%s", &amp;n, &amp;m, &amp;ns, &amp;L, &amp;R, f_str, s_str), --L, --R;
+	std::reverse(f_str, f_str + (++n)), std::reverse(s_str, s_str + ns);
+	f = strtol(f_str, NULL, 2), s = strtol(s_str, NULL, 2);
+	up(n, ns), ALL = ~(-1 &lt;&lt; n), DALL = ~(-1ll &lt;&lt; n * 2), rf = bin::revi[f] &gt;&gt; (32 - n);
+	for (i = 1; i &lt;= ALL; ++i) {
+		si = bin::squarel(i);
+		even_lo[i] = si &gt;&gt; (n - 1), even_hi[i] = si &gt;&gt; n;
+		sif = bin::mull(si, f);
+		odd_lo[i] = sif &gt;&gt; (n - 1) &amp; ALL, odd_hi[i] = sif &gt;&gt; n &amp; ALL;
+	}
+	if (R - L + 1 &lt; ns) putchar(48), putchar(10);
+	else printf("%lld\n", solve(R + 1) - (L + ns &gt; 1 ? solve(L + ns - 1) : 0));	
+}
+
+int main() {
+	int T; bin::init_rev();
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>直接存储最高的若干位会比较麻烦，这里有一个技巧是：<strong>一开始将位翻转 (reverse) 后的 $f$ (即 $f^R$) 存入那个 <code>__int128</code></strong>，然后<em>偶数的情形</em>还是<em>奇数的情形</em>就相当于直接平方和 (多项式) 乘以 $f^R$。</p>
+		<p><strong>坑2：</strong>如果前缀的长度 $L = 0$，应该直接 <code>return</code>，防止奇怪的 Runtime Error。</p>
+	</body>
+</html>

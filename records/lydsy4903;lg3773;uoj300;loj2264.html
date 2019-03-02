@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4903][lg3773][uoj300][loj2264][CTSC2017]吉夫特</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个长度为 $n$ 的序列 $a_1, a_2, \cdots, a_n$</p>
+		<p>求有多少个长度大于等于 $2$ 的不上升的子序列 $a_{b_1}, a_{b_2}, \cdots, a_{b_k}$ 满足</p>
+		<p>$$ \prod_{i=2}^k \binom {a_{b_{i-1}}} {a_{b_i}} \bmod 2 = \binom {a_{b_1}} {a_{b_2}} \times \binom {a_{b_2}} {a_{b_3}} \times \cdots \times \binom {a_{b_{k-1}}} {a_{b_k}} \bmod 2 &gt; 0 $$</p>
+		<p>输出个数对 $10^9 + 7$ 取模的结果。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 211985$)。</p>
+		<p>接下来 $n$ 行，每行一个正整数，这 $n$ 行中的第 $i$ 行，表示 $a_i$ ($a_i \leq 233333$)。</p>
+		<p>保证所有的 $a_i$ 互不相同，也就是说，不存在 $i, j$ 同时满足 $1 \leq i &lt; j \leq n \wedge a_i = a_j$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示答案模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>首先，$\displaystyle \prod_{i=2}^k \binom {a_{b_{i-1}}} {a_{b_i}} \bmod2 &gt; 0 \Leftrightarrow \forall 1 &lt; k \leq n, \binom {a_{b_{i-1}}} {a_{b_i}} \equiv 1 \pmod 2$。</p>
+		<p>由 Kummer 定理或 Lucas 定理，$\dbinom ij \equiv 1 \pmod 2$ 的充分必要条件为，<strong>在二进制表示下，$i$ 的每一位都不小于 $j$ 的每一位</strong>，即 $\left( i \mathbin{\&} j \right) = j$。(具体可以见<a href="lydsy4737%3Buoj275.html" target="_blank">这里</a>)</p>
+		<p>因此，题意转化为，有多少个长度 $&gt; 1$ 的子序列满足 $a_{b_1} \succ a_{b_2} \succ a_{b_3} \succ \cdots \succ a_{b_{k-1}} \succ a_{b_k}$。其中 $a \succ b$ 表示 $\left( a \mathbin{\&} b \right) = b \wedge a \neq b$ (由于所有数互不相同，因此不等号是严格的)。</p>
+		<p>"长度 $&gt; 1$" 这个条件不难处理，因为每个长度为 $1$ 的子序列都是满足上述条件的。因此，我们只需要求出所有满足条件的<strong>非空子序列</strong>的个数，然后减去 $n$ 即得。</p>
+		<p>对于这个问题，和 <abbr title="Longest Increasing Subsequence, 最长上升子序列">LIS</abbr> 一样，当然是考虑 DP 啦。用 $f_i$ 表示以 $i$ 结尾的满足条件的序列的个数。则有</p>
+		<p>$$ f_i = 1 + \sum_{j &lt; i, a_j \succ a_i} f_j $$</p>
+		<p>这样暴力 DP 是 $O \left( n^2 \right)$ 的，不能接受。我们要考虑优化这个算法。</p>
+		<p>我们使用刷表法——对于一个 $f_j$，统计它能对多少 $i$ 产生贡献。</p>
+		<p>这样的 $i$ 必须满足 $a_i \prec a_j$。因此，我们只需要对 $a_j$ 的所有 "子集" 进行更新即可 (<a href="ac2657%3Barc078F.html" target="_blank">枚举子集</a>不要退化哦)。</p>
+		<p>由于我们的枚举时有顺序的 <del>(就像二维数点一样)</del>，因此最后到 $i$ 时 buffer 中 $a_i$ 的值就是 $f_i - 1$，当然最后还是要手动 $+ 1$ 的。</p>
+		<p>这样做时间复杂度真的是对的吗？是的，注意到所有的 $a_i$ 互不相同，因此总更新次数不超过 $\displaystyle \sum_{i=1}^n 2^{\mathrm{popcount}(i)} = \sum_{T \subseteq S} 2^{\left| T \right|} = 3^{\log_2 n} $</p>
+		<p>故时间复杂度为 $O \left( 3^{\log_2 n} \right) = O \left( n^{\log_2 3} \right) \approx O \left( n^{1.585} \right)$，常数非常小，可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 254000
+
+const int mod = 1000000007;
+
+int n, fy[N];
+
+inline void add(int &amp;x, const int y) {x = (x + y &gt;= mod ? x + y - mod : x + y);}
+
+int main() {
+	int i, j, x, ans = 0;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; add(ans, fy[x]), ++i)
+		for (scanf("%d", &amp;x), j = (x - 1) &amp; x; j; j = (j - 1) &amp; x) add(fy[j], fy[x] + 1);
+	printf("%d\n", ans + (ans &gt;&gt; 31 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>其实这题还有一个 $O \left( n \sqrt n \right)$ 的 "<em>分块</em>" 做法，它在<strong>不满足 $a_i$ 互不相同</strong>的情况下也拥有正确的复杂度，<del>其实<a href="http://10.49.18.71/problem/348" target="_blank">这种思想</a>还是蛮套路的</del>：</p>
+		<p>我们考虑这样一个模型：有一个 $k$ 元集合 $S$ 和一个数组 $A$，数组 $A$ 以<strong>$S$ 的子集</strong>为下标。要求支持两种操作：</p>
+		<ol>
+			<li><p>给定 $T \subseteq S$，令 $A \left[ T \right] \gets A \left[ T \right] + w$。</p></li>
+			<li><p>给定 $T \subseteq S$，求 $\displaystyle \sum_{T \subseteq F \subseteq S} A \left[ F \right]$ 的值。</p></li>
+		</ol>
+		<p>如果采用直接模拟，是修改 $O(1)$ 查询 $O \left( 2^k \right)$ 的，如果采用<strong>后缀和</strong>思想，是修改 $O \left( 2^k \right)$ 查询 $O(1)$ 的 (这里按照<strong>不满足 $a_i$ 互不相同</strong>来计算)，看起来都不够优秀。</p>
+		<p>参考<del>高级</del>数据结构，比如线段树，就是把修改和询问的复杂度 "匀了一下"，那这类问题能否也这样 "匀一下" 呢？</p>
+		<p><del>看起来 $O(k)$ 是不太现实了</del>，但是我们可以将它 "匀" 到修改和查询都是 $O \left( 2^{k/2} \right)$。</p>
+		<p>具体地，我们将 $S$ "分块"：分成大小均为 $\dfrac k2$ 的两部分 $S_1, S_2$。然后还是维护后缀和，不过只对 $S_2$ 部分求后缀和。</p>
+		<p>这样，修改的时候，我们只需要对 $S_2$ 部分进行枚举即可，查询的时候，再对 $S_1$ 部分求个和即可。时间复杂度均为 $O \left( 2^{k/2} \right)$。</p>
+		<p>如果在本题中 ($a_i$ 互不相同)，时间复杂度可以降至 $O \left( n^{(1 + \log_2 3)/2} \right) \approx O \left( n^{1.292} \right)$，是一个不错的复杂度。</p>
+	</body>
+</html>

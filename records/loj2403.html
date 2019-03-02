@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj2403][THUPC2017]机场</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>飞机场有 $a + b$ 个停机位，其中 $a$ 个停机位有登机桥连接飞机和候机厅，乘客可以通过登机桥直接由候机厅登上飞机；另外 $b$ 个停机位没有登机桥和候机厅相连，所以乘客登机需要先搭乘摆渡车再登机。</p>
+		<p>毫无疑问，搭乘摆渡车的体验是非常差的，所以每位搭乘摆渡车的乘客都会产生不愉快度。</p>
+		<p>现在，给定每架飞机的乘客数量，登机时间和起飞时间；飞机需要在登机时间点选择一个空闲的停机位，在这个时间点内所有乘客会完成登机，然后飞机会一直停在该停机位，直到起飞时间；</p>
+		<p>若某飞机在时刻 $x$ 起飞，则在时刻 $x$ 该飞机所在的停机位是空闲的。</p>
+		<p>飞机场的管理层希望能够尽量减少乘客的不愉快度，为此飞机在登机时间到起飞时间之间，可以切换停机位；</p>
+		<p>假设某飞机从 $x$ 时间开始由停机位 A 切换到停机位 B，那么停机位 A 在 $x + 1$ 时间是空闲的。能进行这样的切换当且仅当停机位 B 在 $x + 1$ 时间是空闲的。</p>
+		<p>不愉快度的计算方式：</p>
+		<p>假设某飞机有 $x$ 位乘客，如果这 $x$ 位乘客是由摆渡车登机的，则会产生 $x$ 不愉快度；如果由登机桥登机则不会产生不愉快度。</p>
+		<p>同时，这架飞机每次切换停机位，都会产生 $\left \lfloor x \cdot p \right \rfloor$ 的不愉快度 (对于 C++ 选手来说，建议使用 <code>floor(p * x[i] + 1e-5)</code> 计算)，$p$ 由输入给定。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据，第一行包含一个正整数 $T$ ($T \leq 8$) 表示数据组数。对于每组数据：</p>
+		<p>第一行包含三个非负整数 $n, a, b$ ($1 \leq n \leq 200; 0 \leq a, b \leq 30$)，分别表示飞机数量、有登机桥的停机位数量、没有登机桥的停机位数量。</p>
+		<p>第二行包含一个浮点数 $p$ ($0 \leq p \leq 1$)，输入最多保留小数点后两位。
+		<p>接下来 $n$ 行，每行三个正整数 $x, s, t$ ($1 \leq x \leq 10^5; 1 \leq s &lt; t \leq 10^9$)，描述一架飞机的乘客数量、登机时间和起飞时间。
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示最小的不愉快度。<p>
+		<p>如果无法安排一个合理的方案使得所有飞机都完成登机，则输出 <code>impossible</code>。</p>
+
+		<h3>题解</h3>
+		<p>首先容易判断每组数据是否有解。有解当且仅当<strong>任意一个时刻在机场中的飞机数量不超过 $a + b$</strong>。</p>
+		<p>具体方法就是，把每个飞机看做一个 "区间加"，最后求最大值。因此离散化后差分一下即可。</p>
+		<p><em>以下默认假设问题有解</em>。</p>
+		<p>下面有几个结论：</p>
+		<p>引理 1：<strong>在乘车的停机位 (下简称 B 型停机位) 上的飞机不会切换到带登机桥的停机位 (下简称 A 型停机位)，且所有可能的切换只有可能是从 A 型停机位到 B 型停机位</strong>。</p>
+		<p>证明：反之，既要多付切换费，还有可能把 "好的" 位置 (A 型停机位) 抢走留下 "差的" 位置 (B 型停机位)，怎么说都不赚啊。</p>
+		<p>推论 1：<strong>一架飞机最多切换一次停机位</strong>。</p>
+		<p>证明：由于只能从 A 型停机位到 B 型停机位，于是至多一次。</p>
+		<p>引理 2：<strong>在有解的条件下，$b$ 的值不影响答案。因此可以假设 $b = + \infty$，即有无穷多个 B 型停机位</strong>。</p>
+		<p>感性理解：因为如果有一个时刻 B 型停机位不够了，那么由于有解，那个多出来的飞机直接停到 A 即可。</p>
+		<p>推论 2：<strong>如果一架飞机进行了切换，则可以假设它是在 $x + 1$ 时刻切换的 ($x$ 是登机时间)</strong>。</p>
+		<p>证明：由引理 2，问题可以转化为 $b = + \infty$ 的情况，因此肯定越早切换越有，不占宝贵的 A 型停机位。</p>
+		<p>推论 3：<strong>一架飞机只有三种决策："一直待在 A"、"一直待在 B" 和 "在 A 处登机后马上切到 B"</strong>。</p>
+		<p>证明：略。</p>
+		<hr />
+		<p>由于 $b = + \infty$，因此它们的具体情况也不重要了。下面我们要引入 A 的限制。</p>
+		<p>初始时，可以假设所有飞机都待在 B (于是产生了 $\sum x$ 的不愉快度)，然后，我们要对每个飞机选择一种 "更优" 的决策 (或者不选)。</p>
+		<p>对于一架飞机，如果它选了决策 "一直待在 A"，它会在 $\left[ s, t \right)$ 的时间段占用 A 型停机位，然后减少了 $x$ 的不愉快度；如果它选了决策 "在 A 处登记后马上切到 B"，则它会在 $\{s\}$ 的时间占用 A 型停机位，然后减少 $x - \left \lfloor p x \right \rfloor$ 的不愉快度。</p>
+		<p>我们要最大化 "减少的不愉快度" 的总数，同时也不能让每个时间占用的 A 型停机位的数量超过 $a$。</p>
+		<p>因此，我们可以建立一个费用流模型：</p>
+		<p>对于每一个时刻，建立一个点 $t$，然后从最初时刻 $0$ 向最末时刻 $T$ <strong>给出一个 $a$ 的流量</strong> (即 $S \to 0, 0 \to 1, \cdots, T - 1 \to T$ 之间各连一条容量为 $a$ 的边)，然后对于每架飞机，建立一个点 $p$，然后将 $s \to p$ 连一条容量为 $1$ 的边，$p \to t$ 连一条费用为 $x$，容量为 $1$ 的边，$p \to s + 1$ 连一条费用为 $x - \left \lfloor p x \right \rfloor$，容量为 $1$ 的边。</p>
+		<p>最后对整张图求一遍<strong>最大费用最大流</strong>，最大费用就是 "减少的不愉快度" 的最大值。</p>
+		<p>时间复杂度 $O \left( n^3 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 1054, M = 5400, INF = 0x7f7f7f7f;
+
+namespace CF {
+	#define ad(x) ((x - 1 ^ 1) + 1)
+
+	struct edge {
+		int u, v, c, f;
+		edge (int u0 = 0, int v0 = 0, int c0 = 0, int f0 = 0) : u(u0), v(v0), c(c0), f(f0) {}
+	} e[M];
+
+	int V, E, si = 1, ti = 2, flow, cost;
+	int first[N], next[M];
+	int dep[N], cur[N], que[2003731];
+	char in_que[N], used[N];
+
+	inline void addedge(int u, int v, int c, int f) {
+		e[++E] = edge(u, v, c, f); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u, -c); next[E] = first[v]; first[v] = E;
+	}
+
+	bool bfs() {
+		int h = 1000000, t = h + 1, i, x, y;
+		memset(dep, 127, (V + 1) &lt;&lt; 2);
+		que[h] = ti; dep[ti] = 0; in_que[ti] = 1;
+		for (; h &lt; t; ) {
+			x = que[h++]; in_que[x] = 0;
+			for (i = first[x]; i; i = next[i])
+				if (dep[y = e[i].v] &gt; dep[x] - e[i].c &amp;&amp; e[ad(i)].f)
+					if (dep[y] = dep[x] - e[i].c, !in_que[y])
+						in_que[y] = 1, (dep[y] &gt;= dep[que[h]] ? que[t++] : que[--h]) = y;
+		}
+		return dep[si] &lt; INF;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		used[x] = 1;
+		for (int &amp;i = cur[x]; i; i = next[i])
+			if (dep[e[i].v] == dep[x] - e[i].c &amp;&amp; e[i].f &amp;&amp; !used[e[i].v]) {
+				a = std::min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c; e[ad(i)].f += c;
+				if ((f += c) == lim) return f;
+			}
+		return f;
+	}
+
+	void Dinic() {
+		int f;
+		for (cost = flow = 0; bfs(); ) {
+			memcpy(cur, first, (V + 1) &lt;&lt; 2);
+			memset(used, 0, V + 1);
+			flow += f = dfs(si, INF);
+			cost += dep[si] * f;
+		}
+	}
+}
+
+namespace DC {
+	int F[N]; pr D[N];
+
+	int Discretize(int n) {
+		int i, cnt = 0;
+		std::sort(D, D + n);
+		for (i = 0; i &lt; n; ++i)
+			F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+}
+
+int n, A, B, T;
+int c[N], w[N], x[N], y[N];
+int cnt[N];
+
+void work() {
+	int i, u, v, initial = 0; double ratio;
+	scanf("%d%d%d%lf", &amp;n, &amp;A, &amp;B, &amp;ratio);
+	for (i = 0; i &lt; n; ++i) {
+		scanf("%d%d%d", c + i, &amp;u, &amp;v), initial += c[i], w[i] = (int)floor(c[i] * ratio + 1e-7);
+		DC::D[i * 2] = pr(u, i * 2), DC::D[i * 2 + 1] = pr(v, i * 2 + 1);
+	}
+	T = DC::Discretize(n * 2);
+	memset(cnt, 0, T &lt;&lt; 2);
+	for (i = 0; i &lt; n; ++i) ++cnt[ x[i] = DC::F[i * 2] ], --cnt[ y[i] = DC::F[i * 2 + 1] ];
+	for (i = 0; i &lt; T; ++i) if ((cnt[i] += i ? cnt[i - 1] : 0) &gt; A + B) {puts("impossible"); return;}
+	CF::V = 2 + T + n, CF::E = 0;
+	memset(CF::first, 0, (CF::V + 1) &lt;&lt; 2);
+	for (i = 1; i &lt; T; ++i) CF::addedge(2 + i, 3 + i, 0, A);
+	CF::addedge(1, 3, 0, A), CF::addedge(2 + T, 2, 0, A);
+	for (i = 0; i &lt; n; ++i) {
+		CF::addedge(3 + x[i], 3 + T + i, 0, 1);
+		if (c[i] &gt; w[i]) CF::addedge(3 + T + i, 4 + x[i], w[i] - c[i], 1);
+		CF::addedge(3 + T + i, 3 + y[i], -c[i], 1);
+	}
+	CF::Dinic(), printf("%d\n", initial + CF::cost);
+}
+
+int main() {
+	int T;
+	for (scanf("%d", &amp;T); T; --T) work();
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>费用流中 bfs (SPFA) 一个元素可能进队多次，因此队列需要建大点。</p>
+		<p><strong>坑2：</strong>前缀和的过程中不要完成判断时刻 $0$ (如果离散化初始下标为 $0$ 的话)。</p>
+	</body>
+</html>

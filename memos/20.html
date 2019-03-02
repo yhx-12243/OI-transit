@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<title>轮图生成树的图论解法</title>
+		<style type="text/css">
+			dfn {font-weight: bold; color: fuchsia}
+			.th {font-weight: bold; color: green}
+			.pr {font-weight: bold; color: orange}
+		</style>
+	</head>
+	<body>
+		<h3>轮图生成树的图论解法</h3>
+		<p>众所周知，<a href="14.html" target="_blank">轮图</a> (Wheel Graph) $W_n$ 的生成树问题是一个非常经典<del>又古老</del>的问题。早在 1971 年，就有人得出了 $n + 1$ 阶轮图 $W_n$ 的生成树个数 $ST \left( W_n \right) = f_{2n-1} + f_{2n+1} - 2$，其中 $f_0 = 0, f_1 = 1$ 为 Fibonacci 数。</p>
+		<p>在 2007 年的 FJOI 中，有一道<a href="../records/lydsy1002.html" target="_blank">省选题</a> ([FJOI2007]轮状病毒) 就是一道求<strong>轮图 $W_n$ 生成树的裸题</strong>。</p>
+		<p>因此，如果知道这个公式，那么<del>在场就很可能秒了此题</del>。</p>
+		<p>在那道题的题解中，我们给出了一个基于 Kirchhoff's Matrix-Tree 定理 + 行列式的初等变换的解法。如果你们看过的话，一定会觉得这个解法过于繁琐。下面，我们通过给出一个更简单的做法，来得到同样的结果。</p>
+		<hr />
+		<p>首先，我们来介绍一下这篇文章所需要的前置技能：</p>		
+		<p><strong style="color: red">前置技能：Fibonacci 数及其性质、生成函数基础、<a href="14.html" target="_blank">图论概念梳理</a>。</strong></p>
+		<p id="cp1"><strong>第一部分：Fibonacci 数及其性质</strong> (此为前置技能，<a href="#cp2">点此跳过</a>)</p>
+		<p style="color: fuchsia">ps: 这里 Fibonacci 的定义遵循<em>传统定义</em>：$f_0 = 0, f_1 = 1, f_n = f_{n-1} + f_{n-2} (n &gt; 1)$。如果你们所学的 Fibonacci 数的定义与之不同，请自行调整 offset (平移量)。</p>
+		<p id="th-1-1" class="th">定理 1.1：$f_n = \dfrac {\phi^n - \hat\phi^n} {\sqrt 5}$，其中 $\phi = \dfrac {1 + \sqrt 5} 2, \hat\phi = \dfrac {1 - \sqrt 5} 2$。</p>
+		<p>这个定理又被称为 <a href="https://en.wikipedia.org/wiki/Fibonacci_number#Closed-form_expression" target="_blank">Binet 公式</a>，下面大多数的结论都可以由这个 "<em>暴力</em>" 证明。<del>不过谁会这样做呢~</del></p>
+		<p id="th-1-2" class="th">定理 1.2：$f_2 + f_4 + f_6 + \cdots + f_{2n} = f_{2n+1} - 1$。</p>
+		<div class="panel panel-warning">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>当 $n = 1$ 时，$f_2 = 1 = f_3 - 1$。设命题对 $n - 1$ 成立，对 $n$ 时只需证明 $f_{2n} = f_{2n+1} - f_{2n-1}$，而这就是 Fibonacci 数的定义。</p>
+			</div>
+		</div>
+		<p id="pr-1-3" class="pr">性质 1.3：Fibonacci 数的生成函数 $\displaystyle F(x) = \sum_{i=0}^{\infty} f_i x^i = \dfrac x {1 - x - x^2}$。</p>
+		<p id="co-1-1" class="pr">推论 1.1：偶数项 Fibonacci 数的生成函数 $\displaystyle F_e(x) = \sum_{i=0}^{\infty} f_{2i} x^i = \dfrac x {1 - 3 x + x^2}$。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>因为 $\displaystyle \sum_{i=0}^{\infty} f_{2i} x^{2i} = \dfrac {F(x) + F(-x)} 2 = \dfrac {x^2} {1 - 3 x^2 + x^4}$，所以 $\displaystyle \sum_{i=0}^{\infty} f_{2i} x^i = \dfrac x {1 - 3 x + x^2}$。</p>
+			</div>
+		</div>
+		<p id="cp2"><strong>第二部分：图论与生成树</strong> (<a href="#cp3">点此跳过</a>，喵喵喵？)</p>
+		<p>我们用 $ST(G)$ 表示无向图 $G$ 的生成树个数。如果 $G$ 不连通则 $ST(G) = 0$。</p>
+		<p>记号同<a href="14.html" target="_blank">图论概念梳理</a>，则对任意一条边 $e \in G$，有下述结论成立：</p>
+		<p id="th-2-1" class="th">定理 2.1：$ST(G) = ST \left( G \setminus \{e\} \right) + ST \left( G \cdot e \right)$。</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>图 $G$ 的生成树分为两类：不包含边 $e$ 的，共 $ST \left( G \setminus \{e\} \right)$ 个；包含边 $e$ 的，共 $ST \left( G \cdot e \right)$ 个。故结论成立。</p>
+			</div>
+		</div>
+		<p>接下来，<strong>在本篇文章，我们临时定义一种新的图，称其为 "扇图" $L_n$</strong> (在其它环境下没有这个定义)：<strong>若 $G = \left( V, E \right)$ 满足，存在一个点 $v$ 为支配点，其它点之间构成一条简单路径</strong>，则称 $G$ 为 "扇图"，$n + 1$ ($n \geq 1$) 阶扇图记作 $L_n$。</p>
+		<p>如，下图是一个 $5$ 阶扇图 $L_4$：</p>
+		<img class="center-block" src="../records/uploads/85.png" alt="扇图 L_4" />
+		<p>在求 $W_n$ 的生成树前，先来求 "扇图" $L_n$ 的生成树个数。</p>
+		<p id="th-2-2" class="th">定理 2.2：$n + 1$ 阶扇图的生成树个数 $ST \left( L_n \right) = f_{2n}$。</p>
+		<p>在这里给出三个证明，<del>大家可以幸运三选一</del>。</p>
+		<div class="panel panel-danger">
+			<div class="panel-heading">证明<strong>一</strong></div>
+			<div class="panel-body">
+				<p>考虑 "外圈" 的 $n$ 个顶点 (如上图，就是下面的 $4$ 个顶点)。在生成树中，一定是 "成段" 出现的。</p>
+				<p>这个意思是说，如果只看下面 $n$ 个顶点的边，它们所形成的连通块一定是若干个区间的直并。比如，$n = 8$ 时，可以是 $\left[ 1, 3 \right] \cup \left[ 4, 5 \right] \cup \left\{ 6 \right\} \cup \left[ 7, 8 \right]$。</p>
+				<p>设各个区间的大小分别为 $a_1, a_2, \cdots, a_k$，则上面的点连 "下来" 的方案数为 $a_1 a_2 \cdots a_k$。</p>
+				<p>于是答案就等于，<span class="pr">枚举和为 $n$ 的数组，对这些数组的乘积求和</span>。</p>
+				<p>使用生成函数，设 $f(x) = x + 2 x^2 + 3 x^3 + \cdots + n x^n + \cdots = \dfrac x {(1 - x)^2}$。</p>
+				<p>则答案的生成函数 $Ans = f + f^2 + f^3 + \cdots = \dfrac f {1 - f} = \dfrac x {1 - 3 x + x^2}$。</p>
+				<p>由<a href="#co-1-1">推论 1.1</a>，$ST \left( L_n \right) = f_{2n}$。</p>
+			</div>
+		</div>
+		<div class="panel panel-warning">
+			<div class="panel-heading">证明<strong>二</strong></div>
+			<div class="panel-body">
+				<p>用归纳法。考察一个度为 $2$ 的节点 $v$ (如上图，就是左下角的顶点) 的连边情况。设支配点 ("根") 为 $r$ (即图中最上面的节点)。</p>
+				<p>如果 $\left( v, r \right) \notin E$，则它只能和它的另外一个邻点相连，因此共有 $f_{2n-2}$ 种情形。</p>
+				<p>如果 $\left( v, r \right) \in E$，我们考虑 $v$ "向右延伸"到哪个位置，设一共延伸了 $i$ 个节点 ($i = 1, 2, \cdots, n$)，则剩下部分相当于一个 $L_{n-i}$，共有 $f_{2(n-i)}$ 种方案。特别地，当 $i = n$ 时，有 $1$ 种方案。</p>
+				<p>使用<a href="#th-1-2">定理 1.2</a>，$ST \left( L_n \right) = f_{2n-2} + f_{2n-2} + f_{2n-4} + \cdots + f_4 + f_2 + 1 = f_{2n-2} + f_{2n-1} - 1 + 1 = f_{2n}$。</p>
+			</div>
+		</div>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明<strong>三</strong></div>
+			<div class="panel-body">
+				<p>这个证明比较重要 <del>(不知道大家选对了没有，不是说选 C 正确率最高嘛)</del>。它引入了两个新的图—— $1-$扇图和 $2-$扇图。</p>
+				<p>设扇图 $L_n$ 中两个度为 $2$ 的节点分别为 $u, v$，支配点 ("根") 为 $r$。则在扇图 $L_n$ 中<strong>加入 $(u, r)$ 这条重边</strong> (<strong>或</strong> $(v, r)$，同构的) 所得的图称为 <strong>$1-$扇图</strong>，记为 $L^*_n$，<strong>同时加入 $(u, r), (v, r)$ 这两条重边</strong>所得的图称为 <strong>$2-$扇图</strong>，记为 $L^\#_n$。</p>
+				<p>接下来，我们同时证明<a href="#th-2-2">定理 2.2</a> 以及另一个结论：$ST \left( L^*_n \right) = f_{2n+1}$。</p>
+				<p>取 $L_n$ 中的边 $(u, r)$，使用<a href="#th-2-1">定理 2.1</a>，可得：</p>
+				<p>$$ ST \left( L_n \right) = ST \left( L_{n-1} \right) + ST \left( L^*_{n-1} \right) \tag 1 \label 1 $$</p>
+				<p>取 $L^*_n$ 中的一条重边，使用<a href="#th-2-1">定理 2.1</a>，可得：</p>
+				<p>$$ ST \left( L^*_n \right) = ST \left( L_n \right) + ST \left( L^*_{n-1} \right) \tag 2 \label 2 $$</p>
+				<p>由于 $ST \left( L_1 \right) = 1, ST \left( L^*_1 \right) = 2$，因此由 $\eqref 1 \eqref 2$，下面的数列</p>
+				<p>$$ 0, 1, ST \left( L_1 \right), ST \left( L^*_1 \right), ST \left( L_2 \right), ST \left( L^*_2 \right), \cdots, ST \left( L_{n-1} \right), ST \left( L^*_{n-1} \right), ST \left( L_n \right), ST \left( L^*_n \right), \cdots $$</p>
+				<p><strong>就是 Fibonacci 数列！</strong>所以原结论成立，$ST \left( L_n \right) = f_{2n}$。</p>
+			</div>
+		</div>
+		<p><del>好的，我知道你们都选了证明三。不过其它两个证明思路还是有一些参考价值的。</del></p>
+		<p id="th-2-3" class="th">定理 2.3：$ST \left( L^\#_n \right) = f_{2n+2}$。</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>任取 $L^\#_n$ 中的一条重边，使用<a href="#th-2-1">定理 2.1</a>，可得：</p>
+				<p>$$ ST \left( L^\#_n \right) = ST \left( L^*_n \right) + ST \left( L^\#_{n-1} \right) $$
+				<p>由于 $ST \left( L^\#_2 \right) = 8 = f_6$，因此易证 $ST \left( L^\#_n \right) = f_{2n+2}$。</p>
+			</div>
+		</div>
+		<p id="cp3"><strong>第三部分：轮图的生成树</strong></p>
+		<p>先定义 $1-$轮图 $W^*_n$ 为，对于一个轮图 $W_n$，设支配点 (中心点，根) 为 $r$。任取与 $r$ 关联的一条边 $(r, s)$，在 $W_n$ 中<strong>加入 $(r, s)$ 这条重边</strong>，所得的图称为 <strong>$1-$轮图</strong>，记为 $W^*_n$。</p>
+		<p id="th-3-1" class="th">定理 3.1：$ST \left( W_n \right) = f_{2n-1} + f_{2n+1} - 2$。</p>
+		<div class="panel panel-danger">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>取 $W_n$ <strong>外边界上</strong> (圈上) 的边，使用<a href="#th-2-1">定理 2.1</a>，可得：</p>
+				<p>$$ ST \left( W_n \right) = ST \left( L_n \right) + ST \left( W^*_{n-1} \right) = f_{2n} + ST \left( W^*_{n-1} \right) \tag 3 \label 3 $$</p>
+				<p>取 $W^*_n$ 中的一条重边，使用<a href="#th-2-1">定理 2.1</a>，可得：</p>
+				<p>$$ ST \left( W^*_n \right) = ST \left( W_n \right) + ST \left( L^\#_{n-1} \right) = ST \left( W_n \right) + f_{2n} \tag 4 \label 4 $$</p>
+				<p>$\eqref 3 \gets \eqref 4$，得</p>
+				<p>$$ ST \left( W_n \right) = ST \left( W_{n-1} \right) + f_{2n} + f_{2n-2} $$</p>
+				<p>又因为 $ST \left( W_3 \right) = 16 = f_5 + f_7 - 2$，因此由归纳法结论成立，证毕。</p>
+			</div>
+		</div>
+		<p id="co-3-1" class="pr">推论 3.1：$ST \left( W^*_n \right) = 2 \left( f_{2n+1} - 1 \right)$。</p>
+		<div class="panel panel-warning">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>使用<a href="#th-3-1">定理 3.1</a> 和 $\eqref 4$ 式即得。</p>
+			</div>
+		</div>
+	</body>
+</html>

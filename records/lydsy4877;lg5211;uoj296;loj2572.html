@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4877][lg5211][uoj296][loj2572][ZJOI2017]字符串</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你需要维护一个动态字符串 $s \left[ 1 .. n \right]$，字符串的字符集是所有 $|x| \leq 10^9$ 的整数。要求支持两种操作：</p>
+		<ol>
+			<li><p>输入 $l, r, d$，对于所有 $l \leq i \leq r$，将 $s_i$ 修改为 $s_i + d$，<strong>注意 $d$ 可能是负数</strong>。</p></li>
+			<li><p>输入 $l, r$，输出子串 $s \left[ l .. r \right]$ 的<strong>字典序最小的后缀</strong>的起点位置。即，如果最小后缀是 $s \left[ p .. r \right]$ ($l \leq p \leq r$)，请输出 $p$。</p></li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, q$ ($1 \leq n \leq 2 \times 10^5; 0 \leq m \leq 3 \times 10^4$)。</p>
+		<p>第二行包含 $n$ 个整数 $s_i$ ($-10^8 \leq s_i \leq 10^8$)，表示初始时的字符串。</p>
+		<p>接下来 $q$ 行，每行为 <code>1 <em>l</em> <em>r</em> <em>d</em></code> 或 <code>2 <em>l</em> <em>r</em></code>，分别表示两种操作。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每一个 $2$ 操作，输出一行一个整数，表示字典序最小的后缀的起点位置。</p>
+
+		<h3>题解</h3>
+		<p>对于字符串 $s = u v$，我们称 $v$ 是 $s$ 的 "好的" 后缀当且仅当<strong>存在字符串 $t$</strong> 满足 $v t$ 是 $s t$ 的最小后缀。下面证明：一个长度为 $n$ 的字符串，"好的" 后缀的数量不超过 $\log n$ 个。</p>
+		<p>我们只需证明，如果两个 "好的" 后缀 $u, v$ 满足 $\left| u \right| &lt; \left| v \right|$，则一定有 $2 \left| u \right| \leq \left| v \right|$。</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>反之，设存在两个后缀 $u, v$ 满足 $\left| u \right| &lt; \left| v \right| &lt; 2 \left| u \right|$。</p>
+				<p>首先，由于 $s \sqsupset u, s \sqsupset v, \left| u \right| &lt; \left| v \right|$，因此 $v \sqsupset u$。</p>
+				<p>其次，考察 $v \left[ 1 .. \left| u \right| \right]$ 和 $u$。</p>
+				<p>如果 $u &lt; v \left[ 1 .. \left| u \right| \right]$，则 $v$ <strong>不是</strong> "好的" 后缀，因为 <strong>$u t$ 永远小于 $v t$</strong>。</p>
+				<p>同理，$u &gt; v \left[ 1 .. \left| u \right| \right]$ 也是不行的，故只有 $u = v \left[ 1 .. \left| u \right| \right]$，即 $u \sqsubset v$。</p>
+				<hr />
+				<p>由 $u \sqsubset v$ 及 $v \sqsupset u$ 可知 $u \vartriangleleft v$ ($u$ 是 $v$ 的非平凡 border)。</p>
+				<p>由 <strong>Border —— 周期定理</strong>，$v$ 有一个长度为 $\left| v \right| - \left| u \right| &lt; \dfrac {\left| v \right|} 2$ 的周期，记为 $T$。于是 $u = T \beta, v = T^2 \beta$ ($\beta \neq \varepsilon$)。</p>
+				<p>由于 $u$ 是 "好的" 后缀，因此存在串 $t$，满足 $v t &gt; u t$，即 $T^2 \beta t &gt; T \beta t \Rightarrow T \beta t &gt; \beta t$。</p>
+				<p>而 $\beta$ 是 $s$ 的<strong>非空后缀</strong>，且 $\beta t &lt; T \beta t = u t$，这与 $u$ 是 "好的" 后缀矛盾。故不存在这样的 $u, v$。</p>
+			</div>
+		</div>
+		<p>由于有 "<em>区间修改</em>" 的操作，因此考虑使用线段树维护对应区间 "好的" 后缀 (的左端点坐标) 的集合。由于 "好的" 后缀数量不超过 $\log n$ 个，这样一来空间也不会爆。</p>
+		<p>首先，我们需要考虑如何合并两个区间的信息 ("好的" 后缀)。即给定 $s$ 和 $t$ 的 "好的" 后缀，求 $s t$ 的 "好的" 后缀。</p>
+		<p>不过，这样可能会有些许难度，因此我们<strong>允许</strong>一些<strong>不是</strong> "好的" 后缀的后缀加入集合，但需要<strong>保证 "好的" 后缀一定在集合中，且元素个数还是 $O \left( \log n \right)$ 的</strong>。这样，我们就有一个方便的合并算法了。</p>
+		<hr />
+		<p>由上面的证明过程，我们可以发现：设一个串 $s$ 中 "好的" 后缀 (长度从小到大) 分别为 $s_1, s_2, \cdots, s_k$ (其中 $\left| s_i \right| &lt; \left| s_{i+1} \right|$)，则一定有 $s_1 \vartriangleleft s_2 \vartriangleleft \cdots \vartriangleleft s_k$。</p>
+		<p>由于线段树的区间是等分的，因此合并过程中左子区间对最后答案的贡献至多为 $1$。因此我们首先不管三七二十一把右子区间中的所有后缀都加进来。</p>
+		<p>设当前的后缀集合为 $S = \left\{ s_1, s_2, \cdots, s_k \right\}$。我们从短到长考虑左区间的后缀 $l$。首先，我们比较 $s_k$ 与 $l \left[ 1 .. \left| s_k \right| \right]$，如果 $s_k &lt; l \left[ 1 .. \left| s_k \right| \right]$，则 $s_k \not\vartriangleleft l$ ($s_k$ 不是 $l$ 的 border)，因此 $l$ 就可以直接舍弃了。</p>
+		<p>如果 $s_k &gt; l \left[ 1 .. \left| s_k \right| \right]$，那么显然 $l$ 这个后缀已经<strong>不可能</strong>是 "好的" 后缀了，于是将其舍弃，继续寻找下一个元素 $s_{k-1}$。</p>
+		<p>如果 $s_k = l \left[ 1 .. \left| s_k \right| \right]$，即 $s_k \vartriangleleft l$。根据引理，如果 $\left| l \right| &lt; 2 \left| s_k \right|$，由证明过程，则我们<strong>直接丢弃 $s_k$</strong>，然后将 $l$ 插入；否则 ($2 \left| s_k \right| \leq \left| l \right|$)，直接将 $l$ 插入 $S$ 即可。</p>
+		<p>这样，就可以在 $O \left( \log^2 n \right)$ 的时间内完成两个节点的合并，$O \left( n \log n \right)$ 的时间完成建树。</p>
+		<p>考虑一次询问，先把区间 $\left[ l, r \right]$ 拆分为 $O \left( \log n \right)$ 个线段树节点，然后只需要对每个线段树节点，把对应区间的 "候选后缀" 集合全都拿来比较一下即可。</p>
+		<p>容易证明，字典序最小的后缀在 "候选后缀" 中，因此正确性没有问题。由于共有 $O \left( \log^2 n \right)$ 个候选后缀，因此询问中这部分的复杂度为 $O \left( \log^3 n \right)$。</p>
+		<p>对于一次修改，由于是区间加，因此容易发现，如果某个线段树节点对应的区间与 $\left[ l, r \right]$ 无交或是 $\left[ l, r \right]$ 的子集，则不影响该节点的集合。</p>
+		<p>由线段树定位理论，只有 $O \left( \log n \right)$ 个节点的集合需要改变。故我们要更新 $O \left( \log n \right)$ 次，这部分的复杂度为 $O \left( \log^3 n \right)$。</p>
+		<p>对于每个字符的具体的值，可以采用<strong>暴力</strong>的方法将其加 $d$。<del>你要相信 $n \cdot q = 6 \times 10^9$ 次加法是很快的！</del></p>
+		<p>因此总的时间复杂度为 $O \left( (n + q) \log^3 n + n q \right)$ (<strong>其中 $n q$ 项的常数非常小以至于它不是瓶颈</strong>)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+
+const int N = 200054, LN = 18;
+
+struct node {int v[LN], cnt;} x[N * 4];
+
+int n, q, ans, a[N];
+
+inline int intcmp(const int *buffer1, const int *buffer2, int count) {for (; --count &amp;&amp; *buffer1 == *buffer2; ++buffer1, ++buffer2); return *buffer1 - *buffer2;}
+
+void update(node &amp;ret, const node &amp;l, const node &amp;r, int end) {
+	int i, u, v, c;
+	memcpy(ret.v, r.v, (ret.cnt = r.cnt) &lt;&lt; 2);
+	for (i = 0; i &lt; l.cnt; ++i) for (; ; ) {
+		u = l.v[i], v = ret.v[ret.cnt - 1];
+		if ((c = intcmp(a + u, a + v, end - v)) &gt; 0) break;
+		if (!c) {ret.cnt -= (end - v) * 2 &gt; end - u, ret.v[ret.cnt++] = u; break;}
+		if (!--ret.cnt) {ret.v[ret.cnt++] = u; break;}
+	}
+}
+
+void build(int id, int L, int R) {
+	if (L == R) {x[id].v[0] = L, x[id].cnt = 1; return;}
+	segc; build(lc, L, M), build(rc, M + 1, R);
+	update(x[id], x[lc], x[rc], R + 1);
+}
+
+void adj(int id, int L, int R, int ql, int qr) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) return; segc;
+	if (ql &lt;= M) adj(lc, L, M, ql, qr);
+	if (qr &gt; M) adj(rc, M + 1, R, ql, qr);
+	update(x[id], x[lc], x[rc], R + 1);
+}
+
+void range(int id, int L, int R, int ql, int qr) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) {
+		for (int i = 0; i &lt; x[id].cnt; ++i) intcmp(a + x[id].v[i], a + ans, qr - ans + 1) &gt;&gt; 31 &amp;&amp; (ans = x[id].v[i]); return;
+	}
+	segc;
+	if (qr &gt; M) range(rc, M + 1, R, ql, qr);
+	if (ql &lt;= M) range(lc, L, M, ql, qr);
+}
+
+int main() {
+	int i, l, r, d, op;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	for (build(1, 1, n); q; --q)
+		if (scanf("%d%d%d", &amp;op, &amp;l, &amp;r), op == 1) {
+			for (scanf("%d", &amp;d), i = l; i &lt;= r; ++i) a[i] += d;
+			adj(1, 1, n, l, r);
+		} else
+			range(1, 1, n, l, ans = r), printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于字符集为整数，因此比较的时候不能使用 <code>memcmp</code> 要手写 <code>intcmp</code>。</p>
+		<p><strong>坑2：</strong>询问时要按照从短到长的顺序，因此要先访问右子树再访问左子树。</p>
+	</body>
+</html>
