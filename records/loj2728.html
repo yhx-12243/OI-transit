@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj2728][JOI 2015 Final]城墙</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>历史学家 JOI 教授对曾经存在过的 IOI 王国进行了研究。</p>
+		<p>根据过去的调查，IOI 王国的形状为由 $H$ 行，$W$ 列的格子组成的长方形。IOI 王国的首都为了防卫外敌入侵而修筑了一座城墙。</p>
+		<p>围住 IOI 王国首都的城墙形状如以下叙述：城墙形状由<strong>城墙的大小</strong>决定。大小为 $s$ ($s \geq 3$) 的城墙，指 $s \times s$ 的正方形的最外一圈，也就是除去此正方形中心 $(s - 2) \times (s - 2)$ 的小正方形剩下的区域。
+		<p>据调查，围住首都的城墙的大小在 $L$ 或以上。而且已知 IOI 王国中的一些格子不存在城墙。</p>
+		<p>JOI 教授为了进一步研究，想要知道城墙有多少种可能的情况。</p>
+		<p><strong>任务：给出 IOI 王国的大小，城墙的大小的最小值，和一些已知不存在城墙的格子，请编写程序求出城墙可能的情况数。</strong></p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个用空格分开的非负整数 $H, W, L, P$ ($3 \leq H, W \leq 4000; 3 \leq L \leq \min \left\{ H, W \right\}; 0 \leq P \leq \min \left\{ H \cdot W, 10^5 \right\}$)。分别表示 IOI 王国的形状为纵 $H$ 行横 $W$ 行的由格子构成的长方形，城墙的大小在 $L$ 或以上，已知不存在城墙的格子有 $P$ 个。</p>
+		<p>接下来 $P$ 行中第 $i$ 行 ($1 \leq i \leq P$) 包含两个用空格分开的整数 $A_i, B_i$ ($1 \leq A_i \leq H; 1 \leq B_i \leq W$)。表示已知 IOI 王国从上数第 $A_i$ 行，从左数第 $B_i$ 行的格子不存在城墙。保证一个格子至多给出一遍。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示城墙情况的总数。</p>
+
+		<h3>题解</h3>
+		<p>我们把城墙看成 $1$，非城墙看成 $0$，于是问题就转化为寻找有多少个边长 $\geq L$ 的全 $1$ 正方形。</p>
+		<p>我们用 $R_{i, j}$ 表示一个格子能向右延伸 $1$ 的个数和向上延伸的 $1$ 的个数的较小值，$L_{i, j}$ 表示向左延伸 $1$ 的个数和向下延伸 $1$ 的个数的较小值，这两个量容易在 $O \left( r c \right)$ 时间内预处理得到。</p>
+		<p>则如果左下角为 $\left( r_1, c_1 \right)$，右上角为 $\left( r_2, c_2 \right)$ 的正方形为全 $1$ 正方形，(记 $d = r_1 - r_2 + 1 = c_2 - c_1 + 1$) <strong>当且仅当 $d \geq L$ 且 $R_{r_1, c_1} \geq d$ 且 $L_{r_2, c_2} \geq d$</strong>，</p>
+		<p>由于此时一定有 $r_1 + c_1 = r_2 + c_2$，因此我们可以按照 $r + c$ (行号列号之和) 从小到大的顺序依次枚举每个对角线。</p>
+		<p>固定 $k = r + c$。考虑给定一组 $r_0, c_0$ (满足 $r_0 + c_0 = k$)，我们需要求有多少个 $r$ 满足上述三个条件。</p>
+		<p>由于 $d = r_0 - r + 1$，因此上面的条件可以转化为 $r_0 - R_{r_0, c_0} + 1 \leq r \leq r_0 - L + 1 \wedge L_{r, c} + r - 1 \geq r_0$。</p>
+		<p>由于 $r_0, R_{r_0, c_0}, L, L_{r, c}$ 都是常量，$c = k - r$ 也之和 $r$ 有关，因此上式相当于</p>
+		<p>$$ r_1 \leq r \leq r_2 \wedge L_{r, k - r} + r - 1 \geq f_0 \tag 1 \label 1 $$</p>
+		<p>其中 $r_1, r_2, f_0$ 是常量，$L_{r, k - r} + r - 1$ 是一个关于 $r$ 的函数。</p>
+		<p>观察 $\eqref 1$ 式，你想到了什么？对，就是<strong>二维数点</strong>！如果我们对于每一个 $1$ 格子，创建点 $\left( r, L_{k - r} + r - 1 \right)$，那么询问就相当于一个<strong>二维数点问题</strong>！轻松地使用<strong>离线 + 树状数组</strong>解决。</p>
+		<p>(ps: 由于本题时限比较紧，一些常数较大的数据结构解决二维数点可能会 TLE 掉)</p>
+		<p>时间复杂度 $O \left( H \cdot W \cdot \log \min \left\{ H, W \right\} \right)$，注意常数。</p>
+		<p>下面介绍一个效果还行的卡常技巧。像 <a href="lydsy5464%3Blg4604%3Bloj2286.html" target="_blank">[WC2017]挑战</a> 一样，使用<em>一级缓存</em>的技巧：注意到我们访问数组元素时经常是<strong>沿对角线</strong>访问，这对缓存很不友好。我们可以<strong>改变数组存取的方式</strong>，将每个对角线中的元素填入一横行，于是一条对角线上的元素就可以进入到一级缓存中啦。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 4054
+#define lowbit(x) (x &amp; -x)
+
+typedef long long ll;
+
+int r, c, n, Le;
+char m[2 * N][N];
+int L[2 * N][N], R[2 * N][N], D[N][N], U[N][N];
+int x[N];
+int *qc[2 * N], qs[N][2 * N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+void add(int h) {for (; h; h -= lowbit(h)) ++x[h];}
+int sum(int h) {int s = 0; for (; h &lt;= n; h += lowbit(h)) s += x[h]; return s;}
+
+int main() {
+	int i, j, *k, s, g, offset; ll ans = 0;
+	scanf("%d%d%d%d", &amp;r, &amp;c, &amp;Le, &amp;g), n = std::min(r, c);
+	memset(m, 1, sizeof m);
+	for (; g; --g) scanf("%d%d", &amp;i, &amp;j), m[i][j] = 0;
+	for (i = 1; i &lt;= r; ++i)
+		for (j = 1; j &lt;= c; ++j)
+			if (m[i][j]) L[i][j] = L[i][j - 1] + 1, U[i][j] = U[i - 1][j] + 1;
+	for (i = r; i; --i)
+		for (j = c; j; --j)
+			if (m[i][j]) R[i][j] = R[i][j + 1] + 1, D[i][j] = D[i + 1][j] + 1;
+	for (i = 1; i &lt;= r; ++i)
+		for (j = 1; j &lt;= c; ++j) down(L[i][j], D[i][j]), down(R[i][j], U[i][j]);
+	for (i = r; i; --i)
+		for (j = 1; j &lt;= c; ++j)
+			L[i + j][j] = L[i][j], R[i + j][j] = R[i][j], m[i + j][j] = m[i][j];
+	for (s = 2; s &lt;= r + c; ++s) {
+		offset = std::max(s - c - 1, 0);
+		memset(x, 0, (n + 1) &lt;&lt; 2);
+		for (i = 0; i &lt;= r + c; ++i) qc[i] = qs[i];
+		for (i = 1 + offset, j = s - i; i &lt;= r &amp;&amp; j; ++i, --j)
+			if (m[s][j] &amp;&amp; R[s][j] &gt;= Le)
+				g = i - R[s][j], *qc[g]++ = ~(i - offset),
+				g = i - Le + 1, *qc[g]++ = i - offset;
+		for (i = 1 + offset, j = s - i; i &lt;= r &amp;&amp; j; ++i, --j) {
+			if (m[s][j]) add(i + L[s][j] - 1 - offset);
+			for (k = qs[i]; k &lt; qc[i]; ++k) *k &gt;&gt; 31 ? ans -= sum(~*k) : ans += sum(*k);
+		}
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>沿对角线存储时注意数组大小。存储询问时最好不要用 <code>std::vector</code>，可以装填入一个大小为 $2n$ 的数组中。</p>
+		<p><strong>坑2：</strong>注意这个树状数组需要记录后缀和，因此需要适当的转化，<del>或直接用 <a href="lydsy4785%3Blg3688%3Buoj291%3Bloj2251.html" target="_blank">"九条可怜" 的树状数组</a></del>。</p>
+	</body>
+</html>

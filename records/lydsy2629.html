@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2629]binomial</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于给定的 $n$ 和 $p$，求对于所有的 $0 \leq i &lt; p$，满足 $0 \leq k \leq n \wedge \dbinom nk \equiv i \pmod p$ 的 $k$ 的个数。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, p$ ($n &lt; p^{10}, p = 51061$ 为素数)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个长度为 $p$ 的字符串 $s$，其中 $s_i$ 表示 $\dbinom nk \equiv i \pmod p$ 的 $k$ 的个数除以 $29$ 的余数，视为一个 $29$ 进制的数字。</p>
+
+		<h3>题解</h3>
+		<p>这题和<a href="uoj86.html" target="_blank">上一题 ([uoj86]mx 的组合数)</a> 非常像，只不过这题是<strong>固定上指标</strong>的统计而不是固定下指标。</p>
+		<p>还是利用 Lucas 定理，将其转化为 $p$ 进制下每一位分别计算 $\dbinom {n_i} {k_i}$ 的问题。</p>
+		<p>类似地，还是使用 FFT 优化，不过有这么几点不同的地方：</p>
+		<ol>
+			<li><p>由于这里模数不是 NTT 模数，因此需要使用 FFT。不过在这题中，由于答案的模数比较小 (只有 $29$)，因此可以对<strong>直接做 NTT</strong>，这样由于最大系数不超过 $29^2 \times 51061 &lt; 4.3 \times 10^7 &lt; 998244353$，因此 NTT 完以后再对 $29$ 取模也是可以的。</p></li>
+			<li><p>其次，和那道题类似，先不考虑 $\dbinom nk = 0$ 的情况，把其它的 DP 值算出来后再用总数去减。由于这道题中固定的是<strong>上指标</strong>，因此 $\dbinom nk \neq 0$ 的 $k$ 只有<strong>有限个</strong>，因此在设计 DP 状态的时候可以省去边界维 $b$。</p></li>
+		</ol>
+		<p>最后就是读入是需要使用基础的高精度运算，比如<strong>高精度除法</strong>将 $n$ 转成 $p$ 进制数。</p>
+		<p>总时间复杂度还是 $O \left( p \log n \right)$。</p>
+		
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 133333
+#define K 254
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef int vec[N], *pvec;
+typedef long long ll;
+const ll mod = 998244353, half_mod = (mod + 1) / 2, root = 31;
+const char output[30] = "0123456789ABCDEFGHIJKLMNOPQRS";
+
+vec fact, finv, ln;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	int l, n; vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i) x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) {
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = PowerMod(n, mod - 2);
+		DNTT(a, c); DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c); std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+}
+
+char n[K];
+int p, g, ALL = 0;
+int len = 0, dn[K];
+vec f, fc, fr, ans;
+
+void init() {
+	int i; ll c;
+	for (*fact = i = 1; i &lt; p; ++i) fact[i] = (ll)fact[i - 1] * i % p;
+	for (--i, finv[i] = i; i; --i) finv[i - 1] = (ll)finv[i] * i % p;
+	for (g = 0; i != p - 1; )
+		for (i = 1, c = ++g; c != 1; ++i, c = c * g % p);
+	for (i = 0, c = 1; i != p - 1; ++i, c = c * g % p) ln[c] = i;
+}
+
+int C(int n, int r) {return n &lt; r ? 0 : (ll)fact[n] * finv[r] % p * finv[n - r] % p;}
+
+void solve() {
+	int i, j, ind;
+	memset(f, 0, p &lt;&lt; 2), *f = 1;
+	for (j = 0; j &lt; len; ++j) {
+		memset(fc, 0, p &lt;&lt; 3);
+		for (i = 0; i &lt;= dn[j]; ++i) ++fc[ ind = ln[C(dn[j], i)] ];
+		Poly::Mul(2 * (p - 1), f, fc, fr);
+		for (i = 0; i &lt; p - 1; ++i) f[i] = (fr[i] + fr[i + p - 1]) % 29;
+	}
+	for (i = 1; i &lt; p; ++i) ALL -= ans[i] = f[ln[i]];
+	++ALL %= 29, *ans = ALL + (ALL &gt;&gt; 31 &amp; 29);
+}
+
+void decomposition(const char *s, int *ret) {
+	int i, n = strlen(s), a[K];
+	for (i = 0; i &lt; n; ++i) a[n - i - 1] = s[i] &amp; 15, ALL = (ALL * 10 + a[n - i - 1]) % 29;
+	for (; ; ) {
+		for (i = n - 1; i; --i) a[i - 1] += a[i] % p * 10, a[i] /= p;
+		for (; n &amp;&amp; !a[n - 1]; --n);
+		if (n) ret[len++] = a[0] % p, a[0] /= p;
+		else return;
+	}
+}
+
+int main() {
+	scanf("%s%d", n, &amp;p), init(), decomposition(n, dn), solve();
+	for (int i = 0; i &lt; p; ++i) putchar(output[ans[i]]);
+	return putchar(10), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意这里的 $p \geq 50000$，因此在做乘法的时候小心爆 <code>int</code>。</p>
+		<p><strong>坑2：</strong>由于本题有两个模数 ($29$ 和 $51061$，其实 $51061$ 是可以读入的，没必要当常量)，因此在模运算的时候不要混淆了。</p>
+	</body>
+</html>

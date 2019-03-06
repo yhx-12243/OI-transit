@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3984][uoj91][互测2015]最大异或和</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个数列 $a_1, a_2, \dots, a_n$，每个 $a_i$ 都是小于 $2^m$ 的非负整数。</p>
+		<p>现在需要实现三种操作，格式说明如下：</p>
+		<ul>
+			<li><p><code>1 <em>x</em> <em>y</em> <em>w</em></code>：对于所有 $x \leq i \leq y$，将 $a_i$ 修改为 $a_i \oplus w$。其中 $w$ 是一个小于 $2^m$ 的非负整数。</p></li>
+			<li><p><code>2 <em>x</em> <em>y</em> <em>w</em></code>：对于所有 $x \leq i \leq y$，将 $a_i$ 修改为 $w$。其中 $w$ 是一个小于 $2^m$ 的非负整数。</p></li>
+			<li><p><code>3</code>：从 $a_1, a_2, \cdots, a_n$ 中选出若干个数，使得选出的数异或和最大。请输出这个最大值。</p></li>
+		</ul>
+		<p>这里 $\oplus$ 表示按位异或运算，$x_1, x_2, \cdots, x_l$ 的异或和是指 $x_1 \oplus x_2 \oplus \dots \oplus x_l$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, q$ ($n, m, q \leq 2000$)。</p>
+		<p>接下来 $n$ 行，每行一个二进制表示的整数，为初始时 $a_1, a_2, \dots, a_n$ 的值 ($0 \leq a_i &lt; 2^m - 1$) 。</p>
+		<p>接下来 $q$ 行，每行表示一个操作。操作的格式如前所述。保证 $1 \leq x \leq y \leq n$。</p>
+		<p>$a_1, \cdots, a_n$ 和 $w$ 均用<strong>恰好 $m$ 位</strong>的 $\texttt 0/\texttt 1$ 串表示这个数的二进制表示。左边是最高位，右边是最低位，不足 $m$ 位的在左边补 $0$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个操作 3，输出一行一个长度为 $m$ 的 $\texttt 0/\texttt 1$ 串，表示答案的二进制表示。</p>
+
+		<h3>题解</h3>
+		<p>注意到操作 3 ——求一些数的 "<em>最大异或和</em>"，不难想到应该使用<strong>线性基</strong> (动态 Gauss 消元) 来处理。</p>
+		<p>但是这些数有<strong>区间修改</strong>和<strong>区间赋值</strong>一些<del>奇怪的</del>操作，又该怎么处理呢？</p>
+		<p>先考虑操作 1 (区间异或上一个数)。我们有一个平凡但重要的结论：</p>
+		<p><strong>向量 $\mathbf v_1, \mathbf v_2, \cdots, \mathbf v_k$ 张成的线性空间与 $\mathbf v_1, \mathbf v_2 - \mathbf v_1, \mathbf v_3 - \mathbf v_2, \cdots, \mathbf v_k - \mathbf v_{k-1}$ 张成的线性空间相同</strong>。</p>
+		<p>既然两组向量所能张成的线性空间相同，因此能异或 (线性组合) 出的最大数当然相同啦。</p>
+		<p>因此我们对原序列 (异或) <strong>差分</strong>，就将<strong>区间修改 (异或)</strong> 转化为了<strong>单点修改</strong>。</p>
+		<p>由于一般的线性基不滋磁删除向量，因此我们有两种<del>替补</del>方法：一种是<a href="../index.html?tag=%E6%97%B6%E9%97%B4%E6%88%B3%E7%BA%BF%E6%AE%B5%E6%A0%91" target="_blank">时间戳线段树</a>，还有一种是带删除的线性基。</p>
+		<p>"<em>时间戳线段树</em>" 这种算法对较难删除元素的处理较为通用，这里就不细讲了。下面着重讲一下<strong>带删除的线性基</strong>。</p>
+		<p>(不是说好的线性基不滋磁删除的吗？)</p>
+		<p>这里要明确一下，如果线性基存储的是 $m$ 维向量，这样的向量有 $n$ 个 (<strong>通常情况下</strong>，$m \ll n$，即 $m$ 远小于 $n$)，则插入是 $O \left( m^2 \right)$ 的，删除<strong>不能在 $O \left( m^2 \right)$ 时间内实现，但能在 $O \left( n m \right)$ 的时间内实现</strong>。</p>
+		<p>而在本题中，$n \sim m$，因此<strong>可以使用带删除的线性基</strong>。</p>
+		<p>具体方法是，我们对于线性基中的每个元素，以及被 "剔除在外" 的元素，记录一下它是由<strong>原来</strong>哪些向量异或而成的。说的更正式一点，就是把<strong>进行 Gauss 消元的初等矩阵 (的乘积) $\mathbf G$ 记录下来</strong>。</p>
+		<p>考虑删除原来的第 $i$ 个向量。首先，我们去寻找 "剔除在外" 的元素中有没有哪个向量 $\mathbf g$，它是组成中是含有 $i$ 的。更正式地，就是寻找在矩阵 $\mathbf G$ 中代表 "剔除在外" 的元素的对应行中，有没有第 $i$ 列为 $1$ 的。</p>
+		<ol>
+			<li><p>如果存在，则我们使用这一行对其它所有行进行消元 (在 $\mathbf G$ 中)。由于它被剔除在外，因此组成它的向量的和恰为 $\mathbf 0$，因此消元过程中不会对原矩阵产生影响。</p>
+			<p>消元完毕后，矩阵 $\mathbf G$ 的第 $i$ 列只有 $\mathbf g$ 对应行为 $1$，于是直接 $\mathbf g$ 行删去即可。</p></li>
+			<li><p>如果不存在，则说明将该向量删去后，<strong>矩阵降秩</strong> (即矩阵的秩变小了)。</p>
+			<p>因此，我们需要找到<strong>线性基中</strong> (即存活的元素中) 是否有向量组成中含有 $i$。由于 $i$ 曾被插入线性基，因此<strong>至少有一个向量，其组成中含有 $i$</strong>。</p>
+			<p>设该向量为 $\mathbf g'$。和 "1." 类似，使用这一行对其它所有行进行消元，只不过这次不仅要在 $\mathbf G$ 中消，还要在原矩阵中消，因为该向量现在不等于 $\mathbf 0$。</p>
+			<p>消完后，矩阵 $\mathbf G$ 只有 $\mathbf g$ 对应行的第 $i$ 列为 $1$，直接删去该行即可。</p>
+			<p><strong style="color: green">但是这里要注意的是，线性基所要维护的不仅仅只是一组线性无关的向量，还要满足最高位为 $i$ 的向量在位置 $i$ 上</strong>。</p>
+			<p>因此，我们必须使用线性基中组成中含有 $i$ 的向量中<strong>最小的向量 $\mathbf g_0$</strong>，向其它向量进行消元 ("低消高")，才能保证消元完以后位置 $i$ 上的向量的最高位仍是 $i$。</p></li>
+		</ol>
+		<p>于是我们对带删除的线性基的全部情况作了讨论，已经彻底解决了不带 1 操作的版本，使用 <code>std::bitset</code> 优化后的时间复杂度为 $O \left( \dfrac {(n + m) m q} \omega \right)$。</p>
+		<hr />
+		<p>接下来是有操作 2 的情况。先考虑它对最终<em>差分序列</em>，不难发现，它所带来的影响是<strong>两次单点修改</strong>和<strong>若干个元素的直接删除</strong>。</p>
+		<p>此时，其实只要 "<em>暴力干</em>" 就可以了，注意不要将 $\mathbf 0$ 向量重复删除。</p>
+		<p>这是因为，容易运用<strong>均摊法</strong>证明复杂度的正确性。由于插入的向量不超过 $n + 2 q$ 个，因此被删除的向量也至多只有 $n + 2 q$ 个，因此总的复杂度还是 $O \left( \dfrac {(n + m) m q} \omega \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+const int N = 2034;
+typedef std::bitset &lt;N&gt; bitset;
+
+int n, m, q;
+int lb[N];
+bitset a[N], v[N], fr[N];
+
+void insert(int id) {
+	for (int i = m - 1; i &gt;= 0; --i)
+		if (v[id].test(i)) {
+			if (lb[i]) v[id] ^= v[lb[i]], fr[id] ^= fr[lb[i]];
+			else {lb[i] = id; return;}
+		}
+}
+
+void Xor(int id, const bitset t) {
+	int i, g = 0; if (t.none()) return;
+	for (i = 1; i &lt;= n; ++i) if (v[i].none() &amp;&amp; fr[i].test(id)) {g = i; break;}
+	if (!g)
+		for (i = 0; i &lt; m; ++i) if (lb[i] &amp;&amp; fr[ lb[i] ].test(id)) {g = lb[i], lb[i] = 0; break;}
+	for (i = 1; i &lt;= n; ++i) if (i != g &amp;&amp; fr[i].test(id)) v[i] ^= v[g], fr[i] ^= fr[g];
+	v[g] ^= t, insert(g);
+}
+
+int main() {
+	int i, op, l, r; bitset t;
+	std::ios::sync_with_stdio(false);
+	cin &gt;&gt; n &gt;&gt; m &gt;&gt; q;
+	for (i = 1; i &lt;= n; ++i) cin &gt;&gt; a[i], v[i] = a[i] ^ a[i - 1], fr[i].set(i), insert(i);
+	for (; q; --q)
+		switch (cin &gt;&gt; op, op) {
+			case 1: {
+				cin &gt;&gt; l &gt;&gt; r &gt;&gt; t;
+				for (i = l; i &lt;= r; ++i) a[i] ^= t;
+				Xor(l, t); if (r != n) Xor(r + 1, t);
+				break;
+			}
+			case 2: {
+				cin &gt;&gt; l &gt;&gt; r &gt;&gt; t;
+				Xor(l, a[l] ^ t); if (r != n) Xor(r + 1, a[r] ^ t);
+				for (i = r; i &gt; l; --i) Xor(i, a[i] ^ a[i - 1]), a[i] = t;
+				a[l] = t; break;
+			}
+			case 3: {
+				for (t.reset(), i = m - 1; i &gt;= 0; cout.put(48 | t.test(i--))) if (!t.test(i) &amp;&amp; lb[i]) t ^= v[lb[i]];
+				cout &lt;&lt; '\n';
+			}
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于线性基的这一特殊性质 (用<span style="color: green">绿色</span>标出)，因此寻找向量 $\mathbf g$ 的时候一定要<strong>从低位向高位</strong>找起。</p>
+		<p><strong>坑2：</strong>注意删除向量时判断一下，如果是 $\mathbf 0$ 向量则直接 <code>return;</code>，保证复杂度。</p>
+	</body>
+</html>

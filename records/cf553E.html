@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces553E]Kyoya and Train</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个站点，编号分别为 $1$ 到 $n$，你要从 $1$ 号站点到 $n$ 号站点，而你只剩下 $t$ 秒了。</p>
+		<p>有 $m$ 条有向线路，第 $i$ 条从站点 $u_i$ 到站点 $v_i$，<strong>车费</strong>是 $w_i$。</p>
+		<p>然而火车的速度并不恒定，第 $i$ 条有 $\dfrac {p_{i, k}} {10^5}$ 的概率花费 $k$ 秒。保证对任意的 $i$，$\displaystyle \sum_{k=1}^t p_{i, k} = 10^5$</p>
+		<p>到达站点 $n$ 时，如果你超时了，你需要<strong>付 $x$ 的罚款</strong>。</p>
+		<p>假设你能够随时改变自己的策略，火车在启动之前，所需要行驶的时间是不确定的，每趟火车花费时间是独立的 (即使你坐了两次同一条路线，它们的时间也可能不同)，问在最优策略下，期望花费多少钱。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个正整数 $n, m, t, x$ ($2 \leq n \leq 50; 1 \leq m \leq 100; 1 \leq t \leq 20000; 0 \leq x \leq 10^6$)。</p>
+		<p>接下来 $2m$ 行，第 $2 i - 1$ 行包含三个非负整数 $u_i, v_i, w_i$ ($1 \leq u_i, v_i \leq n; u_i \neq v_i; 0 \leq w_i \leq 10^6$)。</p>
+		<p>第 $2 i$ 行包含 $t$ 个非负整数 $p_{i, k}$ ($\displaystyle 0 \leq p_{i, k} \leq 10^5; \sum_{k=1}^t p_{i, k} = 10^5$)。</p>
+		<p>保证输入的是<strong>有向简单图</strong>，且从任意一个站点出发均存在到站点 $n$ 的路径。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示期望花费的最小值。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-6}$。</p>
+
+		<h3>题解</h3>
+		<p>首先，有一个容易想到的 DP 算法：</p>
+		<p>用 $f^{(v)}_{v, t}$ 表示从点 $v$ 出发，当前还剩下 $t$ 时间，到点 $n$ 所需要花费钱的最小值，$f^{(e)}_{e, t}$ 表示，对于边 $e = \left( u \to v \right)$，从 $u$ 出发经过 $e$，还剩下 $t$ 时间，到 $n$ 所需的花费的最小值。则有</p>
+		<p>$$ f^{(v)}_{v, t} = \begin {cases} 0 &amp; v = n \\ \mathrm{dist}(v, n) + x &amp; t &lt; 0 \\ \displaystyle \min_{\left( v \to u \right) \in E} f^{(e)}_{\left( v \to u \right), t} &amp; \mathrm{otherwise} \end {cases} $$
+		<p>$$ f^{(e)}_{\left( u \to v \right), t} = w_e + \sum_{s=1}^T p_{\left( u \to v \right), s} \cdot f^{(v)}_{v, t - s} $$</p>
+		<p>但是这样如果出现了环该怎么办呢？我们可以考虑<strong>按照 $t$ 从小到大进行转移</strong>，这样如果走了一个圈以后时间至少减少 $1$。
+		<p>这样我们得到了一个 $O \left( (n + m) \cdot t^2 \right)$ 的做法，不过并不能 AC 掉此题。</p>
+		<p>考察上面的算法中的时间瓶颈。没错，就是转移 $f^{(e)}_{\left( u \to v \right), t}$ 是的这个卷积。因此我们尝试着使用 FFT 进行优化。</p>
+		<p>不过由于我们是按照 $t$ 进行转移的，$f^{(e)}_t$ 的值需要用到之前 $f^{(v)}_{t'}$ 的值 ($t' &lt; t$)，而 $f^{(v)}_{t'}$ 的值又需要用到 $f^{(e)}_{t'}$ 的值 (然后取 $\min)$，于是我们需要了 "循环" 转移的现象。</p>
+		<p>但是，由于 $t' &lt; t$，因此这个循环并不是真正的循环，只是不能直接做卷积。那又该怎么办呢？</p>
+		<p>根据 <a href="soj299.html" target="_blank">[soj299]树计数</a> 这一题的技巧，我们可以使用类似陈丹琪分治的做法，使用<strong>分治多项式技巧</strong>来处理。</p>
+		<p>具体地，我们按照 $t$ (时间) 分治，然后对于每一项 $A_s, B_{t - s}$，一定会在某一步成为某轮分治的两端，于是就可以更新了。</p>
+		<p>对于 $t - s &lt; 0$ 的项，可以通过预处理 $p_{\left( u \to v \right), s}$ 前缀和 (即算出超时的概率)，并在最后更新的时候加一下距离 $\mathrm{dist}(v, n) + x$ 即可。</p>
+		<p>总的时间复杂度为 $O \left( n \cdot t + m \cdot t \log^2 t \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef long long ll;
+const int N = 54, M = 108, TM = 20054, INF = 0x3f3f3f3f;
+typedef double vec[TM], *pvec;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int V, E, T, cost;
+int G[N][N];
+vec p[M], sp[M], fv[N], fe[M];
+vec f, g, h;
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline void down(double &amp;x, const double y) {x &gt; y ? x = y : 0;}
+
+namespace Poly {
+	struct C {
+		double r, i;
+		C (double real = 0.0, double imag = 0.0) : r(real), i(imag) {}
+		inline C operator + (const C &amp;B) const {return C(r + B.r, i + B.i);}
+		inline C operator - (const C &amp;B) const {return C(r - B.r, i - B.i);}
+		inline C operator * (const C &amp;B) const {return C(r * B.r - i * B.i, r * B.i + i * B.r);}
+		inline C operator * (double k) const {return C(r * k, i * k);}
+		inline C operator / (double k) const {return *this * (1.0 / k);}
+	};
+
+	const int N = 66666;
+	int l, n, rev[N];
+	C x[N], y[N], B1[N], B2[N], B3[N];
+
+	void FFT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		int i; double angle = M_PI;
+		for (i = l - 1; i &gt;= 0; angle *= .5, --i) x[1 &lt;&lt; i] = C(cos(angle), sin(angle));
+		for (i = 3; i &lt; n; ++i) if (i &amp; (i - 1)) x[i] = x[i &amp; -i] * x[i ^ (i &amp; -i)];
+		*x = C(1.), *rev = 0;
+		for (i = 1; i &lt; n; ++i) rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DFT(C *d, C *t) {
+		int i, len = 1, delta = n; C *j, *k, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = y[k - j] * k[len], k[len] = *k - R, *k = *k + R;
+			len &lt;&lt;= 1;
+		}
+	}
+
+	void Mul(int degA, int degB, double *a, double *b, double *c) {
+		if (degA == 0 &amp;&amp; degB == 1) {*c = *a * *b, c[1] = *a * b[1]; return;}
+		FFT_init(lg2(degA + degB) + 1);
+		int i; double iv = 1.0 / n;
+		for (i = 0; i &lt;= degA; ++i) B1[i] = C(a[i]); std::fill(B1 + i, B1 + n, C());
+		for (i = 0; i &lt;= degB; ++i) B2[i] = C(b[i]); std::fill(B2 + i, B2 + n, C());
+		DFT(B1, B3), DFT(B2, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = B1[i] * B3[i];
+		DFT(B1, B3), std::reverse(B3 + 1, B3 + n);
+		for (i = 0; i &lt;= degA + degB; ++i) c[i] = B3[i].r * iv;
+	}
+}
+
+void solve(int L, int R) {
+	int i, j, M = (L + R + 1) / 2;
+	if (L + 1 == R) {
+		for (i = 1; i &lt;= V; ++i) fv[i][L] = INFINITY; fv[V][L] = 0.;
+		for (i = 0; i &lt; E; ++i) down(fv[ e[i].u ][L], fe[i][L] += (G[ e[i].v ][V] + cost) * (1. - sp[i][L]) + e[i].w);
+		return;
+	}
+	solve(L, M);
+	for (i = 0; i &lt; E; ++i) {
+		memcpy(f, fv[ e[i].v ] + L, (M - L) &lt;&lt; 3);
+		memcpy(g, p[i], (R - L) &lt;&lt; 3);
+		Poly::Mul(M - L - 1, R - L - 1, f, g, h);
+		for (j = M; j &lt; R; ++j) fe[i][j] += h[j - L];
+	}
+	solve(M, R);
+}
+
+int main() {
+	int i, j, u, v, w;
+	scanf("%d%d%d%d", &amp;V, &amp;E, &amp;T, &amp;cost);
+	for (i = 1; i &lt;= V; ++i) memset(G[i], 63, (V + 1) &lt;&lt; 2), G[i][i] = 0;
+	for (i = 0; i &lt; E; ++i) {
+		scanf("%d%d%d", &amp;u, &amp;v, &amp;w), e[i] = edge(u, v, w), down(G[u][v], w);
+		for (j = 1; j &lt;= T; ++j) scanf("%d", &amp;w), p[i][j] = (double)w * 1e-5;
+		std::partial_sum(p[i], p[i] + (T + 1), sp[i]);
+	}
+	for (i = 1; i &lt;= V; ++i)
+		for (u = 1; u &lt;= V; ++u)
+			for (v = 1; v &lt;= V; ++v) down(G[u][v], G[u][i] + G[i][v]);
+	solve(0, T + 1);
+	printf("%.12lg\n", fv[1][T]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于本题需要用到浮点数，因此不能用 FNTT 而只能用 <strong>FFT</strong>。在 FFT 的过程中，注意控制复数运算的速度和精度，<del><code>std::complex &lt;double&gt;</code> 貌似非常慢不要用了……</del></p>
+		<p><strong>坑2：</strong>在计算卷积的时候注意控制长度，不要将多余的值加入卷积。</p>
+	</body>
+</html>

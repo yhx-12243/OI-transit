@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj310]黎明前的巧克力</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个集合 $S$，求有多少个有序二元子集组 $\left( A, B \right)$，满足 $A, B \subseteq S; A \cup B \neq \varnothing; A \cap B = \varnothing$ 且 $\displaystyle \bigoplus_{x \in A} x = \bigoplus_{y \in B} y$，其中 $\oplus$ 是二进制<strong>按位异或</strong>运算。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^6$)，表示集合的大小。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_i$ ($0 \leq a_i \leq 10^6$)，描述集合中的元素。<strong>注意 $S$ 可以是可重集</strong>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示子集组的个数对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>容易注意到，在 $A \cap B = \varnothing$ 的条件下，$\displaystyle \bigoplus_{x \in A} x = \bigoplus_{y \in B} y \Leftrightarrow \bigoplus_{x \in A \cup B} x = 0$。</p>
+		<p>因此我们考虑枚举 $A \cup B$ ——即所有元素异或和为 $0$ 的子集，记为 $K$，考察在其中内部嵌入 (划分为) $A$ 和 $B$ 的方案数。</p>
+		<p>由于题目中要求的集组是有序的，因此对于一个集合 $K$，内部的划分数为它的子集数量，$2^{\left| K \right|}$。</p>
+		<p>又因为 $A \cup B \neq \varnothing$，因此我们枚举的 $K$ 要求是<strong>非空的</strong>。不过这并不影响，因为我们只需将所有的 $K$ 的答案求出来以后再 $- 1$ 即可。</p>
+		<p>那么，具体怎么枚举这些 $K$ 呢？(设 $\displaystyle M = \max_{1 \leq i \leq n} a_i$) 这些 $K$ 可是 $M$ 元集合的子集，个数可以达到 $2^M$，是一个非常恐怖的数量级！</p>
+		<p>不过，为什么要枚举啊？我们当然要用 DP 啦。</p>
+		<p>使用 $f_{i, j}$ 表示考虑了 $S$ 中前 $i$ 个元素，这 $i$ 个元素构成的集合的子集中，所有异或和为 $j$ 的子集的大小的指数函数之和。那么有边界 $f_{0, 0} = 1$ (空集)。</p>
+		<p>考虑转移，这个并不难，对于第 $i$ 个元素，可以考虑将其加入到集合中，以及不加入集合。于是有</p>
+		<p>$$ f_{i, j} = f_{i-1, j} + 2 f_{i-1, j \oplus a_i} \tag 1 \label 1 $$</p>
+		<p>时间复杂度 $O \left( n M \right)$，并不优。</p>
+		<p>试着优化这个算法，我们构造序列 $y_i$ 满足 $y_{i, 0} = 1, y_{i, a_i} = 2$，则 $\eqref 1 \Leftrightarrow$</p>
+		<p>$$ f_{i, j} = \sum_{u \oplus v = j} f_{i-1, u} \cdot y_{i, v} \tag 2 \label 2 $$</p>
+		<p>居然是我们熟悉的<a href="vijos%20%235.html" target="_blank"><big><strong>集合对称差卷积</strong></big></a>！</p>
+		<p>因此我们可以使用快速 Walsh 变换 (FWT) 优化这个 DP 的过程。但是时间复杂度仍然是 $O \left( n M \right)$，瓶颈在于求 $y_i$ 的 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 序列。</p>
+		<p>暴力求这个 FWT 序列显然是没有希望的。我们要利用序列 $y_i$ 的特殊性质：这种序列除了两项非零 (一项为 $1$，一项为 $2$)，其余的项均为 $0$！</p>
+		<p>于是，我们尝试使用<em>数学方法</em>去直接推得 $y_i$ 的 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 序列 $FWT \left( y_i \right)$。</p>
+		<p>由于 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 是<strong>线性变换</strong>，故有 $FWT \left( \lambda \mathbf a + \mu \mathbf b \right) = \lambda \, FWT \left( \mathbf a \right) + \mu \, FWT \left( \mathbf b \right)$。</p>
+		<p>因此我们把 $y_i$ 拆成两个序列 $\mathbf I$ 和 $\mathbf C_i$ 的和：其中 $\mathbf I$ 满足 $\mathbf I_0 = 1, \mathbf I_k = 0$ ($k \neq 0$)，$\mathbf C_i$ 满足 $\mathbf C_{i, i} = 1, \mathbf C_{i, j} = 0$ ($j \neq i$)。</p>
+		<p>于是 $y_i = \mathbf I + 2 \cdot \mathbf C_{a_i}$，因此 $FWT \left( y_i \right) = FWT \left( \mathbf I \right) + 2 \, FWT \left( \mathbf C_{a_i} \right)$。</p>
+		<p>注意到 $\mathbf I, \mathbf C_i$ 都是<strong>只有一项非零</strong>的序列，它们的 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 序列应该都是有比较明显的特性的。</p>
+		<p>回到 <a href="vijos%20%235.html" target="_blank"><abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 的定义</a>。$\displaystyle FWT \left( \mathbf a \right)_k = \sum_i (-1)^{\mathrm{popc} \left( i \mathbin{\&} k \right)} \mathbf a_i$，因此，对于 $\mathbf I$ 序列，它的 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 序列中的<strong>每一项都是 $1$</strong>。</p>
+		<p>对于 $\mathbf C_i$，考察它的性质。由于只有下标为 $i$ 的项不为 $0$，因此上面的和式中<strong>只有一项是有贡献</strong>的，也就是说，$FWT \left( \mathbf C_i \right)_k = (-1)^{\mathrm{popc} \left( i \mathbin{\&} k \right)}$。</p>
+		<p>于是，我们可以得到 $$ FWT \left( y_i \right)_k = FWT \left( \mathbf I + 2 \cdot \mathbf C_{a_i} \right)_k = FWT \left( \mathbf I \right)_k + 2 \, FWT \left( \mathbf C_{a_i} \right)_k = 1 + 2 \cdot (-1)^{\mathrm{popc} \left( a_i \mathbin{\&} k \right)} = \begin{cases} 3 &amp; \mathrm{popc} \left( a_i \mathbin{\&} k \right) \equiv 0 \pmod 2 \\ -1 &amp; \mathrm{popc} \left( a_i \mathbin{\&} k \right) \equiv 1 \pmod 2 \end{cases} \tag 3 \label 3 $$</p>
+		<p>也就是说，它的 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 序列中<strong>只会出现 $3$ 和 $-1$</strong>！</p>
+		<hr />
+		<p>现在考虑最终 DP 序列的 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 序列，设为 $\Gamma$。考虑项 $\Gamma_k$，它就等于 $$ FWT \left( y_1 \right)_k FWT \left( y_2 \right)_k \cdots FWT \left( y_n \right)_k = \prod_{i=1}^n FWT \left( y_i \right)_k = \prod_{i=1}^n \left( \begin{cases} 3 &amp; \mathrm{popc} \left( a_i \mathbin{\&} k \right) \equiv 0 \pmod 2 \\ -1 &amp; \mathrm{popc} \left( a_i \mathbin{\&} k \right) \equiv 1 \pmod 2 \end{cases} \right) \tag 4 \label 4 $$
+		<p>注意到最后乘积式中的每一项要么为 $3$，要么为 $-1$，且总数为 $n$。因此一旦能求出这里面有<strong>几个 $i$ 满足 $\mathrm{popc} \left( a_i \mathbin{\&} k \right) = 1$ (或 $0$)</strong>，问题就获得了解决。</p>
+		<p>也就是说，我们要对于一个 $k$，求 $\displaystyle \sum_{i=1}^n \mathrm{popc} \left( a_i \mathbin{\&} k \right) \bmod 2$。</p>
+		<p>模 $2$ 不好办，将它转化为 $-1$ 的次幂，于是，待求式变成了</p>
+		<p>$$ \sum_{i=1}^n (-1)^{\mathrm{popc} \left( a_i \mathbin{\&} k \right)} \tag 5 \label 5 $$</p>
+		<p>用 $b_j$ 表示有多少个 $j$ 满足 $a_i = j$，则 $\eqref 5 \Leftrightarrow$</p>
+		<p>$$ \sum_j (-1)^{\mathrm{popc} \left( j \mathbin{\&} k \right)} b_j \tag 6 \label 6 $$</p>
+		<p>这不就是……<big><strong><abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 变换</strong></big>吗？</p>
+		<p>于是，我们只需对 $b$ 序列做一次 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 变换，然后对于每个 $k$，我们就得到了有多少个 $i$ 满足 $\mathrm{popc} \left( a_i \mathbin{\&} k \right) = 1$，于是我们就得到了<strong>最终 DP 序列的 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 序列</strong> $\Gamma$！</p>
+		<p>由于答案就等于序列 $\Gamma$ 的 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 逆变换 $FWT^{-1} \left( \Gamma \right)$，由于要求异或和为 $0$，因此我们只需要它的第 $0$ 项即可，即答案为 $FWT^{-1} \left( \Gamma \right)_0$。</p>
+		<p>由于我们只需要求一项，因此最后的 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 并不用做显式的变换，只需要由 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 逆变换的公式——将 $\Gamma$ 中所有元素相加后除以 $2^{len}$ 即可。</p>
+		<p>总时间复杂度 $O \left( n + M \log M \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 1054000
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef long long ll;
+const ll mod = 998244353, neg_3 = mod - 3;
+
+int n, len;
+int b[N], pw[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void FWT(int *f) {
+	int i, j, r;
+	for (i = 0; i &lt; len; ++i)
+		for (j = 0; j &lt; 1 &lt;&lt; len; ++j)
+			if (!(j &gt;&gt; i &amp; 1))
+				r = f[j | 1 &lt;&lt; i], f[j | 1 &lt;&lt; i] = f[j] - r, f[j] += r;
+}
+
+int main() {
+	int i, x, M = 0; ll ans = 0;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) scanf("%d", &amp;x), ++b[x], up(M, x);
+	for (*pw = i = 1; i &lt;= n; ++i) pw[i] = pw[i - 1] * neg_3 % mod;
+	len = (M ? lg2(M) : 0) + 1, FWT(b);
+	for (i = 0; i &lt; 1 &lt;&lt; len; ++i) ans = ans + pw[(b[i] + n) / 2];
+	ans = PowerMod((mod + 1) / 2, len, (n &amp; 1 ? mod - ans : ans) % mod) - 1;
+	printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>可以预处理 $-3$ 的幂，这样就能避免实时计算快速幂。还有，记得根据 $n$ 的奇偶性来决定答案是否要乘 $-1$，以及去掉空集的情况。</p>
+	</body>
+</html>

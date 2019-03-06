@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4366][uoj28][IOI2014]Friend</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>我们建立了一个由编号为 $0, 1, \cdots, n - 1$ 的 $n$ 个人组成的社交网络。网络中的有些对会成为朋友。如果 $x$ 号人成为 $y$ 号人的朋友，则 $y$ 号人同时也会成为 $x$ 号人的朋友。</p>
+		<p>这些人将通过 $n$ 个阶段加入这个网络，阶段也编号为 $0$ 至 $n - 1$。第 $i$ 号人在第 $i$ 个阶段加入。在阶段 $0$，$0$ 号人加入网络并成为唯一的人。此后 $n - 1$ 个阶段的各个阶段，都有一个人会被主持人加入到网络中，而这个主持人可以是已在网络中的任何一个人。在阶段 $i$ 中 ($1 \leq i \leq n - 1$)，该阶段的主持人可以用如下三种方式之一把第 $i$ 号人加入到网络中：</p>
+		<ul>
+			<li><p><code>IAmYourFriend</code>：将第 $i$ 号人仅变成主持人的朋友。</p></li>
+			<li><p><code>MyFriendsAreYourFriends</code>：将第 $i$ 号人变成主持人当前的每一个朋友的朋友。<em>注意，这个方式不会将第 $i$ 号人变成主持人的朋友</em>。</p></li>
+			<li><p><code>WeAreYourFriends</code>：将第 $i$ 号人变成主持人的朋友，同时也变成主持人当前的每一个朋友的朋友。</p></li>
+		</ul>
+		<p>在建立此网络之后，我们想挑选一个调查的样本，也就是说要从网络中选择一组人。由于朋友之间通常拥有相似的兴趣，因此样本不应包含任何一对互为朋友的人。每个人都会有一个调查的可信度，表示为一个正整数，而我们想要找出一个可信度总和最大的样本。</p>
+
+		<h3>任务</h3>
+		<p>给定各阶段的描述以及每个人的可信度值，请找出一个可信度总和最大的样本。你只需要实现函数 findSample。</p>
+		<ul>
+			<li>findSample(n, confidence, host, protocol)
+			<ul>
+				<li>$n$: 人数。</li>
+				<li>confidence: 大小为 $n$ 的数组；confidence[i]表示第 $i$ 号人的可信度。</li>
+				<li>host: 大小为 $n$ 的数组；host[i] 表示阶段 $i$ 的主持人。</li>
+				<li>protocol: 大小为 $n$ 的数组；protocol[i] 表示在阶段 ($0 &lt; i &lt; n$) 所采用的方式的代码: $0$ 代表 IAmYourFriend，$1$ 代表 MyFriendsAreYourFriends，而 $2$ 代表 WeAreYourFriends。</li>
+				<li>由于在阶段 $0$ 中没有主持人，因此 host[0] 和 protocol[0] 是没有被定义的，而且在你的程序中也不应访问它们。</li>
+				<li>这个函数应该返回样本可信度总和的最大值。</li>
+			</ul></li>
+		</ul>
+
+		<h3>实现细节</h3>
+		<p>本题只支持 C/C++。</p>
+		<p>你只能提交一个源文件实现上述的函数，其命名与接口需遵循下面的要求。你还要在该文件中包含头文件 friend.h。</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">int findSample(int n, int confidence[], int host[], int protocol[]);
+</code></pre>
+
+		<h3>题解</h3>
+		<p>不考虑连边方式的话，这 $n$ 个人可以构成一个<strong>树结构</strong>：把 $0$ 号人定为根，则对于不是根的每个人 $v$，它的加入都伴随着一个主持人，可以看作它的父节点 $p_v$。</p>
+		<p>但是最终的朋友关系所形成的图 $G$ 并不一定是这棵树 $T$。而且，我们要求的是 $G$ 的<strong>最大权独立集</strong>而不是 $T$ 的。</p>
+		<p>先考虑最简单的情况，只有 $0$ 型连边 (I am your friend)。此时，所得到的图 $G \cong T$，因此我们只需要求这棵树的最大权独立集即可。</p>
+		<p>关于树的最大 (权) 独立集，这是一道经(ru)典(men)的树形 DP 题，这里不再赘述。我们记 DP 过程中以 $v$ 为根的子树中，$v$ 选 (不选) 的最大权为 $f_v$ 和 $g_v$。</p>
+		<p>考虑另外两种边，如果它们的存在，又会造成什么样的影响呢？</p>
+		<p>首先考虑 $1$ 型连边 (My friends are your friends)。设 $T$ 中 $v$ 的子节点为 $c_1, c_2, \cdots, c_k$ ($c_i &lt; c_{i+1}$)，$c_y$ 加入时为 $1$ 型连边。</p>
+		<p>则根据<del>游戏</del>规则，$c_y$ 会和 $c_1, c_2, \cdots, c_{y-1}$ 连边，不与 $v$ 连边。</p>
+		<p>此时，如果 $v$ 已经选择了，那么 $c_1, c_2, \cdots, c_{y-1}$ 以及 $p_v$ 本来就不能选择，因此 <strong>$y$ 选不选已经无所谓</strong>，故此时有</p>
+		<p>$$ f'_v \uparrow f_v + \max \left\{ f_y, g_y \right\} \tag 1 \label 1 $$ (以下所有的 $a \uparrow b$ 表示 <code>a = max(a, b)</code>)</p>
+		<p>反之，如果 $v$ 还未被选择，则 $y$ 可以选择，也可以不选择。</p>
+		<p>此时若 $y$ 也不选择，则此时转移是平凡的：$$ g'_v \uparrow g_v + g_y $$</p>
+		<p>如果 $y$ 也被选了，那么这种情况就略特殊了：因为此时 $v$ 的邻点 $c_1, c_2, \cdots, c_{y-1}$ 以及 $p_v$ 已经<strong>不能选择</strong>了。</p>
+		<p>仿佛遇到了困难。不过，我们可以考虑<strong>倒着 DP</strong>，即按照 $c_k, c_{k-1}, c_{k-2}, \cdots, c_2, c_1$ 的顺序进行转移。</p>
+		<p>这样，被限制的邻点就转移到它<strong>后面</strong>去了，我们就有处理方案了：对，就是把它看成 $f_v$ 的状态。</p>
+		<p>尽管这个状态没有选择 $v$，但是对于后面还未转移的点来说，$v$ 的邻点已经 "没用了"，因此我们需要将它转移到 $f_v$，也就是说 $$ f'_v \uparrow g_v + f_y $$</p>
+		<p>最后是 $2$ 型连边 (We are your friends)，经过冷静分析，可以发现它和 $1$ 型连边基本相似，无非就是当 $v$ 选择时 $y$ 不能选择，因此只需要把 $\eqref 1$ 式改为</p>
+		<p>$$ f''_v \uparrow f_v + g_y $$ 就完事啦。</p>
+		<p>具体实现时，并不需要 dfs 整棵树，可以直接按照题目给的顺序就可以。</p>
+		<p>时间复杂度 $O(n)$，代码实现极其容易。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "friend.h"
+#include &lt;bits/stdc++.h&gt;
+#define N 100054
+
+int g[N]; // f : selected, g : unselected
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+int findSample(int n, int *f, int *h, int *type) {
+	for (int p, i = n - 1; i; --i)
+		switch (p = h[i], type[i]) {
+			case 0: f[p] += g[i], g[p] += std::max(f[i], g[i]); break;
+			case 1: up(f[p] += std::max(f[i], g[i]), g[p] + f[i]), g[p] += g[i]; break;
+			case 2: up(f[p] += g[i], g[p] + f[i]), g[p] += g[i]; break;
+		}
+	return std::max(*f, *g);
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $f_i \gets f_i + \textrm{confidence}_i$ 的过程要在初始状态下完成，因为转移过程中可能会有<strong>不选 $i$ 的状态</strong>转移到 $f_i$。</p>
+	</body>
+</html>

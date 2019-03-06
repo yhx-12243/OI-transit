@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj86]mx 的组合数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $p, n, l, r$，其中 $p$ 是质数。请对 $0$ 到 $p - 1$ 的所有值 $a$，输出满足 $l \leq x \leq r$ 且 $\dbinom xn \equiv a \pmod p$ 的 $x$ 的个数对 $998244353$ ($7 \times 17 \times 2^{23} + 1$，一个质数) 取模后的结果。其中 $\dbinom xn$ 是二项式系数，即 $x$ 个数里选 $n$ 个的方案数。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含四个非负整数 $p, n, l, r$ ($2 \leq p \leq 30000; 0 \leq n \leq 10^{30}; 0 \leq l \leq r \leq 10^{30}$，$p$ 是素数)。</p>
+
+		<h3>输出格式</h3>
+		<p>共 $p$ 行，每行一个整数，第 $i$ 行的整数表示 $a = i - 1$ 时的答案。</p>
+
+		<h3>题解</h3>
+		<p>由于 $p$ 是素数且比较小，因此我们考虑 Lucas 定理：</p>
+		<p>设给定的 $n$ 的 $p$ 进制展开式为 $\left( n_k n_{k-1} n_{k-2} \cdots n_2 n_1 n_0 \right)_p$，则对于 $x = \left( x_k x_{k-1} \cdots x_2 x_1 x_0 \right)$，恒有</p>
+		<p>$$ \binom xn \equiv \prod_{i=0}^k \binom {x_i} {n_i} = \binom {x_k} {n_k} \binom {x_{k-1}} {n_{k-1}} \cdots \binom {x_1} {n_1} \binom {x_0} {n_0} $$</p>
+		<p>于是，我们就可以建立起一个<strong>数位 DP</strong> 的模型了：</p>
+		<p>首先，利用前缀和优化，将<em>区间问题</em>转化为<em>前缀问题</em>：即由多少个 $0 \leq x \leq R$ 满足 $\dbinom xn \equiv a \pmod p$。</p>
+		<p>然后，和一般的数位 DP 类似，用 $f_{i, j, b}$ 表示当前转移到 $p$ 进制下从低到高第 $i$ 位 (只考虑前 $i$ 位)，前 $i$ 位的二项式系数的乘积为 $j$，$b$ 代表是否为边界。</p>
+		<p>具体地转移状态也非常好分析，设当前状态为 $(i, j, b)$，枚举的下一位为 $d$ ($0 \leq d &lt; p$)，则 ($b = 0$ 时)：</p>
+		<p>$$ i' \gets i + 1; j' = j \cdot \binom d {n_i} \bmod p; b' \gets \begin{cases} 0, 1 &amp; d &lt; R_i \\ 0 &amp; d \geq R_i \end{cases} \tag 1 \label 1 $$</p>
+		<p>而当 $b = 1$ 时，只有 $d = R_i$ 时才能转移到 $b' \gets 1$。</p>
+		<p>于是，我们就可以在 $O \left( p^2 \log_p n \right)$ 的时间内使用数位 DP 解决了这个问题 (注：以下在<strong>时间复杂度分析</strong>中，$n$ 默认指的是 $\max \left\{ n, r \right\}$)，不过对于 $p = 30000$ 的数据并不能通过。于是我们要考虑如何优化。</p>
+		<hr />
+		<p>观察这个 DP 的形式，即：$$ f_{i+1, j \cdot \binom d {n_i} \bmod p} \gets f_{i, j} \tag 2 \label 2 $$ (注：这里 $a \gets b$ 表示 <code>a += b</code>)</p>
+		<p>如果我们令 $A_j = f_{i, j}, B_j = f_{i+1, j}, \lambda(d) = \dbinom d {n_i}$，于是式 $\eqref 2 \Leftrightarrow$</p>
+		<p>$$ B_{j \cdot \lambda(d) \bmod p} \gets A_j \qquad \left( \textrm{for all } 0 \leq j, d &lt; p \right) \tag 3 \label 3 $$</p>
+		<p>如果我们用 $\sigma_k$ ($0 \leq k &lt; p$) 表示有多少个 $d$ 满足 $\lambda(d) = k$，则 $\eqref 3 \Leftrightarrow$</p>
+		<p>$$ B_{j \cdot k \bmod p} \gets A_j \cdot \sigma_k \tag 4 \label 4 $$</p>
+		<p>这不就是一个 "卷积" 吗？不过标准的卷积中，$j$ 和 $k$ 应该由 $+$ 连接，而这里是乘号，又该怎么办呢？</p>
+		<p>考虑通常我们如何把乘法变成加法，没错，就是<strong>对数</strong> $\log (ab) = \log a + \log b$。但是，能够注意到这里下标都在模素数 $p$ 意义下，而模素数 $p$ 意义下是存在<strong>原根</strong> $g$ 的，从而就有了<strong>离散对数</strong>！</p>
+		<p>我们只需对 $f_{i, j}$ 的第二维 ($j$ 那一维) 取个离散对数，然后就变成了通常的卷积，于是就可以愉快地用 NTT 啦！</p>
+		<p>当然，对 $f$ 的第三维，我们可以将它拆成两个数组：<strong>无边界状态</strong>和<strong>有边界状态</strong>，只需要分别算出它们的 $\sigma$ 数组分别转移即可。</p>
+		<p>等等，貌似这里还有一个问题：$0$ 的离散对数是啥？</p>
+		<p>这个并不是很大的问题。由于转移过程中的<strong>下标只涉及乘法</strong>，因此如果被转移项不是 $0$，结果项也不可能是 $0$ 的 (除非被转移项中存在 $0$)。因此我们给出的解决方案是：<strong>把 $f_0$ 删掉，不考虑它的转移</strong>。</p>
+		<p>最后，由于总方案数 $R + 1$ 是非常好求的，因此，最后的 $f_0$ 就等于总方案数减去其它的 DP 值称，即 $f_0 = \left( R + 1 \right) - \left( f_1 + f_2 + \cdots + f_{p-1} \right)$。</p>
+		<p>总时间复杂度为 $O \left( p \log p \log_p n \right) = O \left( p \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 66666
+#define K 254
+#define ID isdigit(c = getchar())
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef int vec[N], *pvec;
+typedef long long ll;
+typedef __int128 lll;
+const ll mod = 998244353, half_mod = (mod + 1) / 2, root = 31;
+
+vec fact, finv, ln;
+
+inline int &amp; reduce(int &amp;x) {return x += (x &gt;&gt; 31 &amp; (int)mod);}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; ((int)mod - x);}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+void getint(lll &amp;x) {int c; for (; !ID; ) if (!~c) return; for (x = c &amp; 15; ID; x = x * 10 + (c &amp; 15));}
+
+namespace Poly {
+	int l, n; vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i) x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) {
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+}
+
+lll n, l, r;
+int p, g;
+int dn[K], dm[K];
+ll iv;
+vec f, ft, fc, fct; // transformed, coefficient
+vec B, Bc, Bct; // bounded
+vec res, ans;
+
+void init() {
+	int i; ll c;
+	Poly::NTT_init(lg2(p) + 2), iv = PowerMod(Poly::n, mod - 2);
+	for (*fact = i = 1; i &lt; p; ++i) fact[i] = fact[i - 1] * i % p;
+	for (--i, finv[i] = i; i; --i) finv[i - 1] = finv[i] * i % p;
+	for (g = 0; i != p - 1; )
+		for (i = 1, c = ++g; c != 1; ++i, c = c * g % p);
+	for (i = 0, c = 1; i != p - 1; ++i, c = c * g % p) ln[c] = i;
+}
+
+int C(int n, int r) {return n &lt; r ? 0 : fact[n] * finv[r] % p * finv[n - r] % p;}
+
+void solve(lll n, lll m) {
+	int i, j, r, ind, cn = 0, cm = 0; ll sum = mod - 1 - n % mod;
+	if (!~n) {memset(res, 0, p &lt;&lt; 2); return;}
+	for (memset(dn, 0, sizeof dn); n; n /= p) dn[cn++] = n % p;
+	for (memset(dm, 0, sizeof dm); m; m /= p) dm[cm++] = m % p;
+	memset(f, 0, p &lt;&lt; 2), memset(B, 0, p &lt;&lt; 2), *B = *f = 1;
+	for (j = 0; j &lt; cn || j &lt; cm; ++j) {
+		memset(fc, 0, p &lt;&lt; 3), memset(Bc, 0, p &lt;&lt; 3);
+		for (i = r = dm[j]; i &lt; p; ++i) ++fc[ ind = ln[C(i, r)] ], Bc[ind] += i &lt; dn[j];
+		if (r &lt;= dn[j]) std::rotate(B, B + (p - 1) - ln[C(dn[j], r)], B + (p - 1));
+		else memset(B, 0, p &lt;&lt; 2);
+		Poly::DNTT(f, ft), Poly::DNTT(fc, fct), Poly::DNTT(Bc, Bct);
+		for (i = 0; i &lt; Poly::n; ++i) fct[i] = (ll)fct[i] * ft[i] % mod, Bct[i] = (ll)Bct[i] * ft[i] % mod;
+		Poly::DNTT(fct, fc), Poly::DNTT(Bct, Bc);
+		std::reverse(fc + 1, fc + Poly::n), std::reverse(Bc + 1, Bc + Poly::n);
+		for (i = 0; i &lt; Poly::n; ++i) fc[i] = fc[i] * iv % mod, Bc[i] = Bc[i] * iv % mod;
+		for (i = 0; i &lt; p - 1; ++i)
+			reduce(f[i] = fc[i] + fc[i + p - 1] - mod), reduce(reduce(B[i] += Bc[i] - mod) += Bc[i + p - 1] - mod);
+	}
+	for (i = 1; i &lt; p; ++i) sum += res[i] = B[ln[i]];
+	neg(*res = (int)(sum % mod));
+}
+
+int main() {
+	scanf("%d", &amp;p), getint(n), getint(l), getint(r), init();
+	solve(r, n), memcpy(ans, res, p &lt;&lt; 2), solve(l - 1, n);
+	for (int i = 0; i &lt; p; ++i) printf("%d\n", reduce(ans[i] -= res[i]));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>和 <a href="lydsy4786%3Blg3689%3Buoj292%3Bloj2252.html" target="_blank">[ZJOI2017]多项式</a> 类似，注意 $L = 0$ 的情况，防止数组越界。</p>
+		<p><strong>坑2：</strong>要注意本题的卷积是<strong>循环卷积</strong>，因此长度是 $2 p$ 的，相关细节要注意。</p>
+	</body>
+</html>

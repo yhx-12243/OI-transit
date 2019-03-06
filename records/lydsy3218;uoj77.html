@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3218][uoj77]A + B Problem</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>题目名称是吸引你点进来的。</p>
+		<p>从前有 $n$ 个方格排成一行，从左至右依此编号为 $1, 2, \cdots, n$。</p>
+		<p>有一天思考熊想给这 $n$ 个方格染上黑白两色。</p>
+		<p>第 $i$ 个方格上有 $6$ 个属性：$a_i, b_i, w_i, l_i, r_i, p_i$。</p>
+		<p>如果方格 $i$ 染成黑色就会获得 $b_i$ 的好看度。</p>
+		<p>如果方格 $i$ 染成白色就会获得 $w_i$ 的好看度。</p>
+		<p>但是太多了黑色就不好看了。如果方格 $i$ 是黑色，并且存在一个 $j$ 使得：
+		<p>$$ 1 \leq j &lt; i \wedge l_i \leq a_j \leq r_i \wedge \textrm{方格} \, j \, \textrm{为白色} \tag 1 \label 1 $$</p>
+		<p>那么方格 $i$ 就被称为奇怪的方格。</p>
+		<p>如果方格 $i$ 是奇怪的方格，就会使总好看度减少 $p_i$。</p>
+		<p>也就是说对于一个染色方案，好看度为：
+		<p>$$ \sum_{\textrm{方格} \, i \, \textrm{为黑色}} b_i + \sum_{\textrm{方格} \, i \, \textrm{为白色}} w_i - \sum_{\textrm{方格} \, i \, \textrm{为奇怪的方格}} p_i \tag 2 \label 2 $$</p>
+		<p>现在给你 $n, a, b, w, l, r, p$，问所有染色方案中<strong>最大</strong>的好看度是多少。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($1 \leq n \leq 5000$)。</p>
+		<p>接下来 $n$ 行，第 $i$ 行包含用空格隔开的 $6$ 个非负整数，依次表示 $a_i, b_i, w_i, l_i, r_i, p_i$ ($0 \leq a_i \leq 10^9; 0 \leq b_i, w_i \leq 2 \times 10^5; 0\ \leq l_i \leq r_i \leq 10^9; 0 \leq p_i \leq 3 \times 10^5$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有染色方案中最大的好看度。</p>
+
+		<h3>题解</h3>
+		<p>考虑建立最小割模型。首先，由于 $\eqref 2$ 式中既有加法，又有减法，看起来非常不爽。我们先做一个简单变形：</p>
+		<p>$$ ans = \sum_i \left( b_i + w_i \right) - \left( \sum_{\textrm{方格} \, i \, \textrm{为黑色}} w_i + \sum_{\textrm{方格} \, i \, \textrm{为白色}} b_i + \sum_{\textrm{方格} \, i \, \textrm{为奇怪的方格}} p_i \right) $$</p>
+		<p>于是右边三项的符号统一了 (均为 $-1$)，于是我们就需要<strong>最小化</strong>它，使用最小割是正确的。<p>
+		<p>由于一个格子有两种状态，因此对于每个格子 $i$，我们可以连一条 $S \xrightarrow {b_i} i \xrightarrow {w_i} T$ 的边，分别表示 $i$ 取白色，和 $i$ 取黑色 (注意我们已经<em>反向</em>过了，因此 $b_i$ 代表的是白色)。</p>
+		<p>这样就解决了大部分问题，最后就是那个<strong>限制条件</strong>了 (这也是为什么必须要用网络流型建模的原因)。</p>
+		<p>考虑一对满足 $\eqref 1$ 的前两个条件的方格对 $(i, j)$。</p>
+		<p>那么条件就相当于：$i \, \textrm{为黑色} \wedge j \, \textrm{为白色} \, \Rightarrow \, \textrm{总代价加上} \, p_i$。</p>
+		<p>不过通常的最小割会是这种类型：<span style="color: green">$i$ 为白色<strong>或</strong> $j$ 为黑色</span>，此时我们只需连一条 $i \xrightarrow {+ \infty} j$ 的边即可，表示 "$i$ 为白色" 的边和 "$j$ 为黑色" 的边中，<strong>至少需要割掉一条</strong>。</p>
+		<p>而本题的限制是：<strong>只要存在一个 $j$ 满足 $\eqref 1$</strong>，$i$ 如果是黑色均要付出 $p_i$ 的代价。</p>
+		<p>于是可以构造点 $i'$，连边 $i' \xrightarrow {+ \infty} j$，表示 <strong>$i'$ 为白色或 $j$ 为黑色</strong>，等价地，<strong>如果 $j$ 为白色，则 $i'$ 一定为白色</strong>。</p>
+		<p>因此，如果我们对于 $i$ 像所有这样的 $j$ 连边，则一旦有一个 $j$ 满足 $\eqref 1$，则 $i'$ 必须为白色。</p>
+		<p>而这个时候，$i$ 如果为黑色，就要付出 $p_i$ 的代价。故只需连边 $i \xrightarrow {p_i} i'$ 即可。</p>
+		<p>也就是说，<strong>如果存在 $j$ 满足 $\eqref 1 \Rightarrow i'$ 为白 $\Rightarrow i$ 为白；如果不存在，则 $i'$ 可以为黑，从而 $i$ 可以为黑</strong>。</p>
+		<p>于是我们就得到了一张点数 $O(n)$，边数 $O \left( n^2 \right)$ 的网络，对其跑最大流即可得到结果。</p>
+		<hr />
+		<p>不过由于边数级别太大，很容易 MLE <del>(这题卡内存)</del> 甚至 TLE。因此我们要对所建的图进行优化。</p>
+		<p>考虑这样一个问题：<strong>给定一个确定的染色方案，你需要求出所有奇怪的方格，时间复杂度为 $o \left( n^2 \right)$</strong> (即优于 $\Theta \left( n^2 \right)$)。</p>
+		<p>我们考虑使用<strong>数据结构</strong>处理。使用动态开点线段树或平衡树记录白色节点出现的位置，然后一边加点，一边定位定位区间 (查询) $\left[ l_i, r_i \right]$ 中是否有白点。</p>
+		<p>时间复杂度 $O \left( n \log n \right)$。</p>
+		<p>那么，能否直接将线段树 "<strong>嵌入</strong>" 到网络中呢？答案是肯定的。</p>
+		<p>先考虑<strong>只有</strong> $l_i \leq a_j \leq r_i$ 这个条件。(以下默认所有边的容量均为 $+ \infty$)</p>
+		<p>我们对于点 $i'$，它需要向所有 $a$ 的值在区间 $\left[ l_i, r_i \right]$ 中的 $j$ 连边。</p>
+		<p>于是，我们可以在线段树中定位出 $\left[ l_i, r_i \right]$ 的若干节点 $v_1, v_2, \cdots, v_k$，连边 $i' \to v_1, i' \to v_2, \cdots, i' \to v_k$。</p>
+		<p>对于线段树上的每个分支节点，连向它的两个子节点：$v \to lc_v, v \to rc_v$。</p>
+		<p>对于线段树上的每个叶节点 $x$，对于满足 $a_j = x$ 的 $j$，连边 $x \to j$。</p>
+		<p>于是我们就成功地使用了<strong>数据结构优化建图</strong>的技巧。</p>
+		<p>那么，接下来就是有 $1 \leq j &lt; i$ 这个条件了。</p>
+		<p>其实差异也不大。考虑我们在判定问题时的解法——无非就是把<strong>先全局插入，后全局查询</strong>改为了<strong>一边插入，一边查询</strong>。其实就是一个<strong>可持久化线段树</strong>而已。</p>
+		<p>连边大体是类似地，比如可持久化线段树中，每新建一个节点，都要将它和两个子节点连边 (不管是新建的还是原先的)。</p>
+		<p>这里还有非常重要的一条：<strong>新的叶节点向旧的叶节点连边</strong>。</p>
+		<p>这是因为，$1 \leq j &lt; i$ 的所有 $j$ 都要用到，这是一个前缀和的情况，不是单点。因此，当一个节点定位到了 $t$ ($t &gt; j$) 时刻的 $a_j$，一定可以回溯得到 $t - 1$ 时刻的 $a_j$，……，从而得到 $j$ 时刻的 $a_j$。</p>
+		<p>于是，可以证明，新的网络中，点数和边数均为 $O \left( n \log n \right)$ 级别。</p>
+		<p>时间复杂度是大 $O$ 意义下的 $O \left( n^2 \log^k n \right)$，不过常数较小，可以通过此题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 5400;
+
+namespace Flow {
+	#define ad(x) ((x - 1 ^ 1) + 1)
+
+	const int N = 262145, M = 2097153;
+
+	struct edge {
+		int u, v, f;
+		edge (int u0 = 0, int v0 = 0, int f0 = 0) : u(u0), v(v0), f(f0) {}
+	} e[M];
+
+	int V = 2, E = 0, si = 1, ti = 2, flow;
+	int first[N], next[M];
+	int dep[N], cur[N], que[N];
+
+	inline void addedge(int u, int v, int f) {
+		e[++E] = edge(u, v, f); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u); next[E] = first[v]; first[v] = E;
+	}
+
+	bool bfs() {
+		int h, t = 1, i, x, y;
+		memset(dep, -1, sizeof dep);
+		que[0] = si; dep[si] = 0;
+		for (h = 0; h &lt; t; h++) {
+			if ((x = que[h]) == ti) return true;
+			for (i = first[x]; i; i = next[i])
+				if (dep[y = e[i].v] == -1 &amp;&amp; e[i].f) {
+					que[t++] = y;
+					dep[y] = dep[x] + 1;
+				}
+		}
+		return false;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		for (int &amp;i = cur[x]; i; i = next[i])
+			if (dep[e[i].v] == dep[x] + 1 &amp;&amp; e[i].f) {
+				a = std::min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c; e[ad(i)].f += c;
+				if((f += c) == lim) return f;
+			}
+		return f;
+	}
+
+	int Dinic() {
+		for (flow = 0; bfs(); flow += dfs(si, INT_MAX))
+			memcpy(cur, first, sizeof cur);
+		return flow;
+	}
+}
+
+int n, MAX = 0, ALL = 0;
+int a[N], l[N], r[N], root[N];
+
+namespace ST {
+	struct node {int lc, rc;} x[2003731];
+	int cnt = 0;
+
+	int adj(int id, int L, int R, int h, int ver) {
+		int nid = ++cnt; x[nid] = x[id];
+		if (L == R) return Flow::addedge(nid + Flow::V, ver, INT_MAX), id &amp;&amp; (Flow::addedge(nid + Flow::V, id + Flow::V, INT_MAX), 0), nid;
+		int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[nid].lc = adj(x[id].lc, L, M, h, ver) : (x[nid].rc = adj(x[id].rc, M + 1, R, h, ver));
+		if (x[nid].lc) Flow::addedge(nid + Flow::V, x[nid].lc + Flow::V, INT_MAX);
+		if (x[nid].rc) Flow::addedge(nid + Flow::V, x[nid].rc + Flow::V, INT_MAX);
+		return nid;
+	}
+
+	void cover(int id, int L, int R, int ql, int qr, int ver) {
+		if (!id) return;
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return Flow::addedge(ver, id + Flow::V, INT_MAX);
+		int M = (L + R - 1) &gt;&gt; 1;
+		if (ql &lt;= M) cover(x[id].lc, L, M, ql, qr, ver);
+		if (qr &gt; M) cover(x[id].rc, M + 1, R, ql, qr, ver);
+	}
+}
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+int main() {
+	int i, b, w, p;
+	scanf("%d", &amp;n), Flow::V = 2 * n + 2;
+	for (i = 1; i &lt;= n; ++i) {
+		scanf("%d%d%d%d%d%d", a + i, &amp;b, &amp;w, l + i, r + i, &amp;p), ALL += b + w, up(MAX, a[i]), up(MAX, r[i]);
+		Flow::addedge(1, i + 2, b), Flow::addedge(i + 2, 2, w), Flow::addedge(i + 2, i + n + 2, p);
+	}
+	for (i = 1; i &lt;= n; ++i) {
+		if (i) ST::cover(root[i - 1], 0, MAX, l[i], r[i], i + n + 2);
+		root[i] = ST::adj(root[i - 1], 0, MAX, a[i], i + 2);
+	}
+	printf("%d\n", ALL - Flow::Dinic());
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>线段树连边过程千万不要忘记从<strong>新的叶节点</strong>向<strong>原来的对应叶节点</strong>之间连边，因为存在 $a$ 值相同的点。</p>
+		<p><strong>坑2：</strong>这题对内存的限制较为严格，因此需要精密计算各个数组的大小 <del>(不能多也不能少)</del>。</p>
+	</body>
+</html>

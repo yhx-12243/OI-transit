@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj311]积劳成疾</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定正整数 $k \leq n$。对一个长度为 $n$ 的序列 $a_1, a_2, \cdots, a_n$，定义该序列的<strong>劳累度</strong>为</p>
+		<p>$$ \prod_{i=1}^{n-k+1} w_{\max \left\{ a_i, a_{i+1}, \cdots, a_{i+k-1} \right\}} $$ 其中 $w$ 是一个给定的数组。</p>
+		<p>你需要对所有值域为 $\left[ 1, n \right]$ 间的整数、长度为 $n$ 的序列 (共 $n^n$ 个)，求它们的<strong>劳累度之和</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($1 \leq k \leq n \leq 400$)，意义如题目所述。</p>
+		<p>第二行包含 $n$ 个非负整数，分别表示 $w_1, w_2, \cdots, w_n$ ($0 \leq w_i &lt; 998244353$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有序列的劳累度之和对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>如果劳累度的定义式中是和 ($\sum$) 而不是乘积 ($\prod$) 的话，<del>这就是一个大水题</del>，利用期望的线性性质，将每一项依次求和即可。</p>
+		<p>而本题中需要的是<strong>乘积</strong>，而期望能够直接乘<strong>当且仅当随机变量独立</strong>，因此看似不能直接算了。</p>
+		<p>不过看着这个 $400$ 的数据范围，我们可以尝试使用 DP。对于固定的 $k$，用 $f_{i, j}$ 表示所有值域为 $\left[ 1, i \right]$、长度为 $j$ 的序列 (共 $i^j$ 个) 的劳累度之和。如果和式中 $j - k + 1 \leq 0$，则定义劳累度为 $1$。</p>
+		<p>那么答案就是 $f_{n, n}$，边界为 $f_{i, j} = i^j$ ($j &lt; k$)，因为长度 $&lt; k$ 的所有序列的劳累度均为 $1$。</p>
+		<p>对于一般的情况 ($j \geq k$)，我们将其分为两种情况：</p>
+		<ol>
+			<li><p>序列的最大值不是 $i$。此时所有序列的贡献和为 $f_{i-1, j}$。</p></li>
+			<li><p>序列的最大值是 $i$。我们设 $i$ <strong>第一次</strong>出现的位置为 $k$ (题目中的 $k$ 记为 $K$)：</p>
+			<p>则考虑新序列的劳累度。能够注意到，这个乘积式分为三段：</p>
+			<p>$1 \sim k - 1$ 部分，序列最大值 $\leq i - 1$，因此取 $\max$ 后也不会超过 $i - 1$；</p>
+			<p>$k$ 部分：对于 $a_k = i$ 的部分，它会对 $\max$ 产生贡献<strong>不超过 $K$ 次</strong>，于是这部分的乘积应为 $w_i^{\lambda \left( k, j, K \right)}$，其中 $\lambda \left( k, j, K \right)$ 表示它对 $\max$ 产生贡献的次数；</p>
+			<p>$k + 1 \sim j$ 部分，序列最大值 $\leq i$，因此取 $\max$ 后也不超过 $i$。</p>
+			<p>下面我们分别讨论这三种情况。</p>
+			<p>由于 $a_k = i$ 的分割，两边的序列已经得到 "独立"：前 $k - 1$ 项可以取到所有 $\left( i - 1 \right)^{k-1}$ 种情况；后 $j - k$ 项可以取到所有 $i^{j-k}$ 种情况。</p>
+			<p>因此，由<em>独立随机变量的可乘性</em> (或者乘法分配律)，<span style="color: red">两边的乘积之和应该等于 $f_{i-1, k-1} \cdot f_{i, j-k}$</span>。</p>
+			<p>对于中间部分，我们只需要求出 $\lambda \left( k, j, K \right)$。</p>
+			<p>考虑产生贡献的右端点的下标 $ind$。易知，$ind$ 不能超过 $j$ (不能越界)，且 $ind$ 也不能超过 $k + K - 1$ (产生贡献)。于是<strong>右端点的下标 $ind \leq \min \left\{ j, k + K - 1 \right\}$</strong>。</p>
+			<p>其次，$ind$ 必须 $\geq k$ (产生贡献)，它同时也要 $\geq K$ (不能越界)。故<strong>右端点下标 $ind \geq \max \left\{ k, K \right\}$</strong>。</p>
+			<p>于是，右端点下标共有 $\min \left\{ j, k + K - 1 \right\} - \max \left\{ k, K \right\} + 1 = \min \left\{ j + 1, k + K \right\} - \max \left\{ k, K \right\}$ 种选法，故</p>
+			<p>$$ \lambda \left( k, j, K \right) = \min \left\{ j + 1, k + K \right\} - \max \left\{ k, K \right\} $$</p>
+			<p>结合<span style="color: red">红色</span>部分，我们就能得到这部分的贡献和。</p>
+		</ol>
+		<p>综上，转移方程就是 $$ f_{i, j} = f_{i-1, j} + \sum_{k=1}^K f_{i-1, k-1} \cdot f_{i, j-k} \cdot w_i^{\min \left\{ j + 1, k + K \right\} - \max \left\{ k, K \right\}} $$</p>
+		<p>可以预处理 $w_i$ 的幂次省去计算快速幂的 $\log$。</p>
+		<p>时间复杂度 $O \left( n^3 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 432
+
+typedef long long ll;
+const ll mod = 998244353;
+
+int n, K;
+int pw[N], f[N][N];
+// f[i][j] : 1 ~ i, j numbers
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+int main() {
+	int i, j, k;
+	scanf("%d%d", &amp;n, &amp;K);
+	for (**f = *pw = i = 1; i &lt;= n; ++i) {
+		scanf("%d", pw + 1);
+		for (j = 2; j &lt;= n; ++j) pw[j] = (ll)pw[j - 1] * pw[1] % mod;
+		for (*f[i] = j = 1; j &lt; K; ++j) f[i][j] = (ll)f[i][j - 1] * i % mod;
+		for (; j &lt;= n; ++j)
+			for (f[i][j] = f[i - 1][j], k = 1; k &lt;= j; ++k)
+				f[i][j] = (f[i][j] + (ll)f[i - 1][k - 1] * f[i][j - k] % mod * pw[min(j + 1, k + K) - max(k, K)]) % mod;
+	}
+	printf("%d\n", f[n][n]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>计算 $\lambda \left( k, j, K \right)$ 时要注意爆负的情况。不过如果单独处理边界 $j &lt; k$ 的情况，转移时<strong>保证 $j \geq K$</strong>，那么 $\lambda \left( k, j, K \right)$ 是恒非负的。</p>
+	</body>
+</html>
