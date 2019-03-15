@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[codechef SUMDIS]Sum of distances</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张 $n$ 个节点的<strong>有向无环图</strong>，节点编号为 $1 \sim n$。图的连边情况如下：</p>
+		<ul>
+			<li>对于 $\forall 1 \leq i \leq n - 1$，存在一条节点 $i$ 连向节点 $i + 1$ 的边，权值为 $a_i$；</li>
+			<li>对于 $\forall 1 \leq i \leq n - 2$，存在一条节点 $i$ 连向节点 $i + 2$ 的边，权值为 $b_i$；</li>
+			<li>对于 $\forall 1 \leq i \leq n - 3$，存在一条节点 $i$ 连向节点 $i + 3$ 的边，权值为 $c_i$。</li>
+		</ul>
+		<p>除此之外，图中不存在其它的边。</p>
+		<p>对于一对节点 $s$ 和 $t$ ($s &lt; t$)，记 $d \left( s, t \right)$ 表示从 $s$ 到 $t$ 的最短路长度。请你求出 $\displaystyle \sum_{1 \leq i &lt; j \leq n} d \left( i, j \right)$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 3 \times 10^5$)，表示点的个数。</p>
+		<p>第二行包含 $n - 1$ 个非负整数 $a_1, a_2, \cdots, a_{n-1}$ ($a_i \leq 10000$)。</p>
+		<p>第三行包含 $n - 2$ 个非负整数 $b_1, b_2, \cdots, b_{n-2}$ ($b_i \leq 10000$)。</p>
+		<p>第四行包含 $n - 3$ 个非负整数 $c_1, c_2, \cdots, c_{n-3}$ ($c_i \leq 10000$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示待求式子的值。保证答案不超过 $64$ 位<strong>无符号</strong>整数所能表示的最大值 ($2^{64} - 1$)。</p>
+
+		<h3>题解</h3>
+		<p>对于这种类似网格图的 "<strong>线性</strong>" 的图，都可以考虑一下<a href="lydsy4456%3Blg3350%3Buoj184%3Bloj2090.html" target="_blank">分治</a>的做法。</p>
+		<p>由于这些边所连接的端点的 "跨度" 都不是很大，因此我们可以分治中间的端点 $M$，则任意一条从 $i$ 到 $j$ ($i &lt; M &lt; j$) 的路径都<strong>一定经过 $M - 1, M, M + 1$ 三点之一</strong>。</p>
+		<p>和那道题一样，对于这三个点，用 DP 分别跑出它们到所有点的最短路。由于如果 $i, j$ 在同侧，最短路一定在它们之间 (边权非负)，因此我们只需考虑 $i &lt; M - 1 \wedge M + 1 &lt; j$ 的情形。(有一个端点为 $M - 1, M, M + 1$ 三者这一的可以一开始就更新完成)。</p>
+		<p>考虑此时的和式，它就等于</p>
+		<p>$$ \sum_{i &lt; M - 1} \sum_{j &gt; M + 1} \mathrm{dist} \left( i, j \right) = \sum_{i &lt; M - 1} \sum_{j &gt; M + 1} \min \left\{ \mathrm{dist} \left( i, M - 1 \right) + \mathrm{dist} \left( M - 1, j \right), \mathrm{dist} \left( i, M \right) + \mathrm{dist} \left( M, j \right), \mathrm{dist} \left( i, M + 1 \right) + \mathrm{dist} \left( M + 1, j \right) \right\} \tag 1 \label 1 $$</p>
+		<p>由于 $\eqref 1$ 式中有 $\min$ 函数，因此不是很好处理，我们考虑对每一项统计它的贡献。</p>
+		<p>以项 $\mathrm{dist} \left( i, M \right) + \mathrm{dist} \left( M, j \right)$ 为例，它能产生贡献当且仅当对这组 $i, j$，有</p>
+		<p>$$ \mathrm{dist} \left( i, M \right) + \mathrm{dist} \left( M, j \right) \leq \mathrm{dist} \left( i, M - 1 \right) + \mathrm{dist} \left( M - 1, j \right) \wedge \mathrm{dist} \left( i, M \right) + \mathrm{dist} \left( M, j \right) \leq \mathrm{dist} \left( i, M + 1 \right) + \mathrm{dist} \left( M + 1, j \right) \tag 2 \label 2 $$</p>
+		<p>我们如果记 $x_i = \mathrm{dist} \left( i, M \right) - \mathrm{dist} \left( i, M - 1 \right), y_i = \mathrm{dist} \left( i, M \right) - \mathrm{dist} \left( i, M + 1 \right)$，则 $\eqref 2 \Leftrightarrow x_i + x_j \leq 0 \wedge y_i + y_j \leq 0$。</p>
+		<p>换种形式就是，对于每个 $\left[ L, M - 1 \right)$ 中的 $i$，满足 $x_j \leq - x_i \wedge y_j \leq - y_i$ 的点均 会对答案产生 $\mathrm{dist} \left( i, M \right) + \mathrm{dist} \left( M, j \right)$ 的贡献！</p>
+		<p>可以发现，这又双叒叕是一个<strong>二维数点</strong>问题，我们只需统计对每个 $(x, y)$，满足 $x_j \leq x \wedge y_j \leq y$ 的点的<Strong>个数</strong>和对应的 $\mathrm{dist} \left( M, j \right)$ 之和。轻松使用离线 + 树状数组解决。</p>
+		<p>注意到 $\left| x_i \right| = \left| \mathrm{dist} \left( i, M \right) - \mathrm{dist} \left( i, M - 1 \right) \right| \leq \mathrm{dist} \left( M - 1, M \right) = a_{M - 1}$，因此这些点的坐标不会很大，平移一下直接使用树状数组即可。</p>
+		<p>当 $R - L$ 足够小时，直接使用暴力 DP 即可解决问题。</p>
+		<p>总时间复杂度 $O \left( n \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 600054
+#define lowbit(x) (x &amp; -x)
+
+typedef long long ll;
+const ll INF = 0x3f3f3f3f3f3f3f3fll;
+
+struct sweepLine {
+	int x, y; ll val;
+	sweepLine (int _x = 0, int _y = 0, ll _val = 0) : x(_x), y(_y), val(_val) {}
+	inline bool operator &lt; (const sweepLine &amp;B) const {return y &lt; B.y || (y == B.y &amp;&amp; val &lt; B.val);}
+} sl[N * 2];
+
+int n, d1[N], d2[N], d3[N];
+ll dist[3][N], *s[3] = {*dist, dist[1], dist[2]};
+ll ans;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline ll min(const ll &amp;x, const ll &amp;y) {return x &lt; y ? x : y;}
+inline ll min(const ll &amp;x, const ll &amp;y, const ll &amp;z) {return min(min(x, y), z);}
+
+struct BIT {
+	int sz, ti, tag[N]; ll x[N];
+	BIT () : sz(0), ti(0) {}
+	inline BIT &amp; resize(int size) {return sz = size, *this;}
+	inline ll &amp; recover(int id) {return tag[id] == ti ? x[id] : (tag[id] = ti, x[id] = 0);}
+	ll sum(int h) {ll s = 0; for (; h; h -= lowbit(h)) s += recover(h); return s;}
+	void add(int h, ll v) {for (; h &lt;= sz; h += lowbit(h)) recover(h) += v;}
+	inline BIT &amp; clear() {return ++ti, *this;}
+} B1, B2;
+
+void trivial_dp(int L, int R) {
+	int i, j;
+	static ll f[N];
+	for (i = L; i &lt; R; ++i) {
+		f[i - 1] = INF, f[i] = 0, ans += f[i + 1] = d1[i];
+		for (j = i + 2; j &lt;= R; ++j)
+			ans += f[j] = min(f[j - 1] + d1[j - 1], f[j - 2] + d2[j - 2], f[j - 3] + d3[j - 3]);
+	}
+}
+
+void calc_sp(int L, int M, int R, ll *f) {
+	int i; f[M] = 0;
+	for (f[M - 1] = INF, f[M + 1] = d1[M], i = M + 2; i &lt;= R; ++i)
+		f[i] = min(f[i - 1] + d1[i - 1], f[i - 2] + d2[i - 2], f[i - 3] + d3[i - 3]);
+	for (f[M + 1] = INF, f[M - 1] = d1[M - 1], i = M - 2; i &gt;= L; --i)
+		f[i] = min(f[i + 1] + d1[i], f[i + 2] + d2[i], f[i + 3] + d3[i]);
+	f[M + 1] = d1[M];
+}
+
+void solve(int L, int R) {
+	if (R - L &lt; 16) return trivial_dp(L, R);
+	int i, j, round, M = (L + R) / 2, top, rmin, rmax;
+	ans += d1[M - 1] + d1[M] + min(d1[M - 1] + d1[M], d2[M - 1]);
+	calc_sp(L, M - 1, R, *s), calc_sp(L, M, R, s[1]), calc_sp(L, M + 1, R, s[2]);
+	for (i = L; i &lt; M - 1; ++i) ans += s[0][i] + s[1][i] + s[2][i];
+	for (j = R; j &gt; M + 1; --j) ans += s[0][j] + s[1][j] + s[2][j];
+	for (round = 0; round &lt; 3; ++round) {
+		top = 0, rmin = INT_MAX, rmax = INT_MIN;
+		for (j = R; j &gt; M + 1; --j) sl[top++] = sweepLine(s[0][j] - s[1][j], s[0][j] - s[2][j], s[0][j]);
+		for (i = L; i &lt; M - 1; ++i) sl[top++] = sweepLine(s[1][i] - s[0][i] - (round &gt; 1), s[2][i] - s[0][i] - (round &gt; 0), INF + i);
+		for (i = 0; i &lt; top; ++i) down(rmin, sl[i].x - 1), up(rmax, sl[i].x);
+		std::sort(sl, sl + top);
+		B1.clear().resize(rmax - rmin), B2.clear().resize(rmax - rmin);
+		for (i = 0; i &lt; top; ++i)
+			if ((j = sl[i].val - INF) &gt;= 0) // query
+				ans += B1.sum(sl[i].x - rmin) * s[0][j] + B2.sum(sl[i].x - rmin);
+			else // appear
+				B1.add(sl[i].x - rmin, 1), B2.add(sl[i].x - rmin, sl[i].val);
+		std::rotate(s, s + 1, s + 3);
+	}
+	solve(L, M - 2), solve(M + 2, R);
+}
+
+void work() {
+	int i; ans = 0;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt; n; ++i) scanf("%d", d1 + i);
+	for (i = 1; i &lt; n - 1; ++i) scanf("%d", d2 + i);
+	for (i = 1; i &lt; n - 2; ++i) scanf("%d", d3 + i);
+	solve(1, n), printf("%llu\n", ans);
+}
+
+int main() {
+	int T;
+	for (scanf("%d", &amp;T); T; --T) work();
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意二维数点条件中的取等问题，由于相等的情况只会被统计一次，因此需要合理设置取等条件来去重，具体详见代码第 62 行。</p>
+		<p><strong>坑2：</strong>数点过程中的树状数组是要不断清零的，注意清零时的复杂度，可以一个一个删回去，也可以用 "带时间戳的树状数组" 来实现清零。</p>
+	</body>
+</html>

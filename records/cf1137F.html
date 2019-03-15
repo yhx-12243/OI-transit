@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces1137F]Matches Are Not a Child's Play</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一棵带点权的无根树，其中任意两点的权值均不相同。定义它的 <a href="lydsy1005.html" target="_blank"><strong>Prufer 叶子序列</strong></a>为，每次选取权值最小的<strong>叶节点</strong>将其删除，直至最后只剩下 $1$ 个点，将其删除。</p>
+		<p>则<strong>被删除的节点</strong>构成的序列即为 <strong>Prufer 叶子序列</strong> (注意与 Prufer 序列的不同之处)。易知 $n$ 阶树的 Prufer 叶子序列的长度为 $n$。</p>
+		<p>现在给定一棵 $n$ 个点的树，点的编号为 $1, 2, \cdots, n$。初始时，节点 $i$ 的权值 $p_i = i$。接下来会有三种操作：</p>
+		<ol>
+			<li><p><code>up <em>v</em></code>，表示将点 $v$ 的权值 $p_v \gets 1 + \max \left\{ p_1, p_2, \cdots, p_n \right\}$。</p></li>
+			<li><p><code>when <em>v</em></code>，询问点 $v$ 在当前的 Prufer 叶子序列中的出现位置，下标从 $1 \sim n$。</p></li>
+			<li><p><code>compare <em>v</em> <em>u</em></code>，询问在当前的 Prufer 叶子序列中，$v$ 和 $u$ 中哪个点先出现。</p>
+		</ol>
+		<p>容易注意到，在任意时刻，所有点的权值都是互不相同的。因此，每次操作中的 "Prufer 叶子序列" 都是良定义的。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($2 \leq n \leq 2 \times 10^5; 1 \leq q \leq 2 \times 10^5$)，表示树的点数和操作的个数。</p>
+		<p>接下来的 $n - 1$ 行，每行两个正整数 $v_i, u_i$ ($1 \leq v_i , u_i \leq n$)，描述树上的一条边。</p>
+		<p>最后的 $q$ 行，每行描述一个操作，格式如题目描述。</p>
+
+		<h3>输出格式</h3>
+		<p>按照操作的出现次序，对于每个 <code>when</code> 操作，输出一行一个整数，表示 $v$ 在当前的 Prufer 叶子序列中的出现位置。</p>
+		<p>对于每个 <code>compare</code> 操作，输出一行一个整数，表示在当前的 Prufer 叶子序列中，$v, u$ 中较早出现的点的标号。</p>
+
+		<h3>题解</h3>
+		<p>先考察对于一棵给定的树 $T$ 和一个给定的点 $i$，点 $i$ 的出现位置有什么性质。</p>
+		<p>为了简化问题，不妨设 $p_i = i$。
+		<p>容易注意到，点 $n$ 永远是最后一个被删除的点。因此，如果我们把 $n$ 定为这棵无根树的根，则所有的删除一定是<strong>删除一个有根树的叶节点</strong> (即没有子节点的点)。</p>
+		<p>对于给定点 $i$，设根到 $i$ 的路径为 $C = \left[ n = v_0 \to v_1 \to v_2 \to \cdots \to v_k = i \right]$，则这些点一定在 $i$ 之后消除。</p>
+		<p>考察 $subtree(i)$ 中点权的最大值，记为 $m$ (同时也是那个点的编号)。则对于 $T \setminus \left( C \cup subtree(i) \right)$ 中的所有点 $j$，如果 $subtree(j)$ 中点权的最大值 $&lt; m$ (显然不会等于 $m$)，则 $j$ 子树中的点 (包含 $j$) 一定会在 $m$ 前面删除，从而在 $i$ 前面删除。</p>
+		<p>如果 $subtree(j)$ 中点权的最大值 $&gt; m$，由由于那个最大值的 "保护"，$j$ 会在 $i$ 后删除。</p>
+		<p>如果 $j \in subtree(i)$，显然 $subtree(j)$ 中点权的最大值 $\leq m$，且 $j$ 在 $i$ 前删除。</p>
+		<p>因此，<strong>对于 $j \in T \setminus C$，$j$ 在 $i$ 前删除 &#8660; $subtree(j)$ 中点权的最大值不超过 $subtree(i)$ 中点权的最大值</strong>。</p>
+		<p>而对于 $C$ 中的点，它们一定在 $i$ 后删除，且对应子树中点权最大值均 $\geq m$。</p>
+		<p>于是，$i$ 被删除的时刻，即<strong>在 $i$ 前删除的元素个数</strong> $+ 1$，就等于 <strong>"$subtree(j)$ 中点权最大值 $\leq m$ 的点 $j$ 的个数" 减去 "$C$ 上 $subtree(j)$ 中点权最大值 $\leq m$ 的点 $j$ 的个数" 再 $+ 1$</strong>。</p>
+		<p>因此对于固定的树，我们只需 dfs 一遍，然后统计出每棵子树中的点权最大值 (<strong>以 $i$ 为根的子树中的的点权最大值记为 $M_i$</strong>)，然后对于询问直接求个全局前缀和和链上前缀和即可。</p>
+		<hr />
+		<p>接下来考虑如何<strong>动态维护</strong>这些量。</p>
+		<p>显然，操作 3 相当于两次操作 2 然后询问较小者。因此，我们秩序考虑操作 1 和操作 2。</p>
+		<p>对于操作 1 (up)，相当于一个 "<em>换根</em>" 操作，我们考察哪些点的 $M_i$ 会被改变。</p>
+		<p>设根从 $r_A$ 换到了 $r_B$。考虑链 $R = \left[ r_A \leadsto r_B \right]$，对于 $T \setminus R$ 中的点 $v$，容易发现，它们所对应的子树都是相对链 $R$ 的 "外向树"，因此整个子树的权值都没有改变，从而 $M_v$ 也不改变。</p>
+		<p>对于 $R$ 上的点，由于 $r_A$ 是次大值 (原来的最大值)，$r_B$ 是最大值且为根，因此 $M_{r_B} = p_{r_B}, M_v = p_{r_A}$ ($v \in R, v \neq r_B$)。</p>
+		<p>因此对于一棵完整的链，我们所要做的，就是一次<strong>区间赋值</strong>。</p>
+		<p>考虑使用 Link-Cut Tree 来维护每个 <strong>$M_i$ 相同的节点</strong>所构成的区域。</p>
+		<p>由于 $M_i$ 代表的是子树最大值，因此对于一个给定的 $x$，$M_i = x$ 的点一定是<strong>根到权值为 $x$ 的节点所构成的链</strong>上的一个<strong>子区间</strong>。即这些点所构成的区域是一个<strong>连通块</strong>，更确切地，<strong>一条链</strong>。</p>
+		<p>于是我们可以对这样一个区间标记为<strong>重链</strong>，然后用 Splay 维护。重链与重链之间还是像一般的 LCT 一样使用虚边连接。</p>
+		<p>考察一次换根，相当于把一段区间的权值设为相同 (且不与其它的相同)。你们发现这是什么了吗？对，就是 <strong>LCT 的 <big>access 操作</big>！而 make_root 的过程恰恰需要用到 access</strong>！</p>
+		<p>也就是说，对于一次换根，我们只需将其使用一般 make_root 的技巧：access + splay + reverse，然后可以发现，<strong>每条链为重链和虚边的条件依然是满足的</strong>！</p>
+		<p>至于统计有多少个 $i$ 的 $M_i \geq$ 指定值，可以使用<strong>树状数组</strong>维护对于每个 $x$，$M_i = x$ 的 $i$ 的个数。</p>
+		<p>然后在 access 切换轻重边的时候，每断掉一条重边，就去树状数组中调整对应的值即可。</p>
+		<p>对于 $C$ 上 $subtree(j)$ 中点权最大值 $\leq m$ 的 $j$ 的个数，相当于把 $i$ splay 到对应平衡树的根，然后查询<strong>左子树</strong>的大小即可。</p>
+		<p>至此，我么就完全解决了这个问题。至于 access 操作始终具有均摊 $O \left( \log n \right)$ 的复杂度，因此总的时间复杂度就是 $O \left( n + q \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 400054;
+
+int n, q, E = 0, C;
+int to[N], first[N], next[N];
+int cnt = 0, o[N], p[N], max[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+namespace BIT {
+	#define lowbit(x) (x &amp; -x)
+	int n, x[N];
+	void init(int _n) {n = _n; for (int i = 1; i &lt;= n; ++i) if (i + lowbit(i) &lt;= n) x[i + lowbit(i)] += x[i];}
+	void add(int h, int v) {for (; h &lt;= n; h += lowbit(h)) x[h] += v;}
+	int sum(int h) {int s = 0; for (; h; h -= lowbit(h)) s += x[h]; return s;}
+}
+
+namespace LCT {
+	#define pa p[nd]
+	struct node {bool rev; int v, cov, p, c[2];} nd[N];
+	inline int dir(int x) {return !nd[x].p ? -1 : x == nd[x].pa.c[0] ? 0 : x == nd[x].pa.c[1] ? 1 : -1;}
+	inline void reverse(int x) {x &amp;&amp; (std::swap(nd[x].c[0], nd[x].c[1]), nd[x].rev = !nd[x].rev);}
+	void push_down(int x) {nd[x].rev &amp;&amp; (reverse(nd[x].c[0]), reverse(nd[x].c[1]), nd[x].rev = false);}
+	int pull_down(int x) {int ret = (~dir(x) ? pull_down(nd[x].p) : x); return push_down(x), ret;}
+	inline void update(int x) {const int l = nd[x].c[0], r = nd[x].c[1]; nd[x].v = (l ? nd[l].v : 0) + (r ? nd[r].v : 0) + 1;}
+	void rotate(int x) {
+		int y = nd[x].p, d = !dir(x);
+		nd[nd[y].c[!d] = nd[x].c[d]].p = y;
+		nd[x].p = nd[y].p;
+		if (~dir(y)) nd[y].pa.c[dir(y)] = x;
+		nd[nd[x].c[d] = y].p = x;
+		update(y);
+	}
+	void splay(int x) {for (std::swap(nd[x].cov, nd[pull_down(x)].cov); ~dir(x); rotate(x))
+		if (~dir(nd[x].p)) rotate(dir(x) ^ dir(nd[x].p) ? x : nd[x].p); update(x);}
+	void access(int x) {
+		for (int y = 0; x; y = x, x = nd[x].p) {
+			splay(x);
+			nd[x].c[1] ? BIT::add(nd[x].c[1][nd].cov = nd[x].cov, nd[x].c[1][nd].v - nd[x].v) : BIT::add(nd[x].cov, -nd[x].v);
+			(nd[x].c[1] = y) &amp;&amp; (nd[y].cov = 0), update(x);
+		}
+	}
+	void make_root(int x) {access(x), splay(x), reverse(x);}
+}
+
+inline void addedge(int u, int v) {
+	to[++E] = v; next[E] = first[u]; first[u] = E;
+	to[++E] = u; next[E] = first[v]; first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y; o[++cnt] = max[x] = x;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x])
+			p[y] = x, dfs(y), up(max[x], max[y]);
+}
+
+inline int rank(int x) {return LCT::splay(x), BIT::sum(LCT::nd[x].cov) - LCT::nd[x].c[0][LCT::nd].v;}
+
+int main() {
+	char op[9]; int i, u, v;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(C = n);
+	for (i = 1; i &lt;= n; ++i) LCT::nd[i].v = 1, LCT::nd[i].cov = max[i], ++BIT::x[max[i]];
+	for (i = 1; i &lt; n; ++i) if (LCT::nd[i].p = v = p[i], max[i] == max[v]) LCT::nd[v].c[1] = i, LCT::nd[i].cov = 0;
+	for (i = cnt; i; --i) LCT::update(o[i]);
+	for (BIT::init(n + q); q; --q)
+		switch (scanf("%s%d", op, &amp;v), *op) {
+			case 117: // up
+				LCT::make_root(v), LCT::nd[v].cov = ++C, BIT::add(C, LCT::nd[v].v); break;
+			case 119: // when
+				printf("%d\n", rank(v)); break;
+			case 99: // compare
+				scanf("%d", &amp;u), printf("%d\n", rank(u) &lt; rank(v) ? u : v); break;
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>具体实现时，我们可以把一个连通块 (链) 的 $M_i$ 记录到对应 Splay 的根中。这样在 access 的过程中就可以方便地下传 $M_i$ 了。不过需要注意在 Splay 时保持标记的有效性。</p>
+		<p><strong>坑2：</strong>初始化时如果有 $M_i$ 相同的块，记得将它们连成重边，并 <code>update()</code>。</p>
+	</body>
+</html>

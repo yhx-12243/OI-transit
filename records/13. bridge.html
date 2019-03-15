@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Local #13]Bridge</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对一张无向图 $G = \left( V, E \right)$，如果一个三元集合 $A = \left\{ u, v, w \right\}$ 满足它的<a href="../memos/14.html" target="_blank">导出子图</a> $G \left[ A \right]$ 中的边数 $\left| E \left( G \left[ A \right] \right) \right|  = 2$，则定义 $A$ 为一个<strong>桥</strong>。</p>
+		<p>给定 $n, K$，你需要求出有多少个 $n$ 阶有标号图，满足它的<strong>桥</strong>的数量不超过 $K$。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含三个非负整数 $n, K, m$ ($1 \leq n \leq 5000; 0 \leq K \leq 8; 10^8 \leq m \leq 10^9 + 7$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示图的数量对 $m$ 取模后的值。</p>
+		
+		<h3>题解</h3>
+		<p>注意到 $K$ 非常小，因此这里很可能就是突破口。</p>
+		<p>我们按照图的连通分量逐个考虑。容易证明，如果连通分量 $C_1, C_2, \cdots, C_k$ 的桥数分别为 $b_1, b_2, \cdots, b_k$，则 $G = C_1 \oplus C_2 \oplus \cdots \oplus C_k$ 的桥数为 $b_1 + b_2 + \cdots + b_k$。</p>
+		<p>考虑一个连通图，如果 $G$ 中没有桥，则 <strong>$G$ 一定是完全图 $K_n$</strong>。</p>
+		<p>证明也很容易，当 $n \leq 3$ 时显然，当 $n &gt; 3$ 时直接对 $n$ 归纳。</p>
+		<p>因此 $K = 0$ 时的答案就是将 $G$ 分成若干个完全图的并的方案数，亦即将 $n$ 元集进行子集划分的数，它等于 Bell 数 $B_n$。(Bell 数可以在 $O \left( n^2 \right)$ 时间内得到)。</p>
+		<p>考虑 $K &gt; 0$ 的情况。我们用 $F_{i, j}$ 表示有 $j$ 个桥的 $i$ 阶图的数量，且需要满足图中的每个连通分量都有桥。</p>
+		<p>现在有一个结论为：<strong>如果 $n$ 阶连通图非完全图，则它至少有 $n - 2$ 个桥</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>还是使用归纳法。当 $n = 3$ 时显然，对于 $n &gt; 3$：</p>
+				<p>设 $G = \left( V, E \right)$。取度最大的节点 $v$，则 $G \setminus \left\{ v \right\}$ 不是完全图 (否则 $G$ 也是完全图)。则 $G \setminus \left\{ v \right\}$ 中至少有 $n - 3$ 个桥。</p>
+				<p>由于 $G \setminus \left\{ v \right\}$ 不是完全图，因此存在 $x, y \in G \setminus \left\{ v \right\}$ 使得 $\left( x, y \right) \in E$，于是 $\left\{ v, x, y \right\}$ 也是一个桥 (不同于之前 $n - 3$ 个)。</p>
+				<p>由数学归纳法知结论成立，$n$ 阶图至少有 $n - 2$ 个桥。<p>
+			</div>
+		</div>
+		<p>由于总的桥数不超过 $8$，因此我们只需要考虑 $10$ 阶以内的连通图即可。我们大爆搜所有 $10$ 阶无向连通图，再加上合理的剪枝，即可得到所有的 $f_{i, j}$ —— 有 $j$ 个桥的 $i$ 阶连通图的数量。</p>
+		<p>然后可以通过 DP 得到 $F_{i, j}$ —— 有 $j$ 个桥的 $i$ 阶图数量，其中每个连通分量都有桥。</p>
+		<p>容易证明，对于 $n$ 阶图，如果每个连通分量都有桥，则它至少有 $\left \lceil \dfrac n3 \right \rceil$ 个桥。</p>
+		<p>因此我们只需作一个 $3 k \times k$ 的 DP 即可，<del>或者打一张更大的表</del>。</p>
+		<p>最后我们直接枚举非平凡点 (对桥产生贡献的点) 的个数 $i$ 和桥的个数 $j$，这部分的答案就是 $\dbinom ni \cdot F_{i, j} \cdot B_{n-i}$。求和即可。</p>
+		<p>总时间复杂度 $O \left( n^2 + K^2 \right)$ (加上预处理时的搜索剪枝等的复杂度)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 5400
+
+typedef long long ll;
+const int fy[11][9] =  {{0, 0, 0, 0, 0, 0, 0, 0, 0},
+						{0, 0, 0, 0, 0, 0, 0, 0, 0},
+						{0, 0, 0, 0, 0, 0, 0, 0, 0},
+						{0, 3, 0, 0, 0, 0, 0, 0, 0},
+						{0, 0, 30, 4, 3, 0, 0, 0, 0},
+						{0, 0, 0, 150, 225, 162, 150, 30, 0},
+						{0, 0, 0, 0, 975, 1980, 2370, 3780, 5490},
+						{0, 0, 0, 0, 0, 7203, 26460, 28290, 58275},
+						{0, 0, 0, 0, 0, 0, 58940, 338520, 528360},
+						{0, 0, 0, 0, 0, 0, 0, 534348, 4492152},
+						{0, 0, 0, 0, 0, 0, 0, 0, 5353965}};
+
+int n, K, mod;
+int B[N], S2[N][N], C[N][N];
+int f[N][10];
+
+void init(int n) {
+	int i, j;
+	for (*B = *S2[0] = *C[0] = i = 1; i &lt;= n; ++i) {
+		for (*C[i] = j = 1; j &lt;= i; ++j)
+			S2[i][j] = ((ll)j * S2[i - 1][j] + S2[i - 1][j - 1]) % mod,
+			C[i][j] = (C[i - 1][j] + C[i - 1][j - 1]) % mod;
+		B[i] = std::accumulate(S2[i], S2[i] + (i + 1), 0ll) % mod;
+	}
+}
+
+int main() {
+	int i, j, k, u, v; ll ans = 0;
+	scanf("%d%d%d", &amp;n, &amp;K, &amp;mod);
+	init(std::max(n, 3 * K));
+	for (**f = i = 1; i &lt;= 3 * K; ++i)
+		for (j = 1; j &lt;= K; ++j)
+			for (u = 3; u &lt;= 10 &amp;&amp; u &lt;= i; ++u)
+				for (v = u - 2; v &lt;= j; ++v)
+					f[i][j] = (f[i][j] + (ll)C[i - 1][u - 1] * fy[u][v] % mod * f[i - u][j - v]) % mod;
+	for (k = 0; k &lt;= K; ++k)
+		for (i = 0; i &lt;= n &amp;&amp; i &lt;= 3 * K; ++i)
+			ans = (ans + (ll)f[i][k] * B[n - i] % mod * C[n][i]) % mod;
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意模数不一定是素数，预处理组合数和 Bell 数时注意一下。</p>
+	</body>
+</html>

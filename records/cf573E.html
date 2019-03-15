@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces573E]Bear and Bowling</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个长度为 $n$ 的序列 $a_1, a_2, \cdots, a_n$。定义它的一个 (可以为空的) 子序列 $s_1, s_2, \cdots, s_k$ 的权值为 $\displaystyle \sum_{i=1}^k i \cdot s_i$。你需要找到原序列的一个子序列，使得它的权值最大，输出这个最大值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($1 \leq n \leq 10^5$)，表示序列的长度。</p>
+		<p>第二行包含 $n$ 个由空格分隔的整数 $a_1, a_2, \cdots, a_n$ ($-10^7 \leq a_i \leq 10^7$)，描述这个序列。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示权值的最大值。</p>
+
+		<h3>题解</h3>
+		<p>有一个显然的 $n^2$ DP：用 $f_{i, j}$ 表示前 $i$ 个数中选 $j$ 个所能得到的最大值，不能则为 $- \infty$。</p>
+		<p>则有边界 $f_{0, 0} = 0$ 和转移 $f_{i, j} = \max \left\{ f_{i-1, j}, f_{i-1, j-1} + j \cdot a_i \right\}$。</p>
+		<p>不过它是 $O \left( n^2 \right)$ 状态的。因此直接对它进行优化 (如数据结构优化、凸优化) 看似不太容易实现，我们需要对问题进行进一步的分析。</p>
+		<p>我们要证明这样一个结论：<strong>对于给定的 $i$，一定存在一个 $1 \leq M \leq i$，使得当 $0 \leq j &lt; M$ 时 $f_{i, j} = f_{i-1, j}$ (即<em>不</em>取 $a_i$)，当 $M \leq j \leq i$ 时 $f_{i, j} = f_{i-1, j-1} + j \cdot a_i$ (即取 $a_i$)</strong>。</p>
+		<p><del>为了简化命题</del>，我们证明这个引理：用 $F_{i, j}$ 表示前 $i$ 个数中选 $j$ 个能得到最大值的选法中选的数的<strong>下标集合</strong> (如果有多种相同的可以通过取 $\epsilon$ 振荡来避免这种情况)，则满足 $i \in F_{i, j}$ 的所有 $j$ 是<strong>区间 $\left[ 0, i \right]$ 的一个后缀</strong>。</p>
+		<p>使用数学归纳法。当 $i = 0, 1$ 时显然成立。</p>
+		<p>设对所有小于 $i$ 的数成立。考虑 $i$，反设存在一个 $j$，满足 $i \in F_{i, j} \wedge i \notin F_{i, j+1}$。设 $j_\min$ 为最小的一个。</p>
+		<p>此时，设 $F_{i-1, j} = F_{i-1, j-1} \cup \{x\}, F_{i-1, j+1} = F_{i-1, j} \cup \{z\}, F_{i, j} = F_{i-1, j-1} \cup \{i\}$。</p>
+		<p>则 $F_{i, j+1} = F_{i-1, j+1} = F_{i-1, j} \cup \{z\}$。</p>
+		<p>考虑集合 $F_{i-1, j} \cup \{i\}$。我们用 $value \left( S \right)$ 表示取 $S$ 中的下标所得的权值。利用条件 $f_{i-1, j} &lt; f_{i, j}$ (默认所有情况均不取等号)，分两种情况讨论：</p>
+		<ol>
+			<li><p>如果 $z &lt; x$，则 $value \left( F_{i-1, j-1} \cup \{x\} \right) &lt; value \left( F_{i-1, j-1} \cup \{i\} \right)$。又 $z &lt; x \wedge z &lt; i$，<span style="color: red">因此</span> $value \left( F_{i-1, j-1} \cup \left\{ z, x \right\} \right) &lt; value \left( F_{i-1, j-1} \cup \left\{ z, i \right\} \right)$ <span style="color: red">(注：这个 "因此" 待修正，<del>先咕着</del>)</span>。</p>
+			<p>又因为 $value \left( F_{i-1, j-1} \cup \{z\} \right) &lt; value \left( F_{i-1, j-1} \cup \{x\} \right)$，且 $z &lt; i \wedge x &lt; i$，故 $value \left( F_{i-1, j-1} \cup \left\{ z, i \right\} \right) &lt; value \left( F_{i-1, j-1} \cup \left\{ x, i \right\} \right)$。</p></li>
+			<li><p>如果 $x &lt; z$，则 $value \left( F_{i-1, j-1} \cup \{z\} \right) &lt; value \left( F_{i-1, j-1} \cup \{x\} \right) &lt; value \left( F_{i-1, j-1} \cup \{i\} \right)$。又 $x &lt; z \wedge x &lt; i$，因此 $value \left( F_{i-1, j-1} \cup \left\{ x, z \right\} \right) &lt; value \left( F_{i-1, j-1} \cup \left\{ x, i \right\} \right)$。</p></li>
+		</ol>
+		<p>综上，有 $value \left( F_{i-1, j+1} \right) = value \left( F_{i-1, j-1} \cup \left\{ x, z \right\} &lt; F_{i-1, j-1} \cup \left\{ x, i \right\} \right) = F_{i-1, j} \cup \{i\}$。</p>
+		<p>因此 $f_{i-1, j+1} &lt; f_{i-1, j} + \left( j + 1 \right) \cdot a_i \Rightarrow i \in F_{i, j + 1}$，矛盾。</p>
+		<p>由数学归纳法知因此结论成立。由于转移中取最大值，因此我们可以在转移的过程中三分 (或二分) 这个 $M$ 点，从而找到如何更新。</p>
+		<p>虽然这样时间复杂度还是 $O \left( n^2 \right)$，不过由于二分是 $O \left( \log n \right)$ 的，因此主要时间瓶颈在于<strong>更新 (转移)</strong>。</p>
+		<p>考虑使用滚动数组将状态缩到<strong>一维</strong>，然后就可以尝试使用<strong>数据结构优化</strong>啦。</p>
+		<hr />
+		<p>观察这个转移的形式，对于 $j &lt; M$，$f_j$ 的值不变；对于 $j \geq M$，$f_j \gets f_{j-1} + j \cdot a_i$。由于在一轮转移中 $a_i$ 是一个常量，因此这个操作相当于<strong>区间加上等差数列</strong>。</p>
+		<p>又由于是从 $f_{j-1}$ 转移到 $f_j$，因此 $f_{L-1}$ 会贡献到两个 $f_j$ ——因此我们需要<strong>插入一个数</strong>。</p>
+		<p>总之，我们需要滋磁如下三种操作：<strong>插入一个数</strong>、<strong>区间加等差数列</strong>以及<strong>单点查询</strong>。因此可以使用任何一种平衡树来维护。</p>
+		<p>由于在 DP 的过程中有二分，因此总的时间复杂度为 $O \left( n \log^2 n \right)$。</p>
+		<p>当然，可以通过<strong>维护原序列的差分序列</strong>等其它方法，使得二分可以在平衡树上进行，从而将时间复杂度降至 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 100054
+
+typedef long long ll;
+
+int n, cnt = 0;
+int a[N];
+ll ans = 0;
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+namespace S {
+	#define pa p[nd]
+	#define C(x) c[x][nd]
+	#define root S::nd[N - 1].c[0]
+	
+	struct node {int sz, p, c[2]; ll v, tag_k, tag_b;} nd[N];
+
+	inline int dir(int x) {return x == nd[x].pa.c[1];}
+	inline void cover(int x, ll k, ll b) {nd[x].tag_k += k, nd[x].tag_b += b, nd[x].v += k * nd[x].C(0).sz + b;}
+	inline void push_down(int x) {
+		ll &amp;k = nd[x].tag_k, &amp;b = nd[x].tag_b;
+		if (!(k || b)) return;
+		int l = nd[x].c[0], r = nd[x].c[1];
+		if (l) cover(l, k, b); if (r) cover(r, k, b + (nd[l].sz + 1) * k);
+		k = b = 0;
+	}
+	void pull_down(int x) {if (nd[x].p != N - 1) pull_down(nd[x].p); push_down(x);}
+	inline void update(int x) {nd[x].sz = nd[x].C(0).sz + nd[x].C(1).sz + 1;}
+	void rotate(int x) {
+		int y = nd[x].p, d = !dir(x);
+		nd[ nd[y].c[!d] = nd[x].c[d] ].p = y;
+		nd[x].p = nd[y].p;
+		nd[y].pa.c[dir(y)] = x;
+		nd[ nd[x].c[d] = y ].p = x;
+		update(y);
+	}
+	void splay(int x, int g = N - 1) {for (; nd[x].p != g; rotate(x)) if (nd[x].pa.p != g) rotate(dir(x) ^ dir(nd[x].p) ? x : nd[x].p); update(x);}
+	int kth(int x, int k) {
+		assert(k &lt;= nd[x].sz);
+		for (int j; ; x = nd[x].c[k &gt; j], k -= j - k &gt;&gt; 31 &amp; j + 1)
+			if (push_down(x), k == (j = nd[x].C(0).sz) + 1) return splay(x), x;
+	}
+	// -------- advanced -------- //
+	void push_back(int &amp;r, ll value, int p = N - 1) {
+		if (!r) {nd[ r = ++cnt ].p = p, nd[cnt].v = value, nd[cnt].sz = 1; return;}
+		int x = r;
+		for (; push_down(x), nd[x].c[1]; x = nd[x].c[1]); splay(x, p);
+		nd[ nd[x].c[1] = ++cnt ].p = x, nd[cnt].v = value, nd[cnt].sz = 1, update(x);
+	}
+	inline void insert_before(int x, ll value) {splay(x), push_back(nd[x].c[0], value, x), update(x);}
+	void traversal(int x) {
+		push_down(x), up(ans, nd[x].v);
+		if (nd[x].c[0]) traversal(nd[x].c[0]);
+		if (nd[x].c[1]) traversal(nd[x].c[1]);
+	}
+	void debug(int x) {
+		push_down(x);
+		if (nd[x].c[0]) debug(nd[x].c[0]);
+		fprintf(stderr, "    #%d: val %lld, size %d, p %d, lc %d, rc %d\n", x, nd[x].v, nd[x].sz, nd[x].p, nd[x].c[0], nd[x].c[1]);
+		if (nd[x].c[1]) debug(nd[x].c[1]);
+	}
+}
+
+inline ll f(int x) {return x ? S::nd[S::kth(root, x)].v : 0;}
+
+int main() {
+	int i, L, R, M, g; ll t;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	S::nd[N - 1].sz = 1;
+	for (i = 1; i &lt;= n; ++i) {
+		for (L = 1, R = i; L &lt; R; f(M - 1) + (ll)M * a[i] &lt;= f(M) ? (L = M + 1) : (R = M))
+			M = (L + R) / 2;
+//		fprintf(stderr, "%d =&gt; %d\n", i, L);
+		t = f(L - 1);
+		if (L == i) S::push_back(root, t + (ll)L * a[i]);
+		else {
+			L == 1 ? S::insert_before(g = S::kth(root, 1), a[i])
+				   : S::insert_before(g = S::kth(root, L - 1), t);
+			S::splay(cnt);
+			assert(g == S::nd[cnt].c[1]);
+			S::cover(g, a[i], (L == 1 ? 2ll : (ll)L) * a[i]);
+		}
+//		fprintf(stderr, "    data: (root = %d)\n", root); S::debug(root); fputc(10, stderr);
+	}
+	assert(cnt == n), S::traversal(root);
+	printf("%lld\n", ans);
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>二分时注意边界问题，初始时的端点为 $\left[ 1, i \right]$。</p>
+		<p><strong>坑2：</strong>如果使用 Splay，则在查询第 $k$ 个元素 (<code>kth</code>) 后需要将其 splay 到根。</p>
+	</body>
+</html>

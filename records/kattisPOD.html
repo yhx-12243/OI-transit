@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[kattisPOD]Podnizovi</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p><del>(题目名称翻译：po d ni zo vi => 泼得你自闭)</del></p>
+		<p>给你一个长度为 $n$ 的序列 $A = \left[ a_1, a_2, \cdots, a_n \right]$。$S_i$ 为数列 $A$ 的一个非空子序列。让所有非空子序列按照字典序排序成 $S_1, S_2, S_3, \cdots, S_q$。注意一些子序列可能是相等的，故恒有 $q = 2^n - 1$。</p>
+		<p>定义：$$ h \left( \left[ v_1, v_2, \cdots, v_k \right] \right) = \left( v_1 \cdot B^{k-1} + v_2 \cdot B^{k-2} + \cdots + v_{k-1} \cdot B + v_k \right) \bmod M $$</p>
+		<p>其中 $B, M$ 都为给定的正整数。</p>
+		<p>给定 $K$，你需要对 $i = 1, 2, \cdots, K$，分别求出 $h \left( S_1 \right), h \left( S_2 \right), \cdots, h \left( S_K \right)$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个正整数 $n, K, B, M$ ($1 \leq n \leq 10^5; 1 \leq K \leq \min \left\{ 2^n - 1; 10^5 \right\}; 1 \leq B, M \leq 10^6$)，分别表示序列的长度、输出大小、底数和模数。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($a_i \leq 10^5$)，表示这个序列。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $K$ 行，每行一个整数，第 $i$ 行的整数表示 $h \left( S_i \right)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>由于需要求前 $K$ 小的元素，根据套路，考虑使用<strong>优先队列 (堆)</strong> 来维护。</p>
+		<p>首先，最小的元素是平凡的——直接取 $a_i$ 中最小的，设为 $a_m$，则 $\left[ a_m \right]$ 即为所求。我们将其插入到堆中。</p>
+		<p>但是由于需要使用堆来维护，因此我们需要根据一个子序列去 "<strong>生成</strong>" 另一些子序列，且保证字典序次小的可以被生成到。</p>
+		<p>这种 "生成" 的方式有两种：</p>
+		<ol>
+			<li><p>对于一个非空序列 $S$，在其后面添加一个元素 $x$，即 $S' \gets S \sqcup \left[ x \right]$。</p></li>
+			<li><p>对于一个非空序列 $S$，设 $x = S.\mathrm{back}()$，则将替换成一个<strong>不小于</strong> $x$ 的元素 (且满足下标递增的性质)。</p>
+			<p>这里使用 "不小于" 而不是 "大于" 的原因是，因为相等但不相同的子序列需要被统计多次，而直接统计这样的子序列有多少个是比较困难的。</p></li>
+		</ol>
+		<p>于是只需用堆维护这个序列生成的过程即可。下面来简单讲一下需要维护的细节：</p>
+		<p>首先你需要记录一个状态的 Hash 值 (答案)，最后一个元素以及倒数第二个元素 (由于有操作 2) 的下标。</p>
+		<p>然后对于操作 1，就相当于<strong>后缀求最小值</strong>，直接预处理即可。</p>
+		<p>对于操作 2，设倒数第二个元素的下标为 $id$，则我们需要找到一个位于 $\left[ id + 1, n \right]$ 中的元素 $j$，满足 $y = a_j \geq x$ 且尽可能得小。</p>
+		<p>当然，你可以把它看成是一个二维数点问题，然后使用动态数据结构处理它。不过，由于我们只要找到最小的 $y$，因此也许会有比较简单的方法，具体过程如下：</p>
+		<p>我们对于每个 $x$ (值)，维护出它最后一次出现的下标 $id_x$。那么我们求 $y$ 的任务就是在区间 $\left[ x, m \right]$ 中找到一个最小的 $y$，使得 $id_y &gt; id$，其中 $m = \max a_i$。</p>
+		<p>于是，可以使用线段树 + 二分或倍增算法解决这个问题，然后使用 <code>std::set</code> 等方法求出 (值为 $y$ 的) 最小的下标 $i$。这部分的时间复杂度为 $O \left( \log n \right)$ (单次)。</p>
+		<hr />
+		<p>第二个问题是堆中序列的比较问题。由于这些序列都只涉及到尾部添加一个元素或者更改末尾元素，因此可以考虑使用 Trie 树 (字典树) 来维护。</p>
+		<p>具体地，我们每进行一次插入，就在 Trie 树中插入对应的节点；而更改就相当于在倒数一次插入前的节点上进行插入。</p>
+		<p>因此，我们还要在状态上维护 "当前序列" 及其 "去掉末尾元素后的序列" 在 Trie 树上的位置。</p>
+		<p>至于比较两个串 $a, b$ 的大小。我们可以求出它们在 Trie 上的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>。如果一个点是另一个点的祖先 (后代)，则说明 $a$ 与 $b$ 互为前缀关系，这个比较是平凡的；</p>
+		<p>否则，设 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为 $c$，则我们只需比较 $c$ 向两个子节点连出去的边所对应的字符的大小就可以了。</p>
+		<p>注意到存在动态加点操作，因此我们需要使用<strong>倍增算法</strong><del>或其它鬼畜算法</del>来求 LCA，因此这个过程还是 $O \left( \log n \right)$ 的 (当前用某些奇怪的算法可以做到 $O(1)$ 比较)。</p>
+		<p>由于优先队列部分的时间复杂度为 $O \left( K \log K \right)$，因此总的时间复杂度为 $O \left( K \log K \log n \right)$ (或 $O \left( K \log K \right)$)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 100005, LN = 17;
+
+int n, m = 0, K, x, mod;
+int suf[N];
+pr pos[N], *beg[N], *c[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+namespace pb_ds {
+	int st[LN][N];
+
+	void build_sparse_table() {
+		int *f, *g = *st, i, j, k = m;
+		for (j = 0; 1 &lt;&lt; (j + 1) &lt;= m; ++j) {
+			f = g, g = st[j + 1], k -= 1 &lt;&lt; j;
+			for (i = 1; i &lt;= k; ++i)
+				g[i] = max(f[i], f[i + (1 &lt;&lt; j)]);
+		}
+	}
+
+	int query(int pos, int l) { // find first value &gt;= l exists in [pos, n]
+		int i, r;
+		for (i = lg2(m - l + 1); i &gt;= 0; --i)
+			if ((r = (1 &lt;&lt; i) + l) &lt;= m + 1 &amp;&amp; st[i][l] &lt; pos) l = r;
+		return l;
+	}
+}
+
+namespace Trie {
+	typedef std::unordered_map &lt;int, int&gt; map;
+	const int N = 300005, LN = 19;
+
+	int cnt = 1, P[LN][N], *p = *P, dep[N], col[N];
+	map C[N];
+
+	int append(int r, int x) {
+		int i; map::iterator it = C[r].find(x);
+		if (it != C[r].end()) return it-&gt;second;
+		C[r].emplace(x, ++cnt), col[cnt] = x;
+		dep[cnt] = dep[r] + 1;
+		for (p[cnt] = r, i = 0; P[i][cnt]; ++i) P[i + 1][cnt] = P[i][P[i][cnt]];
+		return cnt;
+	}
+
+	int jump_until(int x, int d) {
+		for (int i = LN - 1; i &gt;= 0; --i)
+			if (dep[x] - (1 &lt;&lt; i) &gt;= d) x = P[i][x];
+		return x;
+	}
+
+	int compare(int x, int y) {
+		if (x == y) return 0;
+		int i, fl = (dep[x] &lt; dep[y]); fl &amp;&amp; (std::swap(x, y), 0);
+		if ((x = jump_until(x, dep[y])), x == y) return fl ? -1 : 1;
+		for (i = LN - 1; i &gt;= 0; --i)
+			P[i][x] == P[i][y] || (x = P[i][x], y = P[i][y]);
+		return fl ^ (col[x] &lt; col[y]) ? -1 : 1;
+	}
+}
+
+struct event {
+	int pos, lpos, ver, lver, hash;
+	event (int _pos = 0, int _lpos = 0, int _ver = 0, int _lver = 0, int _hash = 0) : pos(_pos), lpos(_lpos), ver(_ver), lver(_lver), hash(_hash) {}
+	inline bool operator &lt; (const event &amp;B) const {return Trie::compare(ver, B.ver) &gt; 0;}
+};
+
+std::priority_queue &lt;event&gt; pq;
+
+int main() {
+	int i, j, v; pr *g, *h; event t;
+	// init
+	scanf("%d%d%d%d", &amp;n, &amp;K, &amp;x, &amp;mod);
+	for (i = 0; i &lt; n; ++i) scanf("%d", &amp;v), pos[i] = pr(v, i), up(m, v);
+	std::sort(pos, pos + n);
+	for (i = n - 1; i &gt;= 0; --i) beg[pos[i].first] = c[pos[i].second] = pos + i;
+	for (i = n - 1, suf[i] = i; --i &gt;= 0; suf[i] = (c[i]-&gt;first &lt;= c[suf[i + 1]]-&gt;first ? i : suf[i + 1]));
+	// sparse table
+	int *end = *pb_ds::st;
+	for (beg[m + 1] = pos + n, i = m; i; --i)
+		end[i] = (beg[i] ? beg[i + 1][-1].second : (beg[i] = beg[i + 1], -1));
+	pb_ds::build_sparse_table();
+	// main program
+	i = beg[1]-&gt;second, pq.emplace(i, -1, Trie::append(1, c[i]-&gt;first), 1, c[i]-&gt;first % mod);
+	for (; --K, !pq.empty(); ) {
+		t = pq.top(), pq.pop(), i = t.pos;
+		if (printf("%d\n", t.hash), !K) break;
+		if (i != n - 1) j = suf[i + 1], pq.emplace(j, i, Trie::append(t.ver, c[j]-&gt;first), t.ver, ((ll)t.hash * x + c[j]-&gt;first) % mod);
+		if (g = c[i], g[1].first == g-&gt;first) pq.emplace(g[1].second, t.lpos, t.ver, t.lver, t.hash);
+		else if (g-&gt;first != m &amp;&amp; (v = pb_ds::query(t.lpos + 1, g-&gt;first + 1)) != m + 1) {
+			h = std::lower_bound(beg[v], beg[v + 1], pr(v, t.lpos + 1));
+			pq.emplace(h-&gt;second, t.lpos, Trie::append(t.lver, v), t.lver, (t.hash + v - g-&gt;first) % mod);
+		}
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $a_i$ 可能大于 $M$，因此最小的序列的值也需要对 $M$ 取模。</p>
+		<p><strong>坑2：</strong>在处理下标的时候需要注意边界问题，比如赋值为 $-1$ 和 $0$ 需要分清楚。</p>
+	</body>
+</html>

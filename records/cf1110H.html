@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces1110H]Modest Substrings</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定两个正整数 $l, r$，称整数 $x$ 为<dfn>众的</dfn>，当且仅当 $l \leq x \leq r$。</p>
+		<p>对一个由 $\texttt {0-9}$ 中数字构成的字符串，定义它的权值为这样的非空子串个数：<strong>它不以 $0$ 开头</strong>，且将其看成数字后是<dfn>众的</dfn>。</p>
+		<p>你需要找到一个长度为 $n$ 的字符串，使得它的权值最大。如果有多个字符串，你需要寻找字典序最小的一个。</p>
+
+		<h3>输入格式</h3>
+		<p>共三行，每行包含一个正整数 $l, r, n$ ($1 \leq l \leq r \leq 10^{800}; 1 \leq n \leq 2000$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出两行，每行一个整数。第一行输出一个整数 $w$，表示字符串权值的最大值。</p>
+		<p>第二行输出一个长度为 $n$ 的字符串，表示字典序最小的权值为 $w$ 的字符串。</p>
+		
+		<h3>题解</h3>
+		<p>考虑 $r - l$ 比较小的情况。</p>
+		<p>此时，我们可以对 $l \sim r$ 中的所有字符串，建立 Aho-Corasick 自动机，然后在这个自动机上 DP，找到最大值即可。</p>
+		<p>但是这里 $l, r \leq 10^{800}$，内存无法存下这么多的节点，那该怎么办呢？</p>
+		<p>我们考察这个 Trie 树的结构，可以发现，对于大部分的节点，以它为根的子树都是一个满 $10$ 叉树。且子树中所有叶节点都有着相同的标记。</p>
+		<p>于是，可以想到将这些节点 "缩起来"。</p>
+		<p>我们将一个深度为 $l$ 的满十叉树 (i.e. 有 $10^l$ 个叶节点的满十叉树) 缩为一个点。于是，当走到这个点的时候，再<strong>任意走 $l$ 步</strong>，就一定能产生一个匹配。这里要注意，<strong>至少还需要走 $l$ 步</strong>，如果中途这个串戛然而止了，则这个贡献是无法产生的。</p>
+		<p>因此，我们对这个根节点，打上一个长度为 $l$ 的标记，表示：<strong>你只要再走足 $l$ 步，就可以得到 $1$ 的贡献</strong>。</p>
+		<p>当然，一个点可能被打上多个标记，因此实际上，我们对一个点存储的信息是，对每个 $l$，长度为 $l$ 的标记的数量。</p>
+		<p>于是，现在的 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>就 "瘦身" 很多了，可以轻松在内存中存储。构造也非常容易，使用 dfs 或各种边界讨论都可以办到。</p>
+		<p>对于 DP 的转移，只需要枚举下一个字符是 $\texttt {0-9}$ 中的哪一个，然后去 AC 自动机上跳，然后还要根据当前的串长 $l$ 决定加入哪些标记。具体地，设串长为 $l$，则<strong>长度小于 $l$ 的标记</strong>都是有效的。因此，在构造完 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>后，可以对标记求一个前缀和。</p>
+		<p>最后就是输出方案的问题，由于我们需要字典序最小，因此传统的转移方向会有一些问题 (它只能得到翻转后字典序最小的串)。</p>
+		<p>因此我们考虑换一个转移方向——即用 $f_{i, j}$ 表示<strong>总长度为 $i$ 的串，初始时自动机在位置 $j$</strong> 所可以获得的最大权值。(通常的转移是假设初始时在位置 $1$，然后枚举最后到了哪儿)</p>
+		<p>转移的时候，设自动机从 $j \to k$，则我们用 $f_{i+1, k}$ 去更新 $f_{i, j}$。这样，顺便就可以记录 $F_{i, j}$，表示该选哪个字符最优，从而就成功地输出了方案。</p>
+		<p>总时间复杂度 $O \left( n \log r \cdot \Sigma^2 \right)$，其中 $\Sigma$ 为字符集大小，此处等于 $10$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 2054, M = N * 16;
+
+int n;
+char L[N], R[N], fr[N][M];
+int f[N][M];
+
+namespace AC {
+	char tmp[N];
+	int cnt = 1, limit;
+	int d[M][10], f[M], que[M];
+	int v[M][N], sum[M][N];
+
+	void dfs(int x, int dep, bool bl = true, bool br = true) {
+		if (!(bl || br) || dep == limit) {++v[x][limit - dep]; return;}
+		int i, m = br ? R[dep] : 9;
+		for (i = (bl ? L[dep] : 0); i &lt;= m; ++i)
+			dfs(d[x][i] ? d[x][i] : (d[x][i] = ++cnt), dep + 1, bl &amp;&amp; i == L[dep], br &amp;&amp; i == R[dep]);
+	}
+
+	void init() {
+		int i, j, nL = strlen(L), nR = strlen(R); char *p;
+		for (p = L; *p; *p++ &amp;= 15); for (p = R; *p; *p++ &amp;= 15);
+		if (nL == nR) return limit = nL, dfs(1, 0);
+		memcpy(tmp, R, nR), memset(R, 9, nL), limit = nL, dfs(1, 0);
+		memcpy(R, tmp, nR), memset(L, 0, nR), *L = 1, limit = nR, dfs(1, 0);
+		for (i = nL + 1; i &lt; nR; ++i)
+			for (j = 1; j &lt; 10; ++j) ++v[ d[1][j] ? d[1][j] : (d[1][j] = ++cnt) ][i - 1];
+	}
+
+	void build() {
+		int h, ta = 1, i, j, t, id;
+		*que = 1, f[1] = 0;
+		for (h = 0; h &lt; ta; ++h)
+			for (i = que[h], id = 0; id &lt; 10; ++id) {
+				t = (f[i] ? d[f[i]][id] : 1);
+				int &amp;u = d[i][id];
+				if (!u) {u = t; continue;}
+				f[u] = t, que[ta++] = u;
+				for (j = 0; j &lt; n; ++j) v[u][j] += v[t][j];
+			}
+	}
+
+	inline void partial_sum() {for (int i = 1; i &lt;= AC::cnt; ++i) std::partial_sum(v[i], v[i] + n, sum[i]);}
+}
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+int main() {
+	int i, j, d, nj, nv, t = 1;
+	scanf("%s%s%d", L, R, &amp;n), AC::init(), AC::build(), AC::partial_sum();
+	for (i = 1; i &lt;= n; ++i)
+		for (j = 1; j &lt;= AC::cnt; ++j)
+			for (d = 0; d &lt; 10; ++d)
+				nj = AC::d[j][d], nv = f[i - 1][nj] + AC::sum[nj][i - 1],
+				nv &gt; f[i][j] &amp;&amp; (f[i][j] = nv, fr[i][j] = d);
+	printf("%d\n", f[n][1]);                        
+	for (i = n; i; t = AC::d[t][fr[i][t]], --i) putchar(fr[i][t] | 48);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong><abbr title="Aho-Corasick 自动机">AC 自动机</abbr>中的节点数量一定要开大！它可以达到 $30000$ 多个节点的数量级！</p>
+		<p><strong>坑2：</strong>在转移时注意标记的长度限制，不要多转移或写反了。</p>
+	</body>
+</html>
