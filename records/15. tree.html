@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Local #15]Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一棵 $n$ 个节点的带边权的树，给定正整数 $k$，对于树上的任意 $k$ 个点 (可以重复)，定义它们的<strong>重心</strong>为<strong>到这 $k$ 个点距离之和最小的点</strong>。如果有多个同样大小的点，<strong>则选择编号最小的一个</strong>。</p>
+		<p>给定这棵树和数 $k$，你需要对 <strong>$k$ 个点的所有 $n^k$ 种情形</strong>，求出它们的<strong>重心</strong>的编号之和。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($n, k \leq 30000$)。</p>
+		<p>接下来 $n - 1$ 行，每行三个正整数 $u, v, w$ ($1 \leq u, v \leq n; u \neq v; 1 \leq w \leq 10^5$)，表示树上有一条连接 $u$ 和 $v$ 的边权为 $w$ 的无向边。</p>
+		
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示重心编号之和模 $998244353$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>容易发现，一个可重点集的重心之和树的形状和点集有关，<strong>与树的边权无关</strong>。</p>
+		<p>根据<a href="lydsy4271.html" target="_blank">这道题</a>的经验，对于一棵树，它的重心要么是唯一的，要么可以为两个相邻的点。其中后者当且仅当总点数为偶数且存在一条边使得断掉它后两个子树大小均为 $\dfrac {\left| V \right|} 2$ 时成立。</p>
+		<p>然而这道题目中的<strong>重心</strong>指的是树上一个可重点集 $S$ 的重心，换句话说，就是 <strong>$S$ 构成的虚树的重心</strong>。因此它的重心 $C$ 可能不在 $S$ 上。因为当后者成立时，这条 "边" 可能对应于原树中的一条<strong>链 (路径)</strong>，而这条链上的<strong>所有点</strong>都可以成为重心。</p>
+		<p>不过由于这种情况只有可能在 $k$ 为偶数时发生，因此我们先讨论 $k$ 是奇数时的情形。</p>
+		<p style="color: red">ps: 由于 $k$ 是奇数，以下我们用 $2 k - 1$ 表示原题的 $k$。</p>
+		<p>考虑 $r$ 是重心的方案数。设把 $r$ 看成根后，$r$ 的所有子树分别为 $C_1, C_2, \cdots, C_m$。由重心的性质，每棵子树中至多选取 $k - 1$ 个点。</p>
+		<p>尝试使用<strong>指数生成函数</strong> (有标号有顺序)，用 $a_i$ 表示方案中<strong>有 $i$ 个点不是 $r$ 的 $r$ 之和</strong>。</p>
+		<p>则<strong>如果没有每棵子树不超过 $k - 1$ 个点</strong>的限制，则生成函数显然是 $A_r (x) = r \cdot \mathrm e^{\left( n - 1 \right) x}$。</p>
+		<p>然而现在有这个限制，因此我们尝试使用容斥原理。比如，我们先考虑 $C_1$ 中选取 $\geq k$ 个点的方案。</p>
+		<p>此时，在 $C_1$ 中选取的 <abbr title="Exponential Generating Function, 指数生成函数">e.g.f.</abbr> 应为 $$ \sum_{i \geq k} \frac {\left( \left| C_1 \right| x \right)^i} {i!} $$</p>
+		<p>而对于其它的子树，它们的 <abbr title="Exponential Generating Function, 指数生成函数">e.g.f.</abbr> 依然为 $\exp \left( \left( \left| C_2 \right| + \cdots + \left| C_m \right| \right) x \right) = \mathrm e^{ \left( n - 1 - \left| C_1 \right| \right) x}$。</p>
+		<p>综上，$C_1$ 不合法的 <abbr title="Exponential Generating Function, 指数生成函数">e.g.f.</abbr> 即为</p>
+		<p>$$ \mathrm e^{\left( n - 1 - \left| C_1 \right| \right) x} \cdot \sum_{i \geq k} \frac {\left( \left| C_1 \right| x \right)^i} {i!} = \mathrm e^{\left( n - 1 \right) x} \cdot \left( \sum_{i \geq k} \frac {\left( \left| C_1 \right| x \right)^i} {i!} \middle / \mathrm e^{\left| C_1 \right| x} \right) \tag 1 \label 1 $$</p>
+		<p>同理，我们也能得到其它 $C_i$ 不合法的 <abbr title="Exponential Generating Function, 指数生成函数">e.g.f.</abbr>。它们的形式类似 $\eqref 1$ 式，这里就不列举了。</p>
+		<p>接下来，尝试考虑两棵及以上子树同时不合法的 <abbr title="Exponential Generating Function, 指数生成函数">e.g.f.</abbr>。比如说 $C_1, C_2$ 我们写出来，可以发现它等于</p>
+		<p>$$ \mathrm e^{\left( n - 1 - \left| C_1 \right| - \left| C_2 \right| \right) x} \cdot \left( \sum_{i \geq k} \frac {\left( \left| C_1 \right| x \right)^i} {i!} \right) \cdot \left( \sum_{j \geq k} \frac {\left( \left| C_2 \right| x \right)^j} {j!} \right) \tag 2 \label 2 $$</p>
+		<p>观察 $\eqref 2$ 式，可以发现，<strong>它的最低次项的次数不小于 $0 + k + k = 2 k$！</strong>而总点数只有 $2 k - 1$，由生成函数的定义，$i! \left[ x^i \right] A_r \left( x \right)$ 描述了<strong>有 $i$ 个点不是 $r$ 的方案</strong>，而总共只有 $2 k - 1$ 个点，因此只有<strong>当 $0 \leq i \leq 2 k - 1$ 时</strong>，它的系数才是有价值的。换句话说，整个生成函数的计算可以<strong>在模 $x^{2 k}$ 意义下进行</strong>。</p>
+		<p>于是，$\eqref 2$ 式中的项被彻底地 <em>"模" 掉</em>了，因此，我们就可以不考虑啦。同理，三棵及以上子树同时不合法的 <abbr title="Exponential Generating Function, 指数生成函数">e.g.f.</abbr> 也可以忽略不计。</p>
+		<p>因此，容斥只要做一层就够了。将整个式子写出来，大概就长这样：</p>
+		<p>$$ A_r \left( x \right) = r \cdot \mathrm e^{\left( n - 1 \right) x} \cdot \left( 1 - \sum_{t=1}^m \sum_{i \geq k} \frac {\left( \left| C_t \right| x \right)^i} {i!} \middle / \mathrm e^{\left| C_t \right| x} \right) \tag 3 \label 3 $$</p>
+		<p>注意到 $\eqref 3$ 式右边的分式大量出现，我们将它记为形式幂级数 $f(x)$，即定义 $$ f(x) = \left. \left( \sum_{i \geq k} \frac {x^i} {i!} \right) \middle / \mathrm e^x \right. \tag 4 \label 4 $$</p>
+		<p>同样，$\eqref 4$ 式也只要在 $\hspace{-0.444em} \pmod {x^{2 k}} \;$ 意义下计算即可。将其代入 $\eqref 3$ 式，得到</p>
+		<p>$$ A_r \left( x \right) = r \cdot \mathrm e^{\left( n - 1 \right) x} \cdot \left( 1 - \sum_{t=1}^m f \left( \left| C_t \right| x \right) \right) \tag 5 \label 5 $$</p>
+		<p>枚举 $r$，将每个点可能为根的生成函数相加，得到一个总生成函数 $A(x)$：</p>
+		<p>$$ A \left( x \right) = \sum_r \left( r \cdot \mathrm e^{\left( n - 1 \right) x} \cdot \left( 1 - \sum_{c \in child(r)} f \left( \left| subtree(c) \right| x \right) \right) \right) \tag 6 \label 6 $$</p>
+		<p>考虑如何求这个多项式。首先，公共的 $\mathrm e^{\left( n - 1 \right) x}$ 可以提出来；其次，那些 "$1$ 的部分" 相加得到 $\dfrac {n \left( n + 1 \right)} 2$ 也容易处理，关键就是后面的大 $\sum$。</p>
+		<p>首先，总共求和的项数应该是不多的。因为对于每个 $r$，后面只有 $d(r)$ 项要求和，由握手定理，总共需要求和的项只有 $\sum\limits_r d(r) = 2 n - 2$ 项。</p>
+		<p>将其抽象化，每一项都是形如 $b_i f \left( a_i x \right)$ 的形式。因此我们抽象出了一个问题：给定数组 $\left\{ a_n \right\}, \left\{ b_n \right\}$ 和一个已知的形式幂级数 $f(x)$，你需要求出 $$ \sum_{i=1}^n b_i f \left( a_i x \right) \tag 7 \label 7 $$ 的各项系数。</p>
+		<p>设 $f(x) = f_0 + f_1 x + f_2 x^2 + \cdots$，将其代入 $\eqref 7$，得到</p>
+		<p>$$ \sum_{i=1}^n b_i \sum_j f_j a_i^j x^j = \sum_j f_j \cdot \left( \sum_{i=1}^n b_i a_i^j \right) \cdot x^j \tag 8 \label 8 $$</p>
+		<p>由 $\eqref 8$，$x^j$ 的系数为 $\displaystyle \sum_{i=1}^n b_i a_i^j$，因此问题进一步转化为了，对 $j = 0, 1, \cdots, 2 k - 1$，求出 $\displaystyle \sum_{i=1}^n b_i a_i^j$。</p>
+		<p>令辅助生成函数 $\displaystyle g(x) = \sum_j \left( \sum_{i=1}^n b_i a_i^j \right) \cdot x^j$，我们考虑如何求 $g(x)$ 的各项系数。</p>
+		<p>注意到 $$ g(x) = \sum_j \left( \sum_{i=1}^n b_i a_i^j \right) \cdot x^j = \sum_{i=1}^n b_i \sum_j a_i^j x^j = \sum_{i=1}^n \frac {b_i} {1 - a_i x} $$</p>
+		<p>也就是说，$g(x)$ 为 $n$ 个分式相加的形式。</p>
+		<p>这个问题就不难了，将其通分后就转化为一次<a href="../memos/8.html" target="_blank">多项式求逆</a>和一个基本的分治 NTT 问题 (参见 <a href="soj7.html" target="_blank">[soj7]多项式插值</a> 的第二部分，放心和插值无关)，于是，到此为止，我们就成功求得了 $A(x)$ 的所有系数。</p>
+		<p>最后是统计答案啦。由于我们已经求出了有 $i$ 个点不是重心的贡献之和 (它等于 $i! \left[ x^i \right] A \left( x \right)$)，而 $n - i$ 个点是重心有 $\dbinom ni$ 种选择方案。故这部分的总贡献即为 $\dbinom ni \cdot i! \left[ x^i \right] A \left( x \right) = n^{\underline i} \left[ x^i \right] A \left( x \right)$。</p>
+		<p>将其相加即得 $2 k - 1$ 情形的答案。</p>
+		<hr />
+		<p>然后来考虑偶数的情况。<span style="color: red">类似地，用 $2 k$ 表示原题中的 $k$</span>。</p>
+		<p>根据上面的讨论，由于存在一种特殊的情况：存在一条<strong>路径 $u \leadsto v$</strong>，使得有 $k$ 个点在 $u$ 的子树中，$k$ 个点在 $v$ 的子树中。此时重心为路径 $u \leadsto v$ 中编号最小的点。</p>
+		<p>而此时直接考虑贡献就不太容易了。因此我们在多项式部分中<strong>还是限制每棵子树不超过 $k - 1$ 个点</strong>，因为这种情况下，所得到的方案的重心仍然是唯一的。</p>
+		<p>不过这里有一个细节要注意的是，因为我们在 $\hspace{-0.444em} \pmod {x^{2 k + 1}} \;$ 意义下计算，因此两棵子树容斥 ($\eqref 2$ 式) 的<strong>最低次项</strong>会被多减一遍，故需要将其补回去 (容斥回去)。由于只需要补一项，因此直接 dfs 或枚举一下即可。</p>
+		<hr />
+		<p>最后我们单独讨论这种特殊的情况——"存在一条<strong>路径 $u \leadsto v$</strong>，使得有 $k$ 个点在 $u$ 的子树中，$k$ 个点在 $v$ 的子树中"。</p>
+		<p>此时，对于这种情况，我们给它归归类——规定 $u$ 为前 $k$ 个点的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>，$v$ 为后 $k$ 个点的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>。此时，所有<strong>可能的重心</strong>构成的集合<strong>恰好</strong>就是<strong>路径 $u \leadsto v$ 上的所有点</strong>。</p>
+		<p>我们尝试对每个 $i$，统计有多少个这样的点集，满足以 $i$ 为重心。</p>
+		<p>主要的过程，就是找到一个包含 $i$ 的<strong>极大连通块</strong>，满足这个连通块中的点的编号都 $\geq i$。然后，对这个连通块进行 <strong>"缩点"</strong>，枚举两棵子树，需要满足 $k$ 个点的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 在该连通块中而不在外面的子树 $C_o$ 中。</p>
+		<p>按顺序枚举子树，则这样的方案数等于以 $v$ 为根的子树大小的 $k$ 次方减去 $C_o$ 大小的 $k$ 次方和。</p>
+		<p>由于这样需要枚举<strong>每个连通块</strong>，做起来并不方便。如果我们考虑从大到小枚举这个 $i$，这样连通块之间就<strong>只有合并没有拆分</strong>了，因此可以想到用<strong>并查集</strong>来维护。</p>
+		<p>对于每个 $i$，我们维护出将 $i$ 缩点后所有子树大小的 $k$ 次方和 (即下面代码中的 <code>fy[]</code> 数组)，最后统计贡献的时候就和上面 "$2 k$ 补回去的过程" 非常类似了。</p>
+		<p>于是可以在 $O \left( n \log n \right)$ 时间内得到特殊情况的所有答案。</p>
+		<p>总时间复杂度就是分治 NTT 的复杂度，$O \left( n \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 265000
+#define lg2(x) (31 - __builtin_clz(x))
+#define EB emplace_back
+
+typedef int vec[N], *pvec;
+typedef long long ll;
+typedef std::vector &lt;int&gt; vector;
+const ll mod = 998244353, half_mod = (mod + 1) / 2, root = 31;
+
+vec fact, inv, finv;
+int n, K, E = 0;
+ll CKK;
+int to[N], first[N], next[N];
+int p[N], size[N];
+int szk[N], szkr[N], fy[N];
+
+inline int &amp; reduce(int &amp;x) {return x += (x &gt;&gt; 31 &amp; (int)mod);}
+inline ll &amp; half(ll &amp;x) {return x = (x &gt;&gt; 1) + (-(x &amp; 1) &amp; half_mod);}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; ((int)mod - x);}
+inline int &amp; add(int &amp;x, const int y) {return reduce(x += y - (int)mod);}
+inline int &amp; sub(int &amp;x, const int y) {return reduce(x -= y);}
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = (mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+inline ll C(int n, int r) {return (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v; next[E] = first[u]; first[u] = E;
+	to[++E] = u; next[E] = first[v]; first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y; size[x] = 1;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x])
+			p[y] = x, dfs(y), size[x] += size[y];
+}
+
+namespace Poly {
+	int l, n; vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta) *j++ = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) {
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3, B4, B5, B6, B7;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = PowerMod(n, mod - 2);
+		DNTT(a, c); DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c); std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+
+	void Inv(int deg, pvec a, pvec b) {
+		int len, i; ll iv = half_mod;
+		*b = PowerMod(*a, mod - 2); b[1] = 0;
+		*B1 = *a; B1[1] = a[1];
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
+			NTT_init(len + 2);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B1[i] = 0;
+			DNTT(b, B2), DNTT(B1, B3);
+			for (i = 0; i &lt; n; ++i) reduce(B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod);
+			DNTT(B2, B3), std::reverse(B3 + 1, B3 + n), half(iv);
+			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B3[i] * iv % mod;
+			for (; i &lt; n; ++i) b[i] = 0, B1[i] = a[i];
+		}
+	}
+
+	void Mul(const vector &amp;a, const vector &amp;b, vector &amp;ret) {
+		int deg_a = a.size() - 1, deg_b = b.size() - 1;
+		if (!(deg_a || deg_b)) {ret.emplace_back((ll)a[0] * b[0] % mod); return;}
+		NTT_init(lg2(deg_a + deg_b) + 1);
+		memset(B4, 0, n &lt;&lt; 2); memcpy(B4, a.data(), deg_a + 1 &lt;&lt; 2);
+		memset(B5, 0, n &lt;&lt; 2); memcpy(B5, b.data(), deg_b + 1 &lt;&lt; 2);
+		Mul(deg_a + deg_b, B4, B5, B6);
+		ret.assign(B6, B6 + (deg_a + deg_b + 1));
+	}
+}
+
+namespace Odd {
+	int K, cnt = 0, lc[N], rc[N];
+	vec E, G, f, res, Final;
+	vec C, C0, C1, C2, C3, C4;
+	vector g[N];
+
+	int solve(int L, int R) {
+		if (L + 1 == R) return L;
+		int M = (L + R) / 2, id = cnt++, lp = solve(L, M), rp = solve(M, R);
+		Poly::Mul(g[lp], g[rp], g[id]);
+		return lc[id] = lp, rc[id] = rp, id;
+	}
+
+	void make(int id, int L, int R) {
+		if (L + 1 == R) return;
+		int M = (L + R) / 2, lp = lc[id], rp = rc[id], i;
+		make(lp, L, M), make(rp, M, R);
+		Poly::NTT_init(lg2(R - L - 1) + 1);
+		memcpy(C1, C + L, M - L &lt;&lt; 2); memset(C1 + (M - L), 0, Poly::n - (M - L) &lt;&lt; 2);
+		memcpy(C2, C + M, R - M &lt;&lt; 2); memset(C2 + (R - M), 0, Poly::n - (R - M) &lt;&lt; 2);
+		memcpy(C3, g[lp].data(), M - L + 1 &lt;&lt; 2); memset(C3 + (M - L + 1), 0, Poly::n - (M - L + 1) &lt;&lt; 2);
+		memcpy(C4, g[rp].data(), R - M + 1 &lt;&lt; 2); memset(C4 + (R - M + 1), 0, Poly::n - (R - M + 1) &lt;&lt; 2);
+		Poly::DNTT(C1, C0), Poly::DNTT(C2, C1), Poly::DNTT(C3, C2), Poly::DNTT(C4, C3);
+		for (i = 0; i &lt; Poly::n; ++i) C4[i] = ((ll)C0[i] * C3[i] + (ll)C1[i] * C2[i]) % mod;
+		Poly::DNTT(C4, C0); std::reverse(C0 + 1, C0 + Poly::n);
+		ll iv = PowerMod(Poly::n, mod - 2);
+		for (i = 0; i &lt; R - L; ++i) C[L + i] = C0[i] * iv % mod;
+	}
+
+	ll main(int deg) {
+		int i, x, y, m, id, sz; ll P, ans = 0;
+		// init
+		K = (deg - 1) &gt;&gt; 1;
+		for (i = 0; i &lt;= deg; ++i) E[i] = (i &amp; 1 ? mod - finv[i] : finv[i]);
+		memcpy(G + (K + 1), finv + (K + 1), (deg - K) &lt;&lt; 2);
+		Poly::Mul(2 * deg, E, G, f);
+		memset(f + (deg + 1), 0, (deg + 1) &lt;&lt; 2);
+		for (x = 1; x &lt;= n; ++x)
+			for (i = first[x]; i; i = next[i])
+				y = to[i], sz = (y == p[x] ? n - size[x] : size[y]),
+				g[cnt].EB(1), g[cnt].EB(neg(sz)), C[cnt++] = mod - x;
+		// poly
+		id = solve(0, m = cnt), sz = g[id].size();
+		make(id, 0, m);
+		memcpy(C1, g[id].data(), (deg + 1) &lt;&lt; 2), memset(C1 + (deg + 1), 0, (sz - deg) &lt;&lt; 2);
+		Poly::Inv(deg + 1, C1, C0);
+		memset(C + (deg + 1), 0, (sz - deg) &lt;&lt; 2), memset(C0 + (deg + 1), 0, (sz - deg) &lt;&lt; 2);
+		Poly::Mul(2 * deg, C, C0, G);
+		// final
+		for (i = 0; i &lt;= deg; ++i) G[i] = (ll)G[i] * f[i] % mod;
+		*G = (*G + n * (n + 1ll) / 2) % mod;
+		memset(G + (deg + 1), 0, (sz - deg) &lt;&lt; 2);
+		for (P = 1, i = 0; i &lt;= deg; ++i, P = P * (n - 1) % mod) E[i] = P * finv[i] % mod;
+		Poly::Mul(2 * deg, E, G, f);
+		for (P = 1, i = 0; i &lt;= deg; P = P * (deg - i++) % mod) ans = (ans + f[i] * P) % mod;
+		return ans;
+	}
+}
+
+ll FixOdd() {
+	int i, x, y, S, SS, res, ans = 0;
+	for (x = 1; x &lt;= n; ans = (ans + (ll)res * x++) % mod)
+		for (res = SS = 0, i = first[x]; i; i = next[i])
+			y = to[i], S = (y == p[x] ? szkr[x] : szk[y]), res = (res + (ll)SS * S) % mod, add(SS, S);
+	return CKK * ans % mod;
+}
+
+namespace Even {
+	int p[N];
+
+	int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+	ll main() {
+		int i, x, y, z, S, T, cur, SS, res, ans = 0;
+		for (i = 1; i &lt;= n; ++i) p[i] = i;
+		for (x = n; x; --x) {
+			for (i = first[x]; i; i = next[i]) {
+				(y = to[i]) == ::p[x] ? (S = szkr[x], T = szk[x]) : (S = szk[y], T = szkr[y]);
+				if (y &lt;= x) add(fy[x], S);
+				else fy[x] = ((ll)fy[x] + fy[ancestor(y)] - T + mod) % mod;
+			}
+			for (res = SS = 0, i = first[x]; i; i = next[i]) if ((y = to[i]) &gt; x) { // merge
+				y == ::p[x] ? (S = szkr[x], T = szk[x]) : (S = szk[y], T = szkr[y]);
+				z = ancestor(y), cur = ((ll)S + T - fy[z] + mod) % mod;
+				res = (res + (ll)(fy[z] - fy[x] - SS) * cur) % mod, add(SS, cur);
+				p[z] = x;
+			}
+			ans = (ans + (ll)reduce(res) * x) % mod;
+		}
+		return CKK * ans % mod;
+	}
+}
+
+int main() {
+	int i, u, v; ll ans;
+	scanf("%d%d", &amp;n, &amp;K), init();
+	for (i = 1; i &lt; n; ++i) scanf("%d%d%*d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1), ans = Odd::main(K);
+	if (!(K &amp; 1)) {
+		CKK = C(K, K / 2);
+		for (i = 1; i &lt;= n; ++i) szk[i] = PowerMod(size[i], K / 2), szkr[i] = PowerMod(n - size[i], K / 2);
+		ans += FixOdd(), ans = (ans + Even::main()) % mod;
+	}
+	printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在处理偶数的过程中又会碰到熟悉的 "求形如 $\displaystyle \sum_{1 \leq i &lt; j \leq k} S_i S_j$ 的式子的值"，这是一个非常经典的问题了，可以参见 <a href="soj50.html" target="_blank">[soj50]出租车</a> —— 即一边统计一次和一边更新答案。</p>
+		<p><strong>坑2：</strong>还是老问题，多项式处理过程中记得及时清除冗余的高次项。</p>
+	</body>
+</html>

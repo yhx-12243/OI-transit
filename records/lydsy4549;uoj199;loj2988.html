@@ -24,6 +24,105 @@
 		<p>输出一行一个整数，表示不同后缀数组的个数模 $10^9 + 7$ 的值。</p>
 
 		<h3>题解</h3>
+		<h4> ---- Part 1 ---- </h4>
+		<p>我们先来探究对于一个给定的后缀数组 (显然它是个排列)，什么情况下它是合法的。</p>
+		<p>设 <abbr title="Suffix Array, 后缀数组">SA</abbr> 中某相邻两个位置分别为 $p_i$ 和 $p_{i+1}$，则一定有 $s \left[ p_i .. \right] &lt; s \left[ p_{i+1} .. \right]$.<//p>
+		<p>显然 $s_{p_i} \leq s_{p_{i+1}}$。考虑何时 $s_{p_i}$ 和 $s_{p_{i+1}}$ 可以相等。假设它们相等，则必有 $s \left[ p_i + 1 .. \right] &lt; s \left[ p_{i+1} + 1 .. \right]$。</p>
+		<p style="color: red">(ps: 如果此时 $p_{i+1} = n$，则 $p_{i+1} + 1$ 应该为空。为了避免这种讨论，我们在字符串末尾加上一个字典序最小的串 (如 <code>\x01</code>)，则它的排名应为 $0$，即 <code>SA[0] = n + 1</code>)</p>
+		<p>从而，在后缀数组中，$p_i + 1$ 也必须在 $p_{i+1} + 1$ 的前面。</p>
+		<p>也就是说，<strong style="color: green">如果 $p_i + 1$ 在 $p_{i+1} + 1$ 的后面，则 $s_{p_i} &lt; s_{p_{i+1}}$；如果 $p_i + 1$ 也在 $p_{i+1} + 1$ 的前面，则要有 $s_{p_i} \leq s_{p_{i+1}}$</strong>。</p>
+		<p>反过来同样也可以证明，这个条件也是充分的：即如果 $s_i$ 满足上面的<span style="color: green">绿色</span>条件，则 $p_i$ 的的确确就是 $s_i$ 的后缀数组。</p>
+		<hr />
+		<h4> ---- Part 2 ---- </h4>
+		<p>更进一步，我们要知道，怎样的后缀数组 (以下 "后缀数组" 默认指的是后缀数组排列，不是某个特定的串的后缀数组) 是满足题目条件的。</p>
+		<p>考察任意一个排列。由<span style="color: green">绿色</span>结论，可知，所有这些 $s_i$ 按顺序会得到一条形如 $s_{p_1} \otimes s_{p_2} \otimes \cdots \otimes s_{p_n}$ 的<strong>不等式链</strong>，其中 $\otimes$ 为 $\leq $ 或 $&lt;$。</p>
+		<p>如：后缀数组 <code>5 3 1 4 2</code> 对应的<strong>不等式链</strong>即为 $s_5 \leq s_3 \leq s_1 &lt; s_4 \leq s_2$ (其实这个 <abbr title="Suffix Array, 后缀数组">SA</abbr> 实际上应该是 <code>(6)5 3 1 4 2</code>)，<del>的确，<a href="http://uoj.ac/problem/35" target="_blank">UOJ 的样例</a> $\texttt {ababa}$ 也满足这个条件。</del></p>
+		<p>而题目的限制是，形如 "字典序第 $k$ 小的字符不能超过 $c_k$ 次" 的命题。因此，容易想到使用<strong>贪心算法</strong>，按照<strong>不等式链</strong>的顺序从前到后填充字符串，如果超过次数了或者遇到 "$&lt;$" 了就换一个字符，如果能填完说明满足条件，不能填完则说明无法满足。</p>
+		<p>还是刚才的例子，设字典序第 $k$ 小的字符为<strong style="color: blue">第 $k$ 个小写拉丁字母</strong>。则 <code>5 3 1 4 2</code> 按照所得的不等式链进行填充，所得到的串为 $\texttt {ababa}$，<del>这恰好就是 UOJ 的样例</del>。</p>
+		<p>又如，后缀数组 <code>2 1 3</code> (实际上是 <code>(4)2 1 3</code>) 所对应的不等式链为 $s_2 &lt; s_1 &lt; s_3$，这也是 "不存在字符集大小为 $2$ 的串满足其后缀数组为 <code>2 1 3</code>" 的原因。</p>
+		<hr />
+		<h4> ---- Part 3 ---- </h4>
+		<p>接下来我们要开始我们的数数<del>(树)</del>之旅了。</p>
+		<p>我们从最简单的情形开始着手：$m = 2$。即字符集大小为 $2$。</p>
+		<p>为了防止计算重复，方便起见，我们对于一个后缀数组 $sa$，定义它的<strong>秩</strong>为<strong>最小的 $m$</strong>，满足存在字符集大小为 $m$ 的字符串，使其后缀数组恰好为 $sa$。</p>
+		<p>可以看出，一个后缀数组的<dfn>秩</dfn>等于它在 Part 2 的<strong>不等式链</strong>中 "$&lt;$" 号的个数。</p>
+		<p>如，后缀数组 <code>5 3 1 4 2</code> 的<dfn>秩</dfn>为 $2$，后缀数组 <code>2 1 3</code> 的<dfn>秩</dfn>为 $3$，后缀数组 <code>7 6 5 4 3 2 1</code> 的<dfn>秩</dfn>为 $1$。</p>
+		<p>后缀数组的<dfn>秩</dfn>有一些非常好玩但没什么卵用的性质：长度为 $n$ 的后缀数组中，秩为 $1$ 和 $n$ 的后缀数组恰有 $1$ 个。</p>
+		<p style="color: blue">接下来进入正题。我们需要统计字符集大小为 $2$ 的 <abbr title="Suffix Array, 后缀数组">SA</abbr> 的个数，不妨先来统计<strong>秩为 $2$ 的 <abbr title="Suffix Array, 后缀数组">SA</abbr> 的个数</strong>。</p>
+		<p>设字符串中有 $A$ 个 <code>a</code>，$B$ 个 <code>b</code>。因此将它们进行<em>带重复元素的排列</em>，可知共有 $\dbinom {A + B} A$ 种情况。</p>
+		<p>我们要从中去掉秩为 $1$ 的情况。由上面 <del>"好玩但没卵用"</del> 的性质，恰有 $1$ 个秩为 $1$ 的后缀数组 (其实就是 $\left[ n, n - 1, n - 2, \cdots, 3, 2, 1 \right]$)，因此由 $A$ 个 <code>a</code>，$B$ 个 <code>b</code> 构成的字符串中，秩为 $2$ 的后缀数组的个数就是 $\dbinom {A + B} A - 1$。</p>
+		<p><del>没了？没了。</del></p>
+		<hr />
+		<h4> ---- Part 4 ---- </h4>
+		<p>$m = 2$ 的情况过于特殊了，我们再来看看 $m = 3$ 的情况。</p>
+		<p>还是统计<strong>秩为 $3$ 的后缀数组个数</strong>。设其中有 $A$ 个 <code>a</code>，$B$ 个 <code>b</code> 以及 $C$ 个 <code>c</code>。</p>
+		<p>由<em>可重排列</em>，由这些元素构成的秩不超过 $3$ 的不同 <abbr title="Suffix Array, 后缀数组">SA</abbr> 个数共有 $\dbinom {A + B + C} {A, B, C}$ 个。</p>
+		<p>当然，这些是秩不超过 $3$ 的。我们还是要将这些秩过小的排列 "容斥" 掉。</p>
+		<p>回到 Part 2 中的<strong>不等式链</strong> (非常重要的工具！)。首先，由于这些 <abbr title="Suffix Array, 后缀数组">SA</abbr> 的秩不超过 $3$，因此不等式链中严格小于号 "$&lt$" 的个数不会超过 $2$。</p>
+		<p>考察 $\dbinom {A + B + C} {A, B, C}$ 个排列中的一个排列 $p$，设它的秩为 $2$。由于它是我们在统计秩为 $3$ 的排列中计入的，因此它的不等式链的形式本应该是：</p>
+		<p>$$ x_1 \leq x_2 \leq \cdots \leq x_A \color{red} &lt; x_{A + 1} \leq x_{A + 2} \leq \cdots \leq x_{A + B} \color{blue} &lt; x_{A + B + 1} \leq x_{A + B + 2} \leq \cdots \leq x_{A + B + C} \tag 1 \label 1 $$</p>
+		<p>而事实上，它的秩可以是 $2$。也就是说，实际上，不等式链中<strong>只有 $1$ 个严格小于号</strong>。</p>
+		<p>然而 $\eqref 1$ 式中的等号是<strong>必定取等</strong>的，因此这个唯一的小于号<strong>要么在<span style="color: red">红色</span>位置，要么在<span style="color: blue">蓝色</span>位置</strong>。</p>
+		<p>不妨设 "$&lt;$" 号在<span style="color: blue">蓝色</span>位置，则<span style="color: red">红色</span>位置上的 $\leq$ 就<strong>可以取等了</strong>。</p>
+		<p>也就是说，此时，这个后缀数组即为满足 $s_{p_1} = s_{p_2} = \cdots = s_{p_{A + B}} = \texttt a, \ s_{p_{A + B + 1}} = s_{p_{A + B + 2}} = \cdots = s_{p_{A + B + C}} = \texttt b$ 的串 $s$ 的后缀数组。</p>
+		<p>也就是说，每个 "<strong>由 $A + B$ 个 $\texttt a$，$C$ 个 $\texttt b$ 构成的串</strong>" 的后缀数组，都会对我们的统计造成一个 "误判"。因此，我们要答案减去 $\dbinom {A + B + C} {A + B, C}$。</p>
+		<p>同理，"$&lt;$" 也可以在<span style="color: red">红色</span>位置，此时则需要减去 $\dbinom {A + B + C} {A, B + C}$。</p>
+		<p>可以看出，这是一个容斥的过程。<del>聪明的同学应该已经发现</del>，这是一个<strong>容斥</strong>的过程。于是，我们把秩为 $1$ 的后缀数组 "<strong>多减了</strong>"，再将其补回来。此时，我们不再在式子中写 $1$ (恰有 $1$ 个秩为 $1$ 的后缀数组)，而是：</p>
+		<p>$$ tot = \binom {A + B + C} {A, B, C} - \binom {A + B + C} {A + B, C} - \binom {A + B + C} {A, B + C} + \binom {A + B + C} {A + B + C} \tag 2 \label 2 $$</p>
+		<p><del>啊，美妙的容斥原理！</del></p>
+		<hr />
+		<h4> ---- Part 5 ---- </h4>
+		<p>然鹅，题目不是让你统计秩为 $m$ 的 <abbr title="Suffix Array, 后缀数组">SA</abbr> 的个数，因此我们要进行一些小小的转化。</p>
+		<p>考虑我们为什么要定义<em>后缀数组的秩</em>。无非就是为了<strong>使计算不重复</strong>呗！</p>
+		<p>对，我们刚才所做的那么多就是为了<strong>构造一个一一对应，将一个排列对应到一个串上去，使得计数不重不漏</strong>。</p>
+		<p>因此，对于一个排列 $p$，设它的秩为 $r$。我们就应当在<strong>统计秩为 $r$ 为排列中统计进去</strong>！</p>
+		<p>那怎么实现呢？枚举 $r$？枚举 $A, B, C$？</p>
+		<p>冷静一下，当然不是这样的。回到此题最初的形态。我们按字典序从小到大枚举每个字符出现了几次，然后算出有多少个 "满秩" 的后缀数组。(这里 "满秩" 的意思是，这个串的字符集大小恰好等于该后缀数组的秩，不出现字符集冗余的情况)</p>
+		<p>但是这里还有一个问题。有的秩比较小的后缀数组，它的来源是一个较大的字符集，而它所对应的 "满秩" 的字符串是不符合题目要求的。</p>
+		<p>举个例子，你有 $2$ 个 $\texttt a$ 和 $2$ 个 $\texttt b$，则 $\texttt {baa}$ 的后缀数组为 $\left[ 3, 2, 1 \right]$，秩为 $1$ (两个不等号都是非严格的，且 $\texttt {aaa}$ 就是字符集大小为 $1$ 的串)，而所对应的 "满秩" 字符串 $\texttt {aaa}$ 或 $\texttt {bbb}$ 均不满足题目要求 (任意字符你只有 $2$ 个)。</p>
+		<p>不过不用慌，我们可以考虑 <strong>"合并"</strong> 操作。</p>
+		<p>考虑 $c_1, c_2, \cdots, c_m$ 从小到大填充的过程。如果一个字符，比如 $\texttt a$，出现了超过 $c_1$ 次。首先，它肯定达到了 $c_1$ 次。因此，一旦它达到了 $c_1$ 次，我们就<strong>可以将</strong> $\texttt b$ 的 $c_2$ 次使用机会全都 "借" 给 $\texttt a$ <del>(反正也是有借无还嘛)</del>，从而完成 "合并" 的过程。</p>
+		<p>当然，如果你 $\texttt a$ 自己的 $c_1$ 次都没用完，就像偷偷用人家 $\texttt b$ 的使用机会。hmhmhm，那你 $\texttt a$ 就是个不道德的串啦。(开个玩笑啦~)</p>
+		<p>总之，不仅是 $\texttt a$，我们对待每个字符都是公平的 <del>(一视同仁)</del>，只有把你自己的机会用完了，才能使用下一个字符。</p>
+		<hr />
+		<h4> ---- Part 6 ---- </h4>
+		<p><del>(都 Part 6 了，啥时候能讲完啊？) (你先看看首页上的难度再说)</del></p>
+		<p>最后就是实现啦。如何高效的完成这个过程？</p>
+		<p>首先考虑这个容斥的过程。将 $\eqref 2$ 式推广，设第 $i$ 小的字符有 $A_i$ 个。则整个容斥的过程可以看成枚举断点集合 ("$&lt;$" 集合) $\left\{ z_1, z_2, \cdots, z_k \right\}$，则这一部分的贡献为</p>
+		<p>$$ (-1)^{m - k} \binom {A_1 + A_2 + \cdots + A_m} {A_1 + A_2 + \cdots + A_{z_1}, A_{z_1 + 1} + \cdots + A_{z_2}, \cdots, A_{z_k + 1} + \cdots + A_{z_m}} \tag 3 \label 3 $$</p>
+		<p>(注：如果公式挂了可以右键公式 -> Math Settings(数学设置) -> Math Renderer(数学渲染) -> 换一个，如 SVG)</p>
+		<p>像 <a href="uoj214.html" target="_blank">[uoj214]合唱队形</a> 一样，我们使用 DP 来求解容斥系数。</p>
+		<p>首先，分子上的 $\left( A_1 + A_2 + \cdots + A_m \right)! = n!$ 是常量，可以预先提出来。</p>
+		<p>然后就是枚举每个段，设段长为 $len$，则就要乘以它的阶乘倒数 $\dfrac 1 {len!}$。</p>
+		<p>于是我们就可以设计 DP 方程啦！</p>
+		<p>用 $f_{i, j, k}$ 表示当前从小到大填充到第 $i$ 个字符，已经填充了 $j$ 个位置 (i.e. 当前 $A$ 的前缀和为 $j$)，最后一段的大小为 $k$ (i.e. $A.\mathrm{back}() = k$)，所得到的容斥系数。</p>
+		<p style="color: red">注意，这个 DP 是基于贪心的，因此每个字符一定是能用则用，因此不使用的字符一定是一段后缀，即一旦一个字符未使用，就预示着这个串的 "终结"。</p>
+		<p>(什么？你说 $c_i = 0$？DP 前先把它们扔了再说)</p>
+		<p>边界自然就是 $f_{0, 0, 0} = 1$ 啦 (当然如果你愿意把这个 $n!$ 放进来也是可以滴)。</p>
+		<p>考虑转移，分为三种情况：</p>
+		<ol>
+			<li><p>第 $i$ 个字符使用若干 (正整数) 个，然后将这一段切掉 (也是最正常的情况)。</p>
+			<p>设这种字符使用了 $l$ 个，则转移为 $$ f_{i + 1, j + l, 0} \uparrow f_{i, j, k} \cdot \frac 1 {(k + l)!} \tag 4 \label 4 $$</p></li>
+			<li><p>第 $i$ 个字符准备和下一个字符进行容斥型合并，即它们在 $\eqref 3$ 式中使用<strong>加号</strong>产生贡献。</p>
+			<p>由于是容斥型合并，每多一个 "$+$" 号就要产生 $-1$ 的系数。故转移方程为 $$ f_{i, j + l, k + l} \uparrow - f_{i, j, k} \tag 5 \label 5 $$</p></li>
+			<li><p>第 $i$ 个字符准备和下一个字符进行正常合并 (即统计秩比较小的后缀数组)。由 Part 5，此时要求<strong>第 $i$ 个字符必须用满</strong>。</p>
+			<p>因此转移系数还是 $+1$，方程为 $$ f_{i, j + c_i, k + c_i} \uparrow f_{i, j, k} \tag 6 \label 6 $$</p></li>
+		</ol>
+		<p>以上 $a \uparrow b$ 表示 <code>a += b</code> (in C++)。</p>
+		<p>聪明的同学可能早就发现，(在基于 DP 优化的角度下) <strong>第 2 种转移和第 3 种转移可以合并</strong>。</p>
+		<p>其实就相当于，<strong>对所有 $1 \leq l \color{red} &lt; a_i$</strong>，作第 2 种转移即可。<strong>但要注意，这两种转移的实质是不同的</strong>，<del>只是可以优化到一起罢了</del>。当然，如果有更好的组合解释可以提出来哦！</p>
+		<p>至于最后的计算答案，相当于统计这个串在哪个字符处 "终结"，即答案等于 $\displaystyle \sum_{i=1}^m f_{i, n, 0}$。</p>
+		<p>状态数 $O \left( n^2 m \right)$，总时间 $O \left( n^3 m \right)$。</p>
+		<hr />
+		<h4> ---- Part 7 ---- </h4>
+		<p>然鹅这还是过不去，因为 $500$ 的 $O \left( n^4 \right)$ 是挺慢的吧。<del>(指令集优化？)</del></p>
+		<p>注意到复杂度中一个 $n$ 是来自转移的，状态数只有 $O \left( n^2 m \right)$。因此我们考虑优化转移复杂度，争取做到 $O(1)$ 转移。</p>
+		<p>考虑 $\eqref 4$ 式，注意到固定 $j' = j + l, k' = k + l$ 时，$\eqref 4 \Leftrightarrow$</p>
+		<p>$$ f_{i, j', 0} = \sum_l f_{i, j' - l, k' - l} \cdot \frac 1 {k'!} = \frac 1 {k'!} \cdot \sum_l f_{i, j' - l, k' - l} \tag 7 \label 7 $$</p>
+		<p>可以发现，将 $f_i$ 看成一个矩阵后，右端的和式就是一个<strong>对角线方向的前缀和</strong>！</p>
+		<p>同理，对于 $\eqref 5, \eqref 6$ 两式，固定 $j' = j + l, k' = k + l$ 后，转移的形式 $$ f_{i, j', k'} = - \sum_l f_{i, j' - l, k' - l} \tag 8 \label 8 $$ 也是关于对角线方向的前缀和，不过要注意求和的上下限问题。</p>
+		<p>因此，我们对这个 DP 进行<strong>前缀和优化</strong>，即按对角线方向统计前缀和并转移，于是就可以做到单点转移 $O(1)$，</p>
+		<p>于是，我们可以在 $O \left( n^2 m \right)$ 的时间内解决了这个问题，从而，可以轻松地通过了。</p>
 
 		<h3>代码</h3>
 
@@ -71,5 +170,7 @@ int main() {
 </pre></div>
 
 		<h3>坑</h3>
+		<p><strong>坑1：</strong>对于 $c_i = 0$ 的情形，要将它们先去掉，再进行转移，否则会被这个字符卡死而无法转移。</p>
+		<p><strong>坑2：</strong>注意使用 (优化取模的) <code>add</code> 函数时需要确保所有变量都是非负的。</p>
 	</body>
 </html>

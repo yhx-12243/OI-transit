@@ -179,20 +179,20 @@ const
 			if (e.which === 13 || e.keyCode === 13) {
 				var p = parseInt(this.value);
 				if (p < 1 || p > totPage) alert('你都输入的些什么呀，认真点！');
-				else location.replace(getPageUri(p));
+				else location.href = getPageUri(p);
 			}
 		}).blur(function () {
 			var p = parseInt(this.value);
 			if (p < 1 || p > totPage) this.value = curPage.toString();
-			else if (p !== curPage) location.replace(getPageUri(p));
+			else if (p !== curPage) location.href = getPageUri(p);
 		});
 
 		$(document).keyup(function (e) {
 			if (e.target.nodeName.toLowerCase() === 'input') return;
 			if (e.which === 37 || e.keyCode === 37) {
-				if (curPage > 1) location.replace(getPageUri(curPage - 1));
+				if (curPage > 1) location.href = getPageUri(curPage - 1);
 			} else if (e.which === 39 || e.keyCode === 39) {
-				if (curPage < totPage) location.replace(getPageUri(curPage + 1));
+				if (curPage < totPage) location.href = getPageUri(curPage + 1);
 			}
 		});
 	}
