@@ -80,7 +80,7 @@ const
 	win.htmlBalance = function (s, ch = '\x01') {
 		return s.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g, function (w) {return ch.repeat(w.length);});
 	}
-	// a.htmlBalance=function(a,b='\x01'){return a.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g,function(w){return b.repeat(w.length);})}
+	// a.htmlBalance=function(a,b="\x01"){return a.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g,function(w){return b.repeat(w.length);})}
 
 	win.parseStr = function (s) {
 		var ret = {}, i, a, b;

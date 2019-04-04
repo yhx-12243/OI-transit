@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6087][loj6232][loj6537]毒瘤题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小江在找水题时发现了这样一道题：在集合中找出 $k$ ($k \leq 5000$) 个出现了奇数次的非负整数 $a$。</p>
+		<p>小江：这不是 <code>std::sort</code> 的水题吗。</p>
+		<p>然后他就用暴力水过了这题。</p>
+		<p>但是这里，为了避免暴力碾标算的情况，本题卡内存，卡时间 (逃</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($n \leq 3 \times 10^6; k \leq 5000$)。</p>
+		<p>接下来 $n$ 行，每行一个非负整数 $a_i$ ($0 \leq a_i \leq 10^{10}$)，表示集合内的元素。</p>
+		<p>保证所有数据中正好有 $k$ 个数出现了奇数次。</p>
+		<p>保证出现奇数次的 $k$ 个数是在 $\left[ 0, 10^{10} \right]$ 中均匀随机的。
+		<p><strong>时间限制为 $1 \,\mathrm s$，内存限制为 $1 \sim 3 \,\mathrm{MB}$</strong>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $k$ 行，每行一个整数，<strong>从小到大</strong>表示所有出现奇数次的整数。</p>
+
+		<h3>题解</h3>
+		<p>显然，当 $k = 1$ 时，就是<del>经典的面试问题啦</del>~ 在一个可重集合中，有一个数出现了奇数次，你需要在 $O(1)$ 空间内找到它。</p>
+		<p>众所周知，将这一坨数异或起来就是那个出现了奇数次的数，这是因为，对任意整数 $x$，都有 $x \oplus x = 0$。</p>
+		<p>那 $k$ 较大的时候 (当然 $k \ll n$)，主体思路还是类似的——通过<strong>异或</strong>运算的性质。</p>
+		<p>考虑使用 Hash 函数，即指定一个不太大的 $P$，将每一个正整数映射成一个 $\left[ 0, P - 1 \right]$ 中的整数。</p>
+		<p>然后对于每个 $x \in \left[ 0, P - 1 \right]$，计算 Hash 值为 $x$ 的所有整数的异或，然后扫一遍。</p>
+		<hr />
+		<p>看起来靠谱多了，但是还是容易出问题。由生日攻击理论，当 $P \leq O \left( k^2 \right)$ 时就极有可能出现 Hash 冲突。</p>
+		<p>然而，开 $O \left( k^2 \right)$ 的空间显然是不现实的，不过可以注意到：<strong>当 $P \sim k$ 时 Hash 冲突的数量并不是太大 (可以证明，当 $P = k$ 时，至少有约 $\dfrac 1 {\mathrm e}$ 个槽位中只有一个数)</strong>。因此如果而我们能快速判断一个集合中是否出现冲突，那么问题就很有可能得以解决。</p>
+		<p>如何判断一个槽位中出现了几个 "<strong>出现奇数次的数</strong>" 呢？直接统计还是比较麻烦，我们还是需要基于 "<strong>异或</strong>" 的思想。</p>
+		<p>此时有一个<del>比较神奇的</del>构造思想：再次选择一个 Hash 函数 $C$，使它的值域为<strong>所有模 $m$ 余 $c$ 的整数</strong> (记作 $A$)。其中 $m$ 最好取一个<em>大素数</em>，$1 \leq c \leq m - 1$ 为一个随机数。</p>
+		<p>考虑 $A$ 中的整数，容易发现，异或运算在这个集合中根本就不具有封闭性，甚至可以看作是随机的。因此，如果有多个 "出现奇数次的数"，那么 $C(x)$ 的异或和模 $m$ <strong>几乎不可能</strong> $= c$。</p>
+		<p>因此，我们对每个数 $x$ 再计算出这样一个 $C(x)$ (记作 "<strong>校验码</strong>")，然后和该数一起异或。从而我们就能成功判断一个槽位中是否出现冲突 (即多个 "出现奇数次的数")。</p>
+		<hr />
+		<p>最后，我们只需对每个 "没有出现冲突的槽位" 中的数进行统计，将对应的 "答案" 取出来，我们就得到了若干 "出现奇数次的数"。如果 $P = k$，那么在期望意义下，大概可以得到 $\dfrac 1 {\mathrm e}$ 的数；然后对于剩下的数重新开始做，又可以得到剩下数中 $\dfrac 1 {\mathrm e}$ 的数。</p>
+		<p>如此往复，做 $\ln k$ 次，差不多就可以得到所有的数了。</p>
+		<p>至于如何 "重复做"，其实我们可以一开始随机 $\ln k$ 个 Hash 函数 $f_i \left( x \right), C_i \left( x \right)$ ($i = 1, 2, \cdots, \ln k$)，然后对某个 $i$ 得到答案以后，对其它的 $j$ ($j \neq i$)，将所得答案从第 $j$ 组 Hash 表中 "去掉" (其实就是再异或一遍) 即可。</p>
+		<p>这样就可以有非常高的正确率了。时间复杂度 $O \left( n \log k \right)$，空间复杂度 $O \left( k \log k \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;algorithm&gt;
+#include &lt;cassert&gt;
+#include &lt;iostream&gt;
+#include &lt;random&gt;
+using std::cin;
+using std::cout;
+
+typedef unsigned int u32;
+typedef unsigned long long u64;
+// here are some thresholds, you can adjust them properly.
+const int mod = 998244353, mask = 20030731, R = 7, pool = 6173;
+
+int n, K, cnt = 0;
+int la[R];
+u64 v[R][pool], ans[5001];
+u64 hsh[R][pool];
+u64 A[R], B[R], C[R];
+
+void add(int id, u64 x) {
+	u64 hash, checksum; u32 h32;
+	hash = A[id] * x + B[id], hash ^= hash &gt;&gt; 12,
+	hash = hash * x + C[id], hash ^= hash &lt;&lt; 15;
+	h32 = hash &gt;&gt; 16, checksum = (u64)h32 * mod + mask;
+	h32 = hash % pool;
+	v[id][h32] ^= x, hsh[id][h32] ^= checksum;
+}
+
+int main() {
+	int i, j; u64 x;
+	char *_ = new char; std::mt19937_64 gen(time(NULL) + (unsigned long)_); delete _;
+	for (i = 0; i &lt; R; ++i) A[i] = gen() | 1, B[i] = gen() | 1, C[i] = gen() | 1;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; K;
+	for (i = 0; i &lt; n; ++i)
+		for (cin &gt;&gt; x, ++x, j = 0; j &lt; R; ++j) add(j, x);
+	for (i = 0; cnt &lt; K; ++i == R ? (i = 0) : 0) {
+		for (int &amp;j = la[i]; j &lt; cnt; ++j) add(i, ans[j]);
+		for (j = 0; j &lt; pool; ++j)
+			if (v[i][j] &amp;&amp; hsh[i][j] % mod == mask) ans[cnt++] = v[i][j];
+	}
+	std::sort(ans, ans + cnt);
+	for (i = 0; i &lt; cnt; ++i) cout &lt;&lt; --ans[i] &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $a_i$ 可以等于 $0$，而 $0$ 无法在异或运算中 "体现" 出来。因此需要对其进行特判或一开始将所有数 $+ 1$。</p>
+		<p><strong>坑2：</strong>与 <a href="uoj141.html" target="_blank">[uoj141]量子态的棋盘</a> 一样，选择 Hash 函数时尽量去模大素数，不要贪图便宜去模一个 $2$ 的幂次，否则会增大 Hash 冲突概率，<strong>从而导致做很多次后仍然找不全所有的答案</strong>。</p>
+	</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces1142E]Pink Floyd</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张 $n$ 个点的竞赛图 $G$，其中有 $m$ 条边是<span style="color: fuchsia">粉色</span>的，剩下 $\dbinom n2 - m$ 条边都是<span style="color: green">绿色</span>的。你现在已经知道所有 $m$ 条<span style="color: fuchsia">粉色</span>边及其定向，但你不知道<span style="color: green">绿色</span>边的方向。</p>
+		<p>你可以向交互库发出不超过 $2 n$ 次询问，每次询问的内容为 "<strong>询问一条<span style="color: green">绿色</span>边的方向</strong>"。在询问完毕后，你需要找到一个点 $v$，使得：<strong>对于 $G$ 中的任何一个点 $u$，均存在一条从 $v$ 到 $u$ 的 (有向) 路径，满足路径上的所有边同色</strong>。</p>
+		<p>可以证明，对于任何一张竞赛图和任意的边染色方案，这样的点 $v$ 是一定存在的。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($1 \leq n \leq 10^5; 0 \leq m \leq \min \left\{ \dbinom n2, 10^5 \right\}$)，表示竞赛图的点数和<span style="color: fuchsia">粉色</span>边的条数。</p>
+		<p>接下来的 $m$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n$)，描述一条<span style="color: fuchsia">粉色</span>的边。</p>
+
+		<h3>输出格式</h3>
+		<p>如果你需要询问边 $(u, v)$ 的方向，首先<strong>需要保证不存在连接 $u$ 和 $v$ 的<span style="color: fuchsia">粉色</span>边</strong>，然后你向标准输出打印 <code>? <em>u</em> <em>v</em></code> 并刷新缓存。最后从标准输出中读取一个整数 $x$，如果 $x = 1$ 表示定向为 $u \to v$，如果 $x = 0$ 表示定向为 $v \to u$。</p>
+		<p>当你已经确定找到满足条件的点 $v$ 时，输出 <code>! <em>v</em></code> <strong>并退出程序</strong>即可。</p>
+
+		<h3>题解</h3>
+		<p>考虑没有<span style="color: fuchsia">粉色</span>边的情况。</p>
+		<p>此时，相当于我们要找一个可以到达所有点的点，其中的一个必要条件是 $v$ 的拓扑序是最靠前的。</p>
+		<p>由于 $G$ 是一个竞赛图，因此它缩点以后一定是一条链 (和若干同向边)。我们只需取<strong>最靠前的一个点</strong>所对应的 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 中的任何一个点即可。</p>
+		<p>至于寻找的过程，(其实就是淘汰赛啦~) 可以每次任取两个点进行比较 (PK)，设为 $u \to v$，然后把 $v$ 扔掉，最后的 "胜者" 就是我们所要的点。</p>
+		<p>于是在这种情况下，只需要询问 $n - 1$ 次就足够了。</p>
+		<p>现在考虑有<span style="color: fuchsia">粉色</span>边的情况。考察所有的粉色边，可以发现它们构成了一张有向图。我们可以对其进行 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 缩点，得到一张新图 $G'$。</p>
+		<p>考察 $G'$ 中拓扑序最靠前的点，或者说<strong>入度为 $0$ 的点</strong>。如果这样的点只有 $1$ 个，则 (原图中) 它所对应的 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 中的任意一个点都是满足原题条件的点：<em>它可以只通过<span style="color: fuchsia">粉色</span>边到达所有点</em>。</p>
+		<p>那如果入度为 $0$ 的点有多个呢？当然这也是最一般的情形。</p>
+		<p>由于我们希望最后只保留一个这样的点，因此我们需要继续使用一开始没有<span style="color: fuchsia">粉色</span>边时的算法—— "<em>淘汰赛</em>"。</p>
+		<p>任取两个 $G$ 中的点 $u, v$，满足它们在 $G'$ 中的对应点不相同且入度均为 $0$。显然 $u, v$ 之间的边不可能是<span style="color: fuchsia">粉色</span> (因为 $u, v$ 在<span style="color: fuchsia">粉图</span>中所在的 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 的入度均为 $0$)，因此它们之间的边的颜色为<span style="color: green">绿色</span>，不妨设该边的定向为 $u \to v$。</p>
+		<p>则，此时我们可以将 $v$ 点删去，因为它们在<span style="color: fuchsia">粉图</span>中 $v$ 的拓扑序在 $u$ 的后面。且 $u$ 可以到达所有 $v$ 能通过<span style="color: fuchsia">粉色</span>边所到达的点。</p>
+		<p>重复上述步骤，如果某一步一个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> $S$ 中的点被消光了，则说明目前剩下的点中 (拓扑序靠前的) 可以到达 $S$ 中的所有点，因此我们可以删去这个连通分量 $S$。此时需要注意，剩下的连通分量中可能会多出入度为 $0$ 的，需要将其加入队列 (或栈)。</p>
+		<p>故整个过程类似于一个拓扑排序的过程，最后缩到只剩一个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 的时候就可以知道答案了。总时间复杂度 $O \left( n + m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+using std::endl;
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 100054;
+
+struct edge {
+	int u, v;
+	edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+} e[N];
+
+int V, E, Es = 0;
+int first[N], next[N];
+int cnt = 0, id[N], low[N];
+int stc = 0, stack[N], top[N];
+int deg[N];
+bool instack[N], outstd[N];
+vector scc[N], cur[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline void addedge(int u, int v) {e[++Es] = edge(u, v), next[Es] = first[u], first[u] = Es;}
+
+void dfs(int x) {
+	int i, y; id[x] = low[x] = ++cnt, instack[x] = true, stack[stc++] = x;
+	for (i = first[x]; i; i = next[i])
+		if (!id[y = e[i].v])
+			dfs(y), down(low[x], low[y]);
+		else if (instack[y])
+			down(low[x], id[y]);
+	if (id[x] == low[x])
+		for (y = 0; y != x; y = stack[--stc], instack[y] = false, top[y] = x, scc[x].emplace_back(y));
+}
+
+int main() {
+	int i, u, v;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; V &gt;&gt; E;
+	for (i = 1; i &lt;= E; ++i) cin &gt;&gt; u &gt;&gt; v, addedge(u, v);
+	for (i = 1; i &lt;= V; ++i) if (!id[i]) dfs(i);
+	for (i = 1; i &lt;= E; ++i)
+		if ((u = top[e[i].u]) != (v = top[e[i].v])) ++deg[v];
+	for (i = 1; i &lt;= V; ++i)
+		if (top[i] == i &amp;&amp; !deg[i]) stack[stc++] = i, cur[i] = scc[i];
+	for (; stc &gt; 1; ) {
+		int &amp;_u = stack[stc - 1], &amp;_v = stack[stc - 2];
+		u = cur[_u].back(), v = cur[_v].back();
+		cout &lt;&lt; '?' &lt;&lt; ' ' &lt;&lt; u &lt;&lt; ' ' &lt;&lt; v &lt;&lt; endl;
+		if (cin &gt;&gt; i, i) std::swap(u, v), std::swap(_u, _v);
+		if (cur[_u].pop_back(), cur[_u].empty()) --stc;
+		for (i = first[u]; i; i = next[i])
+			if (!--deg[v = top[e[i].v]]) stack[stc++] = v, cur[v] = scc[v];
+	}
+	cout &lt;&lt; '!' &lt;&lt; ' ' &lt;&lt; cur[*stack].back() &lt;&lt; endl;
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意询问时只能询问<span style="color: green">绿色</span>边的方向，如果询问的两端点已经有<span style="color: fuchsia">粉色</span>边相连，则会输出 $-1$ 并返回 <code>Wrong Answer</code>。</p>
+		<p><strong>坑2：</strong>当且仅当一个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 中的点被消光时，才需要将它后面的 (删去后) 入度为 $0$ 的点加入队列。</p>
+	</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[poj2888]Magic Bracelet</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个 $n$ 颗珠子的项链，你有 $m$ 种颜色，要对其染色。</p>
+		<p>现在有 $k$ 个限制条件：每个条件形如 $a_i, b_i$，表示颜色为 $a_i$ 和 $b_i$ 的珠子不能相邻 (其中 $a_i$ 可以等于 $b_i$)。</p>
+		<p>两个项链等价当且仅当一个项链可以通过<strong>旋转操作</strong>得到另一种。求有多少种不等价的合法项链数，对 $9973$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。</p>
+		<p>第一行包含一个正整数 $T$ ($1 \leq T \leq 100$)，表示数据组数。</p>
+		<p>对于每组数据，共一行，包含三个非负整数 $n, m, k$ ($1 \leq n \leq 10^9; \gcd \left( n, 9973 \right) = 1; 1 \leq m \leq 10; 0 \leq k \leq \dbinom m2$)，分别表示项链中珠子的个数、颜色的个数和限制条件的个数。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示不等价的合法项链数模 $9973$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>遇到数项链的问题，第一反应自然是置换群相关定理啦~</p>
+		<p>由于有限制条件，Pólya 定理难以直接使用，我们来尝试使用一下 Burnside 引理。</p>
+		<p>考虑项链的转动群，容易发现并证明转动群 $G$ 同构于一<strong>循环群 $Z_n$</strong>。</p>
+		<p>设生成元 (转一个单位的置换) 为 $g$。考虑 $g^k$，我们计算在置换 $g^k$ 下的不动点个数 $\left| X^{g^k} \right|$：</p>
+		<p>不难发现，此时第 $i$ 个珠子和 $\left( i + k \right) \bmod n$ 个珠子的颜色相同，从而由初等数论知识，珠子 $i$ 和 $\left( i + \gcd \left( k, n \right) \right) \bmod n$ 颜色相同，换句话说，整个项链的颜色具有 $\gcd \left( k, n \right)$ 的周期。</p>
+		<p>对于正整数 $d \mid n$，设具有周期 $d$ 的<strong>合法项链数</strong> (允许等价) 为 $C_d$，则由 Burnside 引理，</p>
+		<p>\begin{align*}
+\left| X \middle / G \right| &amp;= \frac 1 {\left| G \right|} \sum_{h \in G} \left| X^h \right| \\
+&amp;= \frac 1n \sum_{i=0}^{n-1} \left| X^{g^i} \right| \\
+&amp;= \frac 1n \sum_{i=0}^n C_{\gcd \left( i, n \right)} \\
+&amp;= \frac 1n \sum_{d \mid n} C_d \cdot \phi \left( \frac nd \right)
+\end{align*}</p>
+		<p>对 $n$ 分解质因数，于是问题就转化为：<strong style="color: blue">对每个 $d \mid n$ 求出 $C_d$ 的值</strong>。</p>
+		<p>也就是说，对一个 $d$，我们要求出有多少个长度为 $d$ 的颜色环，满足相邻的两个颜色满足限制条件。</p>
+		<p>我们考虑将限制关系看成一张<strong>无向图</strong>来处理。即对于 $\left( i, j \right)$，如果 $i, j$ 不允许相邻，则在图 $Gr$ 中不连边，否则在图 $Gr$ 中连接 $i, j$。</p>
+		<p>那么长度为 $d$ 的颜色环就相当于图 $Gr$ 中一个长度为 $d$ 的环 (允许非简单环)。</p>
+		<p>而无向图的环数可以使用矩阵乘法来解决 <del>(类似 Floyd)</del>。即长度为 $d$ 的环数等于图的<strong>邻接矩阵</strong>的 $d$ 次幂的<strong>迹</strong> (主对角线上元素之和)。直接使用矩阵快速幂解决即可。</p>
+		<p style="color: red">(ps: 如果你对图论知识不是很熟悉的话，可以从 DP 的角度来考虑，即用 $f_{i, j}$ 表示长度为 $i$ 的项链 (是链不是环)，最后一种颜色为 $j$ 的方案数。然后对 DP 方程进行矩阵优化，最后的式子都是相同的)</p>
+		<p>分析一下时间复杂度，矩阵快速幂部分为 $O \left( m^3 \log n \right)$，$n$ 的因子个数为 $d \left( n \right)$，故总时间复杂度为 $O \left( m^3 \log n \cdot d \left( n \right) \right)$ (注：$\displaystyle \max_{n \leq 10^9} d \left( n \right) = 1344$)，注意取模等运算的常数。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef int matrix[10][10], (*pmatrix)[10];
+typedef long long ll;
+const int N = 45400, M = 12, mod = 9973;
+
+int n, m, K;
+int G[M][M];
+int pn = 0, c[N], p[4800];
+int cnt, prime[N], alpha[N];
+ll ans;
+matrix tr;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void sieve(int n) {
+	int i, j, v;
+	memset(c, -1, sizeof c);
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i]) p[pn] = i, c[i] = pn++;
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt;= c[i]; ++j) c[v] = j;
+	}
+}
+
+void factor(int n) {
+	int i, j;
+	for (cnt = i = 0; n != 1; ) {
+		if (n &gt; N) {
+			for (j = 1; i &lt; pn &amp;&amp; p[i] * p[i] &lt;= n; ++i) if (!(n % p[i])) {j = 0; break;}
+			if (j) {prime[cnt] = n, alpha[cnt++] = 1; return;}
+		} else i = c[n];
+		for (j = 0; !(n % p[i]); n /= p[i], ++j); prime[cnt] = p[i], alpha[cnt++] = j;
+	}
+}
+
+void matmul(pmatrix ret, pmatrix a, pmatrix b) {
+	int i, j, k; matrix tmp;
+	for (i = 0; i &lt; m; ++i) memset(tmp[i], 0, m &lt;&lt; 2);
+	for (i = 0; i &lt; m; ++i) {
+		for (k = 0; k &lt; m; ++k) if (a[i][k])
+			for (j = 0; j &lt; m; ++j) tmp[i][j] += a[i][k] * b[k][j];
+		for (j = 0; j &lt; m; ++j) tmp[i][j] %= mod;
+	}
+	for (i = 0; i &lt; m; ++i) memcpy(ret[i], tmp[i], m &lt;&lt; 2);
+}
+
+void matPowerMod(pmatrix a, int n, pmatrix c) {for (; n; n &gt;&gt;= 1, matmul(a, a, a)) if (n &amp; 1) matmul(c, a, c);}
+
+int get_ans(int n) {
+	int i, trace = 0; matrix _tr, res;
+	for (i = 0; i &lt; m; ++i) memcpy(_tr[i], tr[i], m &lt;&lt; 2), memset(res[i], 0, m &lt;&lt; 2), res[i][i] = 1;
+	matPowerMod(_tr, n, res);
+	for (i = 0; i &lt; m; ++i) trace += res[i][i];
+	return trace;
+}
+
+void dfs(int d, int r, int phi) {
+	if (d == cnt) {ans += (ll)phi * get_ans(n / r); return;}
+	int i, g = 1;
+	for (i = 0; i &lt;= alpha[d]; r *= prime[d], g = g * prime[d] - !i, ++i)
+		dfs(d + 1, r, phi * g);
+}
+
+void work() {
+	int i, u, v;
+	scanf("%d%d%d", &amp;n, &amp;m, &amp;K), factor(n);
+	for (i = 0; i &lt; m; ++i) std::fill(tr[i], tr[i] + m, 1);
+	for (; K; --K) scanf("%d%d", &amp;u, &amp;v), --u, --v, tr[u][v] = tr[v][u] = 0;
+	ans = 0, dfs(0, 1, 1);
+	printf("%lld\n", PowerMod(n % mod, mod - 2, ans % mod));
+}
+
+int main() {
+	int T; sieve(N - 1);
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于此题模数较小，因此矩阵乘法可以再项加完后再取模。</p>
+		<p><strong>坑2：</strong>再枚举因子的时候最好使用 <code>dfs</code>，这样顺便可以把 $\phi \left( n \right)$ 也求了 (不用单独求)。</p>
+	</body>
+</html>

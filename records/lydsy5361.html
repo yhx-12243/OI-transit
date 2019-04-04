@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5361]对称数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 Q 认为，偶数具有对称美，而奇数则没有。</p>
+		<p>给定一棵 $n$ 个点的树，任意两点之间有且仅有一条直接或间接路径。这些点编号依次为 $1$ 到 $n$，其中编号为 $i$ 的点上有一个正整数 $a_i$。</p>
+		<p>定义集合 $S \left( u, v \right)$ 为点 $u$ 到点 $v$ 的唯一最短路径上经过的所有点 $x$ (包括 $u$ 和 $v$) 对应的正整数 $a_x$ 的集合。小 Q 将在 $m$ 个 S(u, v) 中寻找最小的对称数。</p>
+		<p>因为偶数具有对称美，所以对称数是指那些<strong>出现了偶数次 (包括 $0$ 次) 的正整数</strong>。</p>
+		<p>请写一个程序，帮助小 Q 找到每个集合中最小的对称数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($1 \leq T \leq 10$)，表示测试数据的组数。</p>
+		<p>对于每组数据，第一行包含两个正整数 $n, m$ ($1 \leq n, m \leq 2 \times 10^5$)，分别表示点数和询问数。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($1 \leq a_i \leq 2 \times 10^5$)，依次表示每个点上的数字。</p>
+		<p>接下来 $n - 1$ 行，每行两个正整数 $u_i, v_i$ ($1 \leq u_i, v_i \leq n; u_i \neq v_i$)，表示一条连接 $u_i$ 和 $v_i$ 的双向树边。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $u_i, v_i$ ($1 \leq u_i, v_i \leq n$)，依次表示每个询问。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个询问，输出一行一个整数，表示对应集合中最小的对称数。</p>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef unsigned long long u64;
+const int N = 200054, M = N * 2, LN = 19;
+
+int n, m, E = 0;
+int to[M], first[N], next[M];
+int p[N], dep[N];
+int val[N], root[N];
+u64 w[N], W[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+void gen() {
+	char *_ = new char; srand(time(NULL) + (unsigned long)_), delete _;
+	for (int i = 1; i &lt; N; ++i) W[i] = W[i - 1] ^ (w[i] = (u64)rand() &lt;&lt; 31 | rand());
+}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+namespace ST {
+	struct node {int lc, rc; u64 v;} x[10015366];
+	int cnt;
+
+	int adj(int id, int L, int R, int h, u64 v) {
+		int nid = ++cnt; (x[nid] = x[id]).v ^= v;
+		if (L == R) return nid;
+		int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[nid].lc = adj(x[id].lc, L, M, h, v) : (x[nid].rc = adj(x[id].rc, M + 1, R, h, v));
+		return nid;
+	}
+
+	int solve(int id1, int id2, int L, int R, int h) {
+		int M; u64 V;
+		for (; L &lt; R; )
+			M = (L + R - 1) &gt;&gt; 1, V = x[id1].lc[x].v ^ x[id2].lc[x].v ^ (L &lt;= h &amp;&amp; h &lt;= M ? w[h] : 0),
+			V == (W[L - 1] ^ W[M]) ? (L = M + 1, id1 = x[id1].rc, id2 = x[id2].rc) : (R = M, id1 = x[id1].lc, id2 = x[id2].lc);
+		return L;
+	}
+}
+
+namespace Tree {
+	int cnt, id[N], st[LN][M], *ord = *st;
+
+	inline int min(const int &amp;x, const int &amp;y) {return x &lt; y ? x : y;}
+	inline int dmin(const int &amp;x, const int &amp;y) {return dep[x] &lt; dep[y] ? x : y;}
+
+	void dfs(int x) {
+		int i, y; ord[cnt] = x, id[x] = cnt++;
+		root[x] = ST::adj(root[p[x]], 1, m, val[x], w[val[x]]);
+		for (i = first[x]; i; i = next[i])
+			if ((y = to[i]) != p[x])
+				p[y] = x, dep[y] = dep[x] + 1, dfs(y), ord[cnt++] = x;
+	}
+
+	void build_sparse_table() {
+		int *f, *g = ord, i, j, k = cnt;
+		for (j = 0; 1 &lt;&lt; (j + 1) &lt;= cnt; ++j) {
+			f = g, g = st[j + 1], k -= 1 &lt;&lt; j;
+			for (i = 0; i &lt; k; ++i) g[i] = dmin(f[i], f[i + (1 &lt;&lt; j)]);
+		}
+	}
+
+	inline int LCA(int x, int y) {
+		int L = min(id[x], id[y]), R = (id[x] ^ id[y] ^ L) + 1, c = lg2(R - L);
+		return dmin(st[c][L], st[c][R - (1 &lt;&lt; c)]);
+	}
+}
+
+void work() {
+	int i, u, v, l, q;
+	scanf("%d%d", &amp;n, &amp;q), ST::cnt = Tree::cnt = E = m = 0;
+	memset(first, 0, (n + 1) &lt;&lt; 2);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", val + i), up(m, val[i]); ++m;
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	Tree::dfs(1), Tree::build_sparse_table();
+	for (; q; --q)
+		scanf("%d%d", &amp;u, &amp;v), l = Tree::LCA(u, v), printf("%d\n", ST::solve(root[u], root[v], 1, m, val[l]));
+}
+
+int main() {
+	int T; gen();
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces744D]Hongcow Draws a Circle</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定二维平面上 $n$ 个红点和 $m$ 个蓝点，你需要找到一个半径最大的圆，使得圆的内部不存在蓝点，圆的内部 (含边界) 存在至少一个红点。</p>
+		<p>求最大的半径。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($1 \leq n, m \leq 1000$)，表示红点和蓝点的个数。</p>
+		<p>接下来 $n$ 行，每行包含两个正整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq 10000$)，表示第 $i$ 个红点的坐标。</p>
+		<p>接下来 $m$ 行，每行包含两个正整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq 10000$)，表示第 $i$ 个蓝点的坐标。</p>
+		<p>保证所有点的坐标两两不相同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示半径的最大值。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-4}$。</p>
+		<p>如果半径可以任意大，输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>由于是半径最大，我们考虑二分答案。</p>
+		<p>容易发现，如果答案是有限大的 (点集的凸包只由蓝点构成)，则半径最大的圆的边界上至少含有一个蓝点。</p>
+		<p>但是稍微思考一下，貌似答案不具有二分性质？假设这个圆的边界上包含蓝点，则当 $r \to 0$ 时，不存在满足条件的圆，当 $r \to + \infty$ 时，也不存在满足条件的圆。那又该怎么处理呢？</p>
+		<p>冷静分析一下，可以发现，这仍然是可以二分的。我们第一次二分时，忽略掉 "<strong>边界上有蓝点</strong>" 的条件——即枚举包含的红点进行二分。第二次二分时，根据第一次二分的下界，枚举边界上的蓝点进行二分，这样就不会因为 $r$ 过小而不存在满足条件的圆了。</p>
+		<p>具体二分的过程中，可以枚举包含的红点 $R$，不妨假设它在边界上，设二分的半径为 $r$，则圆心 $O$ 一定在 "<em>以 $R$ 为圆心，$r$ 为半径的圆</em>" (以下简记为 $\odot \left( R, r \right)$) 上。</p>
+		<p>对于每个蓝点 $B$，由于 $\odot \left( O, r \right)$ 不包含 $B$，因此圆心 $O$ 不能取在 $\odot \left( B, r \right)$ 截 $\odot \left( R, r \right)$ 所截得的圆弧 (如果非空) 上。</p>
+		<p>将 $\odot \left( O, r \right)$ 上所有交点离散化后排序，然后直接扫一遍、观察是否有剩下的圆弧即可知道是否存在满足条件的圆。</p>
+		<p>同理，在枚举边界上的蓝点 $B$ 时，由于要保证至少包含一个红点，我们还需要对于每个红点 $R$，标记一段圆弧，其中这段圆弧是 $\odot \left( R, r \right)$ 截 $\odot \left( B, r \right)$ 所截得的圆弧。然后在扫一遍的过程中需要保证圆心的 $O$ 点不在蓝色圆弧上，且<strong>至少在一段被标记过的圆弧上</strong>。</p>
+		<p>这些都是容易扫一遍后完成的，具体过程就不再赘述了。至于如何求两圆的两个交点，参见 <a href="lydsy1043%3Blg2510.html" target="_blank">[HAOI2008]下落的圆盘</a>。</p>
+		<p style="color: red">(ps: 由于本题中两圆半径相等，因此两圆的关系只有可能是<strong>相离</strong>、<strong>相交</strong>和<strong>重合</strong>)</p>
+		<p>由于二分时需要枚举红点和蓝点，算上排序的 $\log \left( n + m \right)$，因此总时间复杂度为 $O \left( \left( n + m \right)^2 \log \left( n + m \right) \left| \log eps \right| \right)$。记 $N = n + m$，则就是 $O \left( N^2 \log N \left| \log eps \right| \right)$。</p>
+		<p>不过由于浮点运算常数过大，这种算法并不能过掉此题。</p>
+		<p>这里有一个技巧 (参考 <a href="lydsy4650%3Buoj219.html" target="_blank">[NOI2016]优秀的拆分</a>)：我们先枚举红/蓝点，再二分半径。在枚举一个点 $V$ 的过程中，设之前的答案为 $ans$，则我们此时二分的下边界 $L$ 就定为 $ans$。在二分前先判断一下 $ans$ 对于点 $V$ 是否可行，如果不可行，则直接 <code>continue;</code>。</p>
+		<p>然后我们再对初始点序列进行随机化。注意到随机序列的前缀最大值的个数期望为 $O \left( \log n \right)$，于是期望时间复杂度就变成了 $O \left( N^2 \log N + N \log^2 N \left| \log eps \right| \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long double ld;
+typedef std::pair &lt;ld, int&gt; pr;
+const int N = 1054, INF = 2003731;
+const ld eps = 2e-9l, pi2 = 6.283185307179586476925286766559005768l;
+
+struct vec2 {
+	ld x, y;
+	vec2 (ld x0 = 0.0, ld y0 = 0.0) : x(x0), y(y0) {}
+	vec2 * read() {scanf("%Lf%Lf", &amp;x, &amp;y); return this;}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);} 
+	inline ld norm2() const {return x * x + y * y;}
+	inline ld norm() const {return sqrtl(x * x + y * y);}
+	inline bool operator == (const vec2 &amp;B) const {return x == B.x &amp;&amp; y == B.y;}
+};
+
+int Re, Bl;
+vec2 r[N], b[N];
+pr D[N * 20];
+
+inline bool intersection(const vec2 O1, const vec2 O2, ld r, ld &amp;beg, ld &amp;end) {
+	vec2 O12 = O2 - O1; ld d = O12.norm(), Cos = .5 * d / r, sAng = acosl(Cos), iAng = atan2l(O12.y, O12.x);
+	return !(O1 == O2) &amp;&amp; -1. &lt;= Cos &amp;&amp; Cos &lt;= 1. ? (iAng &lt; 0. ? iAng += pi2 : 0., (beg = iAng - sAng) &lt; 0. ? beg += pi2 : 0., (end = iAng + sAng) &gt; pi2 ? end -= pi2 : 0., true) : false;
+}
+
+int check(const vec2 O, ld radius, bool cover_red = false) {
+	int i, s = 0, cnt = 0; ld il, ir;
+	if (cover_red) D[cnt++] = pr(0, 1);
+	for (i = 0; i &lt; Re; ++i)
+		if (intersection(O, r[i], radius, il, ir)) {
+			if (il &lt;= ir) D[cnt++] = pr(il, 1), D[cnt++] = pr(ir, -1);
+			else D[cnt++] = pr(0, 1), D[cnt++] = pr(ir, -1), D[cnt++] = pr(il, 1);
+		}
+	for (i = 0; i &lt; Bl; ++i)
+		if (intersection(O, b[i], radius, il, ir)) {
+			if (il &lt;= ir) D[cnt++] = pr(il, -INF), D[cnt++] = pr(ir, INF);
+			else D[cnt++] = pr(0, -INF), D[cnt++] = pr(ir, INF), D[cnt++] = pr(il, -INF);
+		}
+	std::sort(D, D + cnt);
+	for (i = 0; i &lt; cnt; ++i) if ((s += D[i].second) &gt; 0) return true;
+	return false;
+}
+
+int main() {
+	int i; ld L = 1., R, M;
+	char *_ = new char; std::mt19937 gen(time(NULL) + (unsigned long)_); delete _;
+	scanf("%d%d", &amp;Re, &amp;Bl);
+	for (i = 0; i &lt; Re; ++i) r[i].read();
+	for (i = 0; i &lt; Bl; ++i) b[i].read();
+	std::shuffle(r, r + Re, gen), std::shuffle(b, b + Bl, gen);
+	for (i = 0; i &lt; Re; ++i)
+		if (check(r[i], L, true)) {
+			for (R = 1e9; L + eps &lt; R; check(r[i], M = (L + R) * .5, true) ? (L = M) : (R = M));
+			L = (L + R) * .5;
+		}
+	for (i = 0; i &lt; Bl; ++i)
+		if (check(b[i], L)) {
+			for (R = 1e9; L + eps &lt; R; check(b[i], M = (L + R) * .5) ? (L = M) : (R = M));
+			L = (L + R) * .5;
+		}
+	printf("%.12Lg\n", L &gt; 1e9 - .3 ? -1. : L);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>判断两圆关系的时候注意<strong>重合</strong>和<strong>相离</strong>的情况，避免产生 <code>inf</code> 或 <code>nan</code>。</p>
+		<p><strong>坑2：</strong>两轮的二分 (枚举红点的二分、枚举蓝点的二分) 是缺一不可的。缺前者会导致不具有单调性，缺后者会导致漏解 (最优解可能是三个蓝点确定的圆)。同时不要忘记二分前先判定左端点。</p>
+		<p><strong>坑3：</strong>在二分的过程中，注意根据 <code>double</code>/<code>long double</code> 的精度和数据规模合理确定 <code>eps</code> 和边界，避免死循环的现象。</p>
+	</body>
+</html>

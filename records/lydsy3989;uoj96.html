@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy3989][uoj96]胡策的小树</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在 OI 界，有一位无人不知无人不晓，OI 水平前无古人后无来者的胡策，江湖人称一眼秒题胡大爷。</p>
+		<p>胡策最近从一名自称是小 O 的神秘男子那里收到了一棵神奇的小树苗。</p>
+		<p>这是一棵 $n$ 个节点的有根树，节点标号为 $1, \cdots, n$，其中 $1$ 号点为根。</p>
+		<p>这棵有根树上每个点都有一个权值，点 $i$ 的权值为 $a_i$。$a_1, \cdots, a_n$ 构成了一个 $0 \sim n-1$ 的排列，且 $a_1 = 0$。</p>
+		<p>胡策大爷十分喜欢猴子，他打算在这棵树上养 $n$ 只猴子。初始时，每个节点上将放着恰好一只猴子。猴子们十分好动，每过一秒，每只在 $i$ 节点的猴子会设法往 $i$ 的父亲节点上跳，有 $p(i)$ 的概率成功跳到父亲节点；否则跳跃失败，将等概率地随机落到子树 $i$ 里某个节点上 (包括点 $i$)。</p>
+		<p>因为根节点没有父亲，所以 $p(1) = 0$。对于 $2 \leq i \leq n$，有 $p(i) = \dfrac {a_i} n$；</p>
+		<p>在第 $i$ 秒，胡策会观察并记录这 $n$ 只猴子中成功跳上父亲结点的猴子所占的比例 $g_i$。胡策认为 $g_0, \dots, g_T$ 的平均值就是这群猴子们生活的幸福指数，为保证准确，其中 $T$ 为很大很大的值，为 $\left (n + 1 \right)^{99999^{99999^{99999}}}$。</p>
+		<p>为了让猴子们的幸福指数的期望更大，胡策又从那名自称是小 O 的神秘男子那里买来了一袋叫 "金坷垃" 的肥料。如果给这棵有根树掺 $x$ 克的金坷垃，那么这棵树每个点 $i$ 的权值将变化成 $\left( a_i + x \right) \bmod n$。因为胡策是土豪有钱任性，$x$ 可以取任意非负整数。</p>
+		<p>请你告诉胡策，他该掺多少克的金坷垃，才能使猴子们幸福指数的期望最大呢？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 5 \times 10^5$)。</p>
+		<p>第二行包含 $n$ 个用空格隔开的非负整数 $f_1, f_2, \cdots, f_n$ ($f_1 = 0; \forall 1 &lt; i \leq n, 1 \leq f_i &lt; i$)，第 $i$ 个为节点 $i$ 的父亲节点编号 $f_i$。</p>
+		<p>第三行包含 $n$ 个用空格隔开的非负整数 $a_1, a_2, \cdots, a_n$ ($a_1 = 0$，且 $a_1, a_2, \cdots, a_n$ 构成了一个 $0 \sim n - 1$ 的排列)，表示每个点的权值。</p>
+		<p><strong>保证数据都是随机生成的。即：$f_i$ 是从 $1 \sim i - 1$ 中的所有整数等概率随机选取的，$a_2, \cdots, a_n$ 是从 $1 \sim n - 1$ 的所有排列中等概率选取的</strong>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示掺适量的金坷垃时的最大幸福指数期望。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-9}$。</p>
+
+		<h3>题解</h3>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 500054;
+
+int n;
+int p[N], fc[N], nc[N];
+int cnt = 0, o[N], id[N], eid[N];
+int a[N], size[N];
+double ratio[N], sum[N], sumw[N];
+double ans = 0.0, in, isize[N];
+
+inline void up(double &amp;x, const double y) {x &lt; y ? x = y : 0;}
+inline void link(int x, int px) {nc[x] = fc[px], fc[px] = x;}
+
+double solve(int x) {
+	double pr, K, L;
+	int *v, *re = o + (id[x] - 1), weight;
+	for (v = o + eid[x]; v != re; --v) ratio[*v] = 1., sum[*v] = sumw[*v] = 0.;
+	for (v = o + eid[x]; v != re; --v) {
+		weight = (a[*v] - a[x] + n) % n, pr = weight * in, K = (1. - pr) * isize[*v], L = size[*v] / (1. - pr);
+		ratio[*v] = 1. / (1. - K * ratio[*v]), ratio[p[*v]] += (ratio[*v] - 1.) * pr * L;
+		if (*v == x) sum[x] += size[x], sumw[x] += pr * size[x];
+		else sum[p[*v]] += sum[*v] += (sum[*v] + L) * (ratio[*v] - 1.), sumw[p[*v]] += sumw[*v] += (sumw[*v] + pr * L) * (ratio[*v] - 1.);
+	}
+	return sumw[x] / sum[x];
+}
+
+void dfs(int x) {
+	int y; o[++cnt] = x, id[x] = cnt;
+	for (y = fc[x]; y; y = nc[y]) dfs(y);
+	eid[x] = cnt, size[x] = eid[x] - id[x] + 1, isize[x] = 1. / (double)size[x];
+}
+
+int main() {
+	int i;
+	scanf("%d", &amp;n), in = 1. / (double)n;
+	for (i = 1; i &lt;= n; ++i) scanf("%d", p + i), link(i, p[i]);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	dfs(1);
+	for (i = 1; i &lt;= n; ++i) up(ans, solve(i));
+	return printf("%.12lg\n", ans), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+	</body>
+</html>

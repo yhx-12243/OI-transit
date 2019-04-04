@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg5281][loj3044][soj443][ZJOI2019]Minimax 搜索</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>九条可怜是一个喜欢玩游戏的女孩子。为了增强自己的游戏水平，她想要用理论的武器武装自己。这道题和著名的 {Minimax 搜索有关。</p>
+		<p>可怜有一棵有根树，根节点编号为 $1$。定义根节点的深度为 $1$，其他节点的深度为它的父亲的深度加一。同时在叶子节点权值给定的情况下，可怜用如下方式定义了每一个非节点的权值：</p>
+		<ol>
+			<li><p>对于深度为奇数的非叶子节点，它的权值是它所有子节点的权值最大值。</p></li>
+			<li><p>对于深度为偶数的非叶子节点，它的权值是它所有子节点的权值最小值。</p></li>
+		</ol>
+		<p>最开始，可怜令编号为 $i$ 的叶子节点权值为 $i$，并计算得到了根节点的权值为 $W$。</p>
+		<p>现在，邪恶的 Cedyks 想要通过修改某些叶子节点的权值，来让根节点的权值发生改变。</p>
+		<p>Cedyks 设计了一个量子攻击器，在攻击器发动后，Cedyks 会随机获得一个非空的叶子节点集合 $S$ 的控制权，并可以花费一定的能量来修改 $S$ 中的叶子节点的权值。</p>
+		<p>然而，修改叶子节点的权值也要消耗能量，对于 $S$ 中的叶子节点 $i$，它的初始权值为 $i$，假设 Cedyks 把它的权值修改成了 $w_i$ ($w_i$ <strong>可以是任意整数，包括负数</strong>），则 Cedyks 在这次攻击中，需要花费的能量为 $\displaystyle \max_{i \in S} \left| i - w_i \right|$。</p>
+		<p>Cedyks 想要尽可能节约能量，于是他总是会<strong>以最少的能量来完成攻击</strong>，即在花费的能量最小的情况下，让根节点的权值发生改变。令 $w \left( S \right)$ 为 Cedyks 在获得了集合 $S$ 的控制权后，会花费的能量。</p>
+		<p>特殊地，对于某些集合 $S$，可能无论如何改变 $S$ 中叶子节点的权值，根节点的权值都不会发生改变，这时，$w \left( S \right)$ 的值被定义为 $n$。为了方便，我们称 $w \left( S \right)$ 为 $S$ 的<strong>稳定度</strong>。</p>
+		<p>当有 $m$ 个叶子节点的时候，一共有 $2^m - 1$ 种不同的叶子节点的非空集合。在发动攻击前，Cedyks 想要先预估一下自己需要花费的能量。于是他给出了一个区间 $\left[ L, R \right]$，他想要知道对于每一个 $k \in \left[ L, R \right]$，有多少个集合 $S$ 满足 $w \left( S \right) = k$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, L, R$ ($2 \leq n \leq 2 \times 10^5; 1 \leq L \leq R \leq n$)，表示节点的个数和你需要计算的范围。</p>
+		<p>接下来 $n - 1$ 行，每行两个整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，表示树上的一条边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $R - L + 1$ 个整数，其中第 $i$ 个整数表示 $w \left( S \right)$ 为 $L + i - 1$ 的集合 $S$ 有多少个。由于答案可能过大，请对 $998244353$ 取模后输出。</p>
+
+		<h3>题解</h3>
+		<p>不妨将空集也考虑在内，这样就有 $2^m$ 个集合了。很显然，$w \left( \varnothing \right) = n$。</p>
+		<p>又因为，对于任意一个集合，如果存在一种修改权值的方案使得根节点的权值变化，则容易证明所花费的能量一定不超过 $n - 1$ (因为根节点的编号为 $1$，因此所有节点的权值均在 $2 \sim n$ 之间)。</p>
+		<p>所以对集合 $S$，$w \left( S \right) = n \Leftrightarrow S$ 中的叶节点的权值无论如何变化，根节点的权值均不变。</p>
+		<p>我们先考虑如何求 $w \left( S \right) = n$ 的集合数量。</p>
+		<p>显然有一个非常 trivial 的 DP：</p>
+		<p>用 $f_{i, l, r}$ 表示只考虑以 $i$ 为根的子树，设子树中叶节点集合为 $L_i$，有多少个 $L_i$ 的子集 (包括空集) 满足：当子集中叶节点的权值取遍 $\left[ 1, n + 1 \right]$ 时，$i$ 的权值的取值范围为 $\left[ l, r \right]$ (可以证明取值范围一定是一个区间)。</p>
+		<p>边界状态为，对叶节点 $i$，有 $f_{i, i, i} = 1, f_{i, 1, n + 1} = 1$。转移就是枚举若干棵子树，使用 (类似背包) 子树合并的方法处理一下即可，根据 $i$ 的深度考虑取 $\min$ 还是 $\max$。</p>
+		<p>最终答案即为 $f_{1, v_1, v_1}$ (其中 $v_1$ 为原先点 $1$ 的权值)，状态数 $O \left( n^3 \right)$，时间复杂度 $O \left( n^5 \right)$，期望得分 $30$ 分。</p>
+		<hr />
+		<p>考虑对这个 DP 进行优化。</p>
+		<p>注意到后两维只有取 $\min$ 和取 $\max$。因此我们可以将所有的 $l, r$ 分为三类：<strong>小于 $v_1$ 的</strong>，<strong>等于 $v_1$ 的</strong>以及<strong>大于 $v_1$ 的</strong>，分别记为 $0, 1, 2$。</p>
+		<p>这样答案就是 $f_{1, 1, 1}$，且对转移也没什么影响 (依然是该取 $\min$ 的取 $\min$，该取 $\max$ 的取 $\max$)。</p>
+		<p>状态数 $6 \cdot n$，时间复杂度 $O \left( n \right)$，期望得分 $50$ 分。</p>
+		<hr />
+		<p>考虑对任意 $k$ 求 $w \left( S \right) = k$ 的情况。</p>
+		<p>我们考察能量不超过 $k$ 的所有方案，亦即每个叶节点 $i$ 的权值只能修改为 $\left[ i - k, i + k \right]$ 之间的一个整数。设有 $M_1$ 种集合使得根节点的权值不会改变。</p>
+		<p>类似地，对于能量不超过 $k - 1$ 的所有方案 (即每个叶节点 $i$ 的权值只能修改为 $\left[ i - k + 1, i + k - 1 \right]$ 间的整数)，设有 $M_2$ 种方案使得根节点的权值不变。</p>
+		<p>则<strong>这 $M_1$ 种方案一定是包含于上面的 $M_2$ 种方案中的</strong> (因为允许修改的范围大了都改变不了根的权值，那么小了就更改变不了了)，考察剩下的 $M_2 - M_1$ 种方案，这恰恰就是至少需要 $k$ 的能量才能使得根节点的权值发生变化的集合数量，换句话说，就是 $w \left( S \right) = k$ 的集合 $S$ 的数量。</p>
+		<p>因此，我们只需要对一个 $k$，求出能量不超过 $k$ 的方案中使得根节点权值不变的集合数即可。</p>
+		<p>还是套用刚才的 DP 即可，无非就是把边界改成了 $f_{i, i - k, i + k} = 1$ 而已。</p>
+		<p>求单个 $k$ 的时间复杂度为 $O \left( n \right)$，总复杂度 $O \left( \left( R - L \right) \cdot n \right)$，期望得分 $70$ 分。</p>
+		<hr />
+		<p>接下来所要做的事情就很套路了——就是对上面的 DP 再进行优化。</p>
+		<p>由于 DP 状态中我们已经使用了前缀和的形式，现在我们重新将其差分回去，即变成能量刚好为 $k$ 的方案数，<strong>并加入 DP 的一维</strong>。</p>
+		<p>在新的状态下，$k$ 这一维从原来的<strong>点积</strong>变成了现在的 <strong>$\max$ 卷积</strong>。</p>
+		<p>要注意的是：现在 DP 状态 $f_{i, k, l, r}$ 已经从 $O \left( n \right)$ 重新升回 $O \left( n^2 \right)$，因为后面两维的总状态数只有 $6$ 个。</p>
+		<p>我们用 $f_{i, k}$ 表示这个 <strong>6 维向量</strong>，分别表示 $\left( l, r \right)$ 为 $(0, 0), (0, 1), (0, 2), (1, 1), (1, 2), (2, 2)$ 的情形。</p>
+		<p>首先能注意到的是，<strong style="color: red">(1) 对叶节点 $i$，使 $f_{i, k}$ 非空的 $k$ 只有 $O(1)$ 个</strong> (这里非空指的是<em>不为零向量</em>)。这个很容易验证。</p>
+		<p>而在子树合并的过程，由于 $k$ 这一维是 $\max$ 卷积 (即一个子树的 $k_1$ 和另一个子树的 $k_2$ 会转移到父节点的 $\max \left\{ k_1, k_2 \right\}$。因此，<strong style="color: green">(2) 对于一个分支节点 $i$，使 $f_{i, k}$ 非空的 $k$ 的个数不超过所有子树的对应值之和</strong>。</p>
+		<p>由 <span style="color: red">(1)</span> <span style="color: green">(2)</span>，立马可以得到，<strong style="color: blue">对任意一个节点 $i$，使 $f_{i, k}$ 非空的 $k$ 的数量与 "以 $i$ 为根的子树大小" 呈线性关系</strong>。</p>
+		<p>对上面的蓝色性质，敏感的同学马上可以意识到，这可以使用<strong>线段树合并</strong>进行优化！</p>
+		<p>于是我们只需要将两棵子树的状态进行 "线段树合并" 即可。</p>
+		<p>max 卷积是比较容易使用线段树合并来维护的，具体实现和 <a href="loj2537.html" target="_blank">[PKUWC2018]Minimax</a> 非常类似，这里就不再赘述了。<del>(吐槽：尼玛那题名称怎么也是 Minimax 啊)</del></p>
+		<p>由于线段树上每个节点 (对应一个 $k$) 维护的是一个 6 维向量，因此打的标记就是向量运算的标记，即 $6 \times 6$ 矩阵。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$，<del>自带 $216$ 倍大常数</del>，根据实现的常数好坏期望获得 $90 \sim 100$ 分不等。</p>
+		<hr />
+		<p>$216$ 倍太大了，能不能稍微小点？(即能否减少矩阵大小)</p>
+		<p>其实是可以的。考察这 $6$ 个状态分别是什么，可以发现，其中有 $3$ 种状态都是<strong>带等号</strong>的，即要求有一个边界是 $v_1$。</p>
+		<p>而事实上，如果 $i$ 不在链 $1 \leadsto v_1$ 上，$i$ 的权值是<strong>不可能取到 $v_1$ 的</strong>，这是因为所有叶节点的权值是互不相同的。</p>
+		<p>因此，我们可以将状态数缩减为 $3$ 个——即 $(0, 0), (0, 2)$ 和 $(2, 2)$。</p>
+		<p>不过这里要注意的是，对于链 $1 \leadsto v_1$，又该如何处理。</p>
+		<p>我们只需将其单独合并即可。比如，对于 $x \in \left( 1 \leadsto v_1 \right)$，不妨设 $x$ 是对子树取 $\max$ 的点。要使 $x$ 的权值不变 (从而根的权值才<strong>有可能</strong>不变)，当且仅当所有子树的取值范围 ($l, r$) 均小于 $x$。</p>
+		<p>当 $x$ 是取 $\min$ 的点时同理。这些也都容易使用线段树合并处理。</p>
+		<p>于是我们成功将 6 维向量压到了 3 维向量，时间复杂度不变，常数已经不超过 $27$ 了，可以轻松通过本题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef int vector[3], *pvector;
+typedef int matrix[3][3], (*pmatrix)[3];
+typedef const int *cpvector;
+typedef int (*func)(const int, const int);
+typedef std::initializer_list &lt;int&gt; il;
+const int N = 200054, M = N * 2, mod = 998244353;
+const vector zero = {0, 0, 0};
+
+int n, z, L, R, E = 0;
+int to[M], first[N], next[M];
+int p[N], col[N], prf[N], val[N];
+bool main_chain[N];
+int ans[N];
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; add(int &amp;x, const int y) {return x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; sub(int &amp;x, const int y) {return x -= y, x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+inline void add(pvector x, const il &amp;y) {il::iterator it = y.begin(); add(*x, *it), add(x[1], *++it), add(x[2], *++it);}
+inline void sum(pvector ret, cpvector l, cpvector r) {add(*ret = *l, *r), add(ret[1] = l[1], r[1]), add(ret[2] = l[2], r[2]);}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y, &amp;z = prf[x];
+	if (!(x == 1 || next[first[x]])) {val[x] = x; return;}
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x])
+			p[y] = x, col[y] = col[x] ^ 1, dfs(y), (!z || (col[x] ? val[y] &lt; val[z] : val[y] &gt; val[z])) &amp;&amp; (val[x] = val[z = y]);
+}
+
+namespace Alloc {
+	const int LIMIT = 666666;
+	matrix buf[LIMIT];
+	pmatrix stack[LIMIT];
+	int top = 0;
+
+	inline pmatrix alloc() {return stack[--top];}
+	inline void free(pmatrix r) {stack[top++] = r;}
+	void init() {for (int i = 0; i &lt; LIMIT; ++i) stack[top++] = buf[i];}
+}
+
+namespace ST {
+	int cnt = 0;
+	struct node {int lc, rc; vector v; pmatrix tag;} x[7500000];
+
+	inline void multiply(node &amp;ret, pmatrix M) {
+		int i, j, k; ll g[3] = {0, 0, 0};
+		for (i = 0; i &lt; 3; ++i)
+			for (j = 0; j &lt; 3; ++j) g[i] += (ll)M[i][j] * ret.v[j];
+		for (i = 0; i &lt; 3; ++i) ret.v[i] = g[i] % mod;
+		if (ret.tag) {
+			ll r, s[3][3]; memset(s, 0, 72);
+			for (i = 0; i &lt; 3; ++i)
+				for (k = 0; k &lt; 3; ++k) if ((r = M[i][k]))
+					for (j = 0; j &lt; 3; ++j) s[i][j] += r * ret.tag[k][j];
+			for (i = 0; i &lt; 3; ++i)
+				for (j = 0; j &lt; 3; ++j) ret.tag[i][j] = s[i][j] % mod;
+		} else ret.tag = Alloc::alloc(), memcpy(ret.tag, M, sizeof(matrix));
+	}
+
+	inline void push_down(node &amp;ret, node &amp;l, node &amp;r) {
+		if (!ret.tag) return; multiply(l, ret.tag), multiply(r, ret.tag), Alloc::free(ret.tag), ret.tag = NULL;
+	}
+
+	int merge(int id1, int id2, int L, int R, cpvector G1, cpvector G2, int c) {
+		if (!id2) std::swap(id1, id2), std::swap(G1, G2);
+		if (!id2) return 0;
+		int i, j; func f = (c ? min : max);
+		if (!id1) {
+			matrix g; memset(g, 0, sizeof(matrix));
+			if (c == 3) g[0][0] = G1[2], g[0][2] = G1[0];
+			else if (c == 2) g[0][0] = G1[0];
+			else for (i = 0; i &lt; 3; ++i) for (j = 0; j &lt; 3; ++j) add(g[f(i, j)][i], G1[j]);
+			return multiply(x[id2], g), id2;
+		}
+		if (L == R) {
+			vector g = {0, 0, 0};
+			if (c == 3)
+				*g = ((ll)(x[id1].v[0] + G1[0]) * (x[id2].v[2] + G2[2]) - (ll)G1[0] * G2[2]
+					+ (ll)(x[id1].v[2] + G1[2]) * (x[id2].v[0] + G2[0]) - (ll)G1[2] * G2[0]) % mod;
+			else if (c == 2) *g = ((ll)(*x[id1].v + *G1) * (*x[id2].v + *G2) - (ll)*G1 * *G2) % mod;
+			else for (i = 0; i &lt; 3; ++i) for (j = 0; j &lt; 3; ++j)
+					g[f(i, j)] = (g[f(i, j)] + ((ll)(x[id1].v[i] + G1[i]) * (x[id2].v[j] + G2[j]) - (ll)G1[i] * G2[j])) % mod;
+			for (i = 0; i &lt; 3; ++i) x[id1].v[i] = reduce(g[i]);
+			return id1;
+		}
+		int M = (L + R - 1) &gt;&gt; 1;
+		push_down(x[id1], x[id1].lc[x], x[id1].rc[x]), push_down(x[id2], x[id2].lc[x], x[id2].rc[x]);
+		vector H1, H2; sum(H1, G1, x[id1].lc[x].v), sum(H2, G2, x[id2].lc[x].v);
+		x[id1].lc = merge(x[id1].lc, x[id2].lc, L, M, G1, G2, c);
+		x[id1].rc = merge(x[id1].rc, x[id2].rc, M + 1, R, H1, H2, c);
+		return sum(x[id1].v, x[id1].lc[x].v, x[id1].rc[x].v), id1;
+	}
+
+	int adj(int id, int L, int R, int h, const il &amp;v) {
+		if (!id) id = ++cnt, x[id].tag = NULL; add(x[id].v, v);
+		if (L == R) return id;
+		int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[id].lc = adj(x[id].lc, L, M, h, v) : (x[id].rc = adj(x[id].rc, M + 1, R, h, v));
+		return id;
+	}
+
+	void scan(int id, int L, int R, int *output) {
+		if (!id) return;
+		if (L == R) {output[L] = *x[id].v; return;}
+		int M = (L + R - 1) &gt;&gt; 1; push_down(x[id], x[id].lc[x], x[id].rc[x]);
+		scan(x[id].lc, L, M, output), scan(x[id].rc, M + 1, R, output);
+	}
+}
+
+int root[N];
+
+void dfs2(int x) {
+	int i, y;
+	if (!prf[x]) {
+		if (x == z) ;
+		else if (x &gt; z)
+			root[x] = ST::adj(root[x], 0, n - 1, 0, {0, 0, 2}),
+			root[x] = ST::adj(root[x], 0, n - 1, x - z + 1, {0, 1, mod - 1});
+		else
+			root[x] = ST::adj(root[x], 0, n - 1, 0, {2, 0, 0}),
+			root[x] = ST::adj(root[x], 0, n - 1, z - x + 1, {mod - 1, 1, 0});
+		return;
+	}
+	root[x] = ST::adj(root[x], 0, n - 1, 0, col[x] ? il({0, 0, 1}) : il({1, 0, 0}));
+	for (i = first[x]; i; i = next[i])
+		if (p[y = to[i]] == x) {
+			dfs2(y);
+			if (!main_chain[x])
+				root[x] = ST::merge(root[x], root[y], 0, n - 1, zero, zero, col[x]);
+			else if (!main_chain[y])
+				*root = ST::merge(*root, root[y], 0, n - 1, zero, zero, col[x] + 2);
+		}
+}
+
+int main() {
+	int i, u, v; Alloc::init();
+	scanf("%d%d%d", &amp;n, &amp;L, &amp;R);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1), z = val[1];
+	for (v = 1; v; v = prf[v]) main_chain[v] = true;
+	*root = ST::adj(*root, 0, n - 1, 0, {1, 0, 0});
+	dfs2(1), ST::scan(*root, 0, n - 1, ans);
+	ans[n] = (ans[0] + ans[1] - 1) % mod; reduce(ans[1] = ans[0] - ans[1]);
+	for (i = 2; i &lt; n; ++i) add(ans[n], ans[i]), neg(ans[i]);
+	for (i = L; i &lt;= R; ++i) printf("%d%c", ans[i], i == n ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于线段树中的标记是一个 $3 \times 3$ 矩阵，因此比较耗空间，可以使用手写动态内存池的方法来节约空间 (不过貌似不写也能过)。</p>
+		<p><strong>坑2：</strong>线段树合并时不要忘记对底层节点的处理，因为这题中可能出现两颗线段树某个点均有值的情况。</p>
+	</body>
+</html>

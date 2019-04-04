@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4673]置换</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>求 $n$ 元对称群 $S_n$ 中所有置换的<strong>阶</strong>的平方的期望 (阶的平方和除以 $n!$ 的结果)。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, p$ ($1 \leq n \leq 200; 10000 &lt; p &lt; 10^9$，且 $p$ 是素数)，表示置换的长度和模数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示阶的平方的期望在模 $p$ 意义下的结果。</p>
+
+		<h3>题解</h3>
+		<p>由熟知结论，一个置换的阶等于<strong>它的循环表示中每个循环长度的 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr></strong>。</p>
+		<p>设置换 $g$ 中有 $\#_i$ 个大小为 $i$ 的循环，即设 $g$ 的<a href="https://en.wikipedia.org/wiki/Cycle_index" target="_blank">循环指标</a>为 $t_1^{\#_1} t_2^{\#_2} t_3^{\#_3} \cdots$ (其中 $\sum i \cdot \#_i = n$)，考虑这样的循环有多少个：</p>
+		<p>首先，将 $1 \sim n$ 分成 $\#_i$ 个大小为 $i$ 的组，这样的分组方案由可重组合，它等于 $\dbinom n {1, 1, \cdots, 1, 2, 2, \cdots} = \dfrac {n!} {\left( 1! \right)^{\#_1} \left( 2! \right)^{\#_2} \left( 3! \right)^{\#_3} \cdots}$</p>
+		<p>由于不同的 "<strong>相同长度的循环</strong>" 实质上是等价的。因此 $\#_i$ 个长度为 $i$ 的循环互相之间是不区分的，因此还要除以 $\#_i!$。</p>
+		<p>考虑每个长度为 $i$ 的循环，其内部的 $i$ 个元素可以任意构成<strong>大小为 $i$ 的<a href="https://en.wikipedia.org/wiki/Permutation#Circular_permutations" target="_blank">圆排列</a></strong>，因此内部方案数还要乘以 $\left( i - 1 \right)!$。由于一共有 $\#_i$ 个这样的循环，因此总共要乘以 $\left( \left( i - 1 \right)! \right)^{\#_i}$。</p>
+		<p>综上，循环指标为 $t_1^{\#_1} t_2^{\#_2} t_3^{\#_3} \cdots$ 的置换个数等于</p>
+		<p>$$ \frac {n!} {1^{\#_1} \cdot 2^{\#_2} \cdot 3^{\#_3} \cdots \#_1! \cdot \#_2! \cdot \#_3! \cdots} \tag 1 \label 1 $$</p>
+		<p>考察每一种<a href="https://en.wikipedia.org/wiki/Cycle_index" target="_blank">循环指标</a>，容易发现它唯一对应着<strong>整数 $n$ 的一种拆分</strong>。因此我们现在就有了一个非常暴力的做法：</p>
+		<p style="color: blue">枚举 $n$ 的所有拆分，然后算出对应的循环指标和元素的阶，并统计出具有该循环指标的置换个数，对应相乘即可。</p>
+		<p>然而，整数 $200$ 的拆分数可以达到约 $3.973 \times 10^{12}$，这么大的枚举量是不可接受的。</p>
+		<hr />
+		<p>那该怎么办呢？我们考虑 "动态" 地解决这个问题——即使用动态规划。</p>
+		<p>考虑动态加入 $\#_i$ 个长度为 $i$ 的循环的过程，由 $\eqref 1$ 式，它对总置换个数的贡献等于 $\dfrac 1 {i^{\#_i} \cdot \#_i!}$。</p>
+		<p>因此可以这样记录状态：用 $f_{i, j}$ 表示<span style="color: red">当前已经装填了 $i$ 个元素，目前所有循环长度的 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr> 为 $j$ 情况对答案的贡献</span>。</p>
+		<p>初始状态显然是 $f_{0, 0} = n!$ (现在考虑计算总和)，考虑转移，根据上面分析的结论，我们只能 "一股脑地" 将长度为 $s$ 的所有循环加入。</p>
+		<p>设我们加入了 $\#_s$ 个，则转移就是 $$ f_{i + s \cdot \#_s, \mathop{\mathrm{lcm}} \left( j, s \right)} \gets_+ f_{i, j} \cdot \frac 1 {s^{\#_s} \cdot \#_s!} $$ (其中 $a \gets_+ b$ 表示 <code>a += b</code>)</p>
+		<p>但是这里还是有一个弊端：状态数还是太多了！考虑整数 $200$ 的所有拆分，考察每个拆分方案中所有数的 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr>，本质不同的 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr> 还是有 $886231$ 个！</p>
+		<p>算上转移的复杂度，总复杂度还是一个难以承受的状态！</p>
+		<hr />
+		<p>考虑如何优化这个 DP。考察大于 $\sqrt n$ 的质因子，显然可以发现，它在 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr> 中至多贡献一次，不会贡献平方或更高次。</p>
+		<p>因此，我们可以使用 <a href="uoj129.html" target="_blank">[NOI2015]寿司晚宴</a> 的技巧，将 $&gt; \sqrt n$ 的素数 (这里是 $\geq 17$ 的素数) 称为<strong>大素数</strong>，然后大素数、小素数分别处理。</p>
+		<p>对 $1 \sim n$ 中的每个数，将其按照自己拥有的大素数进行排序，然后按照顺序加入循环。</p>
+		<p>状态也要类似地改变：用 $f_{i, j}$ 表示<span style="color: green">已经装填了 $i$ 个元素，循环长度的 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr> 中，<strong>小素数</strong>的贡献为 $j$</span>。容易证明，本质不同的 $j$ 不超过 $2049$ 个。</p>
+		<p>设当前加入的是长度为 $s$ 的循环，$s$ 拥有的大素数为 $p$。设原先的状态为 $f_{i, j}$，我们加入了 $\#_s$ 个这样的 (长度为 $s$ 的) 循环，则新的 $i' \gets i + s \cdot \#_s$，新的 $j'$ 就是原先的 $j$ 和 $s$ 中的<strong>小素数</strong>的贡献的 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr>。</p>
+		<p>和<a href="uoj129.html" target="_blank">那道题</a>一样，当一个大素数 $p$ 被装填完毕时，我们要统计一下 $p$ 的最终答案的贡献 (本题中由于是平方和，因此为 $p^2$)。</p>
+		<p>具体地，可以通过减法原理，设加入 $p$ 后的状态为 $g_{i, j}$，加入前的状态为 $f_{i, j}$，则 $g_{i, j} - f_{i, j}$ 就是包含 $p$ 的贡献总和，于是只需令新的 $f'_{i, j} \gets f_{i, j} + p^2 \cdot \left( g_{i, j} - f_{i, j} \right)$ 即可。</p>
+		<p>最后统计答案时只需统计一遍<strong>小素数</strong>的贡献 (平方和) 即可，即枚举 $j$，然后对 $j^2 \cdot f_{i, j}$ 求个和即可。</p>
+		<p>总时间复杂度为 $O \left( n^2 \log n \cdot \left| S \right| \right)$，其中 $S$ 为状态数 ($\leq 2049$)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 254, M = 2054;
+const int p[6] = {2, 3, 5, 7, 11, 13};
+
+struct factor_result {
+	int val, high, low;
+	inline bool operator &lt; (const factor_result &amp;B) const {return high &lt; B.high || high == B.high &amp;&amp; val &lt; B.val;}
+} z[N];
+
+int mod;
+int n, cnt = 0;
+int f[N][M], g[N][M], tr[N][N];
+int fact[N], inv[N], finv[N];
+int hash[265000];
+pr s[M];
+
+inline int fmax(const int x, const int y) {
+	int i, r = 0, mask = 7;
+	for (i = 0; i &lt; 6; ++i, mask &lt;&lt;= 3) r |= std::max(x &amp; mask, y &amp; mask);
+	return r;
+}
+
+void init(int n) {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt;= n; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+void factor(int s) {
+	int i, j, &amp;x = z[s].high;
+	for (z[s].val = x = s, i = 0; i &lt; 6; z[s].low |= j &lt;&lt; (i * 3), ++i)
+		for (j = 0; !(x % p[i]); x /= p[i], ++j);
+}
+
+void dfs(int d, int sum, int prod, int state) {
+	if (d == 6) {s[cnt] = pr(state, prod), hash[state] = cnt++; return;}
+	int i, cur = 1;
+	for (i = 0; !i || sum + cur &lt;= n; ++i, cur *= p[d])
+		dfs(d + 1, sum + (i ? cur : 0), prod * cur, state | i &lt;&lt; (d * 3));
+}
+
+int main() {
+	int i, j, k, c, v, nj, nk, ns; ll v2, ans = 0;
+	scanf("%d%d", &amp;n, &amp;mod), init(n);
+	for (i = 1; i &lt;= n; ++i) factor(i);
+	std::sort(z + 1, z + (n + 1));
+	dfs(0, 0, 1, 0);
+	for (i = 1; i &lt;= n; ++i)
+		for (*tr[i] = j = 1; j &lt;= n; ++j)
+			tr[i][j] = (ll)tr[i][j - 1] * inv[i] % mod * inv[j] % mod;
+	f[0][0] = fact[n];
+	for (i = 1; i &lt;= n; ++i) { // enumerate big factor
+		v = z[i].val, v2 = (ll)z[i].high * z[i].high % mod;
+		if (z[i].high == 1 || z[i].high != z[i - 1].high)
+			memcpy(g, f, sizeof g);
+		for (j = cnt - 1; j &gt;= 0; --j) { // enumerate small states
+			ns = fmax(s[j].first, z[i].low), nj = hash[ns];
+			for (k = n; k &gt;= 0; --k) if (g[k][j])
+				for (c = 1, nk = k; nk += v, nk &lt;= n; ++c)
+					g[nk][nj] = (g[nk][nj] + (ll)g[k][j] * tr[v][c]) % mod;
+		}
+		if (z[i].high == 1 || z[i].high != z[i + 1].high)
+			for (k = 0; k &lt;= n; ++k)
+				for (j = 0; j &lt; cnt; ++j)
+					f[k][j] = (f[k][j] + (g[k][j] - f[k][j] + mod) * v2) % mod;
+	}
+	for (j = 0; j &lt; cnt; ++j) v2 = (ll)s[j].second * s[j].second % mod, ans = (ans + f[n][j] * v2) % mod;
+	printf("%lld\n", ans * finv[n] % mod);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>和<a href="uoj129.html" target="_blank">那道题</a>一样，如果 $s$ 只由小素数构成，则每加入一遍都需要更新一次 $f$ (不过这里不这么处理也可以，因为这里的 $g$ 只有一维)。</p>
+		<p><strong>坑2：</strong>在具体存储状态时，可以把 $j$ 这一维 Hash 掉，节约数组空间。</p>
+	</body>
+</html>
