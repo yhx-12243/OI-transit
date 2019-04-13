@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj69]解方程</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个整系数多项式方程 $a_0 + a_1 x + a_2 x^2 + \cdots + a_n x^n = 0$，求它在模质数 $p$ 意义下的所有根。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, p$ ($3 \leq p \leq 10^9; 1 \leq n \leq 100$)，表示多项式的次数和模数。</p>
+		<p>第二行 $n + 1$ 个整数 $a_0, a_1, \cdots, a_n$ ($0 \leq a_i &lt; p; a_n \neq 0$)，表示这个多项式。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $k$，表示方程根的个数 (重根<strong>不</strong>计重数)。</p>
+		<p>第二行 $k$ 个从小到大的整数，表示所有根。</p>
+
+		<h3>题解</h3>
+		<p>初看此题，和 <a href="soj70.html" target="_blank">[soj70]解方程</a> 非常相似，不过唯一的区别是数据范围发生了改变：素模数 $p$ 变得很大，但多项式的次数 $n$ 却变得很低。</p>
+		<p>和那题类似，首先容易判断 $0$ 是否是方程的根 (只需判定 $a_0$ 是否等于 $0$ 即可)，然后令多项式除以 $x$ 的若干次方，使得常数项不为 $0$。</p>
+		<p>首先我们需要用到一个非常基本的结论：<strong>对于素数 $p$，有 $x^{p-1} - 1 \equiv \left( x - 1 \right) \left( x - 2 \right) \cdots \left( x - \left( p - 1 \right) \right) \pmod p$ (注意这里的 $\equiv$ 指的是多项式展开后系数同余，而不仅仅是对于点值同余</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>令 $A \left( x \right) = x^{p-1} - 1 - \left( x - 1 \right) \left( x - 2 \right) \cdots \left( x - \left( p - 1 \right) \right)$，由 Fermat 小定理，$A \left( 1 \right) = A \left( 2 \right) = \cdots = A \left( p - 1 \right) = 0$。</p>
+				<p>又 $\deg A \left( x \right) \leq p - 2$，由 Lagrange 定理，如果 $A \not\equiv 0 \pmod p$，则 $A \left( x \right)$ 至多只有 $p - 2$ 个根，然而 $1, 2, \cdots, p - 1$ 这 $p - 1$ 个数都是 $A \left( x \right)$ 的根，矛盾。故 $A \equiv 0 \pmod p$。</p>
+			</div>
+		</div>
+		<p>于是，我们只需要对 $f \left( x \right) = a_0 + a_1 x + a_2 x^2 + \cdots + a_n x^n$ 与 $g \left( x \right) = x^{p-1} - 1 \equiv \left( x - 1 \right) \left( x - 2 \right) \cdots \left( x - \left( p - 1 \right) \right)$ 做一遍多项式 GCD。设 $f \left( x \right)$ 的根为 $r_1, r_2, \cdots, r_k$，GCD 得到的结果是 $h \left( x \right)$，则有</p>
+		<p>$$ h \left( x \right) = \left( x - r_1 \right) \left( x - r_2 \right) \cdots \left( x - r_k \right) $$</p>
+		<p>但是 $g \left( x \right)$ 的次数太高了怎么办？由 Euclid 辗转相除理论，$h \left( x \right) = \gcd \left( f \left( x \right), g \left( x \right) \right) = \gcd \left( f \left( x \right), g \left( x \right) \bmod f \left( x \right) \right)$。因此我们只需求出 $g \left( x \right) \bmod f \left( x \right)$ 的结果，而这可以使用<strong>多项式快速幂</strong>轻松搞定。</p>
+		<hr />
+		<p>因此现在我们已经完成了第一步——成功求出 $h \left( x \right)$，现在的问题就是，如何通过 $h \left( x \right)$ 得到 $r_1, r_2, \cdots, r_k$。</p>
+		<p>这里的主要思路和 <a href="https://codeforces.com/contest/1091/problem/G" target="_blank">[Codeforces1091G]New Year and the Factorisation Collaboration</a> 非常类似。那道题是使用随机二次剩余的方法对大整数进行质因数分解，这里就是通过随机小多项式的方法对大多项式进行因式分解。</p>
+		<p>随机一个多项式 $l \left( x \right)$，考察 $l^{\left( p - 1 \right)/2} \left( x \right) \bmod \left( x - r_i \right)$，可以发现，它等于 $l \left( r_i \right)^{\left( p - 1 \right)/2} \bmod p = \left( \dfrac {l \left( r_i \right)} p \right) \in \left\{ -1, 0, 1 \right\}$，具体的取值取决于 $l \left( r_i \right)$ 是否是 $p$ 的二次剩余。</p>
+		<p>考察多项式 $L \left( x \right) = l^{\left( p - 1 \right)/2} \left( x \right) - 1$，它有因式 $x - r_i$ 的充要条件是 <strong>$l \left( r_i \right)$ 是 $p$ 的二次剩余</strong>。</p>
+		<p>由于多项式 $l \left( x \right)$ 是随机的，因此 $l \left( r_i \right)$ 是否是二次剩余的情况也可以看作是随机的，因此我们只需对 $L \left( x \right)$ 与 $h \left( x \right)$ 取 <abbr title="Greatest Common Divisor, 最大公约数">GCD</abbr>，就可以 "筛" 出一部分根 (根集的子集) $r_{i_1}, r_{i_2}, \cdots, r_{i_\kappa}$，从而得到规模更小的多项式 $h' \left( x \right) = \left( x - r_{i_1} \right) \left( x - r_{i_2} \right) \cdots \left( x - r_{i_\kappa} \right)$。</p>
+		<p>重复操作，直到 $\deg h \left( x \right) = 1$，此时我们就得到了一个根。于是，我们就成功求出了 $h \left( x \right)$ 的所有根。</p>
+		<p>由于 $n$ 比较小，因此所有的多项式操作 (乘法、除法及取模、<abbr title="Greatest Common Divisor, 最大公约数">GCD</abbr>、快速幂/幂模) 均可以用暴力实现，期望时间复杂度 $O \left( n^3 \log p \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 254;
+typedef int vec[N], *pvec;
+typedef const int *cpvec;
+
+int n, mod;
+int ans = 0, root[N];
+vec a, f, g, r;
+std::mt19937 gen;
+
+inline int &amp; reduce(int &amp;x) {return x += (x &gt;&gt; 31 &amp; mod);}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	vec B1, B2, B3, B4, B5;
+
+	int canonicity(int n, pvec a) {
+		for (; ~n &amp;&amp; !a[n]; --n);
+		ll iv = PowerMod(a[n], mod - 2);
+		for (int i = 0; i &lt;= n; ++i) a[i] = a[i] * iv % mod;
+		return n;
+	}
+
+	void Mul(int A, cpvec a, int B, cpvec b, pvec ret) {
+		int i, j; memset(B1, 0, (A + B + 1) &lt;&lt; 2);
+		for (i = 0; i &lt;= A; ++i)
+			for (j = 0; j &lt;= B; ++j) B1[i + j] = (B1[i + j] + (ll)a[i] * b[j]) % mod;
+		memcpy(ret, B1, (A + B + 1) &lt;&lt; 2);
+	}
+
+	void DivMod(int A, cpvec a, int B, cpvec b, pvec q, pvec r) {
+		int i, j; ll t; assert(b[B] == 1);
+		memcpy(B1, a, (A + 1) &lt;&lt; 2);
+		for (i = A; i &gt;= B; --i)
+			for (t = mod - B1[i], j = 1; j &lt;= B; ++j)
+				B1[i - j] = (B1[i - j] + t * b[B - j]) % mod;
+		memcpy(q, B1 + B, (A - B + 1) &lt;&lt; 2), memcpy(r, B1, B &lt;&lt; 2);
+	}
+
+	int GCD(int A, cpvec a, int B, cpvec b, pvec ret) {
+		memcpy(B4, a, (A + 1) &lt;&lt; 2), memcpy(B5, b, (B + 1) &lt;&lt; 2);
+		for (pvec _a = B4, _b = B5; ; ) {
+			A = Poly::canonicity(A, _a);
+			B = Poly::canonicity(B, _b);
+			if (A &lt; B) std::swap(A, B), std::swap(_a, _b);
+			if (!~B) return memcpy(ret, _a, (A + 1) &lt;&lt; 2), A;
+			DivMod(A, _a, B, _b, B2, B3);
+			A = B - 1, memcpy(_a, B3, (A + 1) &lt;&lt; 2);
+		}
+	}
+
+	void PowerMod(int deg, cpvec a, int n, cpvec m, pvec ret) {
+		memcpy(B4, a, deg &lt;&lt; 2), memset(ret, 0, deg &lt;&lt; 2), *ret = 1;
+		for (; n; n &gt;&gt;= 1) {
+			if (n &amp; 1) {
+				Mul(deg - 1, B4, deg - 1, ret, ret);
+				DivMod(2 * deg - 2, ret, deg, m, B2, B3);
+				memcpy(ret, B3, deg &lt;&lt; 2);
+			}
+			Mul(deg - 1, B4, deg - 1, B4, B4);
+			DivMod(2 * deg - 2, B4, deg, m, B2, B3);
+			memcpy(B4, B3, deg &lt;&lt; 2);
+		}
+	}
+}
+
+vec Rand, Pow, G, _1;
+
+void ed_clash(int n, cpvec a) {
+	int i, K;
+	for (; n &amp;&amp; !a[n]; --n);
+	if (!n) return;
+	if (n == 1) {neg(root[ans++] = *a); return;}
+	for (; ; ) {
+		for (i = 0; i &lt; n; ++i) Rand[i] = gen() % mod;
+		Poly::PowerMod(n, Rand, mod / 2, a, Pow), reduce(--*Pow);
+		
+		K = Poly::GCD(n, a, n - 1, Pow, G);
+		if (K &amp;&amp; K != n) {
+			int P1[K + 1], P2[n - K + 1];
+			memcpy(P1, G, (K + 1) &lt;&lt; 2);
+			Poly::DivMod(n, a, K, G, P2, _1);
+			return ed_clash(K, P1), ed_clash(n - K, P2);
+		}
+	}
+}
+
+int main() {
+	int i, size;
+	char *_ = new char; gen.seed(time(NULL) + (unsigned long)_), delete _;
+	scanf("%d%d", &amp;n, &amp;mod);
+
+	for (i = 0; i &lt;= n; ++i) scanf("%d", a + i);
+	Poly::canonicity(n, a);
+
+	if (!*a) {
+		for (root[ans++] = i = 0; i &lt;= n &amp;&amp; !a[i]; ++i);
+		std::copy(a + i, a + (n + 1), a);
+		if (!~(n -= i)) return puts("1\n0"), 0;
+	}
+
+	f[1] = 1, Poly::PowerMod(n, f, mod, a, g), reduce(--g[1]);
+	if (size = Poly::GCD(n, a, n - 1, g, r)) ed_clash(size, r);
+
+	std::sort(root, root + ans);
+	printf("%d\n", ans);
+	for (i = 0; i &lt; ans; ++i) printf("%d%c", root[i], i == ans - 1 ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在求 GCD 的过程及其它过程中注意一定要及时清除值为 $0$ 的高次项，保持最高次项系数非 $0$。</p>
+		<p><strong>坑2：</strong>多项式操作过程中注意数组的拷贝问题，最好不要把传进来的多项式改掉。</p>
+	</body>
+</html>

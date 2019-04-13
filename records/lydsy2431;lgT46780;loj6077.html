@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2431][lgT46780][loj6077]逆序对</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n, k$，请求出长度为 $n$ 的逆序对数恰好为 $k$ 的排列的个数。答案对 $10^9 + 7$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, k$ ($n, k \leq 10^5; k \leq \dbinom n2$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示排列的个数模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>设长度为 $i$ 的逆序数为 $j$ 的排列个数为 $f_{i, j}$。</p>
+		<p>对于任意一个长度为 $i - 1$ 的排列，设它有 $j$ 个逆序对。考虑将元素 $i$ 插入其中，根据插入的位置可以分别产生 $0$ 个，$1$ 个，……，$i - 1$ 个 (新的) 逆序对，也就是说，对 $l = 0, 1, \cdots, i - 1$，有 $f_{i - 1, j} \to f_{i, j + l}$。</p>
+		<p>于是 $\displaystyle f_{i, j} = \sum_{l = 0}^{i - 1} f_{i - 1, l}$。使用生成函数表达，即令 $F_i \left( x \right) = \sum\limits_j f_{i, j} x^j$，则有 $F_i \left( x \right) = F_{i - 1} \left( x \right) \cdot \left( 1 + x + x^2 + \cdots + x^{i - 2} + x^{i - 1} \right)$。</p>
+		<p>于是最终的生成函数就是 $F_n \left( x \right) = \left( 1 + x \right) \left( 1 + x + x^2 \right) \cdots \left( 1 + x + x^2 + \cdots + x^{n - 2} + x^{n - 1} \right)$，我们所要求的就是 $\left[ x^k \right] F_n \left( x \right)$。</p>
+		<p>当然，对多项式技巧比较熟练的同学马上就可以看出来该对上式取 $\ln$，然后在 $O \left( k \left( \log n + \log k \right) \right)$ 的时间内求出所有 $F_n \left( x \right)$ 的所有次数不超过 $k$ 的项的系数。</p>
+		<p><del>由于上面的多项式技巧需要用到多项式 $\exp$</del>，因此此处略去不讲。下面讲一个常数稍小的根号算法。</p>
+		<p>将式子变形，得到 $$ F_n \left( x \right) = \frac {\left( 1 - x \right) \left( 1 - x^2 \right) \left( 1 - x^3 \right) \cdots \left( 1 - x^n \right)} {\left( 1 - x \right)^n} $$</p>
+		<p>我们只需要知道 $F_n \left( x \right) \bmod {x^{k+1}}$ 中 $x^k$ 项系数即可。</p>
+		<p>分母非常好处理，由熟知结论，$\displaystyle \frac 1 {\left( 1 - x \right)^n} = \sum_{i \geq 0} \binom {n + i - 1} {n - 1} x^i$，容易处理。现在只需考虑如何计算分子。</p>
+		<p>由组合意义，$x^i$ 次项的系数等于从 $1, 2, 3, \cdots, n$ 中选若干个数和为 $i$ 的 (带权) 方案数，其中选偶数个时权值为 $1$，选奇数个时权值为 $-1$。</p>
+		<p>由于这些数互不相同，因此总的数的个数不会超过 $\sqrt {2 i} + O \left( 1 \right)$。由于 $i \leq k$，因此考虑对<strong>每一对 $i, j$</strong>，统计有多少个<strong>选 $i$ 个数的方案和为 $j$</strong>，这样也不用担心权值正负的问题了。</p>
+		<p>我们用 $g_{i, j}$ 表示选 $i$ 个 $1 \sim n$ 中互异的数，和为 $j$ 的方案数，则 $g_{0, 0} = 0$。</p>
+		<p>考虑使用 DP 解决。使用和 <a href="loj6089.html" target="_blank">[loj6089]小 Y 的背包计数问题</a> 类似的方法进行 DP：由物品大小的连续性，我们对每种方案可以看成若干次 A, B 操作的结果。两种操作如下：</p>
+		<ol style="list-style-type: upper-alpha">
+		<li><p>将背包内所有物品的大小均增加 $1$。</p></li>
+		<li><p>向背包加入一个大小为 $1$ 的物品，<strong>并将背包内其它物品的大小均增加 $1$</strong>。</p></li>
+		</ol>
+		<p>类似分析后可以得到转移方程 $g_{i, j} = g_{i, j - i} + g_{i - 1, j - i}$。</p>
+		<p>不过需要减去有物品大小超过 $n$ 的方案，由于大小是连续增加的且大小互异，因此此时<strong>必有唯一的大小超过 $n$ 的数 —— $n + 1$</strong>。考虑将其去除，有 $g_{i - 1, j - n - 1}$ 种方案，因此最终的转移方程为</p>
+		<p>$$ g_{i, j} = g_{i, j - 1} + g_{i - 1, j - i} - g_{i - 1, j - n - 1} $$ (ps: 如果出现数组越界则视为 $0$)</p>
+		<p>于是分子 $\left( 1 - x \right) \left( 1 - x^2 \right) \left( 1 - x^3 \right) \cdots \left( 1 - x^n \right)$ 上的 $x^k$ 项系数就等于 $\sum\limits_i (-1)^i f_{i, k}$。</p>
+		<p>最后就是要对分子和分母做一个 "卷积"，由于我们只要求一项系数，因此暴力使用卷积的定义计算即可。</p>
+		<p>时间复杂度 $O \left( n + k \sqrt k \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 100054, G = 486, mod = 1000000007;
+
+int n, K;
+int fact[N * 2], finv[N * 2];
+int f[G][N];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void sub(int &amp;x, const int y) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(int n) {
+	int i;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+inline ll C(int n, int r) {return (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+int main() {
+	int i, j, limit, ans = 0; ll t;
+	scanf("%d%d", &amp;n, &amp;K), init(n + K);
+	f[0][0] = 1;
+	limit = std::min(n, ((int)sqrt(K * 8 + 1) - 1) / 2);
+	for (i = 1; i &lt;= limit; ++i)
+		for (j = i; j &lt;= K; ++j) {
+			add(f[i][j] = f[i][j - i], f[i - 1][j - i]);
+			if (j &gt;= n + 1) sub(f[i][j], f[i - 1][j - n - 1]);
+		}
+	for (i = 0; i &lt;= K; ++i) {
+		for (t = j = 0; j &lt;= limit; ++j) j &amp; 1 ? t -= f[j][i] : (t += f[j][i]);
+		t %= mod, t += t &gt;&gt; 63 &amp; mod;
+		ans = (ans + C(n + (K - i) - 1, n - 1) * t) % mod;
+	}
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意第一维的上界是 $\sqrt {2 k} + O \left( 1 \right)$ 而不是 $\sqrt k + O \left( 1 \right)$，数组也不要开小了 (可以使用滚动数组)。</p>
+		<p><strong>坑2：</strong>lydsy 中的取模是合数，可以使用杨辉三角法预处理二项式系数，如果 $n, k$ 比较大可以用因子对消法。</p>
+	</body>
+</html>

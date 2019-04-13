@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj3031][JOISC 2019 Day1]聚会</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $N$ 座住有海狸的岛屿，编号从 $0$ 至 $N - 1$。这些岛由 $N - 1$ 条双向桥梁连接，使得两两互相可达。<strong>保证每个岛屿至多连出 $18$ 座桥</strong>。每个岛住有一只海狸。</p>
+		<p>有时，一些海狸会赶往同一个岛屿进行聚会。当三只海狸进行聚会的时候，它们会按照这一规则选择聚会的岛屿：</p>
+		<ul>
+			<li><p>找到一个岛屿，使得三只海狸到达这个岛屿的距离之和是最小的，可以证明这样的岛屿是唯一的。</p></li>
+		</ul>
+		<p>这个岛屿可以是其中某一个海狸的家。</p>
+		<p>你的任务是找出这 $N$ 座岛屿的连接方式。为了获取信息，你可以问海狸这样一个问题：</p>
+		<ul>
+			<li><p>给出三个不同的岛屿 $u, v, w$。</p></li>
+			<li><p>询问这三座岛屿上的海狸会赶往聚会的岛屿。</p></li>
+		</ul>
+
+		<h3>实现细节</h3>
+		<p>你的程序在开头需包含头文件 <code>meetings.h</code>，并实现函数：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">void solve(int N)
+</code></pre>
+		<p>该函数每个测试点会被调用一次，参数 <code>N</code> 表示岛屿的数量 $N$。
+		<p>你的程序可以调用函数：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">int Query(int u, int v, int w)
+</code></pre>
+		<ul>
+			<li><p>表示询问来自岛屿 $u, v, w$ 的海狸聚会的位置岛屿。</p></li>
+			<li><p>参数需要满足 $0 \leq u, v, w \leq N - 1$ 且 $u \neq v, u \neq w, v \neq w$。</p></li>
+			<li><p>你的程序运行时调用该函数的次数<strong style="color: blue">不能超过 $40000$ 次</strong>。</p></li>
+		</ul>
+		<pre class="sh_sourceCode"><code class="sh_cpp">void Bridge(int u, int v)
+</code></pre>
+		<ul>
+			<li><p>表示你确认了 $u, v$ 间有一座桥。</p></li>
+			<li><p>参数需满足 $0 \leq u &lt; v \leq N - 1$，且一组 $u, v$ 至多被调用一次。</p></li>
+			<li><p>运行时此函数应被恰被调用 $N - 1$ 次。</p></li>
+		</ul>
+
+		<h3>题解</h3>
+		<p>可以发现，对于一次 $u, v, w$ 的询问 (Query)，它的返回值就是 $u, v, w$ 三点的联合 LCA。</p>
+		<p>由联合 LCA 的性质，$LCA \left( u, v, w \right)$ 一定在 $u$ 到 $v$ 的链上。</p>
+		<p>因此可以考虑 "链分治" 的思想，就是每次找到一条链 $u \leadsto v$，确定剩下的每个点属于链上的哪个点，并向下分治。</p>
+		<p>可以随机这条链 $u, v$。由于每个点的度数不超过 $18$，因此在期望的意义下时间复杂度约为 $18 \cdot n$。</p>
+		<p>具体实现时，对于一个点集，先随机两个点 $u \leadsto v$ 作为一条链。然后对所有其它的点 $w$，询问 $LCA \left( u, v, w \right)$，即可得到 $w$ 在链上的 "哪棵子树" 中。然后，对每棵子树进行递归处理，直到只剩下不超过 $2$ 个点。最后，还需要将链 $u \leadsto v$ 进行还原，这个可以使用是 (随机) 序列分治的方法或套用树上分治的方法也可以。</p>
+		<p>期望时间复杂度 $O \left( n \cdot \Delta \left( T \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "meetings.h"
+#include &lt;bits/stdc++.h&gt;
+
+const int N = 2540, *_;
+std::mt19937 gen;
+
+inline bool cmp(const int x, const int y) {return _[x] &lt; _[y];}
+
+void work(int n, int *ps) {
+	int i, j, cnt, dnt = 0, u, v;
+	if (n &lt;= 1) return;
+	if (n == 2) return std::tie(u, v) = std::minmax(*ps, ps[1]), Bridge(u, v);
+	std::shuffle(ps, ps + n, gen);
+	int bel[n], o[n], nxt[n]; _ = bel;
+	*bel = *ps, bel[1] = ps[1];
+	for (i = 2; i &lt; n; ++i) bel[i] = Query(*ps, ps[1], ps[i]);
+	std::iota(o, o + n, 0), std::sort(o, o + n, cmp);
+	for (j = i = 0; i &lt; n; i = j) {
+		for (cnt = 0; j &lt; n &amp;&amp; bel[o[i]] == bel[o[j]]; ++j) nxt[cnt++] = ps[o[j]];
+		work(cnt, nxt), o[dnt++] = bel[o[i]];
+	}
+	work(dnt, o);
+}
+
+int a[N];
+
+void Solve(int n) {
+	char *_ = new char; gen.seed(time(NULL) + (unsigned long)new char), delete _;
+	std::iota(a, a + n, 0);
+	work(n, a);
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>递归时的变量注意要使用局部变量，防止递归过程中被误改变。</p>
+	</body>
+</html>
