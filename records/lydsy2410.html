@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy2410]Nim 游戏</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个格子排成一排，一共有 $k$ 种颜色，有部分格子已经被染色。两人轮流用这 $k$ 种颜色给当前尚未染色的格子染色，要求<strong>每次染色后都不能有两个相邻的格子被染上了相同的颜色</strong>。</p>
+		<p>你需要判断对于给定的局面，在最优策略下是先手必胜还是后手必胜。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 100$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含两个正整数 $n, k$ ($1 \leq n \leq 10^5; 1 \leq k \leq 10^9$)，分别表示格子的个数和颜色的种数。</p>
+		<p>第二行包含 $n$ 个非负整数 $c_1, c_2, \cdots, c_n$ ($0 \leq c_i \leq k$)，其中 $c_i$ 表示第 $i$ 个格子的颜色，$c_i = 0$ 表示该格子未染色，保证初始局面合法。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行，包含一个字符串，如果先手必胜，则输出 <code>y</code>，如果后手必胜，则输出 <code>n</code>。</p>
+
+		<h3>题解</h3>
+		<p>分三种情况讨论。</p>
+		<ol>
+			<li><p>$k \geq 3$。</p>
+			<p>此时，不论哪个时候，只要一个格子是空的，它一定可以被涂上颜色。</p>
+			<p>这是因为，它的两侧至多只有两种颜色，而总颜色数 $k \geq 3$。</p>
+			<p>因此，当 $k \geq 3$ 时，颜色限制对这个游戏<strong>没有影响</strong>。</p>
+			<p>于是问题变成，两个人轮流对一个 $1 \times n$ 棋盘染色，每次可以选择一个白格染成黑格，不能染色即输。</p>
+			<p>容易得到，<strong style="color: orange">当且仅当未染色的格子数为奇数时，先手必胜</strong>。</p>
+			<p>于是容易 $O \left( n \right)$ 判断。</p></li>
+			<li><p>$k = 1$。</p>
+			<p>此时，虽然还是一个黑白染色问题，但是要求不能有两个黑格相邻。</p>
+			<p>转化一下，就是：当某方将 $i$ 染黑后，$i - 1, i, i + 1$ 这三个格子都将无法染色 (说白了就是 "废了")，因此我们可以将这三个格子 "去掉"，然后得到两个更小的棋盘——两个子问题，然后使用 Sprague-Grundy 定理进行合并。</p>
+			<p>这个思路和 <a href="poj3537.html" target="_blank">[poj3537]Crosses and Crosses</a> 是非常类似的。</p>
+			<p>仿照那题的方法，我们用 $f_i$ 表示当前剩余 $i$ 个 (可染色的) 白格的游戏的 SG 值，边界为 $f_0 = 0, f_1 = f_2 = 1, f_3 = 2$。</p>
+			<p>转移很简单，枚举挖掉哪个，然后取 $\mathrm{mex}$，即 $$ f_i = \mathop{\mathrm{mex}} \left( \left\{ f_{i-2}, f_{i-3} \right\} \cup \left\{ f_j \oplus f_{i-j-3} \mid 1 \leq j &lt; i - 3 \right\} \right) \quad \left( i \geq 4 \right) $$</p>
+			<p>即可在 $O \left( n^2 \right)$ 时间内得到所有 $f_n$ 的值。</p>
+			<p>然鹅这道题中 $n$ 可以到达 $10^5$ 级别，$O \left( n^2 \right)$ 就不太能过去了。</p>
+			<p><del>于是又要开始黑科技了。明知道这个 DP 是 $O \left( n^2 \right)$ 的，那为什么出题人要出 $10^5$，莫非序列 $f_n$ 有什么神奇的性质？</del></p>
+			<p>和<a href="poj3537.html" target="_blank">那道题</a>中的序列不一样，在一番<del>精心</del>打表后发现，$f_n$ 居然是一个<big><strong>以 $34$ 为周期的混周期数列</strong></big>！(注：<dfn>混周期数列</dfn>指的是从中途某一项开始为周期数列的数列，前面有限项不符合周期)</p>
+			<p>于是只需预处理前若干项 ($100$ 项左右) 的 $f$ 值，<del>Floyd 判圈</del>后直接将 $n$ 对 $34$ 取模即可，注意 <a href="lydsy5497%3Blg5285%3Bloj3050.html" target="_blank">$f$ 也是 "&#961;" 形的</a>。</p></li>
+			<li><p>$k = 2$。</p>
+			<p>$k = 2$ 的情形就稍微麻烦一点。但是经过一番探索，还是可以归纳出一些结论：</p>
+			<p>首先，对于一段有限的格子 (即两边都有颜色)，如果两端颜色相同，则先手必胜且 SG 值为 $1$，否则先手必败 (SG 值为 $0$)。</p>
+			<div class="panel panel-success">
+				<div class="panel-heading">证明</div>
+				<div class="panel-body">
+					<p>使用归纳法。当中间只有一个空白格子时，结论显然。</p>
+					<p>当中间有多个空白格子时：如果两端都是红色，则无论先手怎么操作，留给后手的都是两个规模更小的，且本质相同的子游戏 (要么均为两端同色，要么均为两端异色)，由 Sprague-Grundy 定理，它们的异或和为 $0$。由 SG 值的定义，它的 SG 值为 $1$。</p>
+					<p>否则，设一端为红色，一端为蓝色。此时，无论先手如何操作，留给后手的都是一个同色游戏和一个异色游戏，由 Sprague-Grundy 定理，它们的异或和为 $1$，因此 SG 值为 $0$。</p>
+				</div>
+			</div>
+			<p>因此对两端都有颜色的格子，它们的 SG 值已经很清楚了。</p>
+			<p>那么如果只有一端有颜色呢？</p>
+			<p>可以通过类似的分析得到，如果只有一端有颜色，则 $n$ 个白格所对应的 SG 值就是 $n$。</p>
+			<p>同理，如果两端都没有颜色，则 $n$ 个格子所对应的 SG 值为 $n \bmod 2$。</p></li>
+		</ol>
+		<p>至此，我们已经分析清楚了所有可能出现的情况，最后只要对读入进行 "分段" 处理，最后将所得各段的 SG 值通过 Sprague-Grundy 定理异或起来就好啦。</p>
+		<p>时间复杂度 $O \left( T n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 100054, M = 254;
+
+int n, K;
+int a[N], sg[M], mark[M];
+
+void init() {
+	int i, j;
+	sg[1] = sg[2] = 1, sg[3] = 2;
+	for (i = 4; i &lt; M; ++i) {
+		mark[sg[i - 2]] = mark[sg[i - 3]] = i;
+		for (j = 1; j &lt; i - 3; ++j) mark[sg[j] ^ sg[i - j - 3]] = i;
+		for (j = 0; mark[j] == i; ++j); sg[i] = j;
+	}
+}
+
+inline int SG1(int x) {return x &gt;= 100 &amp;&amp; (x = 100 + (x - 100) % 34), x &gt; 0 ? sg[x] : 0;}
+inline int SG2(int x, int l, int r) {return ~(l &amp; r) ? (~l &amp;&amp; ~r ? l == r : x) : x &amp; 1;}
+ 
+int work() {
+	int i, j, la, ret = 0;
+	scanf("%d%d", &amp;n, &amp;K);
+	for (i = 0; i &lt; n; ++i) scanf("%d", a + i);
+	switch (K) {
+		case 1:
+			j = -2, a[++n] = -1;
+			for (i = 0; i &lt;= n; ++i) a[i] &amp;&amp; (ret ^= SG1(i - j - 3), j = i);
+			break;
+		case 2:
+			j = la = -1, a[n] = -1;
+			for (i = 0; i &lt;= n; ++i) a[i] &amp;&amp; (ret ^= SG2(i - j - 1, a[i], la), j = i, la = a[i]);
+			break;
+		default:
+			ret = std::count(a, a + n, 0) &amp; 1;
+			break;
+	}
+	return ret;
+}
+
+int main() {
+	int T; init();
+	for (scanf("%d", &amp;T); T; --T) putchar(work() ? 121 : 110), putchar(10);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意代码中 <code>SG1</code> 与 <code>SG2</code> 的定义略有差别：<code>SG1(<em>i</em>)</code> 表示有剩下 $i$ 个<strong>可染色的</strong>白格时的 SG 值 (在中间时需要减 $2$)，<code>SG2(<em>i</em>)</code> 表示剩下 $i$ 个白格时的 SG 值。</p>
+		<p><strong>坑2：</strong>注意周期数列为混周期的，因此前面若干项需要另外存储，不能只计算 $34$ 项。</p>
+	</body>
+</html>

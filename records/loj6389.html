@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6389][THUPC2018]好图计数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<!-- 树计数，设 n (n >= 1) 阶**无标号有根树**的数量为 f_n -->
+		<h3>题目描述</h3>
+		<p>我们归纳定义一个无向简单图是<strong>好的</strong>：
+		<ol>
+			<li><p>一个单点是好的。</p></li>
+			<li><p>若干个好的图分别作为连通块所形成的图是好的。</p></li>
+			<li><p>一个好的图的补图是好的。</p></li>
+		</ol>
+		<p>现在给定一个正整数 $n$，你需要求出 $n$ 个点的互相不同构的好的图的数量对质数 $P$ 取模的结果。(这里的 $P$ 是一个常数，具体见「输入格式」)
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据，第一行包含两个用空格隔开的整数 $T, P$ ($T \leq 233; 2^{29} &lt; P &lt; 2^{30}$ 且 $P$ 是素数)，分别表示数据组数以及模数。</p>
+		<p>对于每组数据，共一行一个整数 $n$ ($n \leq 23333$)，表示希望统计数目的好的图的节点数。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示 $n$ 个节点的好的图的数目对 $P$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>注意到这里对图的要求是<strong>互相不同构</strong> (即无标号图计数)。</p>
+		<p>乍一看，一般的<strong>无标号图计数</strong><del>不是 NP-Hard 的吗？</del>需要用到置换群和 Polya 定理的么 (见<a href="soj399.html" target="_blank">这里</a>)？为什么 $n$ 有这么大？</p>
+		<p>因此，题目的 "好图" 必然有比较好的性质，比如说数量和<strong>无标号树的个数</strong>的增长速度相当，而无标号树的个数确实是可以多项式计算的，而且有较快的<a href="soj299.html" target="_blank">生成函数做法</a>。那么，我们在本题中，也考虑使用生成函数的方法。</p>
+		<p>用 $f_n$ 表示 $n$ 阶好图的个数，令 $F \left( x \right) = 1 + f_1 x + f_2 x^2 + f_3 x^3 + \cdots$ (这里规定 $f_0 = 1$ 为了较好的契合生成函数的运算)。</p>
+		<p>由图论的基本性质，对任意图 $G$，$G$ 和 $\bar G$ 至少有一个是连通的。如果对 $n$ ($n \geq 2$) 阶图，$G$ 和 $\bar G$ 都是连通的，则可以说明 $G$ 一定不是好的。</p>
+		<p>这是因为，好图的定义就是上述三个条件的闭包，而如果 $G$ 是好的，因此它至少满足一个条件——然而由于它不是单点，故不可能从 1 得到；它是连通的，故不会从 2 得到；它的补也是连通的，因此也不会从 3 得到，故 $G$ 不是好的。</p>
+		<p>于是就有：<strong>连通的好图的补图一定不连通，不连通的好图的补图一定连通</strong>，也就是说，连通好图和不连通好图之间存在一一对应。</p>
+		<p>设 $n$ 阶<strong>连通好图的数量为 $c_n$，则当 $n \geq 2$ 时</strong>有 $c_n = \dfrac 12 f_n$。</p>
+		<p>考虑一个 $n$ 阶好图，显然，它是由若干个 ($1$ 个或多个) 连通分量组成。由于是无标号，考虑<strong>一般生成函数</strong>，又因为同构的子图互换位置是本质相同的，因此这些连通分量的构成方式和 <a href="soj299.html" target="_blank">[soj299]树计数</a> 中若干子树的构成方式相同，因此有</p>
+		<p>$$ F \left( x \right) = \prod_{s \geq 1} \frac 1 {\left( 1 - x^s \right)^{c_s}} \tag 1 \label 1 $$</p>
+		<p>和那道题类似，对 $\eqref 1$ 式两边取对数，得到</p>
+		<p>$$ \ln F \left( x \right) = - \sum_{s \geq 1} c_s \cdot \ln \left( 1 - x^s \right) \tag 2 \label 2 $$</p>
+		<p>两边求导，有</p>
+		<p>$$ \frac {F' \left( x \right)} {F \left( x \right)} = \sum_{s \geq 1} \frac {c_s \cdot s \cdot x^{s-1}} {1 - x^s} \tag 3 \label 3 $$</p>
+		<p>$\eqref 3$ 式两端同乘 $F \left( x \right)$，并展开右边的分母，得到</p>
+		<p>$$ F' \left( x \right) = F \left( x \right) \sum_{s \geq 1} c_s \cdot s \cdot \left( x^{s-1} + x^{2 s-1} + x^{3 s-1} + \cdots \right) \tag 4 \label 4 $$</p>
+		<p>考察左边 $x^{n-1}$ 项系数，$F' \left( x \right)$ 中求导得到的是 $n f_n \cdot x^{n-1}$，于是 $\left[ x^{n-1} \right] F' \left( x \right) = n f_n$。</p>
+		<p>考察右边 $x^{n-1}$ 项系数，枚举和式中贡献了 $x^{i-1}$，则 $F \left( x \right)$ 中贡献为 $x^{n-i}$，类似地，$x^{i-1}$ 前的系数为 $\displaystyle \sum_{d \mid i} c_d \cdot d$。</p>
+		<p>于是，$f_n$ 的递推关系式就出来了：</p>
+		<p>$$ n f_n = \sum_{i=1}^n f_{n-i} \sum_{d \mid i} c_d \cdot d \tag 5 \label 5 $$</p>
+		<p>不过这里和<a href="soj299.html" target="_blank">那道题</a>不同的是，$\eqref 5$ 式的等式右端有 $c_n$，而 $c_n = \dfrac 12 f_n$ ($n \geq 2$)！</p>
+		<p>也就是说，$\eqref 5$ 式不是一个直接的递推式，<strong>而是一个方程</strong>！</p>
+		<p>不过没关系，它是一元一次的。当 $i = n$ 时的项为 $\displaystyle f_0 \sum_{d \mid n} c_d \cdot d = \sum_{d \mid n \wedge d \neq n} c_d \cdot d + c_n \cdot n = \sum_{d \mid n \wedge d \neq n} c_d \cdot d + \dfrac n2 \cdot f_n$ (由于规定 $f_0 = 1$)。</p>
+		<p>于是移项后就得到 $$ \dfrac n2 \cdot f_n = \sum_{i=1}^n f_{n-i} \sum_{d \mid i \wedge d &lt; n} c_d \cdot d $$</p>
+		<p>还是设 $g = \left( f \cdot \mathbf n \right) \ast \mathbf 1$，其中 $\ast$ 为 Dirichlet 卷积。那么就有</p>
+		<p>$$ f_n = \dfrac 2n \sum_{i=1}^{n-1} f_{n-i} g_i + \left( g_n - f_n \cdot n \right) $$</p>
+		<p>于是就可以直接递归求解了，时间复杂度 $O \left( n^2 \right)$，稍加松松松即可通过，也可以和那题类似，使用<strong>分治多项式技巧</strong>将其优化成 $O \left( n \log^2 n \right)$。</p>
+		<p>(花絮：序列 $f_n$ 和 $c_n$ 分别位于 OEIS 的 <a href="http://oeis.org/A000084" target="_blank">A000084</a> 和 <a href="http://oeis.org/A000669" target="_blank">A000669</a>，<del>所以说这又是一道 OEIS 题</del>)</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef __int128 lll;
+const int N = 25400;
+
+int mod, n;
+int a[N], inv[N], f[N], g[N];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+int main() {
+	int T, i, j, t; lll s = 0;
+	scanf("%d%d", &amp;T, &amp;mod);
+	for (i = 0; i &lt; T; ++i) scanf("%d", a + i);
+	n = *std::max_element(a, a + T);
+	*f = f[1] = inv[1] = 1, std::fill(g + 1, g + (n + 1), 1);
+	for (i = 2; i &lt;= n; ++i) {
+		inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+		for (s = j = 0; j &lt; i; ++j) s += (ll)f[j] * g[i - j];
+		t = s % mod, f[i] = 2ll * t * inv[i] % mod;
+		for (j = i; j &lt;= n; j += i) add(g[j], t);
+	}
+	for (i = 0; i &lt; T; ++i) printf("%d\n", f[a[i]]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>卡常的具体方法是：在 $O \left( n^2 \right)$ 的过程中减少取模次数，使用 <code>__int128</code> 来记和。<del>这样就能轻松 $O \left( n^2 \right)$ 过十万了</del>。</p>
+		<p><strong>坑2：</strong>注意不要忘记一开始将 $g$ 数组都赋为 ($f_1 = 1$ 所贡献的) $1$，以及当 $n = 1$ 时 $f_n \neq 2 c_n$。</p>
+	</body>
+</html>

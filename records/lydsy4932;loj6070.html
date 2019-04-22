@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4932][loj6070]基因</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个长度为 $n$ 的字符串 $s$，有 $q$ 组询问，每个询问给定 $l, r$，询问 $s \left[ l .. r \right]$ 中有多少本质不同的回文子串。<strong>强制在线</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $\mathrm{type}$，若 $\mathrm{type} = 0$，表示这个数据没有进行加密，若 $\mathrm{type} = 1$，表示这个数据进行了加密。</p>
+		<p>第二行包含两个正整数 $n, q$ ($n \leq 10^5; q \leq 2 n$)，表示 $s$ 的长度和询问的次数。</p>
+		<P>第二行包含一个长度为 $n$ 的字符串 $s$，保证 $s$ 只包含小写拉丁字母。</p>
+		<p>接下来 $q$ 行，每行两个整数 $l', r'$，记 $\mathrm{lastAns}$ 为上一次询问的答案 (初始时为 $0$)，则这次询问的 $l = l' \oplus \left( \mathrm{type} \cdot \mathrm{lastAns} \right), r = r' \oplus \left( \mathrm{type} \cdot \mathrm{lastAns} \right)$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行一个整数，依次表示每个询问的答案。</p>
+
+		<h3>题解</h3>
+		<p>这道题和 <a href="soj458.html" target="_blank">[soj458]回文串</a> 基本一样，无非就是多了个强制在线。</p>
+		<p>当时我们是将询问按照右端点排序，然后用树状数组维护对于每个 $l$ 的答案。</p>
+		<p>现在问题强制在线了，也不难处理：仿照 <a href="lydsy1878%3Blg1972.html" target="_blank">[SDOI2009]HH的项链</a> 的思路，对每个 $r$，用一个可持久化线段树维护 $1 \leq l \leq r$ 时的所有答案。</p>
+		<p>由于只有不超过 $n \log n$ 次修改操作，因此是可以使用可持久化线段树的。</p>
+		<p>最后询问时直接在 $r$ 对应的线段树求个<strong>前缀和</strong>即可，总时间复杂度 $O \left( n \log^2 n + q \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 200054;
+
+int n, q, type;
+char s[N], *ptr;
+int fy[N], root[N];
+int ans = 0;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+namespace PAM {
+	int p, last, cnt;
+	int d[N][26], fail[N], val[N];
+	int stamp = 0, id[N], eid[N];
+	int fst[N];
+	vector ch[N];
+
+	void init() {val[1] = -1, p = 0, *fail = cnt = 1;}	
+
+	int get_fail(int x) {for (; ptr[~val[x]] != *ptr; x = fail[x]); return x;}
+
+	int extend(int x) {
+		int &amp;q = d[p = get_fail(p)][x];
+		if (!q) {
+			fail[++cnt] = d[get_fail(fail[p])][x], val[q = cnt] = val[p] + 2;
+			fst[cnt] = (val[cnt] &lt;= val[fail[cnt]] * 2 ? fst[fail[cnt]] : cnt);
+		}
+		return p = q;
+	}
+
+	void child_init() {ch[1].emplace_back(0); for (int i = 2; i &lt;= cnt; ++i) ch[fail[i]].emplace_back(i);}
+
+	void dfs(int x) {id[x] = ++stamp; for (int y : ch[x]) dfs(y); eid[x] = stamp;}
+}
+
+namespace BIT {
+	#define lowbit(x) (x &amp; -x)
+	int x[N];
+	void add(int h, int v) {for (; h &lt;= n; h += lowbit(h)) x[h] += v;}
+	int sum(int h) {int s = 0; for (; h; h -= lowbit(h)) s += x[h]; return s;}
+	inline void cover(int l, int r) {add(l, 1), add(r + 1, -1);}
+}
+
+namespace ST {
+	#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+	int x[N * 4];
+
+	void up(int id, int L, int R, int h, int v) {
+		::up(x[id], v); if (L == R) return;
+		segc; h &lt;= M ? up(lc, L, M, h, v) : up(rc, M + 1, R, h, v);
+	}
+
+	int range(int id, int L, int R, int ql, int qr) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id];
+		segc, s = 0;
+		if (ql &lt;= M) ::up(s, range(lc, L, M, ql, qr));
+		if (qr &gt; M) ::up(s, range(rc, M + 1, R, ql, qr));
+		return s;
+	}
+}
+
+namespace STex {
+	struct node {
+		int v, lc, rc;
+	} x[20030731];
+
+	int cnt = 0;
+
+	int add(int id, int L, int R, int h, int v) {
+		int nid = ++cnt; (x[nid] = x[id]).v += v;
+		if (L == R) return nid; int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[nid].lc = add(x[id].lc, L, M, h, v) : (x[nid].rc = add(x[id].rc, M + 1, R, h, v));
+		return nid;
+	}
+
+	int range(int id, int L, int R, int ql, int qr) {
+		if (!id || (ql &lt;= L &amp;&amp; R &lt;= qr)) return x[id].v;
+		int M = (L + R - 1) &gt;&gt; 1, s = 0;
+		if (ql &lt;= M) s += range(x[id].lc, L, M, ql, qr);
+		if (qr &gt; M) s += range(x[id].rc, M + 1, R, ql, qr);
+		return s;
+	}
+}
+
+int main() {
+	int i = 0, l, r, cur, la;
+	scanf("%d%d%d%s", &amp;type, &amp;n, &amp;q, s + 1);
+	type = -type, PAM::init();
+	for (ptr = s + 1; *ptr; ++ptr) fy[++i] = PAM::extend(*ptr - 97);
+	PAM::child_init(), PAM::dfs(1);
+	for (r = 1; r &lt;= n; ++r) {
+		root[r] = root[r - 1], la = -1;
+		for (i = fy[r]; i; i = PAM::fail[PAM::fst[i]]) {
+			l = ST::range(1, 1, PAM::stamp, PAM::id[i], PAM::eid[i]);
+			cur = std::max(l - PAM::val[i] + 2, 1);
+			if (cur != la + 1)
+				~la &amp;&amp; (root[r] = STex::add(root[r], 1, n, la + 1, -1)), root[r] = STex::add(root[r], 1, n, cur, 1);
+			la = r - PAM::val[PAM::fst[i]] + 1;
+		}
+		root[r] = STex::add(root[r], 1, n, la + 1, -1);
+		ST::up(1, 1, PAM::stamp, PAM::id[fy[r]], r);
+	}
+	for (; q; --q)
+		scanf("%d%d", &amp;l, &amp;r), l ^= type &amp; ans, r ^= type &amp; ans,
+		printf("%d\n", ans = STex::range(root[r], 1, n, 1, l));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意这里的可持久化线段树的空间是 $O \left( n \log^2 n \right)$ 的，不要开小了。</p>
+	</body>
+</html>

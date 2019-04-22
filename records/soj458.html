@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj458]回文串</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个长度为 $n$ 的字符串 $s$，有 $q$ 组询问，每个询问给定 $l, r$，询问 $s \left[ l .. r \right]$ 中有多少本质不同的回文子串。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($n, q \leq 2 \times 10^5$)，表示 $s$ 的长度和询问的次数。</p>
+		<P>第二行包含一个长度为 $n$ 的字符串 $s$，保证 $s$ 只包含小写拉丁字母。</p>
+		<p>接下来 $q$ 行，每行两个整数 $l, r$ ($1 \leq l \leq r \leq n$)，描述一组询问。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行一个整数，依次表示每个询问的答案。</p>
+
+		<h3>题解</h3>
+		<p>由于题目没有强制在线，因此我们考虑离线处理所有询问。</p>
+		<p>考虑将所有询问按照右端点排序，于是我们就将问题转化为了：在字符串 $s$ 尾部添加一个字符，得到的新字符串的所有<strong>后缀</strong>的答案有什么变化。</p>
+		<p>对原串建立<a href="uoj103.html" target="_blank">回文自动机</a>后，可以得到右端点为 $i$ 的所有回文子串，因此只需从对应的最长节点不停跳 <code>fail</code> 指针即可。</p>
+		<p>考虑以 $i$ 结尾的一个回文子串 $p = s \left[ a .. i \right]$，如果对于 $1 \leq j \leq a$，如果 $p$ 是 $s \left[ j .. i - 1 \right]$ 的子串，则新增 $s_i$ 后这个回文子串<strong>不产生贡献</strong>，否则产生 $1$ 的贡献。</p>
+		<p>设 $p$ 在 $s \left[ 1 .. i - 1 \right]$ 中最后出现的位置为 $s \left[ l .. r \right]$，则<strong>只有当 $l &lt; j \leq a$ 时</strong>，新增 $s_i$ 后回文子串的个数会增加——多了这样一个串。</p>
+		<p>于是我们就得到了一个暴力做法：从左往右扫描每个 $i$，找到右端点为 $i$ 的所有回文子串。对每个回文子串扫描加入 $i$ 前它的出现位置 $l$，然后对区间 $\left[ l + 1, a \right]$，让答案 $+ 1$。</p>
+		<p>现在我们需要两个数据结构：一个是找到某个回文子串最后一次的出现位置，另一个是对区间值 $+ 1$，单点询问。</p>
+		<p>后者比较容易，差分后用树状数组即可。考虑前者，考察回文自动机的树结构，可以发现，加入字符 $s_i$ 时，<strong>"所有右端点为 $i$ 的回文子串"</strong> 的最后一次出现位置会被更新到 $i$，其它回文子串的出现位置不变。</p>
+		<p>而 "所有右端点为 $i$ 的回文子串" 恰好就是 $s \left[ 1 .. i \right]$ 对应的节点到根的路径上的所有节点。</p>
+		<p>因此我们要实现一个在树中<strong>链上取 $\max$，单点查询</strong>的数据结构，差分后变成单点修改，子树求 $\max$，使用 dfs 序 + 线段树即可。</p>
+		<p>于是我们就有得到了一个算法，它的复杂度取决于回文自动机上每个点的深度和。</p>
+		<hr />
+		<p>可以发现，这一定是不行的，因为一个字符串的回文子串可以有很多，比如当 $s = \texttt a^n = \texttt {aaa} \ldots \texttt a$ 时就有 $O \left( n \right)$ 个回文子串。</p>
+		<p>不过，这里需要用到一个很重要的结论：</p>
+		<p><strong style="color: green">一个字符串 $s$ 的所有 border 的长度可以划分为<strong>不超过</strong> $\log_2 \left| s \right| + O \left( 1 \right)$ 个等差数列。</strong></p>
+		<p>在证明该结论之前，先证明一个引理：</p>
+		<p><strong style="color: orange">若 $T_1, T_2 \leq \dfrac {\left| s \right|} 2$ 均为 $s$ 的周期，则 $\gcd \left( T_1, T_2 \right)$ 也是 $s$ 的周期。</strong></p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>显然只需证明 $\left( T_1, T_2 \right) = 1$ 的情况 (想一想，为什么)。</p>
+				<p>加强命题：<strong style="color: orange">如果 $\left| s \right| \geq T_1 + T_2 - 1$，则 $s = t^{T_1 + T_2 - 1}$</strong> (其中 $t$ 为单字符)。</p>
+				<p>建立 $1, 2, \cdots, T_1 + T_2 - 1$ 共 $T_1 + T_2 - 1$ 个顶点，$u, v$ 之间有边相连当且仅当 $\left| u - v \right| \in \left\{ T_1, T_2 \right\}$，得到无向图 $G$，则有：</p>
+				<ol>
+					<li><p>$d_G \left( T_1 \right) = d_G \left( T_2 \right) = 1$，对 $\forall v \in V \setminus \left\{ T_1, T_2 \right\}$，$d_G \left( v \right) = 2$ (由定义容易验证)。</p></li>
+					<li><p>设 $d_G \left( v \right) = 2$，记 $N \left( v \right) = \left\{ u, w \right\}$，则 $u - v, v - w \in \left\{ T_1, - T_2 \right\}$ 或 $u - v, v - w \in \left\{ - T_1, T_2 \right\}$。</p></li>
+					<li><p>$G$ 无圈。反设有圈 $C = \left[ v_1, v_2, \cdots, v_k \right]$，由 (2)，$v_2 - v_1, v_3 - v_2, v_4 - v_3, \cdots, v_k - v_{k-1}, v_1 - v_k$ 均在 $\left\{ T_1, - T_2 \right\}$ 中或 $\left\{ - T_1, T_2 \right\}$ 中。</p>
+					<p>由对称性，不妨设在 $\left\{ T_1, - T_2 \right\}$ 中。则 $\lambda T_1 + \mu \left( - T_2 \right) = 0$，由于 $\gcd \left( T_1, T_2 \right) = 1$，知 $\lambda = k T_2, \mu = k T_1$ ($k \in \mathbb N^*$)，因此圈长 $\left| C \right| = k \left( T_1 + T_2 \right) \geq T_1 + T_2 &gt; \left| V \right|$，矛盾。</p></li>
+					<li><p>由 (1)，$\displaystyle \left| E \left( G \right) \right| = \frac 12 \sum_{v \in V} d_G \left( v \right) = \left| V \right| - 1$，由 (3)，$G$ 无圈，因此 $G$ 是树 &#8658; $G$ 连通。</p></li>
+				</ol>
+				<p>而 $G$ 的每条边的两个端点对应的字符必须相等，由于 $G$ 连通，所以每个字符都相等，亦即，$1$ 为 $s$ 的周期。</p>
+			</div>
+		</div>
+		<p>证完引理后，原命题的证明就显然了：</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>考察字符串 $s$ 的所有长度不超过 $\dfrac {\left| s \right|} 2$ 的周期，由引理，它们构成一个等差数列 (均为最小者的倍数)。</p>
+				<p>由 <strong>Border —— 周期定理</strong>，$s$ 的所有长度不小于 $\dfrac {\left| s \right|} 2$ 的 border 也构成一个等差数列。</p>
+				<p>考察 $s$ 的所有长度小于 $\dfrac {\left| s \right|} 2$ 的 border，由 border 的传递性知，它们都是这些 border 中<strong>最长者</strong> $s_1$ 的 border。</p>
+				<p>同理，长度在 $\dfrac {\left| s_1 \right|} 2 \sim \left| s_1 \right|$ 之间的所有 border 的长度也构成一个等差数列。</p>
+				<p>以此类推，可以得到，所有 border 的长度可以划分为<strong>不超过</strong> $\log_2 \left| s \right| + O \left( 1 \right)$ 个等差数列。</p>
+			</div>
+		</div>
+		<p>由于对于回文串 $s$，如果回文串 $t$ 满足 $s \sqsupset t$，则由回文串的性质知 $s^R \sqsupset t^R$，由前后缀的性质知 $t \sqsubset s$，因此 $t \sqsubset s \wedge s \sqsupset t \Rightarrow t \vartriangleleft s$ ($t$ 是 $s$ 的非平凡 border)。</p>
+		<p>因此一个直接的推论是：<strong>一个回文串 $s$ 的所有后缀回文串可以划分为不超过 $\log_2 \left| s \right| + O \left( 1 \right)$ 的等差数列</strong>。</p>
+		<p>考察一个等差数列，其中它们长度分别为 $a + (k - 1) d, a + (k - 2) d, \cdots, a + d, a$，不妨设 $d \leq a$ (否则单独拎出来一项)。</p>
+		<p>于是，对于序列中任意相邻的两项 $p, q$ ($p &gt; q$)，均有 $p \leq 2 q$。</p>
+		<p>考察相邻两项 $p, q$ ($p &gt; q$) 对答案的贡献区间 <span style="color: gray">(上文中的 $\left[ l + 1, a \right]$)</span>。对于前一项，它的贡献的右端点显然是 $i - p + 1$。对于后一项，它最后一次出现的位置也应为 $i - p + 1$。</p>
+		<p><span style="color: green">反之，设它还在另一个位置 $i - p + p'$ 中出现</span> ($p' &lt; p - q \leq q$)，则 $s \left[ i - p + 1 .. i - p + q \right] = s \left[ i - p + p' .. i - p + p' + q \right]$，可知对 $\forall 1 \leq j \leq q$，均有 $s_{i - p + j} = s_{i - p + j + p' - 1}$。</p>
+		<p>由于 $s \left[ i - p + 1 .. i - p + q \right] = s \left[ i - q + 1 .. i \right]$，因此对 $\forall p - q + 1 \leq j \leq p - p' + 1$，均有 $s_{i - p + j} = s_{i - p + j + p' - 1}$。</p>
+		<p>由于 $q + 1 \geq p - q + 1$，因此对 $\forall 1 \leq j \leq p - p' + 1$，都有 $s_{i - p + j} = s_{i - p + j + p' - 1}$，也就是说，$p' - 1$ 是 $s \left[ i - p + 1 .. i \right]$ 的一个周期。</p>
+		<p>然而，由于 $p, q$ 是相邻的两项，因此 $p - q$ 应该是 $s \left[ i - p + 1 .. i \right]$ 的<strong>最小周期</strong>。</p>
+		<p>而我们找到了一个更小的周期 $p' - 1$，因此矛盾，故假设 (<span style="color: green">绿色</span>部分) 不成立。</p>
+		<p>于是，前一项贡献的右端点与后一项贡献的左端点相邻。</p>
+		<p>因此，一个等差数列对答案的贡献是一个连续的区间，我们只需处理出所有这样的区间，然后去树状数组上修改。</p>
+		<p>这样时间复杂度就降为了 $O \left( n \log^2 n + q \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 200054;
+
+int n, q;
+char s[N], *ptr;
+int fy[N], qry[N], ans[N];
+vector qs[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+namespace PAM {
+	int p, last, cnt;
+	int d[N][26], fail[N], val[N];
+	int stamp = 0, id[N], eid[N];
+	int fst[N];
+	vector ch[N];
+
+	void init() {val[1] = -1, p = 0, *fail = cnt = 1;}	
+
+	int get_fail(int x) {for (; ptr[~val[x]] != *ptr; x = fail[x]); return x;}
+
+	int extend(int x) {
+		int &amp;q = d[p = get_fail(p)][x];
+		if (!q) {
+			fail[++cnt] = d[get_fail(fail[p])][x], val[q = cnt] = val[p] + 2;
+			fst[cnt] = (val[cnt] &lt;= val[fail[cnt]] * 2 ? fst[fail[cnt]] : cnt);
+		}
+		return p = q;
+	}
+
+	void child_init() {ch[1].emplace_back(0); for (int i = 2; i &lt;= cnt; ++i) ch[fail[i]].emplace_back(i);}
+
+	void dfs(int x) {id[x] = ++stamp; for (int y : ch[x]) dfs(y); eid[x] = stamp;}
+}
+
+namespace BIT {
+	#define lowbit(x) (x &amp; -x)
+	int x[N];
+	void add(int h, int v) {for (; h &lt;= n; h += lowbit(h)) x[h] += v;}
+	int sum(int h) {int s = 0; for (; h; h -= lowbit(h)) s += x[h]; return s;}
+	inline void cover(int l, int r) {add(l, 1), add(r + 1, -1);}
+}
+
+namespace ST {
+	#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+	int x[N * 4];
+
+	void up(int id, int L, int R, int h, int v) {
+		::up(x[id], v); if (L == R) return;
+		segc; h &lt;= M ? up(lc, L, M, h, v) : up(rc, M + 1, R, h, v);
+	}
+
+	int range(int id, int L, int R, int ql, int qr) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id];
+		segc, s = 0;
+		if (ql &lt;= M) ::up(s, range(lc, L, M, ql, qr));
+		if (qr &gt; M) ::up(s, range(rc, M + 1, R, ql, qr));
+		return s;
+	}
+}
+
+int main() {
+	int i = 0, l, r;
+	scanf("%d%d%s", &amp;n, &amp;q, s + 1);
+	PAM::init();
+	for (ptr = s + 1; *ptr; ++ptr) fy[++i] = PAM::extend(*ptr - 97);
+	PAM::child_init(), PAM::dfs(1);
+	for (i = 0; i &lt; q; ++i) scanf("%d%d", qry + i, &amp;r), qs[r].emplace_back(i);
+	for (r = 1; r &lt;= n; ++r) {
+		for (i = fy[r]; i; i = PAM::fail[PAM::fst[i]])
+			l = ST::range(1, 1, PAM::stamp, PAM::id[i], PAM::eid[i]),
+			BIT::cover(std::max(l - PAM::val[i] + 2, 1), r - PAM::val[PAM::fst[i]] + 1);
+		for (int id : qs[r]) ans[id] = BIT::sum(qry[id]);
+		ST::up(1, 1, PAM::stamp, PAM::id[fy[r]], r);
+	}
+	for (i = 0; i &lt; q; ++i) printf("%d\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>回文自动机和后缀自动机的一大不共同之处是：后缀自动机保证节点 $v$ 的最短串的长度为 $p_v$ 的最长串的长度 $+ 1$，而回文自动机<strong>不保证</strong>。因此回文自动机上一个节点的子节点数可以达到 $O \left( n \right)$，加边时需要注意。</p>
+		<p><strong>坑2：</strong>注意到最后我们证明的过程中只用到了 $p \leq 2 q$ 这个性质，没有用到等差数列的性质。因此，我们可以将所有相邻 border 长度满足 $p \leq 2 q$ 的 border 一起处理，可以减少一些常数。</p>
+		<p>(注意如果 $p &gt; 2 q$ 就不能一起处理，比如串 $\texttt {ababaaba}$ 就是一个反例)</p>
+	</body>
+</html>

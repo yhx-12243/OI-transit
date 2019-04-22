@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj3069][互测2019]整点计数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>用 $f \left( r \right)$ 表示平面直角坐标系上圆 $C : x^2 + y^2 = r^2$ 上的整点个数。</p>
+		<p>给定 $N, k, P$，求 $$ \left( \sum_{i=1}^N f^k \left( i \right) \right) \bmod P \tag 1 \label 1 $$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含三个正整数 $N, k, P$ ($1 \leq N, k \leq 10^{11}; 10^8 \leq P \leq 10^9 + 9$，$P$ <strong>不一定</strong>是素数)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $\eqref 1$ 式的值。</p>
+
+		<h3>题解</h3>
+		<p>由 <a href="https://www.lydsy.com/JudgeOnline/problem.php?id=1041" target="_blank">[HAOI2008]圆上的整点</a> 或 <a href="https://www.bilibili.com/video/av12131743" target="_blank">此科普视频</a>，可以得到 $f \left( x \right)$ 的一些性质：</p>
+		<p>设 $g \left( n \right) = \dfrac 14 f \left( n \right)$，则；
+		<ol>
+			<li><p>$g \left( n \right)$ 是<strong>积性函数</strong>。</p></li>
+			<li><p>$g \left( p^\alpha \right) = 1$，如果 $p \not\equiv 1 \pmod 4$。</p></li>
+			<li><p>$g \left( p^\alpha \right) = 1 + 2 \alpha$，如果 $p \equiv 1 \pmod 4$。</p></li>
+		</ol>
+		<p>相关证明可以见那个视频。</p>
+		<p>于是我们要求的 $f^k \left( x \right) = \left( 4 g \left( x \right) \right)^k = 4^k g^k \left( x \right)$。</p>
+		<p>而 $g^k \left( x \right)$ 由于是积性函数的幂次，因此仍然具有积性，且 $g^k \left( p^\alpha \right) = \begin{cases} 1 &amp; p \not\equiv 1 \pmod 4 \\ \left( 1 + 2 \alpha \right)^k &amp; p \equiv 1 \pmod 4 \end{cases}$。</p>
+		<p>于是把问题转化为了对<strong>积性函数求和</strong>，且 $g^k \left( p \right) = 3^k$ 为关于 $p$ 的一<strong>低阶多项式</strong>。</p>
+		<p>于是就可以使用<a href="spojDIVCNT3.html" target="_blank">洲阁筛</a>完成此问题，时间复杂度为 $O \left( \dfrac {n^{3/4}} {\log n} \right)$。</p>
+		<hr />
+		<p>(以下是附注：)</p>
+		<p>当然，在 Part 2 (对 $A$ 类元素求和) 的过程中可以用记忆化搜索替代 DP (即 min-25 筛)，以减少常数因子。</p>
+		<p>由于 $k$ 次幂的底数为 $1 + 2 \alpha$，而 $\alpha$ 是不超过 $O \left( \log N \right)$ 的，因此可以预处理对于每个 $\alpha$，$\left( 1 + 2 \alpha \right)^k$ 的值，从而省去后面计算过程中的快速幂。</p>
+		<p>在 Part 1 (对素数求和) 的过程中，需要对 $4 k + 1$ 和 $4 k + 3$ 型素数分别处理，可以见 <a href="loj6027.html" target="_blank">[loj6027]质数计数Ⅰ</a> 中的技巧。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define N 666666
+#define Fy(x) (((x) ^ 1) &amp; 3)
+
+typedef long long ll;
+const int X4[4] = {0, 1, 0, -1};
+
+ll mod, n, K;
+ll v[N], f[N], g[N], h[N];
+int srn, pc, cnt = 0;
+int fy[54], last[N], G0, G1;
+int ip[N], iq[N];
+int pn, c[N], p[54200];
+
+inline int &amp; reduce(int &amp;x) {return x += (x &gt;&gt; 31 &amp; (int)mod);}
+inline ll &amp; reduce(ll &amp;x) {return x += (x &gt;&gt; 63 &amp; mod);}
+ll PowerMod(ll a, ll n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void sieve(int n) {
+	int i, j, v;
+	memset(c, -1, sizeof c);
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i]) p[pn] = i, c[i] = pn++;
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt;= c[i]; ++j) c[v] = j;
+	}
+}
+
+inline int ID(ll x) {return x &lt;= srn ? x : cnt + 1 - n / x;}
+
+void solve_g() {
+	int i, _j, _k; ll j, k;
+	for (_j = 1; _j &lt;= cnt; ++_j) g[_j] = j = v[_j], h[_j] = ((j + 1) &amp; 2) &gt;&gt; 1, last[_j] = 0;
+	for (i = 0; i &lt; pc; ++i)
+		for (_j = cnt; _j; --_j) {
+			if (j = v[_j], k = j / p[i], k &lt; p[i]) break;
+			_k = ID(k);
+			g[_j] -= g[_k] - (i - last[_k]);
+			h[_j] -= X4[p[i] &amp; 3] * (h[_k] - (iq[p[i]] - iq[p[last[_k]]]));
+			last[_j] = i + 1;
+		}
+}
+
+ll EES(ll n, int id) {
+	if (n &lt; p[id]) return 0;
+	int i; ll r, res = f[ID(n)] - (id ? f[p[id - 1]] : 0);
+	for (reduce(res); (r = n / p[id]) &gt;= p[id]; ++id)
+		for (i = 1; r &gt;= p[id]; r /= p[id], ++i)
+			res = (res + (Fy(p[id]) ? EES(r, id + 1) + 1 : EES(r, id + 1) * fy[i] + fy[i + 1])) % mod;
+	return res;
+}
+
+int main() {
+	int i;
+	sieve(N - 1);
+	for (i = 3; i &lt; N - 1; ++i)
+		p[c[i]] == i ? (ip[i + 1] = ip[i] + 1, iq[i + 1] = iq[i] + (Fy(i) ? -1 : 1)) : (ip[i + 1] = ip[i], iq[i + 1] = iq[i]);
+	scanf("%lld%lld%lld", &amp;n, &amp;K, &amp;mod);
+	for (*fy = i = 1; i &lt; 54; ++i) fy[i] = PowerMod(i * 2 + 1, K);
+	mod *= 2, G0 = (PowerMod(3, K) + 1) / 2, reduce(G0 %= (mod /= 2)), reduce(G1 = G0 - 1);
+	srn = sqrt(n), cnt = srn * 2 - (srn * (srn + 1ll) &gt; n);
+	for (i = 1; i &lt;= srn; ++i) v[i] = i, v[cnt + 1 - i] = n / i, f[i] = (ip[i + 1] % mod * G0 + iq[i + 1] % mod * G1 + 1) % mod;
+	pc = std::upper_bound(p, p + pn, srn) - p;
+	reduce(--f[1]), solve_g();
+	for (i = srn + 1; i &lt;= cnt; ++i)
+		g[i] -= pc - last[i], h[i] -= iq[p[pc]] - iq[p[last[i]]], f[i] = (f[srn] + (g[i] - 1) % mod * G0 + (h[i] - 1) % mod * G1) % mod;
+	printf("%lld\n", PowerMod(4, K, 1 + EES(n, 0)));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>通常筛完后所得到的值会在 $10^{10}$ 的级别，此时直接相乘会爆 <code>long long</code>，需要先模一遍。</p>
+		<p><strong>坑2：</strong>和<a href="loj6027.html" target="_blank">那道题</a>一样，筛素数的过程中注意对素数 $2$ 的处理。</p>
+	</body>
+</html>

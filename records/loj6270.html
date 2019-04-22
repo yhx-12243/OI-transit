@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6270]数据结构板子题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个区间，第 $i$ 个区间是 $\left[ l_i, r_i \right]$，它的长度是 $r_i - l_i$。</p>
+		<p>有 $q$ 个询问，每个询问给定 $L, R, K$，询问被 $\left[ L, R \right]$ 包含的且长度不小于 $K$ 的区间数量。</p>
+		<p><del>你想，像这种板子题，你随手写，不到十分钟就能 AC。</del></p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个空格隔开的正整数 $n, q$ ($n, q \leq 5 \times 10^5$)。
+		<p>接下来 $n$ 行，第 $i$ 行包含两个空格隔开的正整数 $l_i, r_i$ ($1 \leq l_i &lt; r_i \leq n$)，表示第 $i$ 个区间的两个端点。</p>
+		<p>接下来 $q$ 行，每行包含三个空格隔开的正整数 $L, R, K$ ($1 \leq L &lt; R \leq n; 1 \leq K \leq n$)，表示一个询问。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行一个整数，依次表示各个询问的答案。</p>
+
+		<h3>题解</h3>
+		<p>由差分的思想，我们将询问转化为："给定 $L, R, K$，求 $\left[ L, R \right]$ 的长度<strong>不超过 $K$</strong> 的子区间数量"。</p>
+		<p>考虑将问题离线，按照区间长度从小到大加入这些区间。如果我们只加入了长度不超过 $K$ 的区间，则第二个条件就可以忽略不计了。</p>
+		<p>于是对于一个区间 $\left[ l, r \right]$，当且仅当 $l \geq L, r \leq R$ 时，$\left[ l, r \right] \subseteq \left[ L, R \right]$，从而满足题目条件。</p>
+		<p>因此问题就转化为一个<strong>二维数点</strong>了，使用各种奇技淫巧即可。</p>
+		<p><strong>(真的是这样吗？要不再冷静分析一下？)</strong></p>
+		<p>考虑这个条件的反面：$l &lt; L \vee r &gt; R$。稍加分析就可以发现，这两个条件是<strong>无法同时满足的</strong>！</p>
+		<p>反之，由于我们插入的区间长度均不超过 $K$，则有 $K \geq r - l &gt; R - L$。而对于一组询问 $\left( L, R, K \right)$，满足条件的所有区间长度本身就不会超过 $R - L$，因此我们可以直接令 $K' \gets \min \left\{ K, R - L \right\}$ 而不影响答案。</p>
+		<p>因此对一组询问一定有 $K \leq R - L$，与上文推出的 $K &gt; R - L$ 矛盾。</p>
+		<p>也就是说，此时此刻，不存在一个区间满足 $l &lt; L \wedge r &gt; R$。由<del>容斥</del>加法原理，<strong>满足 $l &lt; L \vee r &gt; R$ 的区间个数等于 "满足 $l &lt; L$ 的区间个数" + "满足 $r &gt; R$ 的区间个数"</strong>。</p>
+		<p>从而满足 $l \leq L \wedge r \leq R$ 的区间个数就等于 "总区间个数" - "满足 $r &gt; R$ 的区间个数" - "满足 $l &lt; L$ 的区间个数" <strong>= "满足 $r \leq R$ 的区间个数" - "满足 $l \leq L$ 的区间个数"</strong>。</p>
+		<p>这两个条件可以轻松使用树状数组维护。</p>
+		<p>最后将 "长度不超过 $R - L$ 的区间个数" 与 "长度不超过 $K - 1$ 的区间个数" 相减即得长度在 $\left[ K, R - L \right]$ 之间的区间个数 (其实对于 $K &gt; R - L$ 的询问直接忽略即可，答案为 $0$)。</p>
+		<p>总时间复杂度 $O \left( \left( n + q \right) \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 1000054;
+
+struct range {
+	int l, r, len;
+	range * read() {return scanf("%d%d", &amp;l, &amp;r), len = r - l, this;}
+	inline bool operator &lt; (const range &amp;B) const {return len &lt; B.len;}
+} a[N];
+
+struct request {
+	int l, r, len, id;
+	request (int _l = 0, int _r = 0, int _len = 0, int _id = 0) : l(_l), r(_r), len(_len), id(_id) {}
+	inline bool operator &lt; (const request &amp;B) const {return len &lt; B.len;}
+} qry[N];
+
+int n, q, cnt = 0;
+int ans[N], x[N], y[N];
+
+namespace BIT {
+	#define lowbit(x) (x &amp; -x)
+	void add(int h, int v, int *x) {for (; h &lt;= n; h += lowbit(h)) x[h] += v;}
+	int sum(int h, int *x) {int s = 0; for (; h; h -= lowbit(h)) s += x[h]; return s;}
+}
+
+int main() {
+	int i, j, l, r, len, K;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 0; i &lt; n; ++i) a[i].read();
+	std::sort(a, a + n);
+	for (i = 0; i &lt; q; ++i)
+		if (scanf("%d%d%d", &amp;l, &amp;r, &amp;K), K &lt;= r - l)
+			qry[cnt++] = request(l, r, r - l, i), qry[cnt++] = request(l, r, K - 1, i + q);
+	std::sort(qry, qry + cnt);
+	for (i = j = len = 0; len &lt; n; ++len) {
+		for (; i &lt; n &amp;&amp; a[i].len &lt;= len; ++i) BIT::add(a[i].l, 1, x), BIT::add(a[i].r, 1, y);
+		for (; j &lt; cnt &amp;&amp; qry[j].len &lt;= len; ++j) ans[qry[j].id] += BIT::sum(qry[j].r, y) - BIT::sum(qry[j].l - 1, x);
+	}
+	for (i = 0; i &lt; q; ++i) printf("%d\n", ans[i] - ans[i + q]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意特判 $K &gt; R - L$ 的询问，不计入询问数组中即可。</p>
+	</body>
+</html>

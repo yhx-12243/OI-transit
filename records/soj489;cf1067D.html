@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj489][Codeforces1067D]Computer Game</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>游戏中有 $n$ 个任务，(每一轮) 第 $i$ 任务有 $p_i$ 的概率完成，收益为 $a_i$，一个任务可以做多次。</p>
+		<p>如果你完成了其中某一个任务，可以选择对<strong>任意一个尚未升级的任务进行升级</strong> (或不升级任何任务)。任务升级后，完成的概率不变 (仍然为 $p_i$)，但是单次的收益提高到 $b_i$ ($a_i &lt; b_i$)。</p>
+		<p>你在剩下的时间中还能做 $t$ 个任务，你希望合理安排，使得你能得到的总收益的期望最大，输出这个最大值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, t$ ($n \leq 10^5; t \leq 10^{10}$)，表示任务的个数和剩下的时间 (所能做的任务数)。</p>
+		<p>接下来的 $n$ 行，每行包含两个正整数和一个实数 $a_i, b_i, p_i$ ($1 \leq a_i &lt; b_i \leq 10^8; 0 &lt; p_i &lt; 1$)，分别表示第 $i$ 个任务升级前和升级后完成它的收益以及完成它的概率。保证 $p_i$ 至多含有 $9$ 位小数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示总收益的期望的最大值。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-6}$。</p>
+
+		<h3>题解</h3>
+		<p>考虑每做一次任务，所能得到的期望收益的最大值是多少。</p>
+		<p>显然，若 $i$ 未升级，则期望收益为 $a_i \cdot p_i$，若 $i$ 已升级，则期望收益为 $b_i \cdot p_i$。</p>
+		<p>因此，不管何时何地，做一次任务所能得到的最大收益就是 $\max\limits_{1 \leq i \leq n} b_i p_i$ (因为 $a_i &lt; p_i$)。</p>
+		<p>记这个值为 $M$，即 $M = \max\limits_{1 \leq i \leq n} b_i p_i$。</p>
+		<p>注意到，我们一旦完成了某个任务，我们马上就可以将上面这个 "收益最大的任务" 进行升级，然后后面就死磕这个任务，升级机会也可以不要。这样后面所得的总收益一定是最大的，因为每次都取得了最大值 $M$。</p>
+		<p>故现在只需考虑没有完成任何一个任务的情况。</p>
+		<p>设 $f_t$ 表示当前尚未完成任何一个任务，还有 $t$ 次机会时，所得的期望的最大值。边界为 $f_0 = 0$。</p>
+		<p>枚举当前转移哪个任务和成功与否，就得到 $$ f_{t + 1} = \max_{1 \leq i \leq n} \left( p_i \cdot t M + p_i a_i + \left( 1 - p_i \right) \cdot f_t \right) \tag 1 \label 1 $$</p>
+		<p>注意此时的转移 $i$ 不一定是固定的，<del>但一定是按某种顺序单调的</del>，因此不能直接暴套公式计算。</p>
+		<p>尝试使用凸优化 (如斜率优化等)。将 $\eqref 1$ 式改写成：</p>
+		<p>$$ f_{t + 1} = \max_{1 \leq i \leq n} \left( p_i \left( t M - f_t \right) + p_i a_i \right) + f_t \tag 2 \label 2 $$</p>
+		<p>如果我们把每个任务看成一个向量 $\mathbf c_i = \left( p_i, p_i a_i \right)$，将 $\mathbf v_t = \left( t M - f_t, 1 \right)$ 看成一个常向量。$\eqref 2$ 式又可以写成</p>
+		<p>$$ f_{t + 1} = \max_{1 \leq i \leq n} \left( \mathbf v_t \cdot \mathbf c_i \right) + f_t $$</p>
+		<p><strong>哇！向量组的最大内积问题！</strong></p>
+		<p>根据经典结论，所能取到的向量一定是在所有 $\mathbf c_i$ 所构成的凸包 $CH$ 上，且是 $CH$ 在 $\mathbf v_t$ 方向上最远的点 (即 $CH$ 上与 $\mathbf v_t$ 垂直的切线的切点)。</p>
+		<p>考察 $\mathbf v_t$ 的趋势，由于它们的 $y$ 分量是个常量，因此只需考虑 $x$ 分量。</p>
+		<p>由于 $x_{t + 1} - x_t = \left( \left( t + 1 \right) M - f_{t + 1} \right) - \left( t M - f_t \right) = M + f_t - f_{t + 1}$，因此我们秩序考虑 $f_{t + 1} - f_t$ 与 $M$ 的关系即可。</p>
+		<p>容易使用归纳法证明 $M + f_t - f_{t + 1} \geq 0$。只需设 $f_{t + 1} = p_j \cdot t M + p_j a_j + \left( 1 - p_j \right) \cdot f_t$，则由 $\eqref 1$ 式，</p>
+		<p>$$ M + f_t - f_{t + 1} \geq M + \left( p_j \cdot \left( t - 1 \right) M + p_j a_j + \left( 1 - p_j \right) f_{t - 1} \right) - \left( p_j \cdot t M + p_j a_j + \left( 1 - p_j \right) \cdot f_t \right) = \left( 1 - p_j \right) \left( M + f_{t - 1} - f_t \right) \geq 0 $$</p>
+		<p>于是 $x_{t + 1} - x_t \geq 0$，即数列 $\left\{ x_t \right\}$ 单调递增。</p>
+		<p>因此，向量 $\mathbf v_t = \left( x_t, 1 \right)$ 的极角是<strong>从 $\dfrac \pi 2$ 到 $0$ 单调递减地变化</strong>的，因此 $CH$ 在 $\mathbf v_t$ 方向上的最远点也是沿上凸包 "从左上往右下" 的趋势变化的。</p>
+		<p>这说明转移的候选 $i$ 确实是单调的，沿着凸包单调。</p>
+		<p>剩下的事情就不难了，我们只需知道，凸包上的每个点，会更新多少个 $f$。这个可以使用二分或倍增来解决。</p>
+		<p>具体地，先倍增得出它更新的数值范围在 $2^k$ 内，然后在 $2^k$ 中二分 $k$ 步即可即可找到它会更新多少个 $f$。</p>
+		<p>因为对于凸包上一个点 $\mathbf c_i$，设它后面紧跟着的点是 $\mathbf c_{i+1}$，则 $f_{t+1}$ 能被 $f_t$ 更新当且仅当向量组的 $x$ 分量 $t M - f_t \leq \mathop{\mathrm{slope}} \left( c_i, c_{i+1} \right)$。</p>
+		<p>因此我们只需倍增算出 $f_t$，具体的方法可以使用矩阵快速幂 (维护矩阵 $\begin{bmatrix} f_t \\ t \\ 1 \end{bmatrix}$ 及其转移) 或直接解递推方程即可。</p>
+		<p>时间复杂度当然是 $O \left( n \log n + n \log T \right)$ 啦。(当然如果是裸的二分而不是倍增可能会有较大的常数)</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+typedef long long ll;
+typedef long double ld;
+const int N = 100054;
+const ld eps = 1e-13;
+
+struct prob {
+	int a, b; ld p;
+	prob * read() {return scanf("%d%d%Lf", &amp;a, &amp;b, &amp;p), this;}
+	inline bool operator &lt; (const prob &amp;B) const {return b * p &lt; B.b * B.p;}
+} v[N];
+
+struct vec2 {
+	ld x, y;
+	vec2 (ld x0 = 0.0, ld y0 = 0.0) : x(x0), y(y0) {}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline bool operator &lt; (const vec2 &amp;B) const {return x &lt; B.x || (x == B.x &amp;&amp; y &lt; B.y);}
+	inline ld operator ^ (const vec2 &amp;B) const {return x * B.y - y * B.x;}
+} p[N], ch[N], *rt = ch;
+
+int n, CH;
+ld M;
+
+inline void up(ld &amp;x, const ld y) {x &lt; y ? x = y : 0;}
+
+ld trans(ll t, ll n, ld a, ld b, ld f_t) {
+	ld ak = powl(1 - a, n), aq = (1 - ak) / a, ay = ((n - 1) + ak - (1 - a) * n) / (a * a);
+	return ak * f_t + (aq * t + ay) * (a * M) + aq * b;
+}
+
+int main() {
+	int i, j, k; ll t = 0, T; ld cur = 0, next, slope, slope_limit;
+	scanf("%d%lld", &amp;n, &amp;T);
+	for (i = 0; i &lt; n; ++i) v[i].read(), p[i] = vec2(v[i].p, v[i].p * v[i].a);
+	{prob *it = std::max_element(v, v + n); M = it-&gt;b * it-&gt;p;}
+	std::sort(p, p + n);
+	for (i = 0; i &lt; n; *rt++ = p[i++])
+		for (; rt &gt; ch + 1 &amp;&amp; cross(rt[-2], p[i], rt[-1]) &lt;= 0; --rt);
+	CH = rt - ch;
+	for (i = 0; i &lt; CH - 1 &amp;&amp; ch[i].y &lt; ch[i + 1].y; ++i);
+	for (; i &lt; CH &amp;&amp; t &lt; T; ++i) {
+		slope_limit = (i == CH - 1 ? INFINITY : (ch[i].y - ch[i + 1].y) / (ch[i + 1].x - ch[i].x));
+		slope = t * M - cur;
+		if (slope &gt; slope_limit) continue;
+		for (j = 0; ; ++j) {
+			next = trans(t, 1ll &lt;&lt; j, ch[i].x, ch[i].y, cur), slope = (t + (1ll &lt;&lt; j)) * M - next;
+			if (slope &gt; slope_limit || t + (2ll &lt;&lt; j) &gt;= T) break;
+		}
+		for (k = j; k &gt;= 0; --k) {
+			if (t + (1ll &lt;&lt; k) &gt;= T) continue;
+			next = trans(t, 1ll &lt;&lt; k, ch[i].x, ch[i].y, cur), slope = (t + (1ll &lt;&lt; k)) * M - next;
+			if (slope &lt;= slope_limit) t += 1ll &lt;&lt; k, cur = next;
+		}
+		cur = (1 - ch[i].x) * cur + ch[i].x * M * t + ch[i].y, ++t;
+	}
+	printf("%.12Lg\n", cur);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>如果使用矩阵乘法，那么需要预先处理好转移矩阵的 $2^k$ 次幂，否则时间复杂度会退化为 $O \left( n \log n + n \log^2 T \right)$。</p>
+		<p><strong>坑2：</strong>注意倍增/二分所得到的点是<strong>可以用来更新 $f_{t + 1}$ 的点</strong>，因此倍增/二分完毕后还需要再转移一步。</p>
+	</body>
+</html>

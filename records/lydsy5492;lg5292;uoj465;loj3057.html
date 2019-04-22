@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5492][lg5292][uoj465][loj3057][HNOI2019]校园旅行</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>某学校的每个建筑都有一个独特的编号。一天你在校园里无聊，决定在校园内随意的漫步。</p>
+		<p>你已经是在校园里呆过一段时间的人，对校园内每个建筑的编号非常熟悉，于是你情不自禁的把周围每个建筑的编号都记了下来——但其实你没有真的记下来，而是把每个建筑的编号除以 $2$ 取余数得到 $0$ 或 $1$，作为该建筑的标记，多个建筑物的标记连在一起形成一个 $\texttt 0/\texttt 1$ 串。</p>
+		<p>你对这个串很感兴趣，尤其是对于这个串是回文串的情况，于是你决定研究这个问题。</p>
+		<p>学校可以看成一张图，建筑是图中的顶点，而某些顶点之间存在<strong>无向边</strong>。对于每个顶点我们有一个标记 ($0$ 或者 $1$)。每次你会选择图中两个顶点，你想知道这两个顶点之间是否存在一条路径使得路上经过的点的<strong>标记</strong>形成一个<strong>回文串</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个整数 $n, m, q$ ($n \leq 5000; m \leq 5 \times 10^5; q \leq 10^5$)，表示图中的顶点数和边数，以及询问数。</p>
+		<p>第二行为一个长度为 $n$ 的 $\texttt 0/\texttt 1$ 串，其中第 $i$ 个字符表示第 $i$ 个顶点 (即顶点 $i$) 的标记，点从 $1$ 开始编号。</p>
+		<p>接下来 $m$ 行，每一行包含两个整数 $u_i, v_i$，表示顶点 $u_i$ 和顶点 $v_i$ 之间有一条无向边，不存在自环或者重边。</p>
+		<p>接下来 $q$ 行，每一行包含两个整数 $x_i, y_i$，表示询问顶点 $x_i$ 和顶点 $y_i$ 的点之间是否有一条满足条件的路径。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行一个字符串 <code>YES</code>，或者 <code>NO</code>。输出 <code>YES</code> 表示满足条件的路径存在，输出 <code>NO</code> 表示不存在。</p>
+
+		<h3>题解</h3>
+		<p>容易建立一个 DP 模型：用 $f_{i, j}$ 表示是否存在 $i \leadsto j$ 的回文路径，则边界为 $f_{i, i} = 1, f_{i, j} = \left[ \left( i, j \right) \in E \wedge w_i = w_j \right]$。</p>
+		<p>转移和  <a href="lydsy3205%3Blg3638%3Buoj107.html" target="_blank">[APIO2013]ROBOTS</a> 类似，使用<del>最短路</del> bfs 维护当前值为 $1$ 的状态队列进行转移即可，如果一个状态再次入队则直接忽略不计。</p>
+		<p>最后处理出所有 $f_{i, j}$ 后即可轻松 $O \left( 1 \right)$ 回答询问。</p>
+		<p>考虑转移的时间复杂度，为 $O \left( \sum\limits_i \sum\limits_j d \left( i \right) d \left( j \right) \right) = O \left( \left| E \right|^2 \right)$，即边数的平方级，无法接受。</p>
+		<p>那如何才能加速呢？这时候就需要用到图论的性质了，我们如果能建一个<strong>边数更小</strong>的图，满足新图的答案和原图答案相同，则我们直接在新图上 DP，即可降低时间复杂度。</p>
+		<p>我们不妨设权值为 $0$ ($1$) 的点为黑 (白) 点。考虑所有黑点与黑点之间的边 (黑点的导出子图)，对于每个连通块，有两种情况：</p>
+		<ol>
+			<li><p>某个连通块 $C$ 为二分图。由连通二分图的性质，$C$ 有唯一的 $2-$点染色 (颜色相对顺序不计)，设一条回文路径在 $C$ 中的部分为 $v_0 \to v_1 \to v_2 \to \cdots \to v_k$ (当然可能有多部分，这里任取一部分)。</p>
+			<p>考虑这一部分，显然 $v_k$ 的颜色与 $k$ 奇偶性直接相关，且我们可以任意扩大 $k' \gets k + 2 a$，其中 $a \in \mathbb N$，因为只需使用路径 $v_0 \to v_1 \to v_0 \to v_1 \to \cdots \to v_0 \to v_1 \to v_2 \to \cdots \to v_k$ 即可。</p></li>
+			<li><p>若连通块 $C$ 不是二分图，则 $C$ 必有一长度为奇数的环。设回文路径在 $C$ 中的部分为 $v_0 \to v_1 \to \cdots \to v_k$。</p>
+			<p>考虑这一部分，和二分图类似，显然可以任意扩大 $k' \gets k + 2 a$，且对充分大的整数 $b$，也可以扩大为 $k' \gets k + 2 b + 1$，因为只需要走进奇环绕一圈即可突破奇偶性的限制。</p></li>
+		</ol>
+		<p>综上，由于路径的长度没有限制，故对黑点的导出子图的一个连通块，它对答案的贡献<strong>只和它是否是二分图有关</strong>。</p>
+		<p>因此，如果一个连通块 $C$ 为二分图，我们可以用最简单的 (连通) 二分图 —— $C$ 的生成树来替代它。</p>
+		<p>如果 $C$ 不是二分图，则可以用最简单的 (连通) 非二分图 —— $C$ 的生成树 + 一个自环来替代它。</p>
+		<p>同理，对白点与白点之间的边 (白点的导出子图) 与黑点与白点之间的边 (黑点集与白点集之间的割，一定是二分图)，均可以用上述方式——使用生成树或生成树 + 自环来替代。</p>
+		<p>于是，整张图的边数就不会超过 $2 n + O \left( 1 \right)$ 了，再使用暴力 DP，时间复杂度就为 $O \left( n^2 \right)$ 了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 5400, M = 12700000;
+
+struct edge {
+	int u, v;
+	edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+} e[M];
+
+int V, E, Es = 0, q;
+char s[N];
+int first[3][N], next[M];
+int col[N], Graph[N];
+bool ans[N][N];
+pr que[M];
+
+inline void advance(int &amp;x) {++x == M ? x = 0 : 0;}
+inline void addedge(int u, int v, int *fst) {
+	e[++Es] = edge(u, v), next[Es] = fst[u], fst[u] = Es;
+	e[++Es] = edge(v, u), next[Es] = fst[v], fst[v] = Es;
+}
+
+bool dfs(int x, int *fst) {
+	int i, y; bool bipartite = true;
+	for (i = fst[x]; i; i = next[i])
+		bipartite &amp;= (~col[y = e[i].v] ? col[y] != col[x] : (addedge(x, y, Graph), col[y] = !col[x], dfs(y, fst)));
+	return bipartite;
+}
+ 
+int main() {
+	int i, j, c, u, v, x, y, h, t = 0;
+	scanf("%d%d%d%s", &amp;V, &amp;E, &amp;q, s + 1);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v, first[s[u] ^ s[v] ? 2 : s[u] &amp; 1] );
+	for (c = 0; c &lt; 3; ++c) {
+		memset(col, -1, (V + 1) &lt;&lt; 2);
+		for (i = 1; i &lt;= V; ++i) if (!(~col[i] || dfs(i, first[c]))) addedge(i, i, Graph);
+	}
+	for (i = 1; i &lt;= V; ++i) ans[i][i] = true, que[t++] = pr(i, i);
+	for (i = 1; i &lt;= Es; i += 2)
+		if (s[u = e[i].u] == s[v = e[i].v]) ans[u][v] = ans[v][u] = true, que[t++] = pr(u, v);
+	for (h = 0; h != t; advance(h))
+		for (std::tie(u, v) = que[h], i = Graph[u]; i; i = next[i])
+			for (x = e[i].v, j = Graph[v]; j; j = next[j])
+				if (s[x] == s[y = e[j].v] &amp;&amp; !ans[x][y])
+					ans[x][y] = ans[y][x] = true, que[t] = pr(x, y), advance(t);
+	for (; q; --q) scanf("%d%d", &amp;u, &amp;v), puts(ans[u][v] ? "YES" : "NO");
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 bfs 时的队列会很大，需要开大数组，使用循环队列 (或使用 <code>std::queue</code>)。</p>
+	</body>
+</html>

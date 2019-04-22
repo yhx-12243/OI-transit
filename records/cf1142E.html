@@ -12,7 +12,7 @@
 	<body>
 		<h3>题目描述</h3>
 		<p>有一张 $n$ 个点的竞赛图 $G$，其中有 $m$ 条边是<span style="color: fuchsia">粉色</span>的，剩下 $\dbinom n2 - m$ 条边都是<span style="color: green">绿色</span>的。你现在已经知道所有 $m$ 条<span style="color: fuchsia">粉色</span>边及其定向，但你不知道<span style="color: green">绿色</span>边的方向。</p>
-		<p>你可以向交互库发出不超过 $2 n$ 次询问，每次询问的内容为 "<strong>询问一条<span style="color: green">绿色</span>边的方向</strong>"。在询问完毕后，你需要找到一个点 $v$，使得：<strong>对于 $G$ 中的任何一个点 $u$，均存在一条从 $v$ 到 $u$ 的 (有向) 路径，满足路径上的所有边同色</strong>。</p>
+		<p>你可以向交互库发出不超过 $2 n$ 次询问，每次询问的内容为 "<strong>询问一条<span style="color: green">绿色</span>边的方向</strong>"。在询问完毕后，你需要找到一个点 $v$，使得：<strong style="color: red">对于 $G$ 中的任何一个点 $u$，均存在一条从 $v$ 到 $u$ 的 (有向) 路径，满足路径上的所有边同色</strong>。</p>
 		<p>可以证明，对于任何一张竞赛图和任意的边染色方案，这样的点 $v$ 是一定存在的。</p>
 
 		<h3>输入格式</h3>
@@ -30,13 +30,45 @@
 		<p>至于寻找的过程，(其实就是淘汰赛啦~) 可以每次任取两个点进行比较 (PK)，设为 $u \to v$，然后把 $v$ 扔掉，最后的 "胜者" 就是我们所要的点。</p>
 		<p>于是在这种情况下，只需要询问 $n - 1$ 次就足够了。</p>
 		<p>现在考虑有<span style="color: fuchsia">粉色</span>边的情况。考察所有的粉色边，可以发现它们构成了一张有向图。我们可以对其进行 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 缩点，得到一张新图 $G'$。</p>
-		<p>考察 $G'$ 中拓扑序最靠前的点，或者说<strong>入度为 $0$ 的点</strong>。如果这样的点只有 $1$ 个，则 (原图中) 它所对应的 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 中的任意一个点都是满足原题条件的点：<em>它可以只通过<span style="color: fuchsia">粉色</span>边到达所有点</em>。</p>
+		<p>考察 $G'$ 中拓扑序最靠前的点，或者说<strong>入度为 $0$ 的点</strong>。如果这样的点只有 $1$ 个，则 (原图中) 它所对应的 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 中的任意一个点都是满足<span style="color: red">红色</span>条件的点：<em>它可以只通过<span style="color: fuchsia">粉色</span>边到达所有点</em>。</p>
 		<p>那如果入度为 $0$ 的点有多个呢？当然这也是最一般的情形。</p>
 		<p>由于我们希望最后只保留一个这样的点，因此我们需要继续使用一开始没有<span style="color: fuchsia">粉色</span>边时的算法—— "<em>淘汰赛</em>"。</p>
 		<p>任取两个 $G$ 中的点 $u, v$，满足它们在 $G'$ 中的对应点不相同且入度均为 $0$。显然 $u, v$ 之间的边不可能是<span style="color: fuchsia">粉色</span> (因为 $u, v$ 在<span style="color: fuchsia">粉图</span>中所在的 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 的入度均为 $0$)，因此它们之间的边的颜色为<span style="color: green">绿色</span>，不妨设该边的定向为 $u \to v$。</p>
 		<p>则，此时我们可以将 $v$ 点删去，因为它们在<span style="color: fuchsia">粉图</span>中 $v$ 的拓扑序在 $u$ 的后面。且 $u$ 可以到达所有 $v$ 能通过<span style="color: fuchsia">粉色</span>边所到达的点。</p>
 		<p>重复上述步骤，如果某一步一个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> $S$ 中的点被消光了，则说明目前剩下的点中 (拓扑序靠前的) 可以到达 $S$ 中的所有点，因此我们可以删去这个连通分量 $S$。此时需要注意，剩下的连通分量中可能会多出入度为 $0$ 的，需要将其加入队列 (或栈)。</p>
 		<p>故整个过程类似于一个拓扑排序的过程，最后缩到只剩一个 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 的时候就可以知道答案了。总时间复杂度 $O \left( n + m \right)$。</p>
+		<p><strong style="color: red">(ps: 以下内容为 2019.4.15 更新)</strong></p>
+		<p>现在该给出这个算法的正确性证明了。</p>
+		<p>先证明一个引理：</p>
+		<p style="color: blue">引理：对于任何一张满足题目要求的图 $G$，设粉图中进行 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 缩点后的结果为 $G'$。记 $G'$ 中每个入度为 $0$ 的点所对应的 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 为自由连通分量 (Free Connected Component，简记为 FCC)。</p>
+		<p style="color: blue">现在从每个 <abbr title="Free Connected Component, 自由连通分量">FCC</abbr> 中选取<strong>一个</strong>点作为代表元，得到 "代表集" $S$，则：如果存在<strong>满足<span style="color: red">红色</span>条件</strong>的点，必存在一满足<span style="color: red">红色</span>条件的点 $v$，使得对于 $\forall s \in S$，存在从 $v$ 到 $s$ 的<span style="color: green">绿色</span>路径 <strong>(含空路径)</strong>。</p>
+		<p>(ps: 也就是说，<span style="color: blue">引理条件</span>是对<span style="color: red">红色</span>条件的一种加强。下面的证明建议画图理解。)</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>设 $u$ 为一个满足<span style="color: red">红色</span>条件的点。如果它不在任何一个 <abbr title="Free Connected Component, 自由连通分量">FCC</abbr> 中，由于 <abbr title="Free Connected Component, 自由连通分量">FCC</abbr> 是入度为 $0$ 的 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr>，因此 $\forall s \in S$，路径 $u \leadsto S$ 的边必然全是<span style="color: green">绿色</span>，故 $u$ 满足<span style="color: blue">引理条件</span>。</p>
+				<p>否则，设 $u$ 在某一个 <abbr title="Free Connected Component, 自由连通分量">FCC</abbr> 中。若 $u \in S$，则容易验证 $u$ 满足<span style="color: blue">引理条件</span>。否则考察 $S$ 与 "$u$ 所在的 <abbr title="Free Connected Component, 自由连通分量">FCC</abbr>" 的交点 $v$。</p>
+				<p>如果 $v$ 满足<span style="color: red">红色</span>条件，则 $v$ 就是满足<span style="color: blue">引理条件</span>的一个点。反之，设 $v$ 无法到达其中一个点 $g$。</p>
+				<p>由于 $u$ 是满足<span style="color: red">红色</span>条件的点，因此存在 $u \leadsto g$ 的同色路径。这个路径不可能是<span style="color: fuchsia">粉色</span>的，因为 $v$ 无法通过<span style="color: fuchsia">粉色</span>边到达 $g$。</p>
+				<p>因此存在 $u$ 到 $g$ 的<span style="color: green">绿色</span>路径 $u \leadsto g$。 <strong>(ⅰ)</strong></p>
+				<p>考察边 $\left( v, g \right)$。如果它是 $v \to g$ 的边，与假设 ($v$ 不能到达 $g$) 矛盾，如果它是 $g \to v$ 的<span style="color: fuchsia">粉色</span>边，与 $v$ 在 <abbr title="Free Connected Component, 自由连通分量">FCC</abbr> 中矛盾。因此一定存在 $g \to v$ 的<span style="color: green">绿色</span>边。 <strong>(ⅱ)</strong></p>
+				<p>结合 (ⅰ) (ⅱ) 知，存在 $u \leadsto v$ 的<span style="color: green">绿色</span>路径。又因为对 $\forall s \in S \setminus \left\{ v \right\}$，路径 $u \leadsto s$ 的边一定是<span style="color: green">绿色</span>的，因此此时 $u$ 满足<span style="color: blue">引理条件</span>，证毕。</p>
+			</div>
+		</div>
+		<p>我们考虑算法的流程，在算法执行的过程中，<strong>归纳证明满足<span style="color: red">红色</span>条件的点的存在性</strong>：</p>
+		<ol>
+			<li><p>对 $G$ 的粉边进行 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 缩点。然后对每个 <abbr title="Free Connected Component, 自由连通分量">FCC</abbr>，标记一个点作为代表元，得到代表元集合 $S$。</p></li>
+			<li><p>若 $\left| S \right| = 1$，设 $S = \left\{ v \right\}$，则 $v$ 可以只通过<span style="color: fuchsia">粉色</span>边到达所有点，从而满足<span style="color: red">红色</span>条件。显然，它也满足<span style="color: blue">引理条件</span>，从而<strong>程序结束</strong>。</p></li>
+			<li><p>此时 $\left| S \right| &gt; 1$，则任取 $S$ 中两个元素 $u, v$，记它们所在的 <abbr title="Free Connected Component, 自由连通分量">FCC</abbr> 为 $U, V$。我们要对其进行 "淘汰赛"。</p></li>
+			<li><p>考察边 $\left( u, v \right)$，显然这条边一定是<span style="color: green">绿色</span>的。由对称性，不妨假设定向是 $u \to v$。</p></li>
+			<li><p>考察图 $G \setminus \left\{ v \right\}$，由归纳假设，存在满足<span style="color: red">红色</span>条件的点。由引理，存在满足<span style="color: blue">引理条件</span>的点，它能通过绿色路径到达 $u$，从而它可以通过绿色路径到达原图中的 $v$。因此它就是 $G$ 中我们所要寻找的满足<span style="color: blue">引理条件</span>的点。</p>
+			<p class="text-muted">// 要注意的是，在 $G \setminus \left\{ v \right\}$ 中，必须要找到满足<span style="color: blue">引理条件</span>的点，如果一个点 $x$ 仅仅满足<span style="color: red">红色条件</span>，则路径 $x \leadsto u$ 可能是<span style="color: fuchsia">粉色</span>的，从而不一定能到达 $v$。</p></li>
+			<li><p>于是我们可以将点 $v$ 删掉，得到一个更小的子问题 (归纳证明已经结束)，并令 $S \gets S \setminus \left\{ v \right\}$。</p>
+			<p>当然，如果一个 <abbr title="Free Connected Component, 自由连通分量">FCC</abbr> 的点被消光了，则确实需要将它的后继 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 加入。因为它们成为了新的 <abbr title="Free Connected Component, 自由连通分量">FCC</abbr>，在证明及算法过程中需要用到。</p></li>
+			<li><p>记 $S'$ 为处理过后的集合，只需令 $S \gets S'$，转到步骤 2。</p></li>
+		</ol>
+		<p>这里要注意的是，在步骤 $2$ 中，如果 $\left| S \right| = 1$，并不是该 <abbr title="Free Connected Component, 自由连通分量">FCC</abbr> 中的所有点都满足条件，但是可以肯定，$S$ 中的点一定满足条件。因为，在缩点的过程中，保持的是<span style="color: blue">引理条件</span>，而非<span style="color: red">红色</span>条件。</p>
+		<p>从而通过这个算法，我们证明了对于任意满足题目条件的图 $G$，都存在满足<span style="color: blue">引理条件</span>的点，并给出了求它的算法，从而也证明了上述算法的正确性。</p>
 
 		<h3>代码</h3>
 
