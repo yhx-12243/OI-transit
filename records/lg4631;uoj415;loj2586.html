@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg4631][uoj415][loj2586][APIO2018]Circle selection</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在平面上，有 $n$ 个圆，记为 $c_1, c_2, \cdots, c_n$。我们尝试对这些圆运行这个算法：</p>
+		<ol>
+			<li><p>找到这些圆中半径最大的。如果有多个半径最大的圆，选择编号最小的。记为 $c_i$。</p></li>
+			<li><p>删除 $c_i$ 及与其有交集的所有圆。两个圆有交集当且仅当平面上存在一个点，这个点同时在这两个圆的圆周上或圆内。</p></li>
+			<li><p>重复上面两个步骤直到所有的圆都被删除。</p></li>
+		</ol>
+		<img class="center-block" src="uploads/97.png" alt="选圆圈" style="width: 512px" />
+		<p>当 $c_i$ 被删除时，若循环中第 1 步选择的圆是 $c_j$ ，我们说 $c_i$ 被 $c_j$ 删除。对于每个圆，求出它是被哪一个圆删除的。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 3 \times 10^5$)，表示开始时平面上圆的数量。</p>
+		<p>接下来 $n$ 行，每行包含三个整数 $x_i, y_i, r_i$ ($-10^9 \leq x_i, y_i \leq 10^9; 1 \leq r_i \leq 10^9$)，依次描述圆 $c_i$ 圆心的 $x$ 坐标、$y$ 坐标和它的半径。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n$ 个整数 $a_1, a_2, \cdots, a_n$，其中 $a_i$ 表示圆 $c_i$ 是被圆 $c_{a_i}$ 删除的。</p>
+
+		<h3>题解</h3>
+		<p><del><em>k</em>-Dimension 树什么辣鸡玩意儿，别用了~</del></p>
+		<p>考虑使用暴力，每次找到半径最大的未删除的圆 $c$，枚举所有剩下 (未删除的) 圆，检验是否与 $c$ 有交。如果有交，则将其删去并更新答案。</p>
+		<p>不过这样时间复杂度是 $O \left( n^2 \right)$ 的，无法通过。于是考虑如何进行优化。</p>
+		<p>首先，对一个圆 $c$，如果圆 $s$ 与它有交，则需要将 $s$ 删去并令 $a_s \gets c$。这部分所花费的时间是必要的，无法避免的。但是，如果圆 $s$ 与 $c$ 无交，就相当于做了一次无用功，并不能对后面的过程产生贡献。</p>
+		<p>因此我们要做的，就是<strong>尽可能减少这种 "无用" 的判断</strong>，通俗的说就是 <em>"剪枝"</em>，即尽可能让我们去花时间检验的圆都是真正有交的圆。</p>
+		<p>注意到 $c = \odot \left( O, r \right)$ 是当前半径最大的圆，因此其它 (未删除的) 圆的半径均比 $c$ 小。因此这些圆的圆心一定在以 $O$ 为圆心，$2 r$ 为半径的大圆盘上，将这个圆盘记为 $D_c$。</p>
+		<p>于是，我们每次只需要在区域 $D_c$ 上进行寻找——即只需判断圆心在 $D_c$ 上的圆是否和 $c$ 真正有交即可，这样就减少了大量的无用判断。</p>
+		<p>那么如何快速得到圆心在 $D_c$ 上的圆的集合 (即维护一个点集，求在 $D_c$ 上的点的集合) 呢？<em>k</em>-Dimension 树显然是可以的，不过没必要这么繁琐。</p>
+		<p>首先，圆区域肯定不怎么好处理，而我们就取一个<strong>包含它的最小的矩形区域</strong>：即 $R_c = \left[ x_O - 2 r, x_O + 2 r \right] \times \left[ y_O - 2 r, y_O + 2 r \right]$，每次在 $R_c$ 上寻找点。</p>
+		<p>那么，对于每个圆 $c$，暴力寻找还是 $O \left( n^2 \right)$ 的。不过由于它是矩形区域，因此我们可以考虑<strong>将二维平面分割</strong>——将整个二维平面分割成无穷多个 $r \times r$ 的小正方形，然后对于圆心为 $O$ 的圆 $c$，<strong>只需寻找以它为中心的 $5 \times 5$ 的区域中的点即可</strong>。</p>
+		<p>至于每个矩形的点，可以使用 Hash 表 + 邻接表 (或 <code>std::list</code>) 来维护。</p>
+		<p>然而对每个圆都进行一次分割显然太浪费时间，只分割一次显然寻找的开销就会变大。</p>
+		<p>我们折中一下，结合<a href="cf710F.html" target="_blank">二进制重构/倍增</a>的思想，设上一次的划分为 $r \times r$，如果当前的半径 $r_0 \in \left( \dfrac r2, r \right]$，则搜索的开销顶多乘个 $4$，是可以接受的。</p>
+		<p>如果半径 $\leq \dfrac r2$，则此时再对整个二维平面重新分割。由于 $\max r_i \leq 10^9$，因此分割的次数不会超过 $\log \max r_i + O \left( 1 \right)$。</p>
+		<p>期望时间复杂度为 $O \left( n \log R \right)$，其中 $R$ 为坐标范围 (如果使用 Hash 表)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 300054;
+
+struct data {
+	int id, x, y;
+	data (int _id = 0, int _x = 0, int _y = 0) : id(_id), x(_x), y(_y) {}
+};
+
+struct hash_map {
+	static const int M = 4000037, S = ::N;
+	int cnt, first[M], next[S]; data z[S];
+	inline int getHash(const data &amp;d) {return (d.x * 20030731ll + d.y) % M;}
+
+	struct iterator {
+		data *ptr, *last; hash_map *hm;
+		iterator (data *_ptr = nullptr, hash_map *_hm = nullptr) : ptr(_ptr), last(nullptr), hm(_hm) {}
+		inline int operator * () {return ptr-&gt;id;}
+		inline void operator ++ () {last = ptr, ptr = hm-&gt;z + hm-&gt;next[ptr - hm-&gt;z];}
+		operator void *() {return !ptr || ptr == hm-&gt;z ? 0 : this;}
+	};
+
+	hash_map () : cnt(0) {}
+	void clear() {for (; cnt; --cnt) first[getHash(z[cnt])] = 0;}
+	inline void insert(const data &amp;d) {int x = getHash(d); z[++cnt] = d, next[cnt] = first[x], first[x] = cnt;}
+	inline void erase(iterator &amp;it) {(it.last ? next[it.last - z] : first[getHash(*it.ptr)]) = next[it.ptr - z], it.ptr = z + next[it.ptr - z];}
+	inline iterator begin(int _x, int _y) {return iterator(z + first[getHash(data(0, _x, _y))], this);}
+} map;
+
+int n, Radius = INT_MAX;
+int x[N], y[N], r[N], o[N], ans[N];
+
+inline ll sqr(int x) {return (ll)x * x;}
+inline bool intersect(int i, int j) {return sqr(x[i] - x[j]) + sqr(y[i] - y[j]) &lt;= sqr(r[i] + r[j]);}
+
+void reconstruction(int r) {
+	Radius = r; map.clear();
+	for (int i = 0; i &lt; n; ++i) if (!~ans[i]) map.insert(data(i, x[i] / Radius, y[i] / Radius));
+}
+
+int main() {
+	int i, _x, _y, zx, zy, *p; hash_map::iterator it;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) scanf("%d%d%d", x + i, y + i, r + i), o[i] = i;
+	_x = *std::min_element(x, x + n), _y = *std::min_element(y, y + n);
+	for (i = 0; i &lt; n; ++i) x[i] -= _x, y[i] -= _y, ans[i] = -1;
+	std::sort(o, o + n, [] (const int x, const int y) {return r[x] &gt; r[y] || (r[x] == r[y] &amp;&amp; x &lt; y);});
+	for (p = o; p != o + n; ++p) if (!~ans[*p]) {
+		if (r[*p] &lt; Radius / 2) reconstruction(r[*p]);
+		_x = x[*p] / Radius, _y = y[*p] / Radius;
+		for (zx = std::max(_x - 2, 0); zx &lt;= _x + 2; ++zx)
+			for (zy = std::max(_y - 2, 0); zy &lt;= _y + 2; ++zy)
+				for (it = map.begin(zx, zy); it; intersect(*p, *it) ? (ans[*it] = *p, map.erase(it)) : ++it);
+	}
+	for (i = 0; i &lt; n; ++i) printf("%d%c", ans[i] + 1, i == n - 1 ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 Hash 表删除元素时为 <code>first</code> 的情况，以及 Hash 函数不要冲突。</p>
+	</body>
+</html>

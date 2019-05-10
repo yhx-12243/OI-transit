@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg3776][uoj303][loj2310][APIO2017]Rainbow</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在很久以前的黄金时代，澳大利亚的土地是矩形的，它可以被划分成 $R$ 行 $C$ 列的网格状，行的编号从北到南依次为 $1$ 到 $R$，列的编号从西到东依次为 $1$ 到 $C$，$\left( r, c \right)$ 表示第 $r$ 行第 $c$ 列的土地。</p>
+		<p>一天，伟大的彩虹蛇从 $\left( s_r, s_c \right)$ 出发在澳大利亚的土地上移动，彩虹蛇连续进行了 $M$ 次移动，每次它会向正北 (N)、正南 (S)、正东 (E) 或正西 (W) 方向移动一格，其经过的所有的格子 (包括起点和终点) 都会变成河流。</p>
+		<p>数百万年之后，你想购买一块矩形区域纪念伟大的彩虹蛇。你想给所购买矩形区域内每一块<strong>不是河流</strong>的格子都染上颜色，要求相邻的格子颜色<strong>必须相同</strong>，两个格子相邻当且仅当两个格子有一条<strong>公共边</strong>，你所购买区域之外的格子无须染色。</p>
+		<p>现在给出彩虹蛇 $M$ 次移动的方向，你有 $Q$ 个购买矩形区域的方案，问每个方案<strong>最多</strong>能够将土地染上多少种不同的颜色。</p>
+
+		<h3>实现细节</h3>
+		<p>你需要包含头文件 rainbow.h。</p>
+		<p>你需要实现函数 init 和 colours:</p>
+		<ul>
+			<li><code>init(R, C, sr, sc, M, S)</code> —— 该函数会在开始时调用并且只会调用一次。
+			<ul>
+				<li>$R$ 和 $C$: 表示网格的行数和列数。</li>
+				<li>$sr$ 和 $sc$: 彩虹蛇的起点坐标。</li>
+				<li>$M$: 彩虹蛇移动的步数。</li>
+				<li>$S$: 一个长度为 $M$ 的字符串, $S_i$ 是 $\texttt N$、$\texttt S$、$\texttt E$、$\texttt W$ 之一, 分别表示彩虹蛇的第 $i$ 次移动是向正北、正南、正东、正西移动一格，$0 \leq i \leq M - 1$。保证在任何时刻彩虹蛇不会移动到网格外面。</p></li>
+			</ul></li>
+			<li><code>colours(ar, ac, br, bc)</code> —— 在调用 <code>init</code> 一次之后, 该函数会被总共调用 $Q$ 次。
+			<ul>
+				<li>$\left( a_r, a_c \right)$ 表示你所购买矩形的西北角的格子的坐标，$\left( b_r, b_c \right)$ 表示你所购买矩形的东南角的格子的坐标，返回一个整数表示在这种购买方案下最多能够将土地染上多少种不同的颜色。</li>
+				<li>$1 \leq a_r \leq b_r \leq R$, $1 \leq a_c \leq b_c \leq C$。</li>
+			</ul></li>
+		</ul>
+
+		<h3>题解</h3>
+		<img class="center-block" src="uploads/98.png" alt="斑斓之地" style="width: 768px" />
+		<p>题意即在网格图中给定一个蓝色连通块，询问一个子矩形中有多少个白色连通块。</p>
+		<p>为了便于分析，我们建立它的对偶图，这样询问的就是<strong>点连通块</strong>的个数。</p>
+		<p>由于网格图是平面图，因此它的对偶图也是平面图，子图自然也是一个平面图啦。</p>
+		<p>而看到<strong>平面图的连通块计数</strong>，不难想到 Euler 定理：</p>
+		<p><strong style="color: green">设 $G = \left( V, E \right)$ 是一张平面图，设 $G$ 的一个平面嵌入中的面集合为 $F$ (包含最外面的无穷面)，$G$ 的连通分量个数为 $C$，则 $\left| V \right| - \left| E \right| + \left| F \right| = 1 + C$。</strong></p>
+		<p>于是 $C = \left| V \right| - \left| E \right| + \left( \left| F \right| - 1 \right)$，$\left| F \right| - 1$ 即为 $G$ 的平面嵌入中<strong>面的个数 (不含无穷面)</strong>。</p>
+		<p>考虑一个子矩形 $R$ 导出的子图的对偶图 $G$。显然，$G$ 的每个点对应于 $R$ 中的一个<strong>白色格子</strong>；$G$ 的边分为两种：横向的边对应于 $R$ 中<strong>横向相邻的两个白色格子</strong>，纵向的边对应于 $R$ 中<strong>纵向相邻的两个白色格子</strong>。</p>
+		<p>$G$ 中的面稍稍有些复杂：不考虑无穷面，则 $G$ 的面分为两种：</p>
+		<p>一种是外围边数为 $4$ 的平面，它对应于 $R$ 中一个 <strong>$2 \times 2$ 的白色子矩形</strong>，另一种是外围边数 $&gt; 4$ 的平面，它对应于包含蓝色区域的面。</p>
+		<p>由于蓝色格子是连通的，因此这样的面 $F$ 至多一个，且当且仅当<strong>将 $R$ 的四个边界都缩进一格后仍然包含所有的蓝色各自</strong>。</p>
+		<p>于是这种情况也得到了较好的解释。</p>
+		<p>整理一下现在所需要的任务：你需要维护一个静态的矩阵，有若干组询问，每次你需要数出一个子矩形中有多少个<strong>白色格子</strong>、<strong>横向相邻的两个白色格子</strong>、<strong>纵向相邻的两个白色格子</strong>以及 <strong>$2 \times 2$ 的白色子矩形的数量</strong>。</p>
+		<p>由于 $R, C \leq 2 \times 10^5$，因此补集转化一下 (即变成数<em>蓝色格子</em>，<em>横向相邻的、至少一个为蓝格的两个格子</em>，<em>纵向相邻的、至少一个为蓝格的两个格子</em>以及<em>$2 \times 2$ 至少一个为蓝格的子矩形</em>的数量)，由于蓝色格子的个数不超过 $M + 1$，因此可以直接使用可持久化线段树 (即在线的二位数点) 完成。</p>
+		<p>总时间复杂度 $O \left( \left( M + Q \right) \log \min \left\{ R, C \right\} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "rainbow.h"
+#include &lt;algorithm&gt;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 400054;
+
+int R, C, rmin, rmax, cmin, cmax;
+pr pos[N], dr[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+struct ST {
+	struct node {int v, lc, rc;} x[6666666];
+	int cnt = 1, root[N];
+
+	int add(int id, int L, int R, int h, int v) {
+		int nid = ++cnt; (x[nid] = x[id]).v += v;
+		if (L == R) return nid;
+		int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[nid].lc = add(x[id].lc, L, M, h, v) : (x[nid].rc = add(x[id].rc, M + 1, R, h, v));
+		return nid;
+	}
+
+	int range(int id, int L, int R, int ql, int qr) {
+		if (!id || (ql &lt;= L &amp;&amp; R &lt;= qr)) return x[id].v;
+		int M = (L + R - 1) &gt;&gt; 1, s = 0;
+		if (ql &lt;= M) s += range(x[id].lc, L, M, ql, qr);
+		if (qr &gt; M) s += range(x[id].rc, M + 1, R, ql, qr);
+		return s;
+	}
+} S11, S12, S21, S22;
+
+void init(int _r, int _c, int r, int c, int n, char *s) {
+	int i, j, k, m = 0, la; pr tmp; R = _r, C = _c;
+	*pos = pr(rmin = rmax = r, cmin = cmax = c);
+	for (i = 0; i &lt; n; pos[++i] = pr(r, c))
+		switch (s[i]) {
+			case 69: up(cmax, ++c); break;
+			case 78: down(rmin, --r); break;
+			case 83: up(rmax, ++r); break;
+			case 87: down(cmin, --c); break;
+		}
+	std::sort(pos, pos + ++n, [] (const pr &amp;x, const pr &amp;y) {return x.second &lt; y.second || (x.second == y.second &amp;&amp; x.first &lt; y.first);});
+	n = std::unique(pos, pos + n) - pos;
+	for (i = 0; i &lt; n; dr[m++] = pos[i++])
+		if (pos[i].first &gt; 1 &amp;&amp; (tmp = pr(pos[i].first - 1, pos[i].second)) != dr[m - 1]) dr[m++] = tmp;
+	std::sort(pos, pos + n), std::sort(dr, dr + m);
+	for (j = k = 0, i = 1; i &lt;= R; ++i) {
+		S11.root[i] = S11.root[i - 1], S12.root[i] = S12.root[i - 1];
+		S21.root[i] = S21.root[i - 1], S22.root[i] = S22.root[i - 1];
+		for (la = 0; j &lt; n &amp;&amp; pos[j].first &lt;= i; la = pos[j].second, ++j) {
+			if (pos[j].second != la + 1) S12.root[i] = S12.add(S12.root[i], 1, C, pos[j].second - 1, 1);
+			S11.root[i] = S11.add(S11.root[i], 1, C, pos[j].second, 1);
+			S12.root[i] = S12.add(S12.root[i], 1, C, pos[j].second, 1);
+		}
+		for (la = 0; k &lt; m &amp;&amp; dr[k].first &lt;= i; la = dr[k].second, ++k) {
+			if (dr[k].second != la + 1) S22.root[i] = S22.add(S22.root[i], 1, C, dr[k].second - 1, 1);
+			S21.root[i] = S21.add(S21.root[i], 1, C, dr[k].second, 1);
+			S22.root[i] = S22.add(S22.root[i], 1, C, dr[k].second, 1);
+		}
+	}
+}
+
+int colour(int r1, int c1, int r2, int c2) {
+	int A11 = S11.range(S11.root[r2], 1, C, c1, c2) - S11.range(S11.root[r1 - 1], 1, C, c1, c2),
+		A12 = (c1 == c2 ? 0 : S12.range(S12.root[r2], 1, C, c1, c2 - 1) - S12.range(S12.root[r1 - 1], 1, C, c1, c2 - 1)),
+		A21 = (r1 == r2 ? 0 : S21.range(S21.root[r2 - 1], 1, C, c1, c2) - S21.range(S21.root[r1 - 1], 1, C, c1, c2)),
+		A22 = (r1 == r2 || c1 == c2 ? 0 : S22.range(S22.root[r2 - 1], 1, C, c1, c2 - 1) - S22.range(S22.root[r1 - 1], 1, C, c1, c2 - 1));
+	return 1 - A11 + A12 + A21 - A22 + (r1 &lt; rmin &amp;&amp; rmax &lt; r2 &amp;&amp; c1 &lt; cmin &amp;&amp; cmax &lt; c2);
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在线段树维护相邻两个格子的时候注意边界情况，即不要访问超出边界 ($0$ 或 $C + 1$) 的点，同样询问时也需要注意边界。</p>
+	</body>
+</html>

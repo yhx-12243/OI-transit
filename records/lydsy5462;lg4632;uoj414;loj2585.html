@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5462][lg4632][uoj414][loj2585][APIO2018]New Home</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>五福街是一条笔直的道路，这条道路可以看成一个数轴，街上每个建筑物的坐标都可以用一个整数来表示。小明是一位时光旅行者，他知道在这条街上，在过去现在和未来共有 $n$ 个商店出现。第 $i$ 个商店可以使用四个整数 $x_i, t_i, a_i, b_i$ 描述，它们分别表示：商店的坐标、商店的类型、商店开业的年份、商店关闭的年份。</p>
+		<p>小明希望通过时光旅行，选择一个合适的时间，住在五福街上的某个地方。他给出了一份他可能选择的列表，上面包括了 $q$ 个询问，每个询问用二元组 (坐标，时间) 表示。第 $i$ 对二元组用两个整数 $l_i, y_i$ 描述，分别表示选择的地点 $l_i$ 和年份 $y_i$ 。</p>
+		<p>现在，他想计算出在这些时间和地点居住的生活质量。他定义居住的不方便指数为：在居住的年份，离居住点最远的商店类型到居住点的距离。类型 $t$ 的商店到居住点的距离定义为：在指定的年份，类型 $t$ 的所有营业的商店中，到居住点距离最近的一家到居住点的距离。</p>
+		<p>我们说编号为 $i$ 的商店在第 $y$ 年在营业当且仅当 $a_i \leq y \leq b_i$ 。注意，在某些年份中，可能在五福街上并非所有 $k$ 种类型的商店都有至少一家在营业。在这种情况下，不方便指数定义为 $-1$。</p>
+		<p>你的任务是帮助小明求出每对 (坐标，时间) 二元组居住的不方便指数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, k, q$ ($n, q \leq 3 \times 10^5; k \leq n$)，分别表示商店的数量、商店类型的数量和 (坐标，时间) 二元组的数量。</p>
+		<p>接下来 $n$ 行，每行包含四个正整数 $x_i, t_i, a_i, b_i$ ($1 \leq x_i \leq 10^8; 1 \leq t_i \leq k; 1 \leq a_i \leq b_i \leq 10^8$)，用于描述一家商店，意义如题面所述。</p>
+		<p>接下来 $q$ 行，每行包含两个正整数 $l_i, y_i$ ($1 \leq l_i, y_i \leq 10^8$)，表示一组 (坐标，时间) 查询。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $q$ 个整数，依次表示对于 $q$ 组 (坐标，时间) 询问求出的结果。</p>
+
+		<h3>题解</h3>
+		<p>考虑离线，按照时间顺序处理答案。将时间<em>离散化</em>后，枚举时间戳，所经历的事件就是<strong>插入一个商店</strong>、<strong>删除一个商店</strong>，以及<strong>询问一个坐标</strong>。</p>
+		<p>考虑一个询问，是 "到一种类型的商店的最短距离" 的最大值，即<strong>最小值的最大值</strong>，不难想到二分答案——二分距离 $M$，判断区间 $\left[ x - M, x + M \right]$ 中是否<strong>包含每种类型的商店至少一家</strong>。</p>
+		<p>于是问题就变成了：维护一个数轴，<em>单点插入一个数</em>，<em>删除一个数</em>，以及<em>询问一个区间 $\left[ l, r \right]$ 中是否包含整数 $1 \sim k$ <strong>至少一次</strong></em>。</p>
+		<p>可以利用这样的方法：对每个出现在位置 $x$ 的数 $i$，记录一个权值 $x'$ —— 表示 (位置 $x$ 后面) 下一个 $i$ 出现的位置 (如果不存在则为 $+ \infty$)。</p>
+		<p>然后对每种数 $i \in \left[ 1, k \right]$ 再记录一下它第一次出现的位置 $first_i$，比如可以<strong>记在位置 $0$ 上</strong>。</p>
+		<p>于是，区间 $\left[ l, r \right]$ 中包含整数 $1 \sim k$ 至少一次的充要条件为，<strong>区间 $\left[ 0, l \right)$ 中的所有数的权值的最大值不超过 $r$</strong>。</p>
+		<p>证明<del>略</del>，如果 $\left[ l, r \right]$ 不包含 $m$，则考察 $l$ 前面最后出现的 $m$，它的权值显然 $&gt; r$，反之亦然。</p>
+		<p>因此在用一个 <code>std::multiset</code> 维护每种数的出现位置集合的同时，用一棵线段树，对每个位置 $x$，维护出该位置上所有数的权值最大值。由于数是可以被删除的，因此每个叶节点要额外维护一个<strong>优先队列 (堆)</strong> (当然偷懒可以使用 <code>std::multiset</code>)。</p>
+		<p>注意到权值范围有点大，因此坐标也需要<strong>离散化</strong>或使用<strong>动态开点线段树</strong>。</p>
+		<p>这样做时间复杂度是 $O \left( n \log M + q \log^2 M \right)$ 的 ($M$ 为坐标范围)。</p>
+		<p>两只 $\log$ 常数可能比较大，主要的时间瓶颈在二分加线段树这里。我们尝试使用<em>线段树上二分</em>的技巧优化。</p>
+		<p>考虑区间的左端点 $l$，显然 $l \leq x$ ($x$ 为询问的坐标)，此时由区间的 "对称性"，$r = 2 x - l$。故 $l$ 可行需要满足区间 $\left[ 0, l - 1 \right]$ 上的权值最大值 $Max_{l-1} \leq 2 x - l$，即 $Max_{l-1} + l \leq 2 x$。</p>
+		<p>注意到 $Max_t$ (即区间 $\left[ 0, t \right]$ 上的权值最大值) 关于 $t$ 单调递增，因此可以在线段树上直接二分左端点 $l$：如果 $Max_l + \left( l + 1 \right) &gt; 2 x$，说明 $l + 1$ 不可行，向左子树递归，否则向右子树递归。</p>
+		<p>于是总时间复杂度就降为 $O \left( \left( n + q \right) \log M \right)$，可以通过此题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+typedef std::multiset &lt;int&gt; set, *pset;
+const int N = 300054;
+
+int n, q, K, T, inf, sup, base;
+int h[N], type[N], l[N], r[N];
+int qry[N], ans[N];
+vector app[N * 2], dis[N * 2], queries[N * 2];
+set s[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+namespace DC {
+	const int N = ::N * 2;
+	int cnt, F[N]; pr D[N];
+
+	int Discretize(int n) {
+		std::sort(D, D + n);
+		for (int i = cnt = 0; i &lt; n; ++i)
+			F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+
+	inline int get(int x) {return std::upper_bound(D, D + cnt, pr(x, INT_MAX)) - D - 1;}
+}
+
+namespace Alloc {
+	set buf[N * 2]; pset cur = buf;
+	inline pset alloc() {return cur++;}
+}
+
+namespace ST {
+	struct node {pset s; int v, lc, rc;} x[20030731];
+	int cnt = 1;
+
+	inline void update(node &amp;ret, const node &amp;l, const node &amp;r) {ret.v = max(l.v, r.v);}
+
+	int ins(int id, int L, int R, int h, int v) {
+		if (!id) id = ++cnt;
+		if (L == R) return x[id].s || (x[id].s = Alloc::alloc()), x[id].s-&gt;insert(v), x[id].v = *--x[id].s-&gt;end(), id;
+		int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[id].lc = ins(x[id].lc, L, M, h, v) : (x[id].rc = ins(x[id].rc, M + 1, R, h, v));
+		update(x[id], x[id].lc[x], x[id].rc[x]);
+		return update(x[id], x[id].lc[x], x[id].rc[x]), id;
+	}
+
+	int del(int id, int L, int R, int h, int v) {
+		if (!id) throw "orzfy";
+		if (L == R) return x[id].s-&gt;erase(x[id].s-&gt;find(v)), x[id].v = (x[id].s-&gt;empty() ? 0 : *--x[id].s-&gt;end()), id;
+		int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[id].lc = del(x[id].lc, L, M, h, v) : (x[id].rc = del(x[id].rc, M + 1, R, h, v));
+		return update(x[id], x[id].lc[x], x[id].rc[x]), id;
+	}
+
+	int range(int id, int L, int R, int ql, int qr) {
+		if (!id || (ql &lt;= L &amp;&amp; R &lt;= qr)) return x[id].v;
+		int M = (L + R - 1) &gt;&gt; 1, s = 0;
+		if (ql &lt;= M) up(s, range(x[id].lc, L, M, ql, qr));
+		if (qr &gt; M) up(s, range(x[id].rc, M + 1, R, ql, qr));
+		return s;
+	}
+
+	int solve(int h) {
+		int id = 1, L = inf, R = sup, M, all = x[base].v, far;
+		for (; L &lt; R; ) {
+			M = (L + R - 1) &gt;&gt; 1, far = max(all, x[id].lc[x].v);
+			id = (h &lt;= M || h * 2 &lt;= M + (long long)far ? (R = M, x[id].lc) : (L = M + 1, all = far, x[id].rc));
+		}
+		return max(h - L, all - h);
+	}
+}
+
+void insert(int type, int h) {
+	set::iterator jt = s[type].insert(h), it = jt++, pre;
+	if (it != s[type].begin() &amp;&amp; (--(pre = it), *it != *jt))
+		ST::del(1, inf, sup, *pre, *jt), ST::ins(1, inf, sup, *pre, *it);
+	ST::ins(1, inf, sup, *it, *jt);
+}
+
+void erase(int type, int h) {
+	set::iterator jt = s[type].find(h), it = jt++, pre;
+	if (it != s[type].begin() &amp;&amp; (--(pre = it), *it != *jt))
+		ST::ins(1, inf, sup, *pre, *jt), ST::del(1, inf, sup, *pre, *it);
+	ST::del(1, inf, sup, *it, *jt);
+	s[type].erase(it);
+}
+
+int main() {
+	int i, t;
+	scanf("%d%d%d", &amp;n, &amp;K, &amp;q);
+	for (i = 0; i &lt; n; ++i)
+		scanf("%d%d%d%d", h + i, type + i, l + i, r + i),
+		DC::D[i] = pr(l[i], i), DC::D[i + n] = pr(++r[i], i + n);
+	auto limits = std::minmax_element(h, h + n); inf = *limits.first, sup = *limits.second;
+	T = DC::Discretize(2 * n);
+	for (i = 0; i &lt; n; ++i) l[i] = DC::F[i], r[i] = DC::F[i + n], app[l[i]].EB(i), dis[r[i]].EB(i);
+	for (i = 0; i &lt; q; ++i) scanf("%d%d", qry + i, &amp;t), t = DC::get(t), ~t &amp;&amp; t &lt; T &amp;&amp; (queries[t].EB(i), 0);
+	memset(ans, -1, q &lt;&lt; 2), --inf;
+	for (i = 1; i &lt;= K; ++i) s[i].insert(INT_MAX), insert(i, inf);
+	base = ST::cnt;
+	for (t = 0; t &lt; T; ++t) {
+		for (int id : dis[t]) erase(type[id], h[id]);
+		for (int id : app[t]) insert(type[id], h[id]);
+		for (int id : queries[t]) ans[id] = (ST::x[base].v &gt; sup ? -1 : ST::solve(qry[id]));
+	}
+	for (i = 0; i &lt; q; ++i) printf("%d\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>如果使用动态开点线段树而不是对坐标离散化的话，最好不要对点都定义一个堆或 <code>std::set</code>，这样容易 MLE。</p>
+		<p><strong>坑2：</strong>二分时注意边界问题，即最终答案并不一定是 $x - l$ (因为 $l$ 可能是二分左边界)，要对所计算出来的 $Max_l - x$ 取 $\max$。</p>
+		<p><strong>坑3：</strong>线段树上二分时不要忘记向右子树递归时，需要将前缀权值对左子树权值取 $\max$。</p>
+	</body>
+</html>

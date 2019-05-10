@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6515]贪玩蓝月</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>《贪玩蓝月》是目前最火爆的网页游戏。在游戏中每个角色都有若干装备，每件装备有一个特征值 $w$ 和一个战斗力 $v$。在每种特定的情况下，你都要选出特征值的和对 $p$ 取模后在一段范围内的装备，而角色死亡时自己的装备会爆掉。每个角色的物品槽可以看成一个双端队列，得到的装备会被放在两端，自己的装备爆掉也会在两端被爆。</p>
+		<p>现在我们有若干种事件和询问，如下所示：</p>
+		<ul>
+			<li><p><code>IF <em>w</em> <em>v</em></code>：在前端加入一件特征值为 $w$ 战斗力为 $v$ 的装备。</p></li>
+			<li><p><code>IG <em>w</em> <em>v</em></code>：在后端加入一件特征值为 $w$ 战斗力为 $v$ 的装备。</p></li>
+			<li><p><code>DF</code>：删除最前端的装备。</p></li>
+			<li><p><code>DG</code>：删除最后端的装备。</p></li>
+			<li><p><code>QU <em>l</em> <em>r</em></code>：在当前的装备中选取若干装备，他们的和对 $p$ 取模后在 $\left[ l, r \right]$ 中，使得这些装备的战斗力之和最大。</p></li>
+		</ul>
+		<p><strong>为了锻炼你的水平，请尽量使用在线做法。</strong></p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个非负整数，表示测试点编号。</p>
+		<p>第二行包含两个正整数 $m, p$ ($m \leq 50000; p \leq 500$)，表示操作数和模数。</p>
+		<p>接下来每行一个操作，如题目描述中所述，共五种操作，在前后加或删一件物品或者询问。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示在当前装备中选取若干装备和对 $p$ 取模后在 $\left[ l, r \right]$ 的装备，使得这些装备战斗力之和最大。如果没有合法方案，输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>如果允许离线的话 <del>(虽然这道好像确实可以离线)</del>，容易维护出每个物品的存在时间段，然后对时间戳建立线段树 (即<a href="../index.html?tag=%E6%97%B6%E9%97%B4%E6%88%B3%E7%BA%BF%E6%AE%B5%E6%A0%91" target="_blank">时间戳线段树</a>)，然后类似<a href="cf601E.html" target="_blank">这道题</a>去 DP 一下即可。</p>
+		<p>然而这道题是<del>强制</del>在线的，因此不能直接维护出每个物品的存在时间段，又该怎么处理呢？</p>
+		<p>首先能够注意到，这里的操作条件有所减弱：<span style="color: red">那道题是需要维护一个物品<strong>集合</strong>，而这道题只需要维护一个<strong>双向队列</strong></span>。</p>
+		<p>先考虑简单的情况——如果需要维护的是一个<strong>栈</strong>而不是双向队列 (即只有 <code>IF</code> 和 <code>DF</code> 修改操作)，那么其实是非常简单的，只需在正常的 DP 基础上<del>加一个记忆化</del>，说白了就是不要压缩第一维，用 $f_{i, j}$ 表示<strong>栈中自底而上前 $i$ 个物品，选择一个大小为 $i$ 的子集所得到的最大价值</strong>。</p>
+		<p>这样时空复杂度都是 $O \left( m p \right)$ 的。</p>
+		<hr />
+		<p>如果不是<strong>栈</strong>而是<strong>队列</strong> (只有 <code>IF</code> 和 <code>DG</code> 修改操作)，则可以发现，此时由于删掉的是队首，记忆化就不太好实现了，那又该怎么处理呢？</p>
+		<p>这是我们要回到一个非常经典的问题上来了，要对其进行深入的研究。</p>
+		<p>这个问题就是：<strong><big>动态维护队列最小值</big> ("滑动窗口" 问题的一般模型)</strong>。</p>
+		<p>仿照<a href="lg4373%3Bloj2870.html" target="_blank">这里</a>的经验，这题有三种解决方法 <del>(复读一遍)</del>：</p>
+		<blockquote>
+			<ol>
+				<li><p>最暴力的方法 (不是枚举) —— ST 表，可以 $O \left( n \log n \right) - O(1) - O \left( n \log n \right)$ 查询任意区间最小值。</p>
+				<p>通过适当的优化，可以做到 $O(n) - O(1) - O(n)$。</p></li>
+				<li><p>最经典的方法——单调队列，用一个<strong>单调增队列</strong>储存当前窗口的所有<strong>后缀最小值</strong>，复杂度 $O(n) - O(1) - O(n)$。</p></li>
+				<li><p>较为偏门的方法——双栈模拟队列法，大家知道，实时维护栈的最小值是平凡的，那么维护队列的最小值可以通过维护 (两个) 栈的最小值得到，复杂度 $O(n) - 均摊 \, O(1) - O(n)$。</p></li>
+			</ol>
+		</blockquote>
+		<p>ST 表维护的是闭包型的信息 (如 $\min, \max, \gcd$，按位与等)，在这里不适用，而单调队列需要依赖单调性。因此，只剩下这种<span style="color: red">较为偏门的方法——<strong>双栈模拟队列</strong>法</span>。</p>
+		<p>对，可以发现，<strong>双栈模拟队列</strong>对所需要维护的信息的要求非常宽松。即只要栈容易维护的，使用双栈就可以轻松维护队列的情形。</p>
+		<p>类似地，用两个栈 $R, F$，$R$ 维护当前元素，$F$ 维护待删元素。添加到队尾始终在 $R$ 中插入，删除队首时，如果 $F$ 非空，则弹出 $F$ 的栈顶，否则将整个栈 $R$ 翻转过来压入 $F$，并弹出栈顶。</p>
+		<p>容易证明这样的复杂度依然是 $O \left( m \right)$ 的，因为每个元素至多经历三次操作：压入 $R$，从 $R$ 转到 $F$，从 $F$ 中弹出。</p>
+		<p>而对于原问题，由于栈的情形可以在 $O \left( m p \right)$ 时间内完成，因此队列的情形也能够在 $O \left( m p \right)$ 时间内完成。</p>
+		<hr />
+		<p>最后，扩展到双端队列也不是特别难了。还是使用双栈模拟，不过如果此时将整个栈 $R$ 翻转过来压入 $F$，显然是不显示的——如果下一个要 <code>DF</code>，那么又要将 $F$ 翻过来压入 $R$，如此往复，时间复杂度就退化为了 $O \left( m^2 \right)$。</p>
+		<p>不过我们可以<del>异想天开</del>：如果发现要删除时，对应栈中没元素的话，<strong>将对面的元素扔一半过来</strong>，这样看似就可以了呢~</p>
+		<p>其实复杂度确实对的，可以使用势能分析法证明，具体的证明见<a href="#complexity">后面</a>，于是总的时间复杂度就是 $O \left( m p \right)$。</p>
+		<hr />
+		<p>对了，关于回答询问问题，也是值得关注的。因为询问时要求两边的特征值和 (取模后) 在 $\left[ L, R \right]$ 中，即设两个 DP 向量为 $f, g$，你需要求出 $$ \max_{l \leq i + j \leq r} \left( f_i + g_j \right) = \max_{0 \leq i &lt; p} \left( f_i + \left( \max_{l-i \leq j \leq r-i} g_j \right) \right) $$ 的值。</p>
+		<p>暴力做是 $O \left( p^2 \right)$ 的，显然不可接受。不过注意到右边的 $\max\limits_{l-i \leq j \leq r-i} g_j$ 就是一个<strong>求所有定长子区间的最小值</strong>问题 (即 "滑动窗口")，可以使用上面所述的三种方法，在 $O \left( p \right)$ 时间内完成询问的回答。</p>
+		<hr id="complexity" />
+		<p>下面给出 "扔一半" 算法的复杂度正确性的证明：</p>
+		<p>显然，对于插入和删除<strong>单个元素</strong>，复杂度仍然是 $O \left( m \right)$ 的 (以下默认忽略 $p$ 这个因子)，因此我们只需证明，对所有的 "扔一半" 操作 (以下称为<strong>分裂操作</strong>)，它们的复杂度之和仍然是 $O \left( m \right)$ 的就可以了。</p>
+		<p>定义一个状态 $D$ 的势能函数 $\Phi \left( D \right)$ 为当前还未加入队列的元素 (装备) 和已经在队列中的元素的<strong>权值</strong>的和。<strong>权值</strong>的定义在下面给出：</p>
+		<ol>
+			<li><p>如果一个元素还未加入队列，则它的<strong>权值</strong>为 $2$。</p></li>
+			<li><p>一个元素在刚加入队列时，<strong>权值</strong>仍然为 $2$。</p></li>
+			<li><p>对一次分裂操作，显然一个栈是空的，另一个栈中所有元素的权值均为 $2$ <span style="color: orange">(待证明)</span>。则此时，我们将这些元素均分到两个栈中，并将他们的权值修改为 $1$。容易发现，此时两个栈中具有相同的个数的 $1$。</p></li>
+			<li><p>当一个元素被删除时，如果他的权值为 $2$，则直接删除，否则说明它的权值为 $1$，我们在另一个栈中找到 <span style="color: orange">(待证明)</span> 一个权值为 $1$ 的元素将其改成 $2$。</p></li>
+			<li><p>可以证明，如果操作过程严格按照上述四条，则<strong>在任意时刻，两个栈中权值为 $1$ 的数量均相等</strong>。于是<span style="color: red">过程 3 的性质和过程 4 的合法性均有了保证</span>。</p></li>
+		</ol>
+		<p>容易验证，在这个操作过程中，总势能是<strong>单调不增</strong>的。</p>
+		<p>对于一次操作，如果不是分裂操作，则实际代价 $c_i = 0$，摊还代价显然不超过 $0$。</p>
+		<p>如果是分裂操作，则实际代价 $c_i$ 为两个栈的元素总和，摊还代价 \begin{align*}
+\hat c_i &amp;= c_i + \Delta \Phi \left( D_i \right) = c_i + \Phi \left( D_i \right) - \left( D_{i-1} \right) \\
+&amp;= \left| F \right| + \left| R \right| + 1 \cdot \left( \left| F \right| + \left| R \right| \right) - 2 \cdot \left( \left| F \right| + \left| R \right| \right) \\
+&amp;\leq 0
+\end{align*}</p>
+		<p>于是每次操作的摊还代价非正。故总的实际代价 $\displaystyle \sum_{i=1}^m c_i = \Phi \left( D_0 \right) - \Phi \left( D_m \right) + \sum_{i=1}^m \hat c_i \leq \Phi \left( D_0 \right) - \Phi \left( D_m \right) \leq 2 m$。</p>
+		<p>故总时间复杂度的确是 $O \left( m p \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 50054, P = 500;
+typedef long long ll, vec[P], *pvec;
+
+int p;
+int cnt = 0, w_[N], v_[N];
+pvec F, R;
+vec G;
+int que[N];
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+struct stack {
+	int top = 0, w[N], v[N];
+	vec f[N];
+	stack () : top(0) {memset(f[0], 192, P &lt;&lt; 3); f[0][0] = 0;}
+	void push(int _w, int _v) {
+		int i, j; w[++top] = _w, v[top] = _v, memcpy(f[top], f[top - 1], p &lt;&lt; 3);
+		for (i = 0, j = _w; i &lt; p; ++i, ++j == p ? j = 0 : 0) up(f[top][j], f[top - 1][i] + _v);
+	}
+	inline void pop() {--top;}
+	inline pvec top_f() {return f[top];}
+} front, rear;
+
+int main() {
+	int q, w, v, l, r, h, t; ll ans; char op[4];
+	for (scanf("%*d%d%d", &amp;q, &amp;p); q; --q)
+		switch (scanf("%s", op), op[0] ^ op[1]) {
+			case 15:
+				scanf("%d%d", &amp;w, &amp;v), rear.push(w % p, v); break;
+			case 14:
+				scanf("%d%d", &amp;w, &amp;v), front.push(w % p, v); break;
+			case 2:
+				if (rear.top) {rear.pop(); continue;}
+				assert(front.top), r = (front.top + 1) / 2;
+				for (l = r; l &gt; 1; --l) rear.push(front.w[l], front.v[l]);
+				for (cnt = 0, l = r + 1; l &lt;= front.top; ++l) w_[cnt] = front.w[l], v_[cnt++] = front.v[l];
+				for (front.top = l = 0; l &lt; cnt; ++l) front.push(w_[l], v_[l]);
+				break;
+			case 3:
+				if (front.top) {front.pop(); continue;}
+				assert(rear.top), r = (rear.top + 1) / 2;
+				for (l = r; l &gt; 1; --l) front.push(rear.w[l], rear.v[l]);
+				for (cnt = 0, l = r + 1; l &lt;= rear.top; ++l) w_[cnt] = rear.w[l], v_[cnt++] = rear.v[l];
+				for (rear.top = l = 0; l &lt; cnt; ++l) rear.push(w_[l], v_[l]);
+				break;
+			case 4:
+				scanf("%d%d", &amp;l, &amp;r), w = r - l, F = front.top_f(), R = rear.top_f();
+				memset(G, 192, P &lt;&lt; 3);
+				for (h = t = v = 0; v &lt; p + w; ++v) {
+					for (; h &lt; t &amp;&amp; que[h] &lt; v - w; ++h);
+					if (v &lt; p) {for (; h &lt; t &amp;&amp; F[que[t - 1]] &lt;= F[v]; --t); que[t++] = v;}
+					up(G[v % p], F[que[h]]);
+				}
+				for (ans = -1, v = 0; v &lt; p; ++v, --(r ? r : (r = p))) up(ans, R[v] + G[r]);
+				printf("%lld\n", ans); break;
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意式子 $\max\limits_{l-i \leq j \leq r-i} g_j$ 所对应的 "区间" 是<strong>模 $p$ 意义下</strong>的连续一段，因此可能在数组中是两段，需要注意一下。</p>
+		<p><strong>坑2：</strong>在处理栈的时候注意内存的合理使用，防止误清空/漏清空。</p>
+	</body>
+</html>

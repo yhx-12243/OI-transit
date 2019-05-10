@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5493][lg5293][loj3058][HNOI2019]白兔之舞</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张顶点数为 $\left( L + 1 \right)$ 的有向图。这张图的每个顶点由一个二元组 $\left( u, v \right)$ ($0 \leq u \leq L; 1 \leq v \leq n$) 表示。这张图不是简单图，对于任意两个顶点 $\left( u_1, v_1 \right), \left( u_2, v_2 \right)$，如果 $u_1 &lt; u_2$，则从 $\left( u_1, v_1 \right)$ 到 $\left( u_2, v_2 \right)$ 一共有 $w \left( v_1, v_2 \right)$ 条不同的边，如果 $u_1 \geq u_2$ 则没有边。</p>
+		<p>白兔将在这张图上上演一支舞曲。白兔初始时位于该有向图的顶点 $\left( 0, x \right)$。</p>
+		<p>白兔将会跳若干步。每一步，白兔会从当前顶点沿任意一条出边跳到下一个顶点。白兔可以在任意时候停止跳舞 (也可以没有跳就直接结束)。当到达第一维为 $L$ 的顶点就不得不停止，因为该顶点没有出边。</p>
+		<p>假设白兔停止时，跳了 $m$ 步，白兔会把这只舞曲给记录下来成为一个序列。序列的第 $i$ 个元素为它第 $i$ 步经过的边。</p>
+		<p>问题来了：给定正整数 $k, y$ ($1 \leq y \leq n$)，你需要对于每个 $t$ ($0 \leq t \leq k - 1$)，求有多少种舞曲 (假设其长度为 $m$) 满足 $m \bmod k = t$，且白兔最后停在了坐标第二维为 $y$ 的顶点？</p>
+		<p>两支舞曲不同定义为它们的长度 ($m$) 不同或者存在某一步它们所走的边不同。</p>
+		<p>输出的结果对 $p$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含六个正整数 $n, k, L, x, y, p$ ($1 \leq n \leq 3; 1 \leq k \leq 65536; 1 \leq L \leq 10^8; 1 \leq x, y \leq n; 10^8 &lt; p &lt; 2^{30}; p \bmod k = 1$，且 $p$ 是素数)。</p>
+		<p>接下来 $n$ 行，每行有 $n$ 个用空格隔开的整数，第 $i$ 行的第 $j$ 个数表示 $w \left( i, j \right)$ ($0 \leq w \left( i, j \right) &lt; p$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $k$ 行，每行一个整数。第 $i$ 行的整数表示当 $k = i - 1$ 时的舞曲数量对 $p$ 取模的结果。
+
+		<h3>题解</h3>
+		<p><del>注意到 $p \bmod k = 1$，容易想到使用单位根相关理论~</del></p>
+		<p>考虑 $n = 1$ 的情况，可以看出它是 <a href="loj6247.html" target="_blank">[loj6247]九个太阳</a> 的一般版本，可以根据那道题的方法利用单位根的性质进行和式变换。</p>
+		<p>当 $n &gt; 1$ 时的时候，思路也是类似的。设 $k$ 次单位根为 $\omega$，则白兔每走一步可以乘一个 $\omega$ 的权值，最后将所有 $\omega$ 的权值加起来就是 $m \bmod k = 0$ 时的方案数。</p>
+		<p>于是就相当于对于第一维，每次都有若干种选择：不动 ($1$)，走到 $0$ ($\omega$)，走到 $1$ ($\omega$)，……，走到 $n - 1$ ($\omega$)。</p>
+		<p>因此可以想到使用<strong>矩阵快速幂</strong>计算方案数。这个矩阵的形式如下 (以 $n = 3$ 为例子：)</p>
+		<p>$$ \mathbf M = \begin{bmatrix} 1 + w \left( 0, 0 \right) &amp; w \left( 1, 0 \right) &amp; w \left( 2, 0 \right) \\ w \left( 0, 1 \right) &amp; 1 + w \left( 1, 1 \right) &amp; w \left( 2, 1 \right) \\ w \left( 0, 2 \right) &amp; w \left( 1, 2 \right) &amp; 1 + w \left( 2, 2 \right) \end{bmatrix} $$</p>
+		<p>最后计算 $\mathbf M^L$ 的 $\left( y, x \right)$ 位置处的值就是所要求的权值。</p>
+		<hr />
+		<p>在得到了这 $m$ 个权值后，我们需要解得对于每个 $t$，$m \bmod k = t$ 的方案数。</p>
+		<p>根据单位根的性质，容易用矩阵的形式表达，于是可以 $O \left( k^2 \right)$ 解决。</p>
+		<p>然而这样并不能通过此题。进一步分析，可以发现它<strong>就是一个 <abbr title="Inverse Discrete Fourier Transform, 逆离散傅里叶变换">IDFT</abbr></strong>！</p>
+		<p>不过，由于这是<strong>任意长度</strong>的 IDFT，因此和 <a href="soj70.html" target="_blank">[soj70]解方程</a> 一样，需要使用 "拆项卷积" 的形式来实现这个 IDFT。</p>
+		<p>因为 $p$ 比较大，因此一般的 <abbr title="Fast Fourier Transform, 快速傅里叶变换">FFT</abbr> 不能完成，需要使用拆系数 FFT/多模数 NTT/<strong>分治乘</strong>来解决。</p>
+		<p>总时间复杂度 $O \left( k \cdot n^3 \log L + k \log k \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef int mat[3][3], (*pmat)[3];
+typedef long long ll;
+typedef unsigned __int128 u128;
+const int N = 265400;
+
+int mod, pmod;
+int n, K, L, x, y, g;
+int c[N], u[N], v[N], w[N];
+int res[N], ans[N];
+int G[3][3];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline int C(int r, int n) {return r * (r - 1ll) / 2 % n;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace NT {
+	int cnt = 0, fac[54];
+
+	void factor(int n) {
+		int i; cnt = 0;
+		for (i = 2; i * i &lt;= n; ++i) if (!(n % i)) {for (; !(n % i); n /= i); fac[cnt++] = i;}
+	}
+
+	int get_primitive_root(int p) {
+		int g, i = 0; factor(p - 1);
+		for (g = 2; i &lt; cnt; ++g)
+			for (i = 0; i &lt; cnt &amp;&amp; PowerMod(g, (p - 1) / fac[i]) != 1; ++i);
+		return --g;
+	}
+}
+
+namespace Solver {
+	void matmul(pmat ret, pmat a, pmat b) {
+		int i, j, k; mat tmp = {{0}};
+		for (i = 0; i &lt; n; ++i)
+			for (k = 0; k &lt; n; ++k) if (a[i][k])
+				for (j = 0; j &lt; n; ++j) tmp[i][j] = (tmp[i][j] + (ll)a[i][k] * b[k][j]) % mod;
+		for (i = 0; i &lt; n; ++i) memcpy(ret[i], tmp[i], n &lt;&lt; 2);
+	}
+
+	void matPowerMod(pmat a, int n, pmat c) {for (; n; n &gt;&gt;= 1, matmul(a, a, a)) if (n &amp; 1) matmul(c, a, c);}
+
+	int main(int w) {
+		int i, j; mat tr, res = {{0}};
+		for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; n; ++j) tr[i][j] = (ll)w * G[j][i] % mod;
+		for (i = 0; i &lt; n; ++i) ++tr[i][i], ++res[i][i];
+		return matPowerMod(tr, L, res), res[y][x];
+	}
+}
+
+void conv(int n, int *a, int *b, int *ret) {
+	int i, j;
+	if (n &lt; 25) {
+		static u128 Ret[51];
+		memset(Ret, 0, (n * 2 + 1) &lt;&lt; 4);
+		for (i = 0; i &lt;= n; ++i)
+			for (j = 0; j &lt;= n; ++j)
+				Ret[i + j] += (ll)a[i] * b[j];
+		for (i = 0; i &lt;= n * 2; ++i) ret[i] = Ret[i] % mod;
+	} else {
+		memset(ret, 0, (n * 2 + 1) &lt;&lt; 2);
+		int h = n / 2 + 1, u[h], v[h], w[2 * h - 1];
+		conv(h - 1, a, b, ret); conv(n - h, a + h, b + h, ret + h * 2);
+		for (i = 0; i &lt; h; ++i) u[i] = a[i], v[i] = -b[i];
+		for (i = 0; i &lt;= n - h; ++i) u[i] -= a[i + h], v[i] += b[i + h];
+		for (i = 0; i &lt; h; ++i) u[i] += u[i] &gt;&gt; 31 &amp; mod, v[i] += v[i] &gt;&gt; 31 &amp; mod;
+		conv(h - 1, u, v, w);
+		for (i = 2 * (n - h); i &gt;= 0; --i) add(w[i], ret[i + h * 2]);
+		for (i = 2 * (h - 1); i &gt;= 0; --i) add(ret[i + h], w[i]), add(ret[i + h], ret[i]);
+	}
+}
+
+void CZT(int n, int *f, int *g) {
+	int i;
+	for (i = 0; i &lt; n; ++i) u[n - 1 - i] = (ll)w[(n - C(i, n)) % n] * f[i] % mod;
+	for (i = 0; i &lt; n * 2 - 1; ++i) v[i] = w[C(i, n)];
+	conv(2 * (n - 1), u, v, c);
+	for (i = 0; i &lt; n; ++i) g[i] = (ll)c[n - 1 + i] * w[(n - C(i, n)) % n] % mod;
+}
+
+int main() {
+	int i, j; ll inv_K;
+	scanf("%d%d%d%d%d%d", &amp;n, &amp;K, &amp;L, &amp;x, &amp;y, &amp;mod), --x, --y;
+	g = NT::get_primitive_root(mod), w[1] = PowerMod(g, mod / K);
+	for (*w = 1, i = 2; i &lt; K; ++i) w[i] = (ll)w[i - 1] * w[1] % mod;
+	for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; n; ++j) scanf("%d", G[i] + j);
+	for (i = 0; i &lt; K; ++i) res[i] = Solver::main(w[i]);
+	CZT(K, res, ans);
+	std::reverse(ans + 1, ans + K), inv_K = PowerMod(K, mod - 2);
+	for (i = 0; i &lt; K; ++i) printf("%lld\n", inv_K * ans[i] % mod);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意矩阵转移的下标顺序以及是左乘还是右乘，不要写着写着就转置了。</p>
+		<p><strong>坑2：</strong>在写分治乘法的时候注意常数。</p>
+	</body>
+</html>
