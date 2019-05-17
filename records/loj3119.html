@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj3119][CTS2019]随机立方体</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个 $n \times m \times l$ 的立方体，立方体中每个格子上都有一个数，如果某个格子上的数比三维坐标<strong>至少有一维</strong>相同的其他格子上的数都要大的话，我们就称它是极大的。</p>
+		<p>现在将 $1 \sim \left( n \times m \times l \right)$ 这 $n \times m \times l$ 个数等概率随机填入 $n \times m \times l$ 个格子 (即任意数字出现在任意格子上的概率均相等)，使得每个数恰出现一次，求恰有 $k$ 个极大的数的概率。答案对 $998244353$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。</p>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10$)，表示数据组数。</p>
+		<p>接下来 $T$ 行，每行包含四个正整数 $n, m, l, k$ ($1 \leq n, m, l \leq 5 \times 10^6; 1 \leq k \leq 100$)，表示一组询问。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示答案对 $998244353$ 取模的余数。<strong>保证答案及中间结果不会出现分母为 $998244353$ 的倍数的情况</strong>。</p>
+
+		<h3>题解</h3>
+		<p>初看一眼，这又是一道计数题。</p>
+		<p>然后你想去统计方案数。假设你已经数出来了，最后要除以总方案数。然鹅总方案数为 $\left( n \times m \times l \right)!$，这玩意儿当 $n, m, l$ 巨大时是<big><strong>不存在逆元的</strong></big>！((*@$$#%# 然而概率确实是存在逆元的？！</p>
+		<p>因此这并不是一道计数题，而是实实在在的一道概率题 (然而概率题还是组合数学~)。</p>
+		<p>那怎么算概率呢？$k \leq 100$？DP？搞出来一堆不是 $O \left( n^2 m^2 l^2 k \right)$ 就是 $O \left( n m l k \right)$ 的一些垃圾算法，而且还需要求逆元，弃了弃了。</p>
+		<p>算概率怎么算？嘛嘛我会独立事件概率公式 $\color {fuchsia} {p \left( A B \right) = p \left( A \right) \cdot p \left( B \right)}$！够了够了，就用得到这个。</p>
+		<p>回到原题，又该怎么解呢？</p>
+		<p>我们要打破出题人的阴谋，$k \leq 100$ 就是吓唬你去想关于 $k$ 的算法的！！</p>
+		<p>因为<del>直觉</del> (稍微分析一下) 告诉我们，<strong>对于任何一种填数方案，"极大数" 的数量是不会超过 $\min \left\{ n, m, l \right\}$ 的</strong>！(因为每一层至多只有一个极大数)</p>
+		<p>因此 $k$ 根本就不是神马 $O \left( n m l \right)$ 数量级的，顶多只能出到 $\min \left\{ n, m, l \right\}$！</p>
+		<p>于是尝试进行容斥原理。即尝试着计算出对于一个 $k \leq i \leq \min \left\{ n, m, l \right\}$，棋盘上有 $i$ 个极大数位于给定的 $i$ 个位置，<strong>且其余数情况未知</strong>的概率 $p_i$。</p>
+		<p>由容斥原理的基本技巧，可以得到答案等于 $\displaystyle \sum_{i=k}^{\min \left\{ n, m, l \right\}} \left( -1 \right)^{\left( i - k \right)} \binom ik p_i$。</p>
+		<p>于是问题转化为，如何对所有 $1 \leq i \leq \min \left\{ n, m, l \right\}$ 求 $p_i$ 的值。</p>
+		<hr />
+		<p>以下为了方便，记 $C_i = \left( n - i + 1 \right) \left( m - i + 1 \right) \left( l - i + 1 \right)$，即表示该立方体 "被剥开 $i - 1$ 层" 后剩下的小方块个数，$N = C_1 = n m l$。</p>
+		<p>先考虑确定这 $i$ 个位置。<span style="color: blue">不妨设是有序的</span>，因此使用排列。确定第一个位置 $pos_1$，我们一共有 $C_1$ 种选法。</p>
+		<p>至于确定第二个位置 $pos_2$，由于第一个位置把它所在的行、列、层都抢了 (由于每一层至多只有一个极大数)，因此只剩下 $C_2$ 种选法。</p>
+		<p>依次类推，<strong>确定第 $i$ 个数</strong>共有 $C_i$ 种选法。因此<strong>确定前 $i$ 个数</strong>一共有 $C_1 C_2 \cdots C_i$ 种选法 (有点像排列数 $A \left( n, k \right) = n^{\underline k}$)。</p>
+		<p>接下来就是在确定这 $i$ 个位置时，它们是最大数的概率。</p>
+		<p><del>还是为了方便</del>，不妨设第 $i$ 个位置为 $\left( i, i, i \right)$。</p>
+		<p>从易入难，当 $i = 1$ 时，就是 $\left( 1, 1, 1 \right)$ 要大于它当前行、列、层中所有数 (共 $N - C_2$ 个) 的概率。</p>
+		<p>于是这个概率就是 $\dfrac 1 {N - C_2}$。</p>
+		<p>当 $i = 2$ 时，事情并没有那么简单了。</p>
+		<p>用事件 $A_1$ 表示 "位置 $\left( 1, 1, 1 \right)$ 上的数大于它所在行、列、层中的所有数"，$A_2$ 表示 "位置 $\left( 2, 2, 2 \right)$ 上的数大于它所在行、列、层中的所有数"。</p>
+		<p>则恭喜你，$A_1$ 和 $A_2$ <strong><big>不</big>独立</strong>。</p>
+		<p>举一个简单的例子，设 $a, b, c$ 为 $1, 2, 3$ 的一个排列，$A_1$ 表示 $a &gt; c$，则 $A_2$ 表示 $b &gt; c$，则 $p \left( A_1 \right) = p \left( A_2 \right) = \dfrac 12$，而 $A_1 A_2$ 表示 $a &gt; c \wedge b &gt; c$，因此 $p \left( A_1 A_2 \right) = \dfrac 13 \neq p \left( A_1 \right) p \left( A_2 \right)$。</p>
+		<p>那又该怎么办呢？冷静分析一下，设事件 $A_1$ 所涉及的元素集合为 $S_1$，事件 $A_2$ 所涉及的元素集合为 $S_2$，俩事件的最大值不是同一个。那么在什么条件下 $A_1$ 和 $A_2$ 是独立的呢？</p>
+		<p><strong id="independency" style="color: red">可以发现，在以下两种情况下，$A_1$ 和 $A_2$ 一定独立：</strong></p>
+		<ol style="color: red">
+			<li><p>$S_1 \cap S_2 = \varnothing$。</p></li>
+			<li><p>$S_1 \subseteq S_2 \vee S_2 \subseteq S_1$。此时需要保证较大集合中所涉及的最大值元素不在较小集合中。</p></li>
+		</ol>
+		<p>(ps: 用英文来说就是它们的关系式一个 nested relation)</p>
+		<p>而上面 $A_1, A_2$ 的定义中，$A_1$ 所涉及到的元素与 $A_2$ 所涉及到的元素有交，且不互相包含。因此<strong>不能保证</strong>事件的独立性，因而概率就不能直接相乘。</p>
+		<p>那该怎么办呢？我们不妨设 $A_2$ 中代表元 $\left( 2, 2, 2 \right)$ 上的数<strong style="color: blue">大于</strong> $A_1$ 中代表元 $\left( 1, 1, 1 \right)$。这样 $A_2$ 就是 $S_1 \cup S_2$ 上所有数的最大值了。</p>
+		<p>此时，我们可以取 $S_1$ 为 <strong>"与 $\left( 1, 1, 1 \right)$ 同行/列/层的所有数"</strong>，$S_2$ 为 <strong>"与 $\left( 1, 1, 1 \right)$ <em>或</em> $\left( 2, 2, 2 \right)$ 同行/列/层的所有数"</strong>。则 $S_1 \subseteq S_2 \wedge \left( 2, 2, 2 \right) \notin S_1$。</p>
+		<p>则 $A_1$ 为 "$\left( 1, 1, 1 \right)$ 上的数是 $S_1$ 中最大的"，$A_2$ 为 $\left( 2, 2, 2 \right)$ 上的数是 $S_2$ 中最大的"，此时 <strong>$A_1, A_2$ 独立</strong>。</p>
+		<p>我们来计算一下它们的概率：$p \left( A_1 \right) = \dfrac 1 {N - C_2}$ 是不变的。对于 $A_2$，由于 $\left| S_2 \right| = N - C_3$，因此 $p \left( A_2 \right) = \dfrac 1 {N - C_3}$。</p>
+		<p>由<strong style="color: fuchsia">独立事件概率公式</strong>，$p \left( A_1 A_2 \right) = p \left( A_1 \right) \cdot p \left( A_2 \right) = \dfrac 1 {\left( N - C_2 \right) \left( N - C_3 \right)}$。</p>
+		<p>以此类推，可以得到 $p_i = \left( C_1 C_2 \cdots C_i \right) \cdot \dfrac 1 {\left( N - C_2 \right) \left( N - C_3 \right) \cdots \left( N - C_{i+1} \right)} = \dfrac {C_1} {N - C_2} \cdot \dfrac {C_2} {N - C_3} \cdot \cdots \cdot \dfrac {C_i} {N - C_{i+1}}$。</p>
+		<p>这顺便也解释了为什么上面需要<span style="color: blue">假设这些位置是有序的</span>。</p>
+		<p>于是我们成功算出了 $p_i$ 的值，从而通过上面容斥的式子，就能得到答案。</p>
+		<p>最后就是分析一下时间复杂度了，注意到算 $C_i$ 什么的都是 $O \left( n \right)$ (这里设 $n = \min \left\{ n, m, l \right\}$) 的，最后对 $n$ 个数一起求逆元可以在 $O \left( n + \log mod \right)$ 时间内完成 (参见<a href="https://loj.ac/problem/161" target="_blank">乘法逆元 2</a>)，故总的时间复杂度就是 $O \left( T \cdot \min \left\{ n, m, l \right\} \right)$。</p>
+		<p>如果把这个问题改到 $D$ 维，则复杂度 (单组) 就是 $O \left( D n \right)$ 的 (其中 $D$ 为最小维度的大小)。</p>
+		<p><del>由于题目说明了中间过程分母不为除以 $0$，因此就放心大胆地写吧。</del></p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 5000054, mod = 998244353;
+
+int n, R[3], K;
+int inv[N], rec[N], com[N];
+int A[N], iA[N];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void sub(int &amp;x, const int y) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {for (int i = (*inv = inv[1] = 1, 2); i &lt; N; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;}
+
+void union_inv(int n, int *a) {
+	int i;
+	for (*A = i = 1; i &lt;= n; ++i) A[i] = (ll)A[i - 1] * a[i] % mod;
+	iA[n] = PowerMod(A[n], mod - 2);
+	for (i = n; i; --i) iA[i - 1] = (ll)iA[i] * a[i] % mod, a[i] = (ll)A[i - 1] * iA[i] % mod;
+}
+
+void work() {
+	int i, cur; ll ans = 0;
+	scanf("%d%d%d%d", R, R + 1, R + 2, &amp;K), n = *std::min_element(R, R + 3);
+	for (i = 0; i &lt;= n; ++i) rec[i + 1] = (ll)(R[0] - i) * (R[1] - i) % mod * (R[2] - i) % mod;
+	for (i = 1; i &lt;= n; ++i) sub(com[i] = rec[1], rec[i + 1]);
+	union_inv(n, com), cur = inv[K];
+	for (i = 1; i &lt; K; ++i) cur = (ll)cur * rec[i] % mod * com[i] % mod;
+	for (; i &lt;= n; ++i) cur = (ll)cur * i % mod * inv[i - K] % mod * rec[i] % mod * com[i] % mod, (i ^ K) &amp; 1 ? ans -= cur : ans += cur;
+	ans %= mod, printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+}
+
+int main() {
+	int T; init();
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>$C_1$ 的最大值 ($\left( 5 \times 10^6 \right)^3$) 会超过 <code>long long</code>，因此不能乘起来最后取模。</p>
+		<p><strong>坑2：</strong>如果不使用快速求逆元的方式，则时间复杂度会多<strong>乘</strong>一个 $O \left( \log mod \right)$，如果常数较大有卡常风险 <del>(当然你也可以用分数存储？)</del>。</p>
+	</body>
+</html>

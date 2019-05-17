@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg4005][uoj338][loj2323][清华集训2017]小 Y 和地铁</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 Y 是一个喜欢玩游戏的 OIer。一天，她正在玩一款游戏，要打一个 Boss。</p>
+		<p>虽然这个 Boss 有 $10^{100}$ 点生命值，但它只带了一个随从——一个只有 $m$ 点生命值的 "恐怖的奴隶主"。</p>
+		<p>这个 "恐怖的奴隶主" 有一个特殊的技能：每当它被扣减生命值但没有死亡 (死亡即生命值 $\leq 0$)，且 Boss 的随从数量小于上限 $k$，便会召唤一个新的具有 $m$ 点生命值的 "恐怖的奴隶主"。</p>
+		<p>现在小 Y 可以进行 $n$ 次攻击，每次攻击时，会从 Boss 以及 Boss 的所有随从中的等概率随机选择一个，并扣减 $1$ 点生命值，她想知道进行 $n$ 次攻击后扣减 Boss 的生命值点数的期望。为了避免精度误差，你的答案需要对 $998244353$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $T, m, k$ ($T \leq 1000; m \leq 3; k \leq 8$)，$T$ 表示询问组数，$m, k$ 的含义见题目描述。</p>
+		<p>接下来 $T$ 行，每行包含一个正整数 $n$ ($n \leq 10^{18}$)，表示询问进行 $n$ 次攻击后扣减 Boss 的生命值点数的期望。</p>
+
+		<h3>输出格式</h3>
+		<p>输出共 $T$ 行，对于每个询问，输出一行一个整数，表示该询问的答案对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>看到 $m, k$ 这么小，因此容易想到<del>状态压缩</del>去记录这些随从 (所谓的 "恐怖的奴隶主") 的状态。</p>
+		<p>考虑较暴力的 DP，用 $f_{r, c_1, c_2, c_3}$ 表示你还能进行 $r$ 次攻击，当前生命值为 $i$ 的随从有 $c_i$ 个 ($1 \leq i \leq m$)，所能得到的打 Boss 次数的期望。</p>
+		<p>则转移非常简单，直接枚举下一次打的是 Boss 还是生命值为 $i$ ($1 \leq i \leq m$) 的随从，根据题意得到新的随从分布。具体的转移方程这里就略去了。</p>
+		<p>然而转移的第一维可以达到 $10^{18}$。这该怎么办呢？</p>
+		<p>看到这么大的维数，<del>根据套路</del>可以想到使用<em>矩阵快速幂</em>来优化。</p>
+		<p>考察剩下的维度 $\left( c_1, c_2, c_3 \right)$，需要满足 $c_1 + c_2 + c_3 \leq k$。因此这些状态至多出现 $\dbinom {k + m} m \leq 165$ 个。</p>
+		<p>于是枚举 $c_1, c_2, c_3$ 后，我们可以将这些转移写成一个不超过 $165$ 阶的方阵，然后使用矩阵快速幂即可得到单点的答案。</p>
+		<p>等等，转移中有形如 ${} + c$ ($c$ 为常数) 的项怎么办呢？</p>
+		<p>这个并不难处理。<del>根据套路</del>，只要在表示状态的向量下方加一维 $1$，转移的时候直接维护即可。或者像下面的代码按步累积也是可以滴。</p>
+		<p>于是单组询问的情况就可以在 $O \left( \dbinom {k + m} m^3 \log n \right)$ 的时间内完成。</p>
+		<p>那么如果是多组询问又该如何处理？</p>
+		<p>考虑矩阵快速幂，通常有两种形式——一种是分治形式 (递归版) 的、一种是二进制形式 (非递归版) 的。</p>
+		<p>考察二进制形式 (非递归版) 的快速幂，发现它对矩阵的要求比较松——只需要知道 $\mathbf M, \mathbf M^2, \mathbf M^4, \cdots, \mathbf M^{2^j}$ 的值。然后如果是右乘一个向量，就可以从右往左逐步计算。</p>
+		<p>于是这里也是类似的。我们预先维护出对于 $1 \leq j \leq \log n$，$\mathbf M^{2^j}$ 的值。然后单次询问只需要做不超过 $\log n$ 次 "<em>矩阵与向量的乘法</em>"，而这是与矩阵大小呈平方级的。</p>
+		<p>故总时间复杂度为 $O \left( \dbinom {k + m} m^3 \log n + T \dbinom {k + m} m^2 \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 166, mod = 998244353;
+typedef int mat[N][N], (*pmat)[N];
+
+int n = 1, HP, K;
+int state[N], id[4096], inv[10];
+mat F[N], V;
+
+void matmul(int n, int m, int p, pmat a, pmat b, pmat ret) {
+	int i, j, k; mat tmp;
+	for (i = 0; i &lt; n; ++i) memset(tmp[i], 0, p &lt;&lt; 2);
+	for (i = 0; i &lt; n; ++i)
+		for (k = 0; k &lt; m; ++k) if (a[i][k])
+			for (j = 0; j &lt; p; ++j)
+				tmp[i][j] = (tmp[i][j] + (ll)a[i][k] * b[k][j]) % mod;
+	for (i = 0; i &lt; n; ++i) memcpy(ret[i], tmp[i], p &lt;&lt; 2);
+}
+
+int main() { 
+	int i, j, k, u, q, st, nst, mx, sum, *v = *V; ll x; pmat f = *F;
+	scanf("%d%d%d", &amp;q, &amp;HP, &amp;K), mx = 1 &lt;&lt; ((HP - 1) &lt;&lt; 2);
+	for (inv[1] = 1, i = 2; i &lt;= K + 1; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	for (i = K; i &gt;= 0; --i)
+		for (j = (HP &gt; 1 ? K - i : 0); j &gt;= 0; --j)
+			for (k = (HP &gt; 2 ? K - i - j : 0); k &gt;= 0; --k)
+				state[n++] = i | j &lt;&lt; 4 | k &lt;&lt; 8;
+	std::sort(state + 1, state + n), **f = 1;
+	for (i = 1; i &lt; n; ++i) id[state[i]] = i;
+	for (i = 1; i &lt; n; ++i) {
+		st = state[i], sum = (1 + st + (st &gt;&gt; 4) + (st &gt;&gt; 8)) &amp; 15,
+		f[i][i] = *f[i] = inv[sum];
+		for (j = 0, u = 1; j &lt; HP; ++j, u &lt;&lt;= 4)
+			if ((k = st &gt;&gt; (j &lt;&lt; 2) &amp; 15))
+				nst = st - u + (j ? (u &gt;&gt; 4) + (sum &lt;= K ? mx : 0) : 0),
+				f[i][ id[nst] ] = (ll)k * inv[sum] % mod;
+	}
+	for (i = 0; i &lt; 60; ++i) matmul(n, n, n, F[i], F[i], F[i + 1]);
+	for (st = id[mx]; q; --q) {
+		scanf("%lld", &amp;x), memset(v, 0, n &lt;&lt; 2), v[st] = 1;
+		for (i = 0; x; ++i, x &gt;&gt;= 1) if (x &amp; 1) matmul(1, n, n, V, F[i], V);
+		printf("%d\n", *v);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意逆元要预处理到 $K + 1$ 而不是 $K$。</p>
+		<p><strong>坑2：</strong>这些状态 $\left( c_1, c_2, c_3 \right)$ 可以使用状态压缩的思想，压到一个 $16$ 位整数上存储 <del>(其实 $12$ 位就够了)</del>。</p>
+	</body>
+</html>

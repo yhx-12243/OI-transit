@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6534]函数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Fly 创造了一个属于他的函数，这个函数是这样的 (其中 $S$ 是一个集合)：</p>
+		<p>$$ Fly \left( S, t \right) = \begin{cases}
+\min \left\{ a_i + Fly \left( S \setminus \left\{ i \right\}, b_i + \max \left\{ t - a_i, 0 \right\} \right) \mid i \in S \right\} &amp; S \neq \varnothing \\
+t &amp; S = \varnothing
+\end{cases} $$</p>
+		<p>现在 Fly 给出了一个全集 $S = \left\{ 1, 2, \cdots, n \right\}$ 和两个长度为 $n$ 的正整数序列 $\left\{ a_n \right\}, \left\{ b_n \right\}$，他想知道 $Fly \left( S, 0 \right)$ 的值。</p>
+		<p>$a, b$ 均由「构造参数」生成。给定 $x_a, y_a, z_a$ 和 $a$ 的首项 $a_1$，对于 $i &gt; 1$，有 $a_i = \left( a_{i-1} \cdot x_a + y_a \right) \bmod z_a + 1$。$b$ 的构造参数及构造方式同理。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 5$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含一个正整数 $n$ ($n \leq 2 \times 10^6$)，表示序列的长度，也是集合的元素个数。</p>
+		<p>第二行包含四个正整数 $a_1, x_a, y_a, z_a$ ($a_1, x_a, y_a, z_a \leq 10^7$)。</p>
+		<p>第三行包含四个正整数 $b_1, x_b, y_b, z_b$ ($b_1, x_b, y_b, z_b \leq 10^7$)。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示 $Fly \left( S, 0 \right)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>先观察 $Fly \left( S, t \right)$ 到底是个什么东西。</p>
+		<p>首先这个函数又带 $\min$ 又带 $\max$ 的一看就是一个坏孩子……</p>
+		<p>不过由于 $\min$ 在式子的最外面<del>佯装</del>，因此还是相对好处理一点的。</p>
+		<p>因为我们可以不妨假设<em style="color: red">每次 $i$ 取的是 $S$ 中最大的元素</em>，以遍分析函数的性质。</p>
+		<p>首先由题意，显然有 $Fly \left( \varnothing, t \right) = t$。</p>
+		<p>然后，由递推关系 $Fly \left( \left\{ 1 \right\}, t \right) = a_1 + Fly \left( \varnothing, b_1 + \max \left\{ t - a_1, 0 \right\} \right) = a_1 + b_1 + \max \left\{ t - a_1, 0 \right\} = b_1 + \max \left\{ t, a_1 \right\}$。</p>
+		<p>同理，$Fly \left( \left\{ 1, 2 \right\}, t \right) = a_2 + Fly \left( \left\{ 1 \right\}, b_2 + \max \left\{ t - a_2, 0 \right\} \right) = a_2 + \left( b_1 + \max \left\{ \color {fuchsia} {b_2 + \max \left\{ t - a_2, 0 \right\} }, a_1 \right\} \right) = b_1 + \max \left\{ b_2 + \max \left\{ t, a_2 \right\}, a_1 + a_2 \right\}$。</p>
+		<p>因此，我们可以猜想：$Fly \left( \left\{ 1, 2, \cdots, n \right\} \right) = b_1 + \max \left\{ b_2 + \max \left\{ b_3 + \cdots \max \left\{ b_{n-1} + \max \left\{ b_n + \max \left\{ t, a_n \right\}, a_{n-1} + a_n \right\}, a_{n-2} + a_{n-1} + a_n \right\} \cdots, a_2 + a_3 + \cdots + a_n \right\}, a_1 + a_2 + \cdots + a_n \right\}$。</p>
+		<p>容易使用归纳证明它的正确性，这里略去。</p>
+		<p>也就是说，在 <span style="color: red">"每次 $i$ 取 $S$ 中最大的元素"</span> 的假设下 $Fly$ 函数 (即答案) 就等于：</p>
+		<p>初始时有一个变量 $t \gets 0$，我们按照数组的逆序，依次将 $t$ 对 $a$ 的<strong>后缀和</strong> $a_i + a_{i+1} + \cdots + a_n$ 取 $\max$，然后加上 $b_i$，这样所得最终 $t$ 的值。</p>
+		<p>而真实的答案，就等于<strong>对所有满足条件的 $\left( a_n, b_n \right)$ 数对的排列</strong>，最终 $t$ 的值的<strong>最大可能值</strong>。</p>
+		<p id="process">以下为方便起见，我们将这个过程<strong>顺序</strong>进行：即令 $i \gets 1$ 到 $n$，每次讲 $t$ 对 $a_1 + a_2 + \cdots + a_i$ 取 $\max$，然后加上 $b_i$。</p>
+		<p>考察这个式子的组合意义，如下：</p>
+		<table class="table table-bordered table-text-center table-vertical-middle">
+			<tr><td>$a_1$</td><td>$a_2$</td><td>$a_3$</td><td>$a_4$</td><td>$\cdots$</td><td>$a_{n-2}$</td><td>$a_{n-1}$</td><td>$a_n$</td></tr>
+			<tr><td>$b_1$</td><td>$b_2$</td><td>$b_3$</td><td>$b_4$</td><td>$\cdots$</td><td>$b_{n-2}$</td><td>$b_{n-1}$</td><td>$b_n$</td></tr>
+		</table>
+		<p>考察上面的 $2 \times n$ 方格表，每个位置上有一个权值，其中第 $1$ ($2$) 行第 $i$ 列的格子的权值为 $a_i$ ($b_i$)。</p>
+		<p>你需要从方格表中的左上角 (即写有 $a_1$ 的格子) 走到右下角 (即写有 $b_n$ 的格子)，每次只能向右或向下走。记一条路径的权值为它所经过的所有格子的权值和，答案就是<strong>所有路径的权值的最大值</strong>。</p>
+		<p>你的目标就是，找到这 $n$ 列的一个排列，使得路径权值的最大值尽可能的小。</p>
+		<p><del>这是一个经典的贪心问题</del>。我们将证明下面几个结论：</p>
+		<p><strong style="color: green">引理 1：如果 $a_i &gt; b_i \wedge a_{i+1} \leq b_{i+1}$，则将 $i$ 与 $i + 1$ 交换后答案不变劣。</strong></p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>设 $M$ 为交换的答案 (所有路径的权值最大值)，$M'$ 为交换后的答案。</p>
+				<p>首先，考虑从 $i$ 向下拐的路径 $p_i$ 和从 $i + 1$ 向下拐的路径 $p_{i+1}$。</p>
+				<p>记交换前中路径 $p_i, p_{i+1}$ 的权值分别为 $w_i, w_{i+1}$，交换后路径 $p_i, p_{i+1}$ 的权值分别为 $w'_i, w'_{i+1}$。</p>
+				<p>则有 $w'_i = a_1 + a_2 + \cdots + a_{i-1} + a_{i+1} + b_{i+1} + \color {blue} {b_i} + b_{i+2} + b_{i+3} + \cdots + b_n &lt; a_1 + a_2 + \cdots + a_{i-1} + a_{i+1} + b_{i+1} + \color {fuchsia} {a_i} + b_{i+2} + b_{i+3} + \cdots + b_n = w_{i+1}$ (由于 $b_i &lt; a_i$)。</p>
+				<p>从而 $w'_i &lt; w_{i+1} \leq M$。</p>
+				<p>同理，$w'_{i+1} = a_1 + a_2 + \cdots + a_{i-1} + \color {blue} {a_{i+1}} + a_i + b_i + b_{i+2} + b_{i+3} + \cdots + b_n \leq a_1 + a_2 + \cdots + a_{i-1} + \color {fuchsia} {b_{i+1}} + a_i + b_i + b_{i+2} + b_{i+3} + \cdots + b_n = w_i$ (由于 $a_{i+1} \leq b_{i+1}$)。</p>
+				<p>从而 $w'_{i+1} \leq w_i \leq M$。</p>
+				<p>而对于 $j \notin \left\{ i, i + 1 \right\}$，有 $w'_j = w_j \leq M$。</p>
+				<p>于是对 $\forall j \in \left[ 1, n \right]$，$w'_j \leq M$，因此 $M' \leq M$，证毕。</p>
+			</div>
+		</div>
+		<p>由引理 1，我们可以得到：<strong>存在最优策略，满足：所有 $a_i \leq b_i$ 的对一定出现在 $a_i &gt; b_i$ 的对的左边</strong>。</p>
+		<p><strong style="color: green">引理 2：设 $a_i \leq b_i \wedge a_{i+1} \leq b_{i+1}$。如果 $a_i &gt; a_{i+1}$，则将 $i$ 与 $i + 1$ 交换后答案不变劣。</strong></p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>记号同上，则有 $w'_i = a_1 + a_2 + \cdots + a_{i-1} + \color {blue} {a_{i+1}} + b_{i+1} + b_i + b_{i+2} + b_{i+3} + \cdots + b_n &lt; a_1 + a_2 + \cdots + a_{i-1} + \color {fuchsia} {a_i} + b_{i+1} + b_i + b_{i+2} + b_{i+3} + \cdots + b_n = w_i$。</p>
+				<p>同理，$w'_{i+1} = a_1 + a_2 + \cdots + a_{i-1} + \color {blue} {a_{i+1}} + a_i + b_i + b_{i+2} + b_{i+3} + \cdots + b_n \leq a_1 + a_2 + \cdots + a_{i-1} + \color {fuchsia} {b_{i+1}} + a_i + b_i + b_{i+2} + b_{i+3} + \cdots + b_n = w_i$。</p>
+				<p>类似地，对 $\forall j \in \left[ 1, n \right]$，均有 $w'_j \leq M$，从而答案不变劣，证毕。</p>
+			</div>
+		</div>
+		<p>对称地，我们也能得到：<strong style="color: orange">引理 2'：设 $a_i &gt; b_i \wedge a_{i+1} &gt; b_{i+1}$。如果 $a_i &lt; a_{i+1}$，则将 $i$ 与 $i + 1$ 交换后答案不变劣</strong>。</p>
+		<p>证明此处略去。</p>
+		<p>于是，由前面两个引理，我们就可以找到一个最优的排序方法了：</p>
+		<p>首先，将一个数对按照 "$a_i \leq b_i$" 和 "$a_i &gt; b_i$" 分为两类。然后将第一类中的元素按照 $a_i$ <em>升序排列</em>，第二类的元素按照 $a_i$ <em>降序排列</em>，并接到第一类元素的后面。</p>
+		<p>可以证明，对这样一种排列，答案 (路径权值的最大值) 就能取到最小值。至于如何求答案，只需按照<a href="#process">上面的过程</a>模拟一遍即可。</p>
+		<p>时间复杂度就是对数组进行排序的复杂度。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 2000054;
+
+int n, D, U;
+int a[N], b[N];
+pr d[N], u[N];
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+void work() {
+	int i, y, z; ll x, cur = 0, ans = 0; D = U = 0;
+	scanf("%d%d%lld%d%d", &amp;n, a, &amp;x, &amp;y, &amp;z);
+	for (i = 1; i &lt; n; ++i) a[i] = (a[i - 1] * x + y) % z + 1;
+	scanf("%d%lld%d%d", b, &amp;x, &amp;y, &amp;z);
+	for (i = 1; i &lt; n; ++i) b[i] = (b[i - 1] * x + y) % z + 1;
+	for (i = 0; i &lt; n; ++i) a[i] &lt;= b[i] ? d[D++] = pr(a[i], b[i]) : u[U++] = pr(-b[i], -a[i]);
+	std::sort(d, d + D), std::sort(u, u + U);
+	for (i = 0; i &lt; D; ++i) up(ans, cur += d[i].first), ans += d[i].second;
+	for (i = 0; i &lt; U; ++i) up(ans, cur -= u[i].second), ans -= u[i].first;
+	printf("%lld\n", ans);
+}
+
+int main() {
+	int T;
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>可以证明，在分类之后，排序的过程是对第二关键字<strong>不敏感</strong>的，因此直接使用 <code>std::pair</code> 即可。</p>
+		<p><strong>坑2：</strong>排序的过程中注意常数，如果有必要，可以使用计数排序/基数排序。</p>
+	</body>
+</html>

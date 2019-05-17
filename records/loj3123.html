@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj3123][CTS2019]重复</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定字符串 $s$，求有多少个长度为 $m$ 的字符串 $t$，满足存在 $t^\infty$ 的一个长为 $\left| s \right|$ 的子串，字典序小于 $s$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $m$ ($m \leq 2000$)。</p>
+		<p>第二行包含一个由小写字母构成的字符串 $s$ ($1 \leq \left| s \right| \leq 2000$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，为满足条件的串 $t$ 的数量。为了避免答案过大，你只需要输出将答案对 $998244353$ 取模后的结果。</p>
+
+		<h3>题解</h3>
+		<p><del>显然我并不会那种神仙的线性齐次递推式的做法，那么就上一个传统做法吧。</del></p>
+		<p>首先，我们可以找到一个长度为 $m$ 的串 $s'$，使得对一个长度为 $m$ 的串 $t$ 符合原题条件当且仅当 $t^\infty$ 存在长为 $\left| s \right|$ 且字典序<strong>小于等于</strong> $s'$ 的串 (即等价转换)。</p>
+		<p>这其实是不难的。</p>
+		<ol>
+			<li><p>如果 $\left| s \right| = m$，则令 $s' = \mathop{\mathrm{prev}} \left( s \right)$ 即为比 $s$ 的小的字典序最大的字符串 ($s$ 的前趋)。</p></li>
+			<li><p>如果 $\left| s \right| &lt; m$，则令 $s' = \mathop{\mathrm{prev}} \left( s \right) \cdot \texttt z^{m - \left| s \right|}$ 即可。</p></li>
+			<li><p>如果 $\left| s \right| &gt; m$，则考察 $s \left[ 1 .. m \right]^\infty$，如果 $s \left[ 1 .. m \right]^\infty \geq s$，则令 $s' = \mathop{\mathrm{prev}} \left( s \left[ 1 .. m \right] \right)$，否则令 $s' = s \left[ 1 .. m \right]$。</p></li>
+		</ol>
+		<p>上述三个转化的证明此处从略。</p>
+		<p>于是我们现在只需考虑 $m = \left| s \right|$ 的情况，即有多少个串 $t \in \Sigma^m$，满足存在 $t^\infty$ 的长为 $m$ 的子串，字典序<strong>小于等于</strong> $s$。下面记 $n = m = \left| s \right|$。</p>
+		<p>对问题稍作简化，由于 $t^\infty$ 是无限循环串，大多数的串都是 <em>"重复"</em> 的，实质有用的串不超过一圈 ($n$ 个)。</p>
+		<p>因此我们就是要求，有多少个串 $t \in \Sigma^n$ 满足 <strong>$t$ 的最小表示法</strong>不超过 $s$，即 $\mathop{\mathrm{minpre}} \left( t \right) \leq s$。</p>
+		<p><del>为了方便</del>，我们将 $s$ 变成字典序不超过 $s$ 的最大的<strong>最小表示串</strong> (Lyndon 串)，而不影响答案。因为所有字符串的最小表示法均为最小表示串。</p>
+		<p style="color: red">(ps1: 最小表示串，又叫 Lyndon 串，是满足 <strong>$s$ 的最小表示法为 $s$ 本身</strong>的串，即 $\mathop{\mathrm{minpre}} \left( s \right) = s$。特别地，在这里，我们将一个最小表示串的有限次重复也称为最小表示串)</p>
+		<p style="color: red">(ps2: 可以证明，如果一个最小表示串 $s$ 有非平凡 border $t \vartriangleleft s$，设 $t$ 是 $s$ 最长的 border，则 $s$ 是以 $T = \left| s \right| - \left| t \right|$ 为最小周期的整周期串，即 $s = s \left[ 1 .. T \right]^{\left| s \right| / T}$)</p>
+		<p style="color: red">(ps3: 寻找一个串的 "前趋" Lyndon 串的方法是：如果 $s$ 是 Lyndon 串，则算法结束；否则找到 $s$ 从后往前数第一个非 $\texttt z$ (代指字符集最大字符) 的字符，将其改成 $\texttt z$，前面一位减一 (如果可行)，并判断，直到成功为止)</p>
+		<p style="color: red">(ps4: 判断一个串是否为 Lyndon 串的方法很多，最朴素的方法是使用 KMP，但是存在实现较为简单的方法，具体见下方代码)</p>
+		<p>于是现在假设 $s$ 是 Lyndon 串。我们去统计有多少个串 $t \in \Sigma^n$ 满足 $\mathop{\mathrm{minpre}} \left( t \right) \color {fuchsia} &lt; s$。对于 $\mathop{\mathrm{minpre}} \left( t \right) = s$ 的情况，其实就是 $s$ 的本质不同循环移位个数。由上面 ps2 的内容，它等于 $s$ 的周期 $T$ (如果没有非平凡周期则认为 $T = \left| s \right|$)。</p>
+		<p>定义<dfn>左旋运算</dfn>：记 $s \ll 1 = s \left[ 2 .. \left| s \right| \right] \cdot s_1, s \ll k = \left( s \ll \left( k - 1 \right) \right) \ll 1, s \ll 0 = s$。</p>
+		<p>对于一个满足 $\mathop{\mathrm{minpre}} \left( t \right) &lt; s$ 的串 $t$，我们找到<span style="color: red">最小的</span> $\color {red} k \in \mathbb N$，满足 $t \ll k &lt; s$ (要注意 $t \ll k$ 不一定是 Lyndon 串)。</p>
+		<p>由于 $t \ll k &lt; s$，因此一定存在 $0 \leq g &lt; \left| s \right|$，使得 $\left( t \ll k \right) \left[ 1 .. g \right] = s \left[ 1 .. g \right] \wedge \left( t \ll k \right)_{g+1} &lt; s_{g+1}$。好吧，其实这里的 $g = \mathop{\mathrm{LCP}} \left( t \ll k, s \right)$。</p>
+		<p>主体情况分两类讨论：</p>
+		<ol>
+			<li><p>$k + g &lt; n$。也就是说，串 $t$ 具有如下形态：</p>
+			<p><code><em>c</em><sub>1</sub> <em>c</em><sub>2</sub> ... <em>c<sub>k</sub></em> <em>s</em><sub>1</sub> <em>s</em><sub>2</sub> ... <em>s<sub>g</sub></em> <em>r</em> <em>_</em> <em>_</em> ...</code> ($k \geq 0; 0 \leq g &lt; \left| s \right|$，后面 "<samp>_</samp>" 数量 $\geq 0$)</p>
+			<p>此时，需要满足 $r &lt; s_{g+1}$，故 $r$ 有 $\mathop{\mathrm{ord}} \left( s_{g+1} \right) - 1$ 种方案 ($\mathop{\mathrm{ord}} \left( c \right)$ 表示字符 $c$ 在字符集 $\Sigma$ 的排名，从 $1$ 开始)。</p>
+			<p>至于后面的 <samp>_</samp>，其实是可以任意填的。因此这里方案数为 $\left| \Sigma \right|^{n - k - g - 1}$。</p>
+			<p>关键的问题在于前面，因为你这里的 $c_1, c_2, \cdots, c_k$ 显然<strong>不能</strong>是任意的，因为你需要保证 $k$ 的最小性。</p>
+			<p>具体地，我们可以对 $s$ 进行 KMP，并建立 KMP 所对应的自动机。则 $t$ 在它上面匹配的时候，不能走向比 $s$ 小的节点。</p>
+			<p>而且，在这 $k$ 位匹配完后，在自动机上的位置必须是根 ($0$)。</p>
+			<p>这是因为，如果不为根，则说明 $t$ 中存在一段 $s \left[ 1 .. k' \right] \cdot s \left[ 1 .. g \right] \cdot r$ ($1 \leq k' \leq k$)。注意到 $s$ 是 Lyndon 串，所以 $s \left[ 1 .. g + 1 \right] \leq s \left[ k' + 1 .. k' + g + 1 \right]$)。</p>
+			<p>因此 $s \left[ 1 .. k' \right] \cdot s \left[ 1 .. g \right] \cdot r &lt; s \left[ 1 .. k' \right] \cdot s \left[ 1 .. g + 1 \right] \leq s \left[ 1 .. k' + g + 1 \right] \leq s$。
+			<p>与 $k$ 的最小性矛盾 (因为 $k - k'$ 也是符合要求的)。</p>
+			<p>于是可以在自动机上 DP。用 $f_{i, j}$ 表示当前还剩下 $i$ 个 "<samp>c</samp>" 位，当前在自动机的 $j$ 号节点，走到根 ($0$) 的方案总数。</p>
+			<p>枚举下一步填哪个字符，有两种方案：</p>
+			<ol>
+				<li><p>首先，下一个字符一定不能 $&lt; s_{j+1}$，否则就匹配上了！</p></li>
+				<li><p>其次，如果下一个字符 $= s_{j+1}$，则自动机就走到了 $j + 1$，有 $f_{i-1, j+1}$ 种方案。</p></li>
+				<li><p>最后，如果下一个字符 $&gt; s_{j+1}$，则自动机<strong>一定会走到根</strong> (否则容易证明一定不是 Lyndon 串)，因此方案数为 $f_{i-1, 0} \cdot \left( \left| \Sigma \right| - \mathop{\mathrm{ord}} \left( s_{j+1} \right) \right)$。</p></li>
+			</ol>
+			<p>综上，DP 有边界 $f_{0, 0} = 1, f_{i, j} = f_{i-1, j+1} + f_{i-1, 0} \cdot \left( \left| \Sigma \right| - \mathop{\mathrm{ord}} \left( s_{j+1} \right) \right)$。</p>
+			<p>最终的方案数就是 $f_{k, 0} \cdot \left( \mathop{\mathrm{ord}} \left( s_{g+1} \right) - 1 \right) \cdot \left| \Sigma \right|^{n - k - g - 1}$。</p></li>
+			<li><p>$k + g \geq n$。此时，串 $t$ 具有如下形态：</p>
+			<p><code><em>s</em><sub><em>i</em>+1</sub> <em>s</em><sub><em>i</em>+2</sub> ... <em>s</em><sub><em>i</em>+<em>j</em> <em>r</em> <em>_</em> <em>_</em> ... <em>_</em> <em>s</em><sub>1</sub> <em>s</em><sub>2</sub> ... <em>s<sub>i</sub></em></code> ($i = n - k, j = g - i$)</p>
+			<p>此时，仍然需要满足 $r &lt; s_{g+1}$。但这是并不是所有这样的 $r$ 都可以了，比如说，在大多数情况下，$r = \texttt a$ 就不太可行。</p>
+			<p>由于需要保证 $k$ 的最小性，因此我们需要将 $s_{i+1}, s_{i+2}$ 这一段扔到 KMP 里面跑。</p>
+			<p>设到 $s_{i + j}$ 跑完后 KMP 当前状态为 $t$。我们不仅要考虑 $r$ 和 $s_{g+1}$ 的关系，还要考虑 $r$ 和 $s_{t+1}$ 的关系。</p>
+			<p>首先，$s_{t+1}$ 显然是不能大于 $s_{g+1}$ 的。否则这就不是一个 Lyndon 串了。</p>
+			<p>因此剩下只需考虑 $s_{t+1} \leq s_{g+1}$ 的情况了。</p>
+			<p>如果 $r = s_{t+1}$，则说明这一位已经匹配上了，剩下的方案数就应是 $f_{n-i-j-1, t+1}$。</p>
+			<p>如果 $s_{t+1} &lt; r &lt; s_{g+1}$，则类似地，自动机会回到根。这部分的总方案数为 $\left( \mathop{\mathrm{ord}} \left( s_{g+1} \right) - \mathop{\mathrm{ord}} \left( s_{t+1} \right) - 1 \right) \cdot f_{n-i-j-1, 0}$。</p>
+			<p>最终对所有满足条件的 $i, j$ 进行求和即可。</p></li>
+		</ol>
+		<p>至于时间复杂度，由于 KMP 等字符串操作均为 $O \left( n \right)$ 的，因此总复杂度自然而然就是 $O \left( n^2 \right)$ 的啦。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 2054, mod = 998244353;
+
+int m, n;
+char s[N], t[N];
+int pw26[N];
+int f[N], F[N][N];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+void fix_string() {
+	int i; bool flag = true;
+	if (m &lt; n) {for (i = 0; i &lt; n; ++i) t[i] = s[i % m]; flag = memcmp(t, s, n) &gt;= 0;}
+	else if (m &gt; n) memset(s + n, 122, m - n);
+	if (flag) for (i = m - 1; i &gt;= 0 &amp;&amp; --s[i] == 96; s[i--] = 122);
+	s[n = m] = 0;
+}
+
+// weak lyndon. (l^p is lyndon)
+bool check_lyndon(int n, char *s) {
+	int i, j = 0;
+	for (i = 1; i &lt;= n; ++i, ++j) if (s[i] &lt; s[j]) return i == n &amp;&amp; !(i % (i - j)); else if (s[i] &gt; s[j]) j = -1;
+	throw "orzfy";
+}
+
+void find_prev_lyndon(int n, char *s) {
+	for (int i = n - 1; !check_lyndon(n, s); --s[i]) for (s[i] = 122; i &amp;&amp; s[--i] == 97; s[i] = 122);
+}
+
+void KMP(int n, char *s) {
+	int i, j = 0; *f = -1, f[1] = 0;
+	for (i = 1; i &lt; n; f[++i] = ++j)
+		for (; ~j &amp;&amp; s[i] != s[j]; j = f[j]);
+}
+
+int main() {
+	int i, j, t, ans;
+	scanf("%d%s", &amp;m, s), n = strlen(s);
+	if (std::count(s, s + n, 97) == n) return putchar(48), putchar(10), 0;
+	fix_string(), find_prev_lyndon(n, s);
+	fprintf(stderr, "need find [%s]\n", s);
+	for (*pw26 = i = 1; i &lt;= n; ++i) pw26[i] = pw26[i - 1] * 26ll % mod;
+	for (**F = i = 1; i &lt;= n; ++i)
+		for (j = 0; j &lt; n; ++j)
+			F[i][j] = (F[i - 1][0] * (122ll - s[j]) + F[i - 1][j + 1]) % mod;
+	KMP(n, s), assert(!(n % (n - f[n]))), ans = n - f[n];
+	// ___012?__ (i = 3, j = 3)
+	for (i = 0; i &lt; n; ++i)
+		for (j = 0; i + j &lt; n; ++j)
+			ans = (ans + F[i][0] * (s[j] - 97ll) % mod * pw26[n - i - j - 1]) % mod;
+	// 345?__012 (i = 3, j = 3)
+	for (i = 1; i &lt; n; ++i)
+		for (t = j = 0; i + j &lt; n; ++j) {
+			if (j) {for (; ~t &amp;&amp; s[i + j - 1] != s[t]; t = f[t]); ++t;}
+			if (s[t] &lt; s[i + j] - 1) ans = (ans + (s[i + j] - s[t] - 1ll) * F[n - i - j - 1][0]) % mod;
+			if (s[t] &lt; s[i + j]) add(ans, F[n - i - j - 1][t + 1]);
+		}
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在检验一个串是否是 Lyndon 时，如果代码像上面这样写，需要满足当第一次 $s_i &lt; s_j$ 时有 $i = n \wedge i \bmod \left( i - j \right) = 0$ (这里 $j$ 其实是最长 border)。</p>
+		<p><strong>坑2：</strong>在寻找 "前趋" Lyndon 串的过程中，需要注意如果把 $\texttt a$ 进行了减一操作，则不能去调用检验函数。</p>
+		<p><strong>坑3：</strong>对于第 2 大类，在 $j = 0$ 的情况时，是不需要进行 KMP 匹配的，要到 $j = 1$ 的情况才能开始。</p>
+	</body>
+</html>
