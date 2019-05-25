@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces679E]Bear and Bad Powers of 42</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>我们称 $42$ 的幂 (如 $1, 42, 1764, 74088, \cdots$)，为<dfn>坏的</dfn>，其余数为<dfn>好的</dfn>。</p>
+		<p>给定一个长度为 $n$ 的序列，其中每一个数都是<em>好的</em>。你需要处理 $q$ 个操作，操作共分为三种：</p>
+		<ol>
+			<li><p><code>1 <em>i</em></code> —— 输出当前序列的第 $i$ 项 $t_i$。</p></li>
+			<li><p><code>2 <em>a</em> <em>b</em> <em>x</em></code> 对于所有 $i \in \left[ a, b \right]$，令 $t_i \gets x$。保证 $x$ 是<em>好的</em>。</p></li>
+			<li><p><code>3 <em>a</em> <em>b</em> <em>x</em></code> 对于所有 $i \in \left[ a, b \right]$，令 $t_i \gets t_i + x$。如果操作后序列中有<em>坏的</em>数，则不断重复这个操作直到序列中<strong>没有<em>坏的</em>数</strong>。</p></li>
+		</ol>
+		<p>可以注意到，在所有合法操作后，序列中的所有数均为<em>好的</em>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($1 \leq n, q \leq 10^5$)，分别表示序列的长度和操作的次数。</p>
+		<p>第二行包含 $n$ 个正整数 $t_1, t_2, \cdots, t_n$ ($2 \leq t_i \leq 10^9$，$t_i$ 是<em>好的</em>)，表示初始的序列。</p>
+		<p>接下来 $q$ 行，第 $i$ 行表示第 $i$ 个操作，具体格式见「题目描述」，保证 $1 \leq a \leq b \leq n; 1 \leq x \leq 10^9$，如果操作类型编号为 2，则保证 $x$ 是<em>好的</em>。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个 1 操作，输出一行一个整数，表示当前序列第 $i$ 项的值 $t_i$。</p>
+
+		<h3>题解</h3>
+		<p>先考虑只有操作 1, 3 的情况。</p>
+		<p>考虑使用暴力 <code>do .. while</code> 操作，即每次执行操作 3，并检验是否有<em>坏的</em>数，直到没有<em>坏的</em>数为止。</p>
+		<p>这样<strong>操作次数</strong>是正确的。因为数列中所有数的范围不会超过 $10^{18}$，而 $10^{18}$ 以内<em>坏的</em>数的数目只有 $1 + \left \lfloor \log_{42} 10^{18} \right \rfloor = 12$ 个。因此，<strong>重复操作</strong> (即检验失败重复操作) 的次数不会超过 $12 n$ 次。</p>
+		<p>于是问题的关键就在于，如何快速检验当前的序列中是否有<em>坏的</em>数。</p>
+		<p>我们使用这样一个技巧：对于每个数 $v$，维护它离<strong>下一个 $42$ 的距离</strong> $gap$，以及 $\left \lceil \log_{42} v \right \rceil$ 的值 $log$。比如对 $v = 27$，此时有 $gap = 15, log = 1$。<span class="text-muted">(ps: $\log$ 是对数函数，$log$ 是变量)</span></p>
+		<p>因此，对于一个固定的区间，只要判断<strong>全局 $gap$ 最小值是否为 $0$</strong> 即可，如果是 $0$，说明<strong>存在<em>坏数</em></strong>，否则说明全都是<em>好的</em>。</p>
+		<p>现在有了区间加操作。暴力地，我们将这整个区间的 $gap$ 都<strong>减去</strong>一个 $x$。得到新的 $gap$ 序列。</p>
+		<p>但是，这里有一个非常严重的问题 —— <strong>$gap$ 会变成负数</strong>！这样就失去了实际意义。比如 $v$ 从 $27$ 变成 $54$ 时，$gap$ 相应地就变成了 $-12$，从而就无法正确判断是否存在<em>坏的</em>数。</p>
+		<p>这时，像 <a href="uoj228.html" target="_blank">[uoj228]基础数据结构练习题</a> 一样，我们就要使用均摊思想了：<strong>暴力调整 $gap$ 值</strong>。</p>
+		<p>扫描整棵线段树，如果对于一个区间，$gap$ 的最小值 $&lt; 0$，则<strong>递归两棵子树</strong>进行调整，直到叶子节点，重新计算 $\left \lceil \log_{42} v \right \rceil$ 的值。</p>
+		<p>不过，这样的复杂度是正确的。因为每经过一次调整，$log$ 的值就会加一，而 $log \leq 1 + \left \lfloor \log_{42} 10^{18} \right \rfloor = 12$，因此每个叶节点至多调整 $12$ 次，故调整的总复杂度也不超过 $12 n \log n$。</p>
+		<hr />
+		<p>现在有了赋值操作，时间复杂度会受到影响吗？</p>
+		<p>其实是不会的。由于赋值操作所赋的值都是一块一块的，因此总共 "本质不同" 的数只有 $n + q$ 个，因此总的时间复杂度仍然是 $O \left( \left( n + q \right) \log n \log_{42} W \right)$ (其中 $W$ 为最大权值)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+#define exist_pd if (x[id].tagc || x[id].taga) push_down(x[id], x[lc], x[rc])
+
+typedef long long ll;
+const int N = 100054;
+const ll pw42[12] = {1ll, 42ll, 1764ll, 74088ll, 3111696ll, 130691232ll, 5489031744ll, 230539333248ll, 9682651996416ll, 406671383849472ll, 17080198121677824ll, 717368321110468608ll};
+
+struct node {
+	ll gap, tagc, taga;
+	int log;
+} x[N * 4];
+
+int n;
+int _init_[N];
+
+inline ll min(const ll x, const ll y) {return x &lt; y ? x : y;}
+inline int Log(const ll x) {return std::lower_bound(pw42, pw42 + 12, x) - pw42;}
+inline void update(node &amp;ret, const node &amp;l, const node &amp;r) {ret.gap = min(l.gap, r.gap);}
+inline void cov(node &amp;ret, ll v) {ret.log = Log(v), ret.gap = pw42[ret.log] - v, ret.tagc = v, ret.taga = 0;}
+inline void add(node &amp;ret, ll v) {ret.tagc ? ret.tagc += v : ret.taga += v, ret.gap -= v;}
+
+inline void push_down(node &amp;ret, node &amp;l, node &amp;r) {
+	ret.tagc &amp;&amp; (cov(l, ret.tagc), cov(r, ret.tagc), ret.tagc = 0);
+	ret.taga &amp;&amp; (add(l, ret.taga), add(r, ret.taga), ret.taga = 0);
+}
+
+void build(int id, int L, int R, int *v) {
+	if (L == R) {x[id].log = Log(v[L]), x[id].gap = pw42[x[id].log] - v[L]; return;}
+	segc; build(lc, L, M, v), build(rc, M + 1, R, v);
+	update(x[id], x[lc], x[rc]);
+}
+
+ll get(int id, int L, int R, int h) {
+	if (L == R) return pw42[x[id].log] - x[id].gap;
+	segc; exist_pd; return h &lt;= M ? get(lc, L, M, h) : get(rc, M + 1, R, h);
+}
+
+void cov(int id, int L, int R, int ql, int qr, ll v) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) return cov(x[id], v);
+	segc; exist_pd;
+	if (ql &lt;= M) cov(lc, L, M, ql, qr, v);
+	if (qr &gt; M) cov(rc, M + 1, R, ql, qr, v);
+	update(x[id], x[lc], x[rc]);
+}
+
+void add(int id, int L, int R, int ql, int qr, ll v) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) return add(x[id], v);
+	segc; exist_pd;
+	if (ql &lt;= M) add(lc, L, M, ql, qr, v);
+	if (qr &gt; M) add(rc, M + 1, R, ql, qr, v);
+	update(x[id], x[lc], x[rc]);
+}
+
+inline bool check_validity(int id, int L, int R) {
+	if (x[id].gap &gt;= 0) return x[id].gap;
+	if (L == R) {
+		ll v = pw42[x[id].log] - x[id].gap;
+		return x[id].log = Log(v), x[id].gap = pw42[x[id].log] - v;
+	}
+	segc; exist_pd;
+	check_validity(lc, L, M), check_validity(rc, M + 1, R);
+	return update(x[id], x[lc], x[rc]), x[id].gap;
+}
+
+int main() {
+	int i, op, l, r, v, q;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", _init_ + i);
+	build(1, 1, n, _init_);
+	for (; q; --q)
+		switch (scanf("%d", &amp;op), op) {
+			case 1: scanf("%d", &amp;i), printf("%lld\n", get(1, 1, n, i)); break;
+			case 2: scanf("%d%d%d", &amp;l, &amp;r, &amp;v); cov(1, 1, n, l, r, v); break;
+			case 3: 
+				scanf("%d%d%d", &amp;l, &amp;r, &amp;v);
+				do add(1, 1, n, l, r, v); while (!check_validity(1, 1, n)); break;
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>线段树的经典问题，当有赋值标记的时候区间加，更改的是赋值标记。</p>
+		<p><strong>坑2：</strong>除了 <code>build</code> 外，每个过程都是需要 <code>push_down</code> 的，不要漏做了。</p>
+	</body>
+</html>

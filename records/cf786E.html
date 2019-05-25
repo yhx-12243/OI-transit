@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces786E]ALT</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>星球 ALT 上有 $n$ 个城市，它们通过编号为 $1 \sim n - 1$ 的 $n - 1$ 条双向道路相连，形成一个树形结构。</p>
+		<p>有 $m$ 个居民，每个居民住在城市 $x_i$，且在城市 $y_i$ 工作。对于每条道路，都恰有一个守卫看管它。</p>
+		<img class="center-block" src="uploads/108.png" alt="小狗" />
+		<p>一个居民被称为<em>高兴的</em>，当且仅当他自己<strong>拥有一只小狗</strong>或连接他的居住地 $x_i$ 和工作区 $y_i$ 的简单路径上的道路上的所有守卫都<strong>有一只小狗</strong>。</p>
+		<p>你需要使用最少的小狗，来让所有居民都高兴。求最少的小狗数量，并给出一组方案。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($2 \leq n \leq 20000; 1 \leq m \leq 10000$)，表示的城市的个数和居民的个数。</p>
+		<p>接下来 $n - 1$ 行，每行两个整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，表示城市 $u$ 与 $v$ 之间有一条道路相连。</p>
+		<p>接下来 $m$ 行，每行两个整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq n; x_i \neq y_i$)，表示一个居民住在城市 $x_i$，且在城市 $y_i$ 工作。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $k$ ($0 \leq k \leq \min \left\{ m, n - 1 \right\}$)，表示最少需要的小狗数量。</p>
+		<p>第二行开头输出一个整数 $q$ ($0 \leq q \leq \min \left\{ m, k \right\}$)，表示有多少个小狗给了居民。紧跟着 $q$ 个两两不同的整数 $a_1, a_2, \cdots, a_q$ ($1 \leq a_i \leq m$)，依次表示这些小狗给了哪些居民。</p>
+		<p>第三行开头输出一个整数 $e$ ($0 \leq e \leq \min \left\{ n - 1, k \right\}$)，表示有多少个小狗给了守卫。紧跟着 $q$ 个两两不同的整数 $b_1, b_2, \cdots, b_e$ ($1 \leq b_i \leq n - 1$)，依次表示这些小狗给了哪些守卫 (守卫所看管的道路编号)。</p>
+		<p>你需要保证 $q + e = k$。</p>
+
+		<h3>题解</h3>
+		<p>容易发现，这是一道类似于 "最大权闭合子图" 的问题，因此考虑使用最小割建模解决。</p>
+		<p>将居民放在左部，道路放在右部。对于居民 $c$，从源点 $S$ 连一条容量为 $1$ 的边 $S \to c$；对于道路 $e$，连向汇点一条容量为 $1$ 的边 $e \to T$。</p>
+		<p>如果一条道路 $e$ 在居民 $c$ 工作的路径 ($x_i \leadsto y_i$) 上，说明 $c$ 和 $e$ 至少需要有一只狗。于是我们从 $c$ 到 $e$ 连一条容量为 $+ \infty$ 的边。</p>
+		<p>这样一来，整个网络的最小割 (最大流) 即为所求。</p>
+		<p>不过由于路径可能 $x_i \leadsto y_i$ 会很长，这样一来 $m$ 条路径加起来长度总和可能就能达到 $O \left( n m \right)$ 级别了，无法接受。</p>
+		<p>因此需要使用<em>数据结构优化建图</em>。</p>
+		<p>由于我们需要把一个点 (居民) 定位到一条链 (路径)，这容易想到使用树链剖分。</p>
+		<p>将一条链拆成 $M = O \left( \log n \right)$ 条 (dfs 序连续的) 链后，容易发现其中有<strong>至少 $M - 1$ 条链</strong>都是一条<strong>重链</strong>的前缀，剩下不超过一条链是一个普通的 (dfs 序连续的) 区间。</p>
+		<p>于是，我们对于每条重链 $v_1 \to v_2 \to \cdots \to v_k$，建立若干个 <strong>"重链前缀点"</strong> $p_1, p_2, \cdots, p_k$，然后连边 $p_i \to v_i, p_i \to p_{i-1}$。这样一来，如果一个点连向了 $p_i$，它就间接地与 $v_1, v_2, \cdots, v_i$ 连通上了。这部分的点数为 $O \left( n \right)$，边数为 $O \left( n + m \log n \right)$。</p>
+		<p>至于最后一个区间，则可以使用线段树优化的技巧。具体连法可以参见<a href="lydsy3218%3Buoj77.html" target="_blank">这儿</a>，这里就不赘述了。这部分的点数仍为 $O \left( n \right)$ 的，边数仍为 $O \left( n + m \log n \right)$ 的。</p>
+		<p>于是，我们使用树链剖分 + 线段树的技巧，将图的边数降为 $O \left( n + m \log n \right)$，点数保持不变，仍为 $O \left( n + m \right)$，这样跑网络流，时间就可以接受了。</p>
+		<p>至于输出方案，只要我们知道这个最小割长啥样，也是不难输出的。最小割的输出方法是网络流的经典内容，这里也不再提了。</p>
+		<p style="color: red">(ps: 用倍增算法也可以优化连边，不过这种方法所得到的图的点数为 $O \left( n \log n + m \right)$，边数为 $O \left( \left( n + m \right) \log n \right)$，实测速度比较慢 (由于倍增常数本身比树剖大，加上复杂度多一个 $\log n$)。)</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) ((x - 1 ^ 1) + 1)
+#define eg(i) ((i) + 1)
+#define pre(i) ((i) + n)
+#define sg(i) ((i) + 2 * n)
+#define ci(i) ((i) + 4 * n - 3)
+
+const int N = 25400, M = N * 2;
+
+int n, m, E = 0;
+int to[M], first[N], next[M];
+int p[N], dep[N], size[N];
+int cnt = 0, o[N], id[N], prf[N], top[N];
+int ans1[N], ans2[N];
+
+namespace Flow {
+	const int N = 100054, M = 2003731;
+
+	struct edge {
+		int u, v, f;
+		edge (int u0 = 0, int v0 = 0, int f0 = 0) : u(u0), v(v0), f(f0) {}
+	} e[M];
+
+	int V = 2, E = 0, si = 1, ti = 2, flow;
+	int first[N], next[M];
+	int dep[N], cur[N], que[N];
+
+	inline void addedge(int u, int v, int f = INT_MAX) {
+		e[++E] = edge(u, v, f); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u); next[E] = first[v]; first[v] = E;
+	}
+
+	bool bfs() {
+		int h, t = 1, i, x, y;
+		memset(dep, -1, sizeof dep);
+		que[0] = si; dep[si] = 0;
+		for (h = 0; h &lt; t; h++) {
+			if ((x = que[h]) == ti) return true;
+			for (i = first[x]; i; i = next[i])
+				if (dep[y = e[i].v] == -1 &amp;&amp; e[i].f) {
+					que[t++] = y;
+					dep[y] = dep[x] + 1;
+				}
+		}
+		return false;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		for (int &amp;i = cur[x]; i; i = next[i])
+			if (dep[e[i].v] == dep[x] + 1 &amp;&amp; e[i].f) {
+				a = std::min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c; e[ad(i)].f += c;
+				if((f += c) == lim) return f;
+			}
+		return f;
+	}
+
+	int Dinic() {
+		for (flow = 0; bfs(); flow += dfs(si, INT_MAX))
+			memcpy(cur, first, sizeof cur);
+		return flow;
+	}
+}
+
+namespace ST {
+	struct node {int lc, rc;} x[M];
+	int cnt = 0;
+
+	int build(int L, int R) {
+		int id = ++cnt;
+		if (L == R) return Flow::addedge(sg(id), eg(o[L])), id;
+		int M = (L + R - 1) &gt;&gt; 1;
+		x[id].lc = build(L, M), x[id].rc = build(M + 1, R);
+		Flow::addedge(sg(id), sg(x[id].lc)), Flow::addedge(sg(id), sg(x[id].rc));
+		return id;
+	}
+
+	void locate(int id, int L, int R, int ql, int qr, int po) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return Flow::addedge(po, sg(id));
+		int M = (L + R - 1) &gt;&gt; 1;
+		if (ql &lt;= M) locate(x[id].lc, L, M, ql, qr, po);
+		if (qr &gt; M) locate(x[id].rc, M + 1, R, ql, qr, po);
+	}
+}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y, &amp;z = prf[x]; size[x] = !next[first[x]];
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x]) {
+			p[y] = x, dep[y] = dep[x] + 1;
+			dfs(y), size[x] += size[y];
+			size[y] &gt; size[z] ? z = y : 0;
+		}
+}
+
+void dfs_hld(int x, int r) {
+	int i, y; o[++cnt] = x, id[x] = cnt, top[x] = r;
+	if (!prf[x]) return;
+	dfs_hld(prf[x], r);
+	for (i = first[x]; i; i = next[i])
+		if (!top[y = to[i]]) dfs_hld(y, y);
+}
+
+void solve(int u, int v, int po) {
+	int x = top[u], y = top[v]; Flow::addedge(1, po, 1);
+	for (; x != y; u = p[x], x = top[u]) {
+		if (dep[x] &lt; dep[y]) std::swap(u, v), std::swap(x, y);
+		Flow::addedge(po, pre(u));
+	}
+	if (dep[u] &gt; dep[v]) std::swap(u, v);
+	ST::locate(1, 2, n, id[u] + 1, id[v], po);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d%d", &amp;n, &amp;m);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1), dfs_hld(1, 1);
+	for (i = 2; i &lt;= n; ++i) Flow::addedge(eg(i), 2, 1);
+	for (i = 2; i &lt;= n; ++i) {
+		Flow::addedge(pre(i), eg(i));
+		if (i != top[i] &amp;&amp; i != prf[1]) Flow::addedge(pre(i), pre(p[i]));
+	}
+	ST::build(2, n), assert(ST::cnt == 2 * n - 3);
+	for (i = 1; i &lt;= m; ++i) scanf("%d%d", &amp;u, &amp;v), solve(u, v, ci(i));
+	printf("%d\n", Flow::Dinic());
+	for (i = 1; i &lt;= m; ++i) if (!~Flow::dep[ci(i)]) ans1[++*ans1] = i;
+	for (i = 1; i &lt; n; ++i) {
+		u = to[i * 2], v = to[i * 2 - 1];
+		if (p[u] == v) std::swap(u, v);
+		if (~Flow::dep[eg(v)]) ans2[++*ans2] = i;
+	}
+	printf("%d", *ans1); for (i = 1; i &lt;= *ans1; ++i) printf(" %d", ans1[i]); putchar(10);
+	printf("%d", *ans2); for (i = 1; i &lt;= *ans2; ++i) printf(" %d", ans2[i]); putchar(10);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>网络流中编号问题要搞清楚，不要重叠，数组也不要开小。</p>
+		<p><strong>坑2：</strong>树剖拆链的过程中，到最后一条链的时候不要忘记判断深度大小，以免方向反了。</p>
+	</body>
+</html>

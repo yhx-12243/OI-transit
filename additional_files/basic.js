@@ -146,7 +146,7 @@ const
 		}
 
 		for (i = Math.max(curPage - 4, 1); i <= Math.min(curPage + 4, totPage); ++i) {
-			if (i == curPage) {
+			if (i === curPage) {
 				$pag.append($('<li />')
 					.append(
 						$sel = $('<input type="number" id="selPage" class="cen" min="1" max="' + totPage.toString()+ '" value="' + curPage.toString() + '" />')
@@ -216,6 +216,7 @@ const
 	win.recordMatch = function (info, location, config) {
 		var i, j, l = 0, searchCount = 0, raw, OJ, srch = config['search'];
 		var tmp, ret = [], html = [], link = [], _html = [], _link = [];
+		// 1. check location
 		if (location) {
 			tmp = info[0].split(';');
 			for (i in tmp)
@@ -228,13 +229,12 @@ const
 		} else
 			ret = info[0].split(';');
 		if (!ret.length) return [];
-		if (config['tag']) {
-			tmp = ';' + html2Text(info[4]) + ';'
-			if (!~tmp.indexOf(';' + config['tag'] + ';')) return [];
-		}
+		// 2. check tag
+		if (config['tag'] && !(';' + html2Text(info[4]) + ';').includes(';' + config['tag'] + ';')) return [];
+		// 3. check search
 		if (srch) l = config['search'].length;
 		for (i in ret) {
-			if (l && ~(j = ret[i].toUpperCase().indexOf(srch.toUpperCase()))) {
+			if (srch && ~(j = ret[i].toUpperCase().indexOf(srch.toUpperCase()))) {
 				++searchCount;
 				html.push(
 					ret[i].substr(0, j) + '<strong>' + ret[i].substr(j, l) + '</strong>' + ret[i].substr(j + l)
@@ -247,7 +247,7 @@ const
 		tmp = info[4].split(';');
 		for (i in tmp) {
 			raw = html2Text(tmp[i]);
-			if (l && ~(j = htmlBalance(tmp[i], '\x01').toUpperCase().indexOf(srch.toUpperCase()))) {
+			if (srch && ~(j = htmlBalance(tmp[i], '\x01').toUpperCase().indexOf(srch.toUpperCase()))) {
 				++searchCount;
 				_html.push(
 					tmp[i].substr(0, j) + '<strong>' + tmp[i].substr(j, l) + '</strong>' + tmp[i].substr(j + l)
@@ -255,16 +255,17 @@ const
 			} else _html.push(tmp[i]);
 			_link.push(getTagUri(raw));
 		}
-		if (l && !searchCount) return [];
-		ret = [];
+		ret = [srch && srch === info[5] ? (++searchCount, '<strong>' + info[5] + '</strong>') : info[5]];
+		if (srch && !searchCount) return [];
+		// 4. totalize (joining)
 		tmp = [];
 		for (i in html)
 			tmp.push(link[i] ? '<a href="' + link[i] + '" target="_blank">' + html[i] + '</a>' : html[i]);
-		ret[0] = tmp.join(';');
+		ret.push(tmp.join(';'));
 		tmp = [];
 		for (i in _html)
 			tmp.push('<a href="' + _link[i] + '">' + _html[i] + '</a>');
-		ret[1] = tmp.join(';');
+		ret.push(tmp.join(';'));
 		return ret;
 	}
 

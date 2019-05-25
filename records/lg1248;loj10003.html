@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg1248][loj10003]加工生产调度</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>某工厂收到了 $n$ 个产品的订单，这 $n$ 个产品分别在 A, B 两个车间加工，并且必须先在 A 车间加工后才可以到 B 车间加工。</p>
+		<p>某个产品 $i$ 在 A, B 两车间加工的时间分别为 $A_i, B_i$。怎样安排这 $n$ 个产品的加工顺序，才能使总的加工时间最短。</p>
+		<p>这里所说的加工时间是指：从开始加工第一个产品到最后所有的产品都已在 A, B 两车间加工完毕的时间。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 1000$)，表示产品的数量。</p>
+		<p>第二行包含 $n$ 个正整数 $A_i$ ($A_i \leq 1000$)，表示这 $n$ 个产品在 A 车间加工各自所要的时间。</p>
+		<p>第三行包含 $n$ 个正整数 $B_i$ ($B_i \leq 1000$)，表示这 $n$ 个产品在 B 车间加工各自所要的时间。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数，表示最少的加工时间。</p>
+		<p>第二行输出 $n$ 个整数，为 $1 \sim n$ 的一个排列，表示一种最小加工时间的加工顺序。</p>
+
+		<h3>题解</h3>
+		<p>首先，容易看出，对于两个物品 $i, j$，如果在 A 车间物品 $i$ 比物品 $j$ 先加工，则在 B 车间物品 $i$ 也应该比物品 $j$ 先加工。</p>
+		<p>这个结论的证明此处略去。</p>
+		<p>接下来我们不妨设加工的顺序为 $1, 2, \cdots, n$。</p>
+		<p>设彻底加工完前 $i$ 个物品所需要的时间为 $f_i$，则有转移 $f_i = \max \left\{ f_{i-1}, A_1 + A_2 + \cdots + A_i \right\} + B_i$。</p>
+		<p>最终的加工时间就是 $f_n$。我们所要做的，就是找到一个物品的排列，使得 $f_n$ 尽可能的小。
+		<p>有没有感觉这很熟悉？没错，就是<a href="loj6534.html#process" target="_blank">这里</a> ([loj6534] 函数) 的过程。</p>
+		<p>因此，我们讲问题转化为了那道题中模型，从而那里面的 2 个引理就可以套用过来了。</p>
+		<ol>
+			<li><p>(引理 1) 如果 $A_i &gt; B_i \wedge A_{i+1} \leq B_{i+1}$，则将 $i$ 与 $i + 1$ 交换后答案不变劣。</p></li>
+			<li><p>(引理 2) 设 $A_i \leq B_i \wedge A_{i+1} \leq B_{i+1}$。如果 $A_i &gt; A_{i+1}$，则将 $i$ 与 $i + 1$ 交换后答案不变劣。</p></li>
+			<li><p>(引理 2') 设 $A_i &gt; B_i \wedge A_{i+1} &gt; B_{i+1}$。如果 $B_i &lt; B_{i+1}$，则将 $i$ 与 $i + 1$ 交换后答案不变劣。</p></li>
+		</ol>
+		<p>于是和那道题一样，按照这种规则 (Johnson 规则) 将物品排序后 DP 一遍即可。</p>
+		<p>时间复杂度 $O \left( n \log n \right)$ 或 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define A(x) std::get&lt;0&gt;(x)
+#define B(x) std::get&lt;1&gt;(x)
+#define C(x) std::get&lt;2&gt;(x)
+
+typedef long long ll;
+typedef std::tuple &lt;int, int, int&gt; tup;
+const int N = 1054;
+
+int n, D, U;
+int a[N], b[N];
+int cnt = 0, out[N];
+tup d[N], u[N];
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+int main() {
+	int i; ll cur = 0, ans = 0; D = U = 0;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) scanf("%d", a + i);
+	for (i = 0; i &lt; n; ++i) scanf("%d", b + i);
+	for (i = 0; i &lt; n; ++i) a[i] &lt;= b[i] ? d[D++] = tup(a[i], b[i], i) : u[U++] = tup(-b[i], -a[i], i);
+	std::sort(d, d + D), std::sort(u, u + U);
+	for (i = 0; i &lt; D; ++i) up(ans, cur += A(d[i])), ans += B(d[i]), out[cnt++] = C(d[i]);
+	for (i = 0; i &lt; U; ++i) up(ans, cur -= B(u[i])), ans -= A(u[i]), out[cnt++] = C(u[i]);
+	printf("%lld\n", ans);
+	for (i = 0; i &lt; cnt; ++i) printf("%d%c", out[i] + 1, i == cnt - 1 ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意本题要输出方案，因此排序时注意把原来的下标也存一下。</p>
+	</body>
+</html>

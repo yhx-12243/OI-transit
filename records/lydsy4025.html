@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4025]二分图</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张 $n$ 个节点的图，其中每条边会在一定的时间出现和消失。你需要判断在 $t = 1, 2, \cdots, T$ 时刻该图是否为二分图。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, T$ ($n, T \leq 10^5; m \leq 2 \times 10^5$)，表示图的点数、边数和总的时刻数。</p>
+		<p>接下来的 $m$ 行，每行包含四个非负整数 $u, v, start, end$ ($1 \leq u, v \leq n; u \neq v; 0 \leq start \leq end \leq T$)，表示有一条边连接 $u, v$ 两个点，在第 $start$ 秒末出现，第 $end$ 秒末消失。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $T$ 行，每行一个字符串。对于第 $i$ 行，如果第 $i$ 秒中 (第 $i - 1$ 秒末 ~ 第 $i$ 秒末) 该图是二分图，则输出 <code>Yes</code>，否则输出 <code>No</code>。</p>
+
+		<h3>题解</h3>
+		<p>显然，一个无向图 $G$ 为二分图的充分必要条件为 $G$ 中没有奇数长度的圈。</p>
+		<p>因此我们只需在每个时刻判断是否存在 "奇圈" 即可。</p>
+		<p>对于整个时间轴，可以看成既有加边，又有删边，还有询问是否是二分图三种操作。</p>
+		<p>如果只有加边的话，就可以较容易的用并查集维护：</p>
+		<p>具体地，使用带权并查集，记录每个点和它的父节点的在二分图中是否属于同一部分，如果是则为 $0$，不是则为 $1$。</p>
+		<p>于是，当连接边 $\left( u, v \right)$ 时，如果 $u, v$ 已经连通，则只需检验并查集中 $u$ 到根的权值和 $v$ 到根权值是否相同，如果相同，说明它们在同一部分中，于是加完边后就形成了奇圈，于是后面就不再可能是二分图。</p>
+		<p>如果 $u, v$ 尚未连通，也可以用类似的方法定出合并后新的子节点的权值，然后将它们合并。</p>
+		<hr />
+		<p>那现在有删边操作的话，根据套路，使用<strong>时间戳线段树</strong>将每条边拆成 $O \left( \log T \right)$ 个出现区间，将原问题分治成若干个只有加边的问题。</p>
+		<p>不过要注意的是，这里的并查集的 <code>size</code> 是 $O \left( n \right)$ 的，如果直接拷贝的话复杂度会高达 $O \left( n^2 \right)$，因此不能暴力拷贝。</p>
+		<p>那该怎么办呢？<del>可持久化？</del>其实并不需要。我们发现，当分治回溯的时候，只有最后面的操作会被撤销。也就是说，操作序列会形成一个<strong>栈结构</strong>。</p>
+		<p>因此，我们并不需要使用可持久化并查集，直接使用<a href="uoj14.html" target="_blank"><strong>可撤销并查集</strong></a>即可完成所需的操作。</p>
+		<p>类似地，在分治递归的过程中，一旦发现某一步形成了一个奇圈，则把线段树上对应子树的答案全都赋为 <code>No</code>，剩下的所有节点都赋为 <code>Yes</code> 即可。</p>
+		<p>总时间复杂度 $O \left( n + m \log T + T \log T \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 100054;
+
+int V, E, n;
+bool ans[N];
+std::vector &lt;pr&gt; x[N * 4];
+
+namespace UFSex {
+	int p[N], size[N], w[N];
+	int t = 0, hist[N * 8];
+
+	void init(int n) {for (; n; --n) p[n] = n, size[n] = 1;}
+
+	int ancestor(int x, int *d = NULL) {return p[x] == x ? x : (d &amp;&amp; (*d ^= w[x]), ancestor(p[x], d));}
+
+	void Union(int x, int y, int weight) {
+		if ((x = ancestor(x)) != (y = ancestor(y))) {
+			if (size[x] &gt; size[y]) std::swap(x, y);
+			p[x] = y, size[y] += size[x], w[x] = weight, hist[++t] = x;
+		}
+	}
+
+	inline void Undo(int _t) {for (int x; t &gt; _t; --t) x = hist[t], size[p[x]] -= size[x], p[x] = x, w[x] = 0;}
+}
+
+void add(int id, int L, int R, int ql, int qr, const pr &amp;e) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id].push_back(e);
+	segc;
+	if (ql &lt;= M) add(lc, L, M, ql, qr, e);
+	if (qr &gt; M) add(rc, M + 1, R, ql, qr, e);
+}
+
+void scan(int id, int L, int R) {
+	int i, u, v, d1, d2, d, t = UFSex::t;
+	for (i = x[id].size() - 1; i &gt;= 0; --i) {
+		d1 = d2 = 0;
+		u = UFSex::ancestor(x[id][i].first, &amp;d1);
+		v = UFSex::ancestor(x[id][i].second, &amp;d2);
+		d = d1 ^ d2 ^ 1;
+		if (u == v) {if (d) {return UFSex::Undo(t);}}
+		else UFSex::Union(u, v, d);
+	}
+	if (L == R) return ans[L] = true, UFSex::Undo(t);
+	segc; scan(lc, L, M), scan(rc, M + 1, R), UFSex::Undo(t);
+}
+
+int main() {
+	int i, u, v, s, e;
+	scanf("%d%d%d", &amp;V, &amp;E, &amp;n), UFSex::init(V);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d%d%d", &amp;u, &amp;v, &amp;s, &amp;e), ++s &lt;= e &amp;&amp; (add(1, 1, n, s, e, pr(u, v)), 0);
+	scan(1, 1, n);
+	for (i = 1; i &lt;= n; ++i) puts(ans[i] ? "Yes" : "No");
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意<em>可撤销并查集</em><strong>不能</strong>使用路径压缩，为保证复杂度，<strong>必须</strong>使用按秩合并 (使用 <code>rank</code> 和 <code>size</code> 复杂度均为 $O \left( \log n \right)$)。</p>
+		<p><strong>坑2：</strong>一条出现时间为 $\left[ start, end \right]$ 的边在线段树上覆盖的区间为 $\left[ start + 1, end \right]$，因此当 $start = end$ 的时候注意特判一下 (此时这条边不出现，但是在插入到线段树的时候要避免死循环)。</p>
+	</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6610]applese 爱数图</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定正整数 $n, k$，求有多少张无自环、无重边的 $n$ 个点带标号无向<strong>连通</strong>图，它的生成树个数 $\leq k$，答案对 $998244353$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, k$ ($n \leq 10^6; k \leq 22$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示无向连通图的个数。</p>
+
+		<h3>题解</h3>
+		<p>又是一道 $k$ 很小的题目。像 <a href="13.%20bridge.html" target="_blank">[Local #13]Bridge</a> 一样，我们试着从这里入手。</p>
+		<p>考虑一张图 $G$ 的生成树个数 $ST \left( G \right)$。</p>
+		<p>设 $G$ 进行<strong>点双缩点</strong>后所得的各个点双连通分量为 $G_1, G_2, \cdots, G_k$ ($G_i, G_j$ 可能有交)，则有 $\displaystyle ST \left( G \right) = \prod_{i=1}^k ST \left( G_i \right)$。</p>
+		<p>于是我们只需考虑一个点双连通图的生成树个数。</p>
+		<p>首先，最简单的点双连通图显然就是圈图 $C_n$ 啦。容易看出，$ST \left( C_n \right) = n$。</p>
+		<p>其次，可以注意到边数与点数相同的点双连通图<strong>只有圈图</strong>。因此，接下来考虑 $\left| E \right| = \left| V \right| + 1$ 的点双连通图。</p>
+		<p>容易发现，满足这样的点双一定是在一个圈图中，取两个点连出一条路径得到。设有 $\left| V \right| = n$，三度点为 $u, v$，三条路径的长度分别为 $a, b, c$ ($a + b + c = n + 1$)，则生成树的个数为 $a b + a c + b c$。</p>
+		<p>考察它的最小值。由基础的不等式知识可以证明，当 $\left\{ a, b, c \right\} = \left\{ 1, 2, n - 2 \right\}$ 时取到最小值，此时 $ST \left( G \right) = 3 n - 4$。</p>
+		<p>因此，对于 $\left| E \right| &gt; \left| V \right| + 1$ 的点双连通图，由 $ST \left( G \right) = ST \left( G \setminus \{e\} \right) + ST \left( G \cdot e \right)$ 可知，它的生成树个数也是不会少于 $3 n - 4$ 的。</p>
+		<p>回到原问题。由于 $\displaystyle ST \left( G \right) = \prod_{i=1}^k ST \left( G_i \right)$ 且有 $ST \left( H \right) \geq 3$ ($H$ 为点双连通图)，因此必定有 $k' \leq 2$，即原图中非平凡点双的个数不超过 $2$ 个 (平凡点双指的是少于 $3$ 个点的点双)。</p>
+		<p>因此，我们只需要枚举这零个/一个/两个非平凡点双分别统计答案即可。</p>
+		<ol>
+			<li><p>零个非平凡点双的情况非常容易处理，就是大家所熟知的<strong>树</strong>的情形。此时一共有 $n^{n-2}$ 棵树。</p></li>
+			<li><p>对于一个点双的情况，我们需要枚举这个点双的大小 $V_1$ 以及这个点双内部的生成树个数 $K_1$。</p>
+			<p>显然 $V_1, K_1 \leq 22$。不过最好是能对每个 $3 \leq V_1, K_1 \leq 22$ 算出有多少个 (有标号) $V_1$ 阶点双连通图 $G$ 满足 $ST \left( G \right) = K_1$ (下文记这个值为 $f_{V_1, K_1}$)。</p>
+			<ul>
+				<li><p>首先，当 $K_1 &lt; V_1$ 时，答案为零。</p></li>
+				<li><p>其次，当 $K_1 = V_1$ 时，$G \cong C_{V_1}$，此时答案为 $V_1$ 个点的圆排列数 $\dfrac {\left( V_1 - 1 \right)!} 2$。</p></li>
+				<li><p>然后，当 $V_1 &lt; K_1 &lt; 3 V_1 - 4$ 时，答案也为零。</p></li>
+				<li><p>对 $K_1 \geq 3 V_1 - 4$ 的情况，此时有 $V_1 \leq \dfrac {K_1 + 4} 3 \leq 8$。因此直接<strong>大爆搜所有 (不超过) $8$ 阶的无向连通图</strong>即可。</p></li>
+			</ul>
+			<p>于是得出这个结果后，剩下的就不难了。假设现在我们已经确定了这个点双的形态 (共 $\color {red} {f_{V, K}}$ 种)，并确定了这个点双的位置 (共 $\color {red} {\dbinom nV}$ 种)，然后就需要求将这个点双与剩下的单点 "连成一棵树" 的方案数。</p>
+			<p>是不是很熟悉？没错，<del>就是那么熟悉</del> 这就是在 <a href="lydsy5475%3Blg5206%3Bloj2983.html#lemma" target="_blank">[WC2019]数树</a> 中出现过的引理！</p>
+			<blockquote><strong>有一个由 $k$ 棵树 (连通块) 构成的森林，每棵树的大小分别为 $a_1, a_2, \cdots, a_k$，记 $n = a_1 + a_2 + \cdots + a_k$ 为森林的阶数，则这棵森林的生成超树 (即以这棵森林为生成森林的树) 的数量为 $n^{k-2} \cdot a_1 a_2 \cdots a_k$。</strong></blockquote>
+			<p>所以<del>显而易见地</del>，这个方案数应该等于 $\color {red} {n^{n - V - 1} \cdot V}$！于是将<span style="color: red">红色</span>的三个数乘起来即得我们想要的答案。</p></li>
+			<li><p>对于两个点双的情况，主题思路基本都是相同的。还是枚举两个点双的大小 $V_1, V_2$ 和生成树个数 $K_1, K_2$。</p>
+			<p>我们考虑这两个点双是有怎样的关系。</p>
+			<ul>
+				<li><p>这两个点双属于两个不同的边双。此时，两个点双没有公共点，选出它们有 $\color {fuchsia} {\dbinom n {V_1, V_2, n - V_1 - V_2}}$ 种方案，内部形态确定有 $\color {fuchsia} {f_{V_1, K_1} \cdot f_{V_2, K_2}}$ 种方案。</p>
+				<p>将它们与剩下的单点 "连成一棵树"，由引理，方案数等于 $$ \color {fuchsia} {n^{n - V_1 - V_2} \cdot V_1 \cdot V_2} $$</p>
+				<p>将<span style="color: fuchsia">粉色</span>的三个数乘起来即可。</p>
+				<li><p>这两个点双共同组成了一个边双。此时，两个点双有唯一的公共点。选出它们有 $\color {blue} {n \cdot \dbinom {n - 1} {V_1 - 1, V_2 - 1, n - V_1 - V_2 + 1}}$ 种方案，内部形态确定依然有 $\color {blue} {f_{V_1, K_1} \cdot f_{V_2, K_2}}$ 种方案。</p>
+				<p>将它们与单点 "连成一棵树"，由引理，共 $$ \color {blue} {n^{n - V_1 - V_2} \cdot \left( V_1 + V_2 - 1 \right)} $$ 种方案。</p>
+				<p>将<span style="color: blue">蓝色</span>的三个数乘起来即可。</p>
+			</ul>
+			<p>当然，对于这种情况，可以发现每张合法的图被算了两次，因此最后除以 $2$ 即可。</p>
+		</ol>
+		<p>总时间复杂度 $O \left( k^4 + k^2 \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 1000054, mod = 998244353, pmod = mod - 1, iv2 = (mod + 1) / 2;
+
+int V, K;
+int fact[N], finv[N];
+int fy[23][23];
+
+ll PowerMod(ll a, int n, ll c = 1) {for (n += n &gt;&gt; 31 &amp; pmod; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void Fy(int a, int b, int c) {fy[a][b] = c;} template &lt;typename... T&gt;
+void Fy(int a, int b, int c, T... args) {fy[a][b] = c, Fy(args...);}
+
+void init(int n) {
+	int i;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+	for (i = 3; i &lt;= 22; ++i) fy[i][i] = (ll)fact[i - 1] * iv2 % mod;
+	for (i = 5; i &lt;= 8; ++i) fy[i][i * 3 - 4] = fy[i + 1][i + 1];
+	Fy(4,8,6,4,16,1,5,12,10,5,20,10,5,21,60,6,15,180,6,16,180,7,19,2520,7,20,1260,7,21,1260);
+}
+
+inline ll C(int n, int r) {return (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+inline ll C3(int n, int r, int s) {return (ll)fact[n] * finv[r] % mod * finv[s] % mod * finv[n - r - s] % mod;}
+inline ll Ci3(int n, int r, int s) {return (ll)fact[n] * finv[r - 1] % mod * finv[s - 1] % mod * finv[n - r - s + 1] % mod;}
+
+int main() {
+	int V1, V2, K1, K2, t, c; ll ans = 0;
+	scanf("%d%d", &amp;V, &amp;K), init(std::max(V, 23));
+	for (V1 = 3; V1 &lt;= 22 &amp;&amp; V1 &lt;= V; ++V1)
+		for (K1 = 3; K1 &lt;= 22 &amp;&amp; K1 &lt;= K; ++K1) {
+			ans += PowerMod(V, V - V1, C(V - 1, V1 - 1) * fy[V1][K1] * 2 % mod);
+			for (V2 = 3; V2 &lt;= 22 &amp;&amp; V1 + V2 &lt;= V + 1; ++V2)
+				for (K2 = 3; K2 &lt;= 22 &amp;&amp; K1 * K2 &lt;= K; ++K2) {
+					t = (ll)fy[V1][K1] * fy[V2][K2] % mod;
+					c = Ci3(V, V1, V2) * (V1 + V2 - 1) % mod;
+					if (V1 + V2 &lt;= V) c = (c + C3(V, V1, V2) * V1 * V2) % mod;
+					ans += PowerMod(V, V - V1 - V2, (ll)c * t % mod);
+				}
+		}
+	printf("%lld\n", ((ll)ans % mod * iv2 + PowerMod(V, V - 2)) % mod);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意每一种情况答案都由三个步骤组合而成 (确定位置、确定形态、"连成一棵树")，缺一不可。</p>
+	</body>
+</html>

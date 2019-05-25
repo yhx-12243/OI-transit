@@ -15,38 +15,29 @@
 
 	// ---------------- Records ---------------- //
 	win.parseRecords = function (strBack) {
-		var i, info, count = 0, recnum = 0, result;
-		var $R, $C, $A;
-		Rows = []; recArr = strBack.split('\n');
-		for (i = 0; i < recArr.length; ++i)
-			if (recArr[i]) {
-				info = recArr[i].replace(/[\f\n\r\v]/g, '').split('|');
-				if (info.length !== 5) continue; // invalid record
-				++recnum;
-				result = recordMatch(info, curLocation, config);
-				if (!result.length) continue;
-//				if (config['tag'] && !~(';' + html2Text(info[4]) + ';').indexOf(';' + config['tag'] + ';')) continue;
-				$R = $('<tr />');
-				$R.append($C = $('<td />').data('id', recnum - 1));
-				$R.append($C = $('<td />').html(result[0]));
-				$R.append($C = $('<td />')
+		var i, n = 0, count = 0, info, result;
+		var $R, $C, $A, recs = strBack.split('\n').map(x => x.replace(/[\f\r\v]/g, '').split('|')).filter(x => x.length === 5);
+		Rows = [];
+		for (i = 0; i < recs.length; ++i) {
+			info = recs[i].concat((recs.length - i).toString());
+			result = recordMatch(info, curLocation, config);
+			if (!result.length) continue;
+			$R = $('<tr />');
+			$R.append($C = $('<td />').html(result[0]))
+			  .append($C = $('<td />').html(result[1]))
+			  .append($C = $('<td />')
 					.append(
 						$A = $('<a href="records/' + encodeURIComponent(info[0]) + '.html" target="_blank">链接</a>')
 					)
-				);
-				$R.append($C = $('<td />').html(info[1]));
-				$R.append($C = $('<td />').html(info[2]));
-				$R.append($C = $('<td />').html(info[3]));
-				$R.append($C = $('<td />').html(result[1]));
-				Rows.push($R.get(0));
-				++count;
-			}
-		for (i = 0; i < Rows.length; ++i) {
-			$C = $(Rows[i].cells[0]);
-			$C.html(recnum - $C.data('id')).removeData();
+				)
+			  .append($C = $('<td />').html(info[1]))
+			  .append($C = $('<td />').html(info[2]))
+			  .append($C = $('<td />').html(info[3]))
+			  .append($C = $('<td />').html(result[2]));
+			Rows.push($R.get(0));
+			++count;
 		}
-		if (curROrder === 'nr') tableReverse();
-		else if(curROrder !== 'n') sortTable(curROrder);
+		sortTable(curROrder);
 		totPage = Math.ceil(count / RECORDS_PER_PAGE);
 		if (!(curPage >= 1)) curPage = 1;
 		else if (curPage > totPage) curPage = totPage;

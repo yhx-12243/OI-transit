@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg5358][loj3110][SDOI2019]快速查询</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个长度为 $n$ 的整数数列，里面的元素依次编号为 $a_1, a_2, a_3, \cdots, a_n$。初始的时候，所有元素都为零。现在按照时间顺序提供了若干次关于这个数列的修改或询问，每一次修改或询问一定为以下六种情况之一：</p>
+		<ul>
+			<li><code>1 <em>i</em> val</code>：将 $a_i$ 赋值为给定整数 $\mathrm{val}$；</li>
+			<li><code>2 val</code>：将所有元素同时加上 $\mathrm{val}$；</li>
+			<li><code>3 val</code>：将所有元素同时乘上 $\mathrm{val}$；</li>
+			<li><code>4 val</code>：将所有元素同时赋值为 $\mathrm{val}$；</li>
+			<li><code>5 <em>i</em></code>：询问第 $i$ 个元素 $a_i$ 现在的值是多少；</li>
+			<li><code>6</code>：询问现在所有元素的和。</li>
+		</ul>
+
+		<h3>输入格式</h3>
+		<p>为了避免读入太大，输入采取如下的形式。</p>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^9$)，表示给定的数列长度为 $n$。</p>
+		<p>第二行包含一个正整数 $q$ ($q \leq 10^5$)，并且之后的 $q$ 行，每一行提供一个修改或询问，输入的格式与题目所述一致，保证 $1 \leq i \leq n \wedge -10^9 \leq \mathrm{val} \leq 10^9$。</p>
+		<p>我们称上述给定的修改或询问为标准操作。</p>
+		<p>第 $q + 3$ 行包含一个正整数 $t$ ($t \leq 100$)，并且之后的 $t$ 行每行给定两个正整数 $a_i$ 和 $b_i$ ($0 \leq a_i, b_i \leq 10^9$)，这里的下标 $i$ 依次记为 $1$ 到 $t$。</p>
+		<p>你需要对初始值全为零的长度为 $n$ 的序列做总计 $t \times q$ 次操作。</p>
+		<p>其中第 $\left( \left( i - 1 \right) q + j \right)$ 次操作形如第 $\left( \left( a_i + j \cdot b_i \right) \bmod q + 1 \right)$ 个给定的标准操作 ($1 \leq i \leq t \wedge 1 \leq j \leq q$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有询问答案的累计和。</p>
+		<p>因为答案可能很大，因此只要求输出其结果关于 $p=10^7+19$ 取模后的值。</p>
+
+		<h3>题解</h3>
+		<p>怎么操作有 $10^7$ 个哟？那么线段树/平衡树等都已经死了，因为我们需要做到单次询问 $O \left( 1 \right)$。</p>
+		<p>考察这些操作：咦，怎么询问都是全局的啊？</p>
+		<p>是的。类似 <a href="cf1137E.html" target="_blank">[cf1137E]Train Car Selection</a> 的思想，通过维护一个全局一次函数 $f \left( x \right) = K x + B$ 来进行偏移。</p>
+		<p>这样，对于没有 1 操作的情况，加 $v$ 就只需要令 $B \gets B + v$，乘 $v$ 就只需要令 $K \gets K v, B \gets B v$，赋值为 $v$ 就相当于令 $K \gets 1, B \gets v$，询问直接输出 $B$，和就是 $n B$。</p>
+		<p>对于有 1 操作的情况下，我们就需要用到自变量 $x$。我们令自变量 $x$ 为满足 $K x + B = a_i$ (当前的 $a_i$) 的 $x$ 就可以了。</p>
+		<p>这样 2/3/4 操作不受影响，5 操作只需输出 $K x + B$，6 操作只需输出 $K \left( \sum x \right) + n B$。</p>
+		<p>至于 1 操作，我们反解出 $x = K^{-1} \left( a_i - B \right)$，代入就可以了。</p>
+		<p>什么你说 $K = 0$？由于 $p$ 是素数，那一定是 3 操作干了全局乘 $0$ 这种好事！由于 $a \cdot 0 = 0$，我们直接将其看成全局赋为 $0$ 就可以了。这样就能时刻保证 $K \neq 0$，于是 $K$ 就存在逆元啦。</p>
+		<p>至于 $n$ 很大，这也不难处理：由于赋值操作只有 $O \left( q t \right)$ 个，因此绝大多数的 $a_i = B$，也就是说 $x = 0$。</p>
+		<p>于是我们可以开一个 Hash 表存储满足 $x \neq 0$ 的 $x$ 的集合，这样就能做到 $O \left( 1 \right)$ 查询/修改了。</p>
+		<p>总时间复杂度 $O \left( q t \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef std::unordered_map &lt;int, int&gt; map;
+const int mod = 10000019;
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+
+struct request {
+	int ty, id, val;
+	void read() {
+		switch (scanf("%d", &amp;ty), ty) {
+			case 1: scanf("%d%d", &amp;id, &amp;val), reduce(val %= mod); break;
+			case 2:
+			case 3:
+			case 4: scanf("%d", &amp;val), reduce(val %= mod); break;
+			case 5: scanf("%d", &amp;id); break;
+			case 6: break;
+		}
+	}
+} qry[100054];
+
+int n, m, d, inv[mod];
+int K = 1, B = 0, sum = 0;
+ll all = 0;
+map M;
+
+inline int get(int pos) {
+	map::iterator it = M.find(pos);
+	return it == M.end() ? B : ((ll)K * it-&gt;second + B) % mod;
+}
+
+void Do(const request &amp;q) {
+	switch (q.ty) {
+		case 1: d = q.val - get(q.id); reduce(sum += d), reduce(d), M[q.id] = (M[q.id] + (ll)d * inv[K]) % mod; break;
+		case 2: reduce(B += q.val); break;
+		case 3: q.val ? (K = (ll)K * q.val % mod, B = (ll)B * q.val % mod, sum = (ll)sum * q.val % mod) : (M.clear(), K = 1, B = sum = 0); break;
+		case 4: M.clear(), K = 1, B = q.val, sum = 0; break;
+		case 5: all += get(q.id); break;
+		case 6: all = (all + sum + (ll)B * n) % mod; break;
+	}
+}
+
+int main() {
+	int i, q, a, b;
+	for (inv[1] = 1, i = 2; i &lt; mod; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	scanf("%d%d", &amp;n, &amp;m);
+	for (i = 0; i &lt; m; ++i) qry[i].read();
+	for (scanf("%d", &amp;q); q; --q) {
+		scanf("%d%d", &amp;a, &amp;b), a %= m, b = b % m - m;
+		for (i = 0; i &lt; m; ++i) a += b, Do(qry[a += a &gt;&gt; 31 &amp; m]);
+	}
+	printf("%lld\n", all % mod);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于模数 $p$ 较小，因此 $1 \sim p - 1$ 的逆元最好一开始都预处理出来，以免多出不必要的 $O \left( \log p \right)$。</p>
+	</body>
+</html>

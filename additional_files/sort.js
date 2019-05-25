@@ -106,6 +106,9 @@
 
 	win.tableReverse = function () {Rows.reverse();}
 
-	win.sortTable = function (order) {Rows.sort(sortFunc[order]);}
+	win.sortTable = function (order) {Rows.sort(function (a, b) {
+		var A = a.cells[0].children.length, B = b.cells[0].children.length;
+		return A == B ? sortFunc[order](a, b) : B - A;
+	});}
 
 })(window ? window : this);

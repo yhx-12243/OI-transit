@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces576E]Painting Edges</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $n$ 个点，$m$ 条边的无向简单图，一共有 $k$ 种颜色，初始时所有边均未被染色。</p>
+		<p>你得到了 $q$ 个形如 "将第 $e_i$ 条边的颜色变成 $c_i$" 的操作。不过你需要满足，<strong>在任意时刻，每种颜色的边导出的子图是二分图</strong>。</p>
+		<p>如果修改后不是二分图，则撤销这次改动，并使 $e_i$ 拥有原先的状态，否则，就将 $e_i$ 的颜色变成 $c_i$。你需要对于每个操作，回答是否修改成功。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个正整数 $n, m, k, q$ ($2 \leq n \leq 5 \times 10^5; 1 \leq m, q \leq 5 \times 10^5; 1 \leq k \leq 50$)，表示顶点的个数，边的个数，颜色的个数和操作的个数。</p>
+		<p>接下来 $m$ 行，每行包含两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq n; a_i \neq b_i$)，表示图中 $a_i$ 和 $b_i$ 之间有一条边。</p>
+		<p>接下来 $q$ 行，每行包含两个正整数 $e_i, c_i$ ($1 \leq e_i \leq m; 1 \leq c_i \leq k$)，表示一次 "将第 $e_i$ 条边的颜色变成 $c_i$" 的操作。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每次操作，输出一个字符串，如果操作成功，则输出 <code>YES</code>，否则输出 <code>NO</code>。</p>
+
+		<h3>题解</h3>
+		<p>和 <a href="lydsy4025.html" target="_blank">[lydsy4025]二分图</a> 类似，尝试使用<strong>时间戳线段树</strong>的技巧。</p>
+		<p>然而，这次的修改操作并不是<em>加边</em>和<em>删边</em>，而是<strong>更改颜色</strong>。而且你一开始也无法得到每个操作到底是否成功，这看起来有点像强制在线的样子~</p>
+		<p>不过不用慌，离线算法照样是可以做的。我们对于一条边，将其出现的时间拆成若干段：即设它的颜色咋了时刻 $t_1, t_2, \cdots, t_k$ 被<em>修改</em> (这里的<em>修改</em>指的是<strong>修改操作</strong>，有可能修改不成功)，则将其拆成 $k + 1$ 段：$\left[ 1, t_1 - 1 \right], \left[ t_1 + 1, t_2 - 1 \right], \left[ t_2 + 1, t_3 - 1 \right], \cdots, \left[ t_{k-1} + 1, t_k - 1 \right], \left[ t_k + 1, q \right]$ (注意去除空区间) 后加入线段树。</p>
+		<p>由于在每一 "段" 中，这条边颜色的是固定的，因此就可以将其放入并查集中使用时间戳线段树进行分治。那每一 "段" 具体的颜色又该如何得到呢？</p>
+		<p>我们可以对每个颜色维护一个可撤销并查集，在递归过程中，将已经确定颜色的 "段" 对应的边用并查集连上，到底层后根据对应颜色的并查集判断是否可行 (存在奇圈，具体细节见<a href="lydsy4025.html" target="_blank">这里</a>)。从而得到该组操作的结果 (是否成功)，顺便得到这条边在下一 "段" 中的颜色。</p>
+		<p>这样总时间复杂度就是 $O \left( n + m \log q + K \cdot \log q \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int N = 540000, K = 51;
+
+struct edge {
+	int u, v, col;
+	edge * read() {return scanf("%d%d", &amp;u, &amp;v), col = 0, this;}
+} e[N];
+
+struct UFSex {
+	int n, *p, *size, *w;
+	vector hist;
+
+	UFSex () : n(0), p(NULL), size(NULL), w(NULL) {}
+	~UFSex () {if (p) delete [] (p), delete [] (size), delete [] (w);}
+
+	void resize(int _n) {
+		if (p) delete [] (p), delete [] (size), delete [] (w), hist.clear();
+		n = _n, p = new int[n + 1], size = new int[n + 1], w = new int[n + 1];
+		std::iota(p, p + (n + 1), 0), std::fill(size + 1, size + (n + 1), 1), memset(w, 0, (n + 1) &lt;&lt; 2);
+	}
+
+	int ancestor(int x, int *d = NULL) {return p[x] == x ? x : (d &amp;&amp; (*d ^= w[x]), ancestor(p[x], d));}
+
+	void Union(int x, int y, int weight) {
+		if (size[x] &gt; size[y]) std::swap(x, y);
+		p[x] = y, size[y] += size[x], w[x] = weight, hist.EB(x);
+	}
+
+	inline int time() {return hist.size();}
+
+	inline void undo(int t) {int x; for (t = hist.size() - t; t &gt; 0; --t) x = hist.back(), size[p[x]] -= size[x], p[x] = x, w[x] = 0, hist.pop_back();}
+} ufs[K];
+
+int V, E, C, n;
+int la[N];
+bool ans[N];
+pr modifies[N];
+vector x[N * 4];
+
+inline void get_time(int *res) {for (int i = 1; i &lt;= C; ++i) res[i] = ufs[i].time();}
+inline void backtrack(int *res) {for (int i = 1; i &lt;= C; ++i) ufs[i].undo(res[i]);}
+
+void add(int id, int L, int R, int ql, int qr, int v) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id].EB(v);
+	segc;
+	if (ql &lt;= M) add(lc, L, M, ql, qr, v);
+	if (qr &gt; M) add(rc, M + 1, R, ql, qr, v);
+}
+
+void scan(int id, int L, int R) {
+	int i, u, v, d1, d2, d, col, time[K + 1];
+	get_time(time);
+	for (int i : x[id]) {
+		if (!(col = e[i].col)) continue;
+		d1 = d2 = 0;
+		if ((u = ufs[col].ancestor(e[i].u, &amp;d1)) != (v = ufs[col].ancestor(e[i].v, &amp;d2)))
+			ufs[col].Union(u, v, d1 ^ d2 ^ 1);
+	}
+	if (L == R) {
+		std::tie(i, col) = modifies[L];
+		d1 = d2 = 0;
+		u = ufs[col].ancestor(e[i].u, &amp;d1);
+		v = ufs[col].ancestor(e[i].v, &amp;d2);
+		d = d1 ^ d2 ^ 1;
+		(ans[L] = !(u == v &amp;&amp; d)) &amp;&amp; (e[i].col = col);
+		return backtrack(time);
+	}
+	segc; scan(lc, L, M), scan(rc, M + 1, R), backtrack(time);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d%d%d%d", &amp;V, &amp;E, &amp;C, &amp;n);
+	for (i = 1; i &lt;= C; ++i) ufs[i].resize(V);
+	for (i = 1; i &lt;= E; ++i) e[i].read(), la[i] = INT_MAX;
+	for (i = 1; i &lt;= n; la[u] = i, ++i) {
+		scanf("%d%d", &amp;u, &amp;v), modifies[i] = pr(u, v);
+		if (la[u] &lt; i - 1) add(1, 1, n, la[u] + 1, i - 1, u);
+	}
+	for (i = 1; i &lt;= E; ++i) if (la[i] &lt; n) add(1, 1, n, la[i] + 1, n, i);
+	scan(1, 1, n);
+	for (i = 1; i &lt;= n; ++i) puts(ans[i] ? "YES" : "NO");
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于有多个并查集，因此实现时可以将其封装起来。</p>
+		<p><strong>坑2：</strong>在将这些 "段" (区间) 加入线段树时，不要忘记加入最后一段 ($\left[ t_k + 1, q \right]$)。</p>
+	</body>
+</html>
