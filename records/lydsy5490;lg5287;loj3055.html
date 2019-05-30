@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5490][lg5287][loj3055][HNOI2019]JOJO</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>我们用数字和字母来表示一个串，例如：<code>2 a 3 b</code> 表示的串就是 $\texttt{aabbb}$。
+		<p>一开始漫画中什么话都没有，接下来你需要依次实现 $n$ 个操作，一共有 $2$ 种操作：</p>
+		<ol>
+			<li><p>第一种：<code>1 <em>x</em> <em>c</em></code>：在当前漫画中加入 $x$ 个 $c$，表示在当前串末尾加入 $x$ 个 $c$ 字符。<strong>保证当前串是空串或者串尾字符不是 $c$</strong>；</p></li>
+			<li><p>第二种：<code>2 <em>x</em></code>：觉得漫画没画好，将漫画还原到第 $x$ 次操作以后的样子，表示将串复原到第 $x$ 次操作后的样子，如果 $x = 0$ 则是将串变成空串。如果当前串是 $\texttt{bbaabbb}$，第 $4$ 次操作后串是 $\texttt{bb}$，则 <code>2 4</code> 会使 $\texttt{bbaabbb}$ 变成 $\texttt{bb}$，保证 $x$ 小于当前操作数。</p></li>
+		</ol>
+		<p><del>众所周知，空条承太郎十分聪明，现在迪奥已经被打败了，他开始考虑自己的漫画中的一些问题：</del></p>
+		<p>对于一个串的每个前缀 $A$，都有一个最长的比它短的前缀 $B$ 与前缀 $A$ 的一个后缀匹配，设这个最长的前缀 $B$ 的长度为 $L$。$L$ 为 $0$ 时意味着 $B$ 是一个空串。</p>
+		<p>每一次操作后，你都需要将当前的串的所有前缀的 $L$ 求和并对 $998244353$ 取模输出告诉空条承太郎，好和他的白金之星算出的答案对比。比如 $\texttt{bbaaabba}$ 的 $L$ 分别是 $0, 1, 0, 0, 0, 1, 2, 3$，所以对于这个串的答案就是 $7$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^5$)，表示操作数量。</p>
+		<p>接下来 $n$ 行，每行包含一个操作，格式见题目描述。保证对 1 操作，有 $1 \leq x \leq 10000$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $n$ 行，每行一个整数，第 $i$ 行的整数表示 $i$ 个操作之后串的答案。</p>
+
+		<h3>题解</h3>
+		<p>容易看出，一个串的 $L$ 数组就是对其使用 KMP 算法所得的 <code>next[]</code> 数组。</p>
+		<p>因此，答案就等于对应的串 KMP 所得的 <code>next[]</code> 数组中所有数之和。</p>
+		<p><strong>先考虑只有添加字符的情况</strong>。注意到一个性质：每次在末尾加入的字符和原串的末尾<strong>一定不相同</strong>，因此可以得到这样一个性质：</p>
+		<p>对于一个串，将其按照题目中的方式去拆分 (即极大拆分，是唯一的)，则如果 $t$ 是 $s$ 的 border，则 $t$ 的拆分串在 $s$ 的拆分串中，除了 $t_1, t_{\left| t \right|}$ 可以略短于 $s$ 的串，$t$ 的拆分也是 $s$ 的拆分的 border。</p>
+		<p>如，$s = \texttt{aaabbcccacbbbbddaaaaabbcccacbbb} = \texttt a^3 \texttt b^2 \texttt c^3 \texttt{ac} \texttt b^4 \texttt d^2 \texttt a^5 \texttt b^2 \texttt c^3 \texttt{ac} \texttt b^3$，$t = \texttt{aaabbcccacbbb} = \texttt a^3 \texttt b^2 \texttt c^3 \texttt{ac} \texttt b^3$，其中 $t \vartriangleleft s$，在 $s$ 的拆分表示中，前面 $\texttt a^3 \texttt b^2 \texttt c^3 \texttt{ac} \texttt b^4$ 和后面 $\texttt a^5 \texttt b^2 \texttt c^3 \texttt{ac} \texttt b^3$ 除了两端可以不一样外其余均相同。</p>
+		<p>于是，这启发我们整段整段地跑 KMP，就能求出类似的 <code>next[]</code> 数组了。</p>
+		<p>至于更新答案，也不难：</p>
+		<p>考察当前加入了 $c^x$ ($x$ 个 $c$)，如果在 KMP 匹配的时候如果找到一个段 $c^y$，则根据 $x$ 和 $y$ 的关系分三类情况讨论：</p>
+		<ol>
+			<li><p>$x = y$，这个最简单，即已经找到匹配，对应的 <code>next[]</code> 数组为一个等差数列，直接使用等差数列求和公式即可。</p></li>
+			<li><p>$x &lt; y$，虽然失配了 (因为后面没有 $c$ 所以失配了)，但是这些位置的 <code>next[]</code> 数组也都可以更新完毕，还是使用一次等差数列求和公式即可。</p></li>
+			<li><p>$x &gt; y$，此时只有 $y$ 个位置的 <code>next[]</code> 值可以确定，将它们的和求出来，对于剩下的元素，等待继续使用 KMP。</p>
+			<p>因为有这种情况的存在，我们需要记录一个标记 $cur$，表示当前已经确定了多少个 <code>next[]</code> 值，然后逐渐更新。</p></li>
+		</ol>
+		<p>其次，如果当前串已经失配 (即失配指针已经跳到了根节点)，还需要讨论一种特殊情况：</p>
+		<p>如果当前串是 $c^x$，整个串的<strong>开头一段</strong>为 $c^y$，且 $x &gt; y$，则剩下的 $y - x$ 个元素依然可以和开头就进行匹配，且具有相同的 <code>next</code> 值 $x$。对于这个段整体，我们需要令 $next \gets 1$。</p>
+		<p>于是，我们就成功地求出了这个串所有前缀的最长 border 的长度之和，由 KMP 的时间复杂度分析，它是 $O \left( n \right)$ 的。</p>
+		<hr />
+		<p>接下来考虑有操作 2 的情况，这可以看成是一个 "可持久化"。这又引出了两个问题：</p>
+		<ol>
+			<li><p>"可持久化 KMP" 如何实现。</p></li>
+			<li><p>KMP 的复杂度是均摊的，如何保证 "可持久化 KMP" 的时间复杂度。</p></li>
+		</ol>
+		<p>我们逐一解决它们。</p>
+		<p>第一个问题：关于 "可持久化 KMP" 的实现。如果实在要实现真正的 "可持久化 KMP"，那么使用一个可持久化数组维护 <code>next[]</code> 值应该就可以了。</p>
+		<p>不过，本题是可以离线的。况且，对于 "可持久化" 的问题，如果你把这些操作的结构图画下来，应该可以清晰地发现是一个树形结构：即一个状态 $S$ 对应于多个子状态 (因为会有操作到每一时刻回到 $S$ 再进行操作的情形)。</p>
+		<p>因此，如果我们离线把这棵操作树建出来，就只需要实现一个 "可撤销 KMP" 即可。众所周知，"可撤销 KMP" 是不用花吹灰之力的 (你写出来的一般 KMP 就是可撤销的)，因为 KMP 不改变之前的信息。</p>
+		<p>第二个问题：时间复杂度如何保证。众所周知，KMP 的时间复杂度是均摊的，单次的代价甚至可以达到 $O \left( n \right)$。比如串 $\texttt a^{n-1} \texttt b$ 在匹配 $\texttt b$ 的过程中，失配指针就会跳 $n$ 遍。</p>
+		<p>这个时候，我们就需要用一个技巧 (<strong>可持久化 KMP 的一般方法</strong>)：</p>
+		<p>首先，还是需要一个引理：</p>
+		<p><strong style="color: green">若 $s$ 的最长 border 长度 $L &gt; \dfrac {\left| s \right|} 2$，则 $s$ 的所有长度大于 $\dfrac {\left| s \right|} 2$ 的 border 的长度构成一个公差为 $\left| s \right| - L$ 的等差数列。</strong></p>
+		<p>证明可以使用 <strong>Border —— 周期定理</strong>以及<a href="soj458.html" target="_blank">这里的相关内容</a>，应该不难证明。</p>
+		<p>因此，如果 $next[j] &gt; \dfrac j2$，则说明 $s$ 是一个周期较短的串，而对于周期串，它所比较的字符都是相同的，因此会做大量无用比较。因此，在失败 $1$ 次后直接令 $j \gets j \bmod \left( j - next[j] \right)$ 即可。</p>
+		<p>于是，每次比较后长度不超过原长度的一半，复杂度就有基本的保证了：$O \left( \log n \right)$。</p>
+		<p>虽然复杂度比传统 KMP 多了一个 $O \left( \log n \right)$ (即 $O \left( n \log n \right)$)，但它的一个巨大优势是<strong>可以可持久化</strong>了！(当然，如果这种 KMP 不持久化，它还是 $O \left( n \right)$ 的)</p>
+		<p>因此使用这种方法，总的时间复杂度就不会超过 $O \left( n \log n \right)$ 了。</p>
+		<hr />
+		<p>至此，我们就成功地解决了这两个问题，从而整个问题的时间复杂度就是 $O \left( n \log n \right)$ 的。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 100054, mod = 998244353;
+
+int n;
+int cnt = 0, id[N], ans[N];
+int fc[N], nc[N];
+int len[N], f[N];
+pr O[N], str[N];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline ll C2(int n) {return n * (n - 1ll) / 2 % mod;}
+
+inline void link(int x, int px) {nc[x] = fc[px], fc[px] = x;}
+
+void dfs(int x, int n) {
+	int i, j, nj, rep, ch, cur = 0;
+	if (~n) {
+		std::tie(rep, ch) = O[x];
+		str[n] = O[x], len[n + 1] = len[n] + rep;
+		if (!n) ans[x] = C2(rep);
+		else {
+			ll ret = ans[x];
+			for (j = f[n]; ~j; j = nj) {
+				nj = (j &lt; f[n] &amp;&amp; f[j] &gt; j / 2 ? (j - 1) % (j - f[j]) + 1 : f[j]); // optimized
+				if (str[j].second == ch)
+					if (i = min(str[j].first, rep), cur &lt; i) ret += C2(len[j] + i + 1) - C2(len[j] + cur + 1), cur = i;
+				if (str[j] == str[n]) break;
+			}
+			if (!~j &amp;&amp; str-&gt;second == ch &amp;&amp; str-&gt;first &lt; rep) ret += (ll)str-&gt;first * (rep - cur), j = 0;
+			f[n + 1] = ++j, ans[x] = ret % mod, ans[x] += ans[x] &gt;&gt; 31 &amp; mod;
+		}
+	}
+	for (int y = fc[x]; y; y = nc[y]) ans[y] = ans[x], dfs(y, n + 1);
+}
+
+int main() {
+	int i, j, op, c;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i)
+		scanf("%d%d", &amp;op, &amp;j), id[i] = (op == 1 ? (
+			link(++cnt, id[i - 1]), scanf("%s", &amp;c), O[cnt] = pr(j, (c &amp; 255) - 97), cnt
+		) : id[j]);
+	*f = -1, f[1] = 0, dfs(0, -1);
+	for (i = 1; i &lt;= n; ++i) printf("%d\n", ans[id[i]]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>对于记录的标记 $cur$，它只能被取 $\max$，不能减小。如果更新时的 $y \leq cur$，则不能对答案计算贡献。</p>
+		<p><strong>坑2：</strong>在本题的 $j \gets j \bmod \left( j - next[j] \right)$ 的过程中，需要注意边界情况的考虑，即 <code>next[n], next[next[n]]</code> 这两个值无论如何都要被访问到，否则 next 值会更新得不优。</p>
+	</body>
+</html>

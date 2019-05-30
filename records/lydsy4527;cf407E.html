@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4527][Codeforces407E]k-d-sequence</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>我们称一个数列为一个好的 $k - d$ 数列，当且仅当我们在其中加上至多 $k$ 个数之后，数列排序后为一个公差为 $d$ 的等差数列。</p>
+		<p>你现在有一个由 $n$ 个整数组成的数列 $a$。你的任务是找到它的最长连续子串，使得满足子串为好的 $k - d$ 数列。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, k, d$ ($1 \leq n \leq 2 \times 10^5; 0 \leq k \leq 2 \times 10^5; 0 \leq d \leq 10^9$)。</p>
+		<p>第二行包含 $n$ 个整数 $a_1, a_2, \cdots, a_n$ ($-10^9 \leq a_i \leq 10^9$)，表示这个序列。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含两个整数 $l, r$ ($1 \leq l \leq r \leq n$)，表示数列 $a_l, a_{l+1}, \cdots, a_r$ 是好的 $k - d$ 子数列中长度最长的。</p>
+		<p>如果有多个最优答案，输出 $l$ 最小的。</p>
+
+		<h3>题解</h3>
+		<p>当 $d = 0$ 时，也就是说公差为 $0$。此时的等差数列就相当于若干个相同的数。因此如果在一个数列中加上若干个数后都相同，那它本身所有的数应该都是相同的 (也就是说 $k$ 已经不影响答案了)。</p>
+		<p>于是我们只需找到最长的子串，使得其中所有数均相同。这个只需扫一遍找到所有极长子串并取个 $\max$ 即可。</p>
+		<p>当 $d &gt; 0$ 时，我们先设法把问题<strong>归约为 $d = 0$ 和 $d = 1$</strong>。</p>
+		<p>我们令 $b_i = \left \lfloor \dfrac {a_i} d \right \rfloor, c_i = a_i \bmod d = a_i - d \cdot b_i$。</p>
+		<p>于是，$a_l, a_{l+1}, \cdots, a_r$ 排序后为公差为 $d$ 的等差数列 &#8660; $b_l, b_{l+1}, \cdots, b_r$ 为公差为 $1$ 的等差数列<strong>且</strong> $c_l = c_{l+1} = \cdots = c_r$。</p>
+		<p>于是我们找到 $c$ 相同的极长段，在这个段中，我们只需对 $b$ 数组做一遍 $d = 1$ 的问题，最终对所有 $c$ 的极长段把答案合并起来，就是我们所要的最终结果。</p>
+		<p>因此下面只讨论 $d = 1$ 的情形。</p>
+		<p>我们尝试得到一个序列 $a_1, a_2, \cdots, a_m$ 为好的 $k-1$ 数列的充要条件。</p>
+		<p>一个显然的必要条件是，$a_1, a_2, \cdots, a_m$ 两两不相同。这是因为公差不为 $0$ 的等差数列不存在相同的项。</p>
+		<p>另一个必要条件是，$\max \left\{ a_1, a_2, \cdots, a_m \right\} - \min \left\{ a_1, a_2, \cdots, a_m \right\} \leq m + k - 1$。</p>
+		<p>反之，因为一个长度为 $len$ 公差为 $1$ 的等差数列的极差为 $len - 1$，而加入一个数只会使数列的极差单调增加 (不降，即非严格)，而最终等差数列的极差不会超过 $m + k - 1$，因此原序列的极差也不应该超过它。</p>
+		<p>而且容易证明，这两个条件的<strong>交</strong>即为 $a_1, a_2, \cdots, a_m$ 为好的 $k - 1$ 数列的充分必要条件。</p>
+		<p>因此现在的问题是，找到最长的子串，满足这两个条件。</p>
+		<p>我们从左到右枚举右端点 $r$。用一个 <code>std::set</code>/<code>std::map</code> 维护已经出现过的数，得到当前左端点的一个下界。</p>
+		<p>设 $a_l, a_{l+1}, \cdots, a_r$ 所组成的集合为 $S_{l, r}$。第二个条件就是 $\max S_{l, r} - \min S_{l, r} \leq r - l + k$。</p>
+		<p>等价地，$\max S_{l, r} - \min S_{l, r} + l \leq r + k$。</p>
+		<p>当 $r$ 确定时，不等式的右边是一个常量 $C$，故我们需要在左端找一个最小的 $l$ 使得 $\max S_{l, r} - \min S_{l, r} + l \leq C$。</p>
+		<p>显然不能每次暴力找，因此可以考虑使用一个数据结构，比如线段树去维护对于区间中的每个 $l$，$\max S_{l, r} - \min S_{l, r} + l$ 的值。</p>
+		<p>在线段树中顺便维护一个最小值，寻找的时候直接 "在线段树上二分" 即可。</p>
+		<p>考虑修改操作，由于 $\max$ 和 $\min$ 是对称的，因此只需考虑在末端加入一个元素时，所有的 <strong>"后缀 $\max$"</strong> 值会发生什么样的变化。</p>
+		<p>可以发现，后缀 $\max$ 的具体形态可以看成一个<strong>单调递减的栈</strong>，每次插入元素 $a_r$ 的时候，如果当前栈顶小于 $a_r$，则不停地出栈，直到栈空或栈顶元素不小于 $a_r$，将后面这部分的 <strong>"后缀 $\max$"</strong> 值均设为 $a_r$。</p>
+		<p>在弹栈的过程中，顺便在线段树上做<del>一次区间赋值或</del>若干次区间加就可以了。</p>
+		<p>由于单调栈的时间复杂度是 $O \left( n \right)$ 的，因此线段树的区间操作次数就是 $O \left( n \right)$ 的，从而线段树部分的时间复杂度就是 $O \left( n \log n \right)$。</p>
+		<p>由于线段树中只涉及到求 $\max$ 和区间加法，因此与 <a href="soj326.html" target="_blank">[soj326]魔法学校</a> 类似，不需要使用 <code>push_down</code> 即可完成。</p>
+		<p>总时间复杂度不变，仍为 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::map &lt;int, int&gt; map;
+const int N = 200054;
+
+int n, K, d;
+int a[N], r[N];
+int stack1[N], stack2[N];
+map M;
+
+inline bool cmp(const pr &amp;a, const pr &amp;b) {return a.second - a.first &lt; b.second - b.first || (a.second - a.first == b.second - b.first &amp;&amp; a.first &gt; b.first);}
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void up(pr &amp;x, const pr y) {cmp(x, y) ? x = y, 1 : 0;}
+
+namespace ST {
+	#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+	struct node {int v, tag;} x[N * 4];
+
+	void build(int id, int L, int R) {
+		x[id].v = L, x[id].tag = 0;
+		if (L == R) return;
+		segc; build(lc, L, M), build(rc, M + 1, R);
+	}
+
+	void add(int id, int L, int R, int ql, int qr, int v) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) {x[id].v += v, x[id].tag += v; return;}
+		segc;
+		if (ql &lt;= M) add(lc, L, M, ql, qr, v);
+		if (qr &gt; M) add(rc, M + 1, R, ql, qr, v);
+		x[id].v = std::min(x[lc].v, x[rc].v) + x[id].tag;
+	}
+
+	int find_suf(int id, int L, int R, int h, int v, int cv = 0) {
+		if (cv + x[id].v &gt; v) return -1;
+		if (L == R) return L;
+		segc, p; cv += x[id].tag;
+		if (h &gt; M) return find_suf(rc, M + 1, R, h, v, cv);
+		p = find_suf(lc, L, M, h, v, cv);
+		return ~p ? p : find_suf(rc, M + 1, R, M + 1, v, cv);
+	}
+}
+
+// max[l, r] - min[l, r] + l &lt;= r + k
+pr solve(int L, int R) {
+	int l, r, top1 = 0, top2 = 0, curL = L; pr ret(L, L);
+	map::iterator it; M.clear(), ST::build(1, L, R);
+	*stack1 = *stack2 = L - 1;
+	for (r = L; r &lt;= R; ++r) {
+		if ((it = M.find(a[r])) == M.end()) M.emplace(a[r], r);
+		else up(curL, it-&gt;second + 1), it-&gt;second = r;
+		for (; top1 &amp;&amp; a[r] &gt; a[stack1[top1]]; --top1)
+			ST::add(1, L, R, stack1[top1 - 1] + 1, stack1[top1], a[r] - a[stack1[top1]]);
+		for (; top2 &amp;&amp; a[r] &lt; a[stack2[top2]]; --top2)
+			ST::add(1, L, R, stack2[top2 - 1] + 1, stack2[top2], a[stack2[top2]] - a[r]);
+		stack1[++top1] = stack2[++top2] = r;
+		l = ST::find_suf(1, L, R, curL, r + K);
+		if (~l) up(ret, pr(l, r));
+	}
+	return ret;
+}
+
+int main() {
+	int i, j; div_t t; pr ans(1, 1);
+	scanf("%d%d%d", &amp;n, &amp;K, &amp;d);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i); r[n + 1] = a[n + 1] = INT_MAX;
+	if (!d) {
+		for (j = i = 1; i &lt;= n; ++i) if (a[i + 1] != a[j]) up(ans, pr(j, i)), j = i + 1;
+		return printf("%d %d\n", ans.first, ans.second), 0;
+	}
+	for (i = 1; i &lt;= n; ++i) t = div(a[i], d), r[i] = t.rem + (t.rem &gt;&gt; 31 &amp; d), a[i] = t.quot + (t.rem &gt;&gt; 31);
+	for (j = i = 1; i &lt;= n; ++i) if (r[i + 1] != r[j]) up(ans, solve(j, i)), j = i + 1;
+	return printf("%d %d\n", ans.first, ans.second), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 C++ 的除法是<strong>向 $0$ 取整</strong>的，实现时注意下。</p>
+		<p><strong>坑2：</strong>由于线段树是不 <code>push_down</code> 的，因此递归到低层的时候不要忘记把高层的 <code>tag</code> 加上。</p>
+	</body>
+</html>

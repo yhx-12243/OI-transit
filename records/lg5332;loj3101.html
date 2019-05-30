@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg5332][loj3101][JSOI2019]精准预测</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>目前，火星小镇上有 $n$ 个居民 (编号为 $1, 2, \cdots, n$)。机器学习算法预测出这些居民在接下来 $T$ 个时刻 (编号 $1, 2, \cdots, T$) 的生死情况，每条预测都是如下两种形式之一：</p>
+		<ul>
+			<li><p><strong>难兄难弟</strong> <code>0 <em>t</em> <em>x</em> <em>y</em></code>：在 $t$ 时刻，如果 $x$ 是死亡状态，那么在 $t + 1$ 时刻，$y$ 是死亡状态。(注意，当 $x$ 在 $t$ 时刻是生存状态时，该预测也被认为是正确的)；</p></li>
+			<li><p><strong>死神来了</strong> <code>1 <em>t</em> <em>x</em> <em>y</em></code>：在 $t$ 时刻，如果 $x$ 是生存状态，那么在 $t$ 时刻，$y$ 是死亡状态。(注意，当 $x$ 在 $t$ 时刻是死亡状态时，该预测也被认为是正确的)。</p></li>
+		</ul>
+		<p>注意本题是对某个时刻进行生死状态的预测，如果某个人在 $t$ 时刻是生存状态，在 $t + 1$ 时刻是死亡状态，你可以认为是在 $t$ 到 $t + 1$ 这段时间内发生了某个事件导致其死亡。</p>
+		<p>虽然 JYY 对自己从大数据中统计得到的模型非常自信，但火星人看到这些预测吓了一跳，表示实在难以接受这种设定，更是认为计算机科学是可怕的邪教，打破了他们平静的生活。为了安抚火星人的情绪，JYY 打算从这些预测结果中推导出一些火星人更容易接受的事实，从而安抚火星人的情绪。</p>
+		<p>具体来说，JYY 首先<strong>假设对火星人生死的预测全部正确</strong>，在此基础上，JYY 希望为小镇上的每个居民 $k$ <strong>分别计算有多少个火星人有可能和他一起活到第 $T + 1$ 时刻</strong>，换言之，JYY 希望为每个火星人 $k$ 计算 $$ \sum_{1 \leq i \leq n, i \neq k} \mathop{\mathrm{Live}} \left( k, i \right) $$</p>
+		<p>其中 $\mathop{\mathrm{Live}} \left( i, j \right) = 1$ 表示编号为 $i$ 和 $j$ 的火星人有可能同时在第 $T + 1$ 时刻处于生还状态，否则 $\text{Live}(i, j) = 0$。</p>
+		<p>注意火星人是不能够复活的。一个火星人可能在时刻 $1$ 就处于死亡状态，也有可能有<strong>预测未覆盖的死亡</strong>情况发生 (火星人在任何时候都可能死亡，但任意时刻观察到火星人的状态要么活着，要么死亡)。最后，注意到 $\mathop{\mathrm{Live}}$ 是为每一对火星人<strong>分别独立计算的</strong>，因此 $\mathop{\mathrm{Live}} \left( x, y \right) = \mathop{\mathrm{Live}} \left( y, z \right) = 1$ 并不意味着 $\mathop{\mathrm{Live}} \left( x, z \right) = 1$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $T, n, m$ ($T \leq 10^6; n \leq 50000; m \leq 10^5$)。  </p>
+		<p>接下来的 $m$ 行，每行四个非负整数 $c, t, x, y$ ($c \in \left\{ 0, 1 \right\}; 1 \leq t \leq T; 1 \leq x, y \leq n; x \neq y$)，表示一条预言。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n$ 个整数，第 $i$ 个整数表示第 $i$ 个火星人的答案。</p>
+
+		<h3>题解</h3>
+		<p>容易想到 2-SAT 建模。对每个火星人 $i$ 和每个时刻 $t$，建立变量 $L_{i, t}$，表示第 $i$ 个火星人是否在时刻 $t$ 存活。</p>
+		<p>然后命题一共有 $3$ 种 (注意每个命题对应一<strong>对</strong>有向边，它和它的逆否命题)：</p>
+		<ol>
+			<li><p>$L_{i, t} \to L_{i, t - 1} = \mathrm{true}$ (火星人不能复活)。</p>
+			<li><p>对于 0 型预言，有 $L_{y, t + 1} \to L_{x, t}$。</p></li>
+			<li><p>对于 1 型预言，有 $L_{x, t} \to \neg L_{y, t}$。</p></li>
+		</ol>
+		<p>最后，对于每个点 $L_{i, T + 1}$，看它在推出多少个 $\neg L_{j, T + 1}$ (即它在图中能走到多少个 $\neg L_{j, t + 1}$ 型的点)。首先，如果 $L_{i, T + 1} \to \neg L_{i, T + 1}$，说明 $L_{i, T + 1}$ 是<strong>永假式</strong>，从而这个火星人在时刻 $T + 1$ 无法存活。</p>
+		<p>否则，设它能到达 $K_i$ 个 $L_{j, T + 1}$ 型的点，则与它共存的火星人数就为 $n - 1 - K_i$。</p>
+		<p>不过，这里有一个非常严重的问题：图的点数就就已经达到了 $O \left( n T \right)$，即一个无法接受的级别！</p>
+		<p>那该怎么优化呢？</p>
+		<p>我们能注意到，虽然点数非常大，但是<strong>预言</strong>的数量相比点数就小了很多！</p>
+		<p>因此，有大量点是没有预言经过的。而些点，可以看成是一个有向的 <strong>$2$ 度路径</strong>，我们尝试对其<strong>缩点</strong>，缩成一条边来替代。具体实现可以使用 <code>std::map</code>，存储每个火星人的所有 "关键时刻"。</p>
+		<p>于是图的总点数就降到了 $O \left( n + m \right)$。</p>
+		<hr />
+		<p>接下来考虑如何求出 $K_i$ —— 即某个点能到达指定点的个数。</p>
+		<p>目前来说，这个问题除了暴力和 <code>bitset</code> 优化外，并没有什么高明的处理方法，因此我们尝试使用 <code>bitset</code> 优化。</p>
+		<p>但是这里一个致命的问题是，$O \left( \dfrac {n \left| V \right|} \omega \right)$ ($\left| V \right| = O \left( n + m \right)$ 为点数) 的空间开不下！</p>
+		<p>那该怎么处理了？我们可以使用一种技巧，<del>分块</del>分批次处理！</p>
+		<p>考虑我们只求区间 $\left[ L, R \right]$ 的答案，即只是从 $L_{i, T + 1}$ ($L \leq i \leq R$) 出发，能到达几个关键点 (即形如 $\neg L_{j, T + 1}$ 的点，其中 $1 \leq j \leq n$)。</p>
+		<p>然而由于需要对图进行拓扑排序，且 <code>bitset</code> 的大小仍是 $O \left( n \right)$，因此这样做并不能实质性地改变空间大小。</p>
+		<p>于是我们<strong>反一反</strong>，只考虑所有的 $\neg L_{j, T + 1}$ ($L \leq j \leq R$) 构成的集合 $S$，统计每个点能到达 $S$ 中的多少点。</p>
+		<p>由于 $\left| S \right| = R - L + 1$，因此 <code>bitset</code> 的大小是 $O \left( R - L \right)$ 的，因此空间复杂度就降至 $O \left( \dfrac {\left( R - L \right) \left| V \right|} \omega \right)$，时间复杂度不变。</p>
+		<p>对于 $n = 50000$ 的数据，取 $R - L \geq \dfrac n3$ 且比较接近 $\dfrac n3$ 时，运行效率最高。</p>
+		<p>此时的时间复杂度为 $O \left( \dfrac {n \left( n + m \right)} \omega \right)$，空间复杂度为 $O \left( \dfrac {n \left( n + m \right)} {3 \omega} \right)$，经计算约为 $600 \,\mathrm{MB}$，可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) ((x - 1 ^ 1) + 1)
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::map &lt;int, int&gt; map;
+const int N = 100054, VL = N * 3, EL = N * 12, BLOCK = 16800;
+typedef std::bitset &lt;BLOCK&gt; bitset;
+
+struct predict {
+	int c, t, x, y;
+	predict (int _c = 0, int _t = 0, int _x = 0, int _y = 0) : c(_c), t(_t), x(_x), y(_y) {}
+} p[N];
+
+int T, n, m, V = 0, E = 0;
+int to[EL], first[VL], next[EL];
+int deg[VL], que[VL];
+int ans[N];
+map mp[N];
+bitset G[VL], ct;
+bool contradict[N];
+
+inline void addedge(int u, int v) {to[++E] = v, next[E] = first[u], first[u] = E;}
+inline void statement(int u, int v) {addedge(v, u), addedge(ad(u), ad(v));} // link it reversely
+
+inline int get(int person, int time) {return mp[person].lower_bound(time)-&gt;second;}
+
+int main() {
+	int i, c, h, t, u, v, l, r;
+	scanf("%d%d%d", &amp;T, &amp;n, &amp;m);
+	for (i = 1; i &lt;= n; ++i) mp[i].emplace(T + 1, (V += 2) - 1);
+	for (i = 0; i &lt; m; ++i) {
+		scanf("%d%d%d%d", &amp;c, &amp;t, &amp;u, &amp;v), p[i] = predict(c, t, u, v);
+		if (mp[u].find(t) == mp[u].end()) mp[u].emplace(t, (V += 2) - 1);
+	}
+	for (i = 0; i &lt; m; ++i)
+		if (u = get(p[i].x, p[i].t), p[i].c)
+			v = get(p[i].y, p[i].t), statement(u, v + 1);
+		else
+			v = get(p[i].y, p[i].t + 1), statement(u + 1, v + 1);
+	for (i = 1; v = 0, i &lt;= n; ++i)
+		for (const pr &amp;p : mp[i]) v &amp;&amp; (statement(p.second, v), 0), v = p.second;
+	for (l = 1; l &lt;= n; l += BLOCK) {
+		r = std::min(l + BLOCK - 1, n);
+		for (i = 1; i &lt;= V; ++i)
+			for (G[i].reset(), t = first[i]; t; t = next[t]) ++deg[to[t]];
+		for (i = l; i &lt;= r; ++i) G[i * 2].set(i - l);
+		for (t = 0, i = 1; i &lt;= V; ++i) if (!deg[i]) que[t++] = i;
+		for (h = 0; h &lt; t; ++h)
+			for (i = first[u = que[h]]; i; i = next[i])
+				if (G[v = to[i]] |= G[u], !--deg[v]) que[t++] = v;
+		assert(t == V), ct.reset();
+		for (i = l; i &lt;= r; ++i) if (G[i * 2 - 1].test(i - l)) ct.set(i - l), contradict[i] = true;
+		for (i = 1; i &lt;= n; ++i) ans[i] += (G[i * 2 - 1] | ct).count();
+	}
+	for (i = 1; i &lt;= n; ++i) printf("%d%c", contradict[i] ? 0 : n - ans[i] - 1, i == n ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>可以证明整张图一定是一个 DAG，因此一定存在合法解 (或者更直接地，所有火星人都在第 $1$ 时刻死亡就是合法解)。</p>
+		<p><strong>坑2：</strong>由于存在 $L_{i, T + 1} \leadsto \neg L_{i, T + 1}$ 的路径，因此此时需要用一个变量专门记录哪些点是永假的 (就是必须为死的)，从而最后在计算不合法答案的时候要并上永假的点。<strong>并且注意在多轮处理的时候把永假标记清空</strong>。</p>
+	</body>
+</html>

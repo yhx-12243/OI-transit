@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj3073][互测2019]序列</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 J 用计算机生成了 $n$ 个长为 $m$ 的序列 (每个序列的元素从 $0$ 到 $m - 1$ 标号)，具体生成方式如下：</p>
+		<p>对于<strong>每个</strong>序列，小 J 先将所有元素置为 $0$，再指定两个生成参数 $x$ 和 $v$，对序列进行如下操作：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">for (i = x; i &gt; 0; i -= lowbit(i))
+	for (j = i - lowbit(i); j &lt; i; j++)
+		A[j] += i * (i ^ v);
+</code></pre>
+		<p>其中 $A$ 表示该序列，$\mathop{\mathrm{lowbit}} \left( i \right)$ 表示 $i$ 在二进制下最低非零位的值，如 $\mathop{\mathrm{lowbit}} \left( 20 \right) = \mathop{\mathrm{lowbit}} \left( \left( 10100 \right)_2 \right) = \left( 100 \right)_2 = 4$。</p>
+		<p>接下来小 M 会进行 $q$ 次询问，每次询问有两个参数 $c$ 和 $d$，请你回答前 $c$ 个序列 <strong>$\mathop{\mathrm{xor}}$ 卷积</strong>的第 $d$ 项，即设前 $c$ 个序列为 $S_1, S_2 \dots, S_c$，求 ($\oplus$ 表示二进制按位异或运算)：</p>
+		<p>$$ \sum_{\substack{p_1 \oplus p_2 \oplus \dots \oplus p_c = d \\ 0 \leq p_1, p_2, \dots, p_c &lt; m}} \prod_{i=1}^c S_{i, p_i} $$</p>
+		<p><strong>答案对 $998244353$ 取模</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, q$ ($n \leq 7 \times 10^5; m \leq 10^6; q \leq 10^5$)。</p>
+		<p>接下来 $n$ 行，每行包含两个正整数 $x, v$ ($1 \leq x \leq m; 1 \leq v \leq 10^9$)，依次表示每个序列的生成参数。</p>
+		<p>接下来 $q$ 行，每行包含两个非负整数 $c, d$ ($1 \leq c \leq n; 0 \leq d &lt; m$)，依次表示每次询问的参数。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每次询问，输出一行一个整数，表示所求的答案。</p>
+
+		<h3>题解</h3>
+		<p>令 $L$ 为<strong>大于</strong> $m$ 的最小的 $2$ 的整数次幂。将整个序列的定义域延拓到 $\left[ 0, L - 1 \right]$，可以发现，序列中原有的值不变，新增的值均为 $0$。故不影响对称差卷积的结果。</p>
+		<p>考察这个序列的性质，可以发现：</p>
+		<ol>
+			<li><p>当 $0 \leq x &lt; \dfrac L2$ 时，$A_{L/2} = A_{L/2 + 1} = \cdots = A_{L - 1} = 0$。</p></li>
+			<li><p>当 $\dfrac L2 \leq x &lt; L$ 时，$A_0 = A_1 = \cdots = A_{L/2 - 1} = \dfrac L2 \cdot \left( \dfrac L2 \oplus v \right)$。</p></li>
+		</ol>
+		<p>综上，序列 $A$ 中要么左半部分值均相同，要么右半部分值均相同。</p>
+		<p>同理，可以递归证明：对于 $A$ 的另一半的子序列，也满足这个性质 (即要么左半部分中值均相同，要么右半部分值均相同)。</p>
+		<p>因此，每个序列的性质可以归纳概括如下：</p>
+		<p>对于一个定义域为 $\left[ 0, 2^K - 1 \right]$ ($L = 2^K$) 的序列 $A$，存在一个下标 $c \in \left[ 0, 2^K - 1 \right]$，<strong>称作 $A$ 的<dfn style="color: fuchsia">核 (core)</dfn></strong>，使得将 $A$ 按照下标 $c$ 异或平移所得的序列 $B$ (即 $B_i = A_{i \oplus c}$)，满足对于 $\mathop{\mathrm{highbit}} \left( i \right) = \mathop{\mathrm{highbit}} \left( j \right)$ (或 $\left \lfloor \log_2 i \right \rfloor = \left \lfloor \log_2 j \right \rfloor$)，一定有 $B_i = B_j$。<strong style="color: red">我们将序列的这个性质称为 F 性质，满足 F 性质的序列称为 F 序列</strong>。</p>
+		<p>如果你觉得 F 性质过于抽象，下面举一个具体的例子：</p>
+		<p>设 $A = \left[ 3, 3, 3, 3, 7, 5, 6, 6 \right]$，则将 $A$ 按照下标 $5$ 异或平移所得的序列 $B = \left[ 5, 7, 6, 6, 3, 3, 3, 3 \right]$，满足 $B_2 = B_3, B_4 = B_5 = B_6 = B_7$，因此 $A$ 是核为 $5$ 的 F 序列。<span style="color: red">(ps: 当然，A 序列的核也可以是 $4$。更一般地，若一个 F 序列的核为 $c$，则 $c \oplus 1$ 也是它的核，即一个序列可以有多个核)</span></p>
+		<p>因此，一个直接的推论是：<strong style="color: orange">F 序列 $A$ 中不同的数的数量不会超过 $K + 1$</strong>。</p>
+		<p>于是，我们就可以是 $K + 1 = \log_2 L + 1$ 个整数和一个核来表示一个 F 序列。</p>
+		<hr />
+		<p>然而题目中需要将这些序列进行对称差卷积，又该怎么办呢？</p>
+		<p>这里有一个重要的定理：</p>
+		<p><strong style="color: green">两个 F 序列的对称差卷积仍是 F 序列，且两个序列的核的异或值是新序列的核。</strong></p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>设序列 $A, B$ 为 F 序列，设它们的核分别为 $c_A$ 和 $c_B$。我们需要证明，$A \ast B$ 也满足 F 性质，且 $c_A \oplus c_B$ 为它的核 (其中 $\ast$ 为集合对称差卷积)。</p>
+				<p>先考虑 $c_A = c_B = 0$ 的情况。我们证明，$A \ast B$ 是核为 $0$ 的 F 序列。</p>
+				<p>考察 $A \ast B$ 的第 $k$ 项 $c_k$，有 $$ c_k = \sum_{i \oplus j = k} a_i b_j $$</p>
+				<p>设 $\left \lfloor \log_2 k \right \rfloor = \beta$ ($0 \leq \beta &lt; K$)，固定 $\beta$，考虑 $i$ 和 $j$ 的取值：</p>
+				<ol>
+					<li><p>若 $i \geq 2^{\beta+1}$，则 $j = i \oplus k \geq 2^{\beta+1}$，且 $\mathop{\mathrm{highbit}} \left( i \right) = \mathop{\mathrm{highbit}} \left( j \right)$，从而对 $c_k$ 的贡献<strong>只与 $\beta$ 有关，和 $k$ 无关</strong>。</p></li>
+					<li><p>若 $i &lt; 2^{\beta+1}$，则 $j = i \oplus k &lt; 2^{\beta+1}$。此时，$i, j$ <strong>有且仅有一个</strong>满足 (从低位起，个位为第 $0$ 位) 第 $\beta$ 位为 $1$。不妨设 $j$ 的第 $\beta$ 位为 $1$。</p>
+					<p>于是 $i &lt; 2^\beta \leq j &lt; 2^{\beta+1}$，因此对于区间中<strong>所有的 $j$</strong>，$b_j$ 的值都是一样的，因此这一段对 $c_k$ 的贡献就是 $\displaystyle b_{2^\beta} \cdot \sum_{0 \leq i &lt; 2^\beta} a_i$。</p>
+					<p>同理，若 $j &lt; 2^\beta \leq i &lt; 2^{\beta+1}$，贡献为 $\displaystyle a_{2^\beta} \cdot \sum_{0 \leq i &lt; 2^\beta} b_i$，可以发现，依然只与 $\beta$ 有关，跟 $k$ 无关。</p></li>
+				</ol>
+				<p>从而，对于若干个 $k$，只要 $\beta = \left \lfloor \log_2 k \right \rfloor$ 相同，$c_k$ 就相同。这恰恰就是 F 性质的定义，且序列的下标<strong>不平移就能做到</strong>，从而 $A \ast B$ 确实是核为 $0$ 的 F 序列。</p>
+				<p>对于 $c_A, c_B \neq 0$ 的情况，也容易证明：</p>
+				<p>设序列 $\chi_A, \chi_B$ 满足，$\left( \chi_A \right)_i = \left[ i = c_A \right], \left( \chi_B \right)_i = \left[ i = c_B \right]$。</p>
+				<p>则由 F 序列及核的定义，$A \ast \chi_A, B \ast \chi_B$ 均为核为 $0$ 的 F 序列。</p>
+				<p>于是，$\left( A \ast \chi_A \right) \ast \left( B \ast \chi_B \right)$ 也是核为 $0$ 的 F 序列。</p>
+				<p>由对称差卷积的交换律和结合律，$\left( A \ast B \right) \ast \left( \chi_A \ast \chi_B \right)$ 也是核为 0 的 F 序列，而 $\chi_A \ast \chi_B$ 满足 $\left( \chi_A \ast \chi_B \right)_i = \left[ i = c_A \oplus c_B \right]$。</p>
+				<p>因此 $\left( A \ast B \right)$ 为核为 $c_A \oplus c_B$ 的 F 序列，结论成立。</p>
+			</div>
+		</div>
+		<p>于是我们只需要模拟这个过程即可，将这 $n$ 个序列做一次 "<strong>前缀 $\ast$</strong> (对称差卷积)"。</p>
+		<p>而两个 F 序列的对称差卷积，由证明过程可知，是可以 $O \left( \log_2 L \right)$ 完成的。</p>
+		<p>对于单点询问一个值，可以通过 F 序列的定义，将下标 $d$ 先与它的核 $c$ 异或，然后取数组中第 $\left \lfloor \log_2 d \right \rfloor$ 个值即可。</p>
+		<p>总时间复杂度 $O \left( n \log m + q \right)$，空间复杂度 $O \left( n \log m \right)$ (强制在线) 或 $O \left( n + \log m + q \right)$ (离线)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+#define ctz __builtin_ctz
+#define val __fy1__()
+#define lowbit(x) (x &amp; -x)
+
+typedef long long ll;
+const int N = 700054, mod = 998244353, LN = 20;
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+
+int n, q, len;
+
+struct seq {
+	int core, __fy__[LN + 1];
+	seq (int _core = 0) : core(_core) {memset(__fy__, 0, sizeof __fy__);}
+	inline int * val {return __fy__ + 1;}
+	inline const int * val const {return __fy__ + 1;}
+	inline int sum() const {ll ret = val[-1]; for (int i = 0; i &lt; len; ++i) ret += (ll)val[i] &lt;&lt; i; return ret % mod;}
+	inline int operator [] (int x) const {return val[(x ^= core) ? lg2(x) : -1];}
+	seq operator * (const seq &amp;B) const;
+} a[N];
+
+seq get_sequence(int x, int v) {
+	seq ret(x);
+	for (int i = x; i; i -= lowbit(i)) ret.val[ctz(i)] = (ll)i * (i ^ v) % mod;
+	return ret;
+}
+
+seq seq::operator * (const seq &amp;B) const {
+	seq ret(core ^ B.core); ll S = 0, SA = sum(), SB = B.sum();
+	for (int i = len - 1; i &gt;= 0; --i) {
+		SA -= (ll)val[i] &lt;&lt; i, SB -= (ll)B.val[i] &lt;&lt; i;
+		reduce(ret.val[i] = (S + SA % mod * B.val[i] + SB % mod * val[i]) % mod);
+		S = (S + ((ll)val[i] * B.val[i] % mod &lt;&lt; i)) % mod;
+	}
+	return ret.val[-1] = (S + (ll)val[-1] * B.val[-1]) % mod, ret;
+}
+
+int main() {
+	int i, x, y;
+	scanf("%d%d%d", &amp;n, &amp;len, &amp;q), len = lg2(len) + 1;
+	for (i = 0; i &lt; n; ++i) scanf("%d%d", &amp;x, &amp;y), a[i] = get_sequence(x, y);
+	for (i = 1; i &lt; n; ++i) a[i] = a[i] * a[i - 1];
+	for (; q; --q) scanf("%d%d", &amp;x, &amp;y), printf("%d\n", a[--x][y]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>使用 <code>__builtin_clz</code> 函数的时候注意当 $x = 0$ 时函数的行为是未定义的。</p>
+		<p><strong>坑2：</strong>对于一个 F 序列 $A$，它的核 $c$ 位置的值 $A_c$ 是需要单独记录的，包括对称差卷积的时候。</p>
+	</body>
+</html>

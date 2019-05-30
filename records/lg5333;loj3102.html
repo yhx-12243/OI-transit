@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg5333][loj3102][JSOI2019]神经网络</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $m$ 棵无向树 $\left\{ T_1 = \left( V_1, E_1 \right), T_2 = \left( V_2, E_2 \right), \cdots, T_m = \left( V_m, E_m \right) \right\}$ 构成的森林。定义无向边集 $E^\ast = \left\{ \left( u, v \right) \mid u \in V_i, v \in V_j, i \neq j \right\}$。</p>
+		<p>令 $G = \left( V, E \right)$，其中 $$ V = V_1 \cup V_2 \cup \cdots \cup V_m, E = E_1 \cup E_2 \cup \cdots \cup E_m \cup E^\ast $$</p>
+		<p>你需要求出 $G$ 的 Hamilton 回路的数量。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $m$ ($2 \leq m \leq 300$)，表示火星人神经网络初始时无向树的数量。</p>
+		<p>接下来的输入分为 $m$ 部分，第 $i$ 部分描述了树 $T_i$。</p>
+		<p>对于第 $i$ 棵树，第一行包含一个正整数 $\left| V_i \right|$ ($\displaystyle \sum_{i=1}^m \left| V_i \right| \leq 5000$)，表示 $T_i$ 中节点的数量。</p>
+		<p>接下来 $\left| V_i \right| - 1$ 行，每行两个正整数 $x, y$ ($1 \leq x, y \leq \left| V_i \right|; x \neq y$)，表示该树中节点 $x, y$ 之间有一条边相连。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $G$ 中 Hamilton 回路的数量对 $998244353$ 取模后的值。</p>
+
+		<h3>题解</h3>
+		<p>对于这张图 $G$ 的一个 Hamilton 回路，可以看出，它相当于对于每棵树，寻找它的一个链分解。然后将它们组成一个圆排列，并需要保证相邻两条链不能来自同一棵树。</p>
+		<p>于是，我们先需要对每棵树 $T$ 求出将其分解成 $k$ 条链的并的方案数，记为 $Dec \left( T, k \right)$。</p>
+		<p>我们可以使用树形 DP 的方法来求出对于给定的 $T$ 和所有的 $k = 1, 2, \cdots, \left| T \right|$，$Dec \left( T, k \right)$ 的值。</p>
+		<p>具体地，设 $f_{x, y, t}$ ($t \in \left\{ 0, 1, 2 \right\}$) 表示对于以 $x$ 为根的子树，共填了 $y$ 条<strong>完整</strong>的链，其中 $t = 0, 1, 2$ 分别表示 $x$ 所在的链还需要接两端，还需要接一端以及 $x$ 所在的链已经是<strong>完整的</strong>。</p>
+		<p>因此边界为 $f_{x, 0, 0} = f_{x, 0, 1} = f_{x, 1, 2} = 1, f_{x, 0, 2} = f_{x, 1, 0} = f_{x, 1, 1} = 0$，转移共分为两大类：</p>
+		<ol>
+			<li><p>子树 $y$ 的所有链均为完整的。此时直接乘过来即可。</p></li>
+			<li><p>子树 $y$ 的链还需要接一端，当前 $x$ 的链还需要接 2 端/接 1 端 (分别对应 $t = 0$ 和 $1$)，此时将其接上以后 $x$ 所在的链还需要接 1 端/已经完整 (分别对应 $t = 1$ 和 $2$)。</p></li>
+		</ol>
+		<p>最后 $Dec \left( T, k \right)$ 的值就等于 $f_{r, k, 2}$，其中 $r$ 为根节点。这个 DP 的复杂度是 $O \left( \left| T \right|^2 \right)$ 的。</p>
+		<p>不过要注意的是，对于每条长度 (边的数量) 大于 $0$ 的链，在 Hamilton 路上走的时候既可以正着走，也可以反着走。因此对于这种链，方案数需要翻倍。这个也不难处理，在最后一种转移的时候乘一个系数 $2$ 即可。我们把这个值正式地称为 $Dec \left( T, k \right)$。</p>
+		<hr />
+		<p>接下来考虑如何将这些零散的链<strong>拼合</strong>成一个完整的 Hamilton 圈。</p>
+		<p>根据套路，我们先破环为链，讨论链的处理方法。</p>
+		<p>我们使用<strong>生成函数</strong>来解决这个问题，注意到是排列，因此使用<strong>指数生成函数</strong>。</p>
+		<p>考虑每棵树的生成函数，设用了 $k$ 条链，则一共有 $Dec \left( T, k \right)$ 种方案，于是方案数看似就是 $Dec \left( T, k \right) x^k$。最后再将所有树的生成函数乘起来即可。</p>
+		<p>然而这并没有保证 <strong>"相邻两条链不能来自同一棵树"</strong> 这一限制。</p>
+		<p>那怎么办呢？我们考虑使用<strong>容斥原理</strong>来解决，即枚举有多少个相邻的对。</p>
+		<p>对于将 $T$ 分成 $k$ 个链的并的方案，对其做一个全排列，得到 $k! \cdot Dec \left( T, k \right)$ 种<em>链排列方案</em>。</p>
+		<p>对每一种链排列方案，设它实际上只分成了 $j$ 段 (即存在 $k - j$ 段 "粘在一起")，这样的方案有 $\dbinom {k - 1} {j - 1}$ 种，乘上容斥系数 $\left( -1 \right)^{k-j}$，在指数生成函数与别人合并时，它也只能看成 $j$ 段与别人合并，因此会贡献到 $\dfrac {x^j} {j!}$ 这一项中。</p>
+		<p>于是，一棵树的生成函数即为 $$ G_T \left( x \right) = \sum_{k = 1}^{\left| T \right|} k! \cdot Dec \left( T, k \right) \cdot \sum_{j=1}^k \left( -1 \right)^{k-j} \dbinom {k - 1} {j - 1} \dfrac {x^j} {j!} $$</p>
+		<p>最后只需要将所有生成函数都乘起来，即得最终的生成函数 $\displaystyle Ans \left( x \right) = \prod_{i=1}^m G_{T_i} \left( x \right) = G_{T_1} \left( x \right) G_{T_2} \left( x \right) \cdots G_{T_m} \left( x \right)$。</p>
+		<p>而对于环的情况，其实非常简单：</p>
+		<p>考虑结果中的每一项 $c_i \dfrac {x^i} {i!}$，可以看成是最后 $i$ 条链/粘链的一个排列。</p>
+		<p>而在容斥过程中，对于每种有 $i$ 条链/粘链的圆排列，都恰好对应着 $i$ 种不合法的有 $i$ 条链/粘链的一个一般排列。</p>
+		<p>于是 $\dfrac {c_i} i$ 就是我们所要的圆排列的 $\dfrac {x^i} {i!}$ 次项系数。</p>
+		<p>也就是说，环形答案的生成函数与线性答案的生成函数有如下关系：</p>
+		<p style="color: red">$$ \large Cyc \left( x \right) = \int \frac {Ans \left( x \right)} x \mathrm dx $$</p>
+		<p>于是逐项积分即可，总时间复杂度 $O \left( \left( \sum \left| V_i \right| \right)^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 5400, M = N * 2, mod = 998244353;
+typedef int vec[N], *pvec;
+typedef const int *cpvec;
+
+int n, V, E;
+int to[M], first[N], next[M];
+int size[N], f[N][N][3], t[N][3]; // {0 : '.', 1 : '/', 2 : '/\'}
+int fact[N], finv[N];
+vec split, P, all, B1;
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void init() {
+	int i;
+	for (*fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	--i, finv[i] = PowerMod(fact[i], mod - 2);
+	for (; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+inline ll C(int n, int r) {return (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+#define Fy(a, b, c) t[u + v][a] = (t[u + v][a] + (ll)f[x][u][b] * f[y][v][c]) % mod
+void dfs(int x, int px = 0) {
+	int i, u, v, y; size[x] = 1;
+	f[x][0][0] = f[x][0][1] = f[x][1][2] = 1;
+	f[x][0][2] = f[x][1][0] = f[x][1][1] = 0;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px) {
+			dfs(y, x);
+			for (u = 0; u &lt;= size[x]; ++u)
+				for (v = 0; v &lt;= size[y]; ++v)
+					Fy(0, 0, 2), Fy(1, 1, 2), Fy(2, 2, 2), Fy(1, 0, 1),
+					t[u + v + 1][2] = (t[u + v + 1][2] + 2ll * f[x][u][1] * f[y][v][1]) % mod;
+			for (size[x] += size[y], u = 0; u &lt;= size[x]; ++u)
+				memcpy(f[x][u], t[u], 12), memset(t[u], 0, 12);
+		}
+}
+
+void PolyMul(int A, cpvec a, int B, cpvec b, pvec ret) {
+	int i, j; memset(B1, 0, (A + B + 1) &lt;&lt; 2);
+	for (i = 0; i &lt;= A; ++i)
+		for (j = 0; j &lt;= B; ++j) B1[i + j] = (B1[i + j] + (ll)a[i] * b[j]) % mod;
+	memcpy(ret, B1, (A + B + 1) &lt;&lt; 2);
+}
+
+int main() {
+	int i, j, u, v, c, t, sum = 0; ll cur, ans = 0; init();
+	scanf("%d", &amp;n), *all = 1;
+	for (c = 0; c &lt; n; sum += V, ++c) {
+		scanf("%d", &amp;V), E = 0, memset(first, 0, (V + 1) &lt;&lt; 2);
+		for (i = 1; i &lt; V; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+		dfs(1);
+		for (i = 1; i &lt;= V; ++i) split[i] = (ll)f[1][i][2] * fact[i] % mod;
+		for (i = 1; i &lt;= V; ++i) {
+			for (cur = 0, j = i; j &lt;= V; ++j)
+				t = split[j] * C(j - 1, i - 1) % mod, (i ^ j) &amp; 1 ? cur -= t : cur += t;
+			reduce(P[i] = cur % mod * finv[i] % mod);
+		}
+		PolyMul(sum, all, V, P, all);
+	}
+	for (i = 0; i &lt; sum; ++i) ans = (ans + (ll)all[i + 1] * fact[i]) % mod;
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意树形 DP 和多项式乘法的时候千万不要 <code>for</code> 到底，不然时间复杂度会退化成 $O \left( n^3 \right)$。</p>
+		<p><strong>坑2：</strong>树形 DP 时不要忘记将<strong>长度大于 $0$</strong> 的链的数量乘以 $2$，以及代入到生成函数的时候注意这 $k$ 条链的排列，需要乘以 $k!$。</p>
+	</body>
+</html>

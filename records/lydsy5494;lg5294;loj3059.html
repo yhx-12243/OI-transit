@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5494][lg5294][loj3059][HNOI2019]序列</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个长度为 $n$ 的序列 $A_1, A_2, \cdots , A_n$，以及 $m$ 个操作，每个操作将一个 $A_i$ 修改为 $k$。</p>
+		<p>第一次修改之前及每次修改之后，都要求你找到一个同样长度为 $n$ 的单调不降序列 $B_1, \cdots , B_n$，使得 $\displaystyle \sum_{i=1}^n \left(A_i - B_i \right)^2$ 最小，并输出该最小值。</p>
+		<p>需要注意的是每次操作的影响都是独立的，也即每次操作只会对当前询问造成影响。</p>
+		<p>为了避免精度问题，我们保证这个最小值是个分数，也即能表示为两个非负整数相除的形式：$x / y$。那么你将要输出 $\left( x \times y^{P-2} \right) \bmod P$ 的值，表示模意义下 $x / y$ 的值。其中 $P = 998244353$ 是一个大质数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($3 \leq n \leq 10^5; 0 \leq m \leq 10^5$)，表示序列长度和操作数。</p>
+		<p>第二行包含 $n$ 个由空格隔开的正整数，代表序列 $A_1, A_2, \cdots, A_n$ ($1 \leq A_i \leq 10^9$)。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $i, k$ ($1 \leq i \leq n; 1 \leq k \leq 10^9$)，描述一个操作，代表将 $A_i$ 修改为 $k$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m + 1$ 行，每行一个整数，第 $i$ 行的整数表示第 $i - 1$ 次修改后的答案。特别的，第 $1$ 行应为初始局面的答案。</p>
+
+		<h3>题解</h3>
+		<p>由参考文献 "高睿泉, 《浅谈保序回归问题》, IOI2018 中国国家候选队论文集" 可知，最优解的 $B_i$ 一定是由这种方式得到：</p>
+		<p><strong style="color: green">将序列 $\left\{ A_n \right\}$ 分成若干个连续的段 $\left[ 1 = l_1, r_1 \right], \left[ l_2, r_2 \right], \cdots, \left[ l_k, r_k = n \right]$，其中 $r_{i+1} = l_i + 1$。对于 $l_i \leq t \leq r_i$，令 $B_t = \dfrac {A_{l_i} + A_{l_i + 1} + \cdots + A_{r_i}} {r_i - l_i + 1}$，如果 $B_t$ 是单调的，则 $B_t$ 有可能作为最优解。</strong></p>
+		<p>可以证明，如果在满足 $B_t$ 单调的条件下，<strong>分的段数 $k$ 越多，答案越优 (平方和最小)</strong>。</p>
+		<p>这启发我们使用贪心思想：将 $A_1, A_2, \cdots, A_n$ 依次插入一个单调递增的栈，如果当前新加的数比 $A_i$ 栈顶小，则令 $A_i$ 和栈顶 "合并"，将合并的后的元素递归插入剩下的栈。</p>
+		<p>对于最优值，可以使用 DP 来解决。具体地，设一个段中的元素为 $a_1, a_2, \cdots, a_k$，它们都变成了 $\bar a = \dfrac {a_1 + a_2 + \cdots + a_k} k$，则根据 "<a href="uoj211.html" target="_blank">方差等于平方的平均值减去平均值的平方</a>" 这一结论，可知 $$ \displaystyle \sum_{i=1}^k \left( a_i - \bar a \right)^2 = \sum_{i=1}^k a_i^2 - \frac 1k \left( \sum_{i=1}^k a_i \right)^2 $$</p>
+		<p>注意到平方和相加是个定值，因此我们预先处理出每个询问初始的平方和后，只需要考虑<strong>最大化右边这个式子</strong> ($\sum$ 起来的结果)。</p>
+		<p>这样一来 DP 也容易写出来，直接用 $f_i$ 表示前 $i$ 个数的最优解，通过单调栈确定当前用哪个数转移即可。(ps: 注：这个结论也可以用斜率优化的方式证明，具体证明过程此处略)</p>
+		<p>于是我们就已经彻底地解决了 $m = 0$ (只有一次询问) 的问题，现在考虑有多组询问的情况。</p>
+		<hr />
+		<p>考虑修改第 $i$ 个元素后重新进行这个过程，可以注意到设 $\pi_1$ 为前 $i - 1$ 个元素构成的最优划分，$\pi_2$ 为后 $n - i$ 个元素构成的最优划分，则无论 $A_i$ 如何修改，$\pi_1$ 和 $\pi_2$ 这两个划分的每一个段是<strong>不会被拆掉的</strong>。</p>
+		<p>因此，我们需要知道，在最终的划分中，$i$ 所在的段<strong>抢了 $\pi_1, \pi_2$ 各多少段</strong>。设这两个端点为 $l, r$。</p>
+		<p>显然，在满足 $B_i$ 单调性的情况下，$r - l$ 越小越好。那怎么确定这个最小值呢？<strong>二分套二分</strong>。</p>
+		<p>设 $l_0, r_0$ 是最优解的 $l, r$。则当 $r = r_0$ 时，可以非常轻松地二分出 $l$ 的值 $l_0$。</p>
+		<p>当 $r &lt; r_0$ 时，二分左端点所得到的 $l$ 一定单调增加且 $\geq l_0$。因为由最优性，$\left[ l_0, r \right]$ 部分的平均值是不小于 $\left[ l_0, r_0 \right]$ 部分的平均值的。</p>
+		<p>这样一来，若 $\left[ l, r \right]$ 是解，与最优性矛盾。因此在右端点处必定满足 $B_i$ <strong>不单调</strong>。</p>
+		<p>当 $r &gt; r_0$ 时，二分左端点所得到的 $l$ 也会单调增加且 $\geq l_0$。因为由最优性，$\left[ l_0, r \right]$ 的平均值是不小于 $\left[ l_0, r_0 \right]$ 的平均值的。</p>
+		<p>因此，容易说明，若左端满足条件，右端仍然会满足条件。</p>
+		<p>于是，二分套二分的正确性就已经被说明了。</p>
+		<p>不过具体实现的时候如何快速得到两边的栈 (划分) 呢？</p>
+		<p><del>显然可持久化数据结构是可以的，如果你爱写就去写吧</del>，我们可以把问题离线，对 $i$ 排序。</p>
+		<p>于是在 $i$ 递增的过程中，左边的栈是沿操作逐渐递增的。不过右边的栈是沿操作逐渐递减的，那该怎么办呢？</p>
+		<p>没关系，仿照<a href="../index.html?tag=%E5%8F%AF%E6%92%A4%E9%94%80%E5%B9%B6%E6%9F%A5%E9%9B%86" target="_blank"><strong>可撤销并查集</strong></a>的思想，我们实现一个<a href="../index.html?tag=%E5%8F%AF%E6%92%A4%E9%94%80%E6%A0%88" target="_blank"><strong>可撤销栈</strong></a>！</p>
+		<p>具体实现比可撤销并查集还要简单，只需要记录在每一步中按顺序弹出了什么、加入了什么即可。</p>
+		<p>从而整个问题就顺利解决了，时间复杂度 $O \left( n + m \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define S (s[r] - s[l - 1] + (l &lt;= _1 &amp;&amp; _1 &lt;= r ? _2 : 0))
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int N = 200054, mod = 998244353;
+
+int n;
+int a[N], val[N], inv[N];
+int top1 = 0, stack1[N];
+int top2 = 0, stack2[N];
+int f[N], g[N], ans[N];
+int cnt = 0;
+ll s[N];
+pr pops[N * 2];
+vector qs[N];
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline void add(int &amp;x, const int y) {reduce(x += y - mod);}
+inline void sub(int &amp;x, const int y) {reduce(x -= y);}
+
+// Common functions
+int _1 = 0, _2 = 0;
+inline double avg(int l, int r) {return (double)S / (double)(r - l + 1);}
+inline int range(int l, int r) {ll _ = S % mod; return _ * _ % mod * inv[r - l + 1] % mod;}
+inline void tag(int pos = 0, int val = 0) {_1 = pos, _2 = val;}
+
+// Undoable stack
+inline void add_pop(int pos, int val) {pops[++cnt] = pr(pos, val);}
+inline void undo(int pos) {for (--top2; cnt &amp;&amp; pops[cnt].first == pos; --cnt) stack2[++top2] = pops[cnt].second;}
+
+int binary_search(int rp) {
+	int L = 0, R = top1, M, lp;
+	for (; L &lt; R; )
+		M = (L + R + 1) / 2, lp = stack1[M], avg(stack1[M - 1] + 1, lp) &lt; avg(lp + 1, rp - 1) ? L = M : (R = M - 1);
+	return L;
+}
+
+int deal() {
+	int L = 0, R = top2, M, lp, rp;
+	for (; L &lt; R; ) {
+		M = (L + R + 1) / 2,
+		rp = stack2[M], lp = stack1[ binary_search(rp) ];
+		avg(lp + 1, rp - 1) &lt; avg(rp, stack2[M - 1] - 1) ? L = M : (R = M - 1);
+	}
+	rp = stack2[R], lp = stack1[ binary_search(rp) ]; 
+	return ((ll)f[lp] + g[rp] + range(lp + 1, rp - 1)) % mod;
+}
+
+int main() {
+	int i, u, q, SOS = 0;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (inv[1] = 1, i = 2; i &lt;= n; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i), s[i] = s[i - 1] + a[i], SOS = (SOS + (ll)a[i] * a[i]) % mod;
+	for (i = 0; i &lt; q; ++i) scanf("%d%d", &amp;u, val + i), qs[u].EB(i), ans[i] = (SOS + (ll)(val[i] + a[u]) * (val[i] - a[u])) % mod;
+	*stack2 = n + 1;
+	for (i = n; i; --i) {
+		for (g[i] = g[i + 1]; top2 &amp;&amp; avg(i, stack2[top2] - 1) &gt;= avg(stack2[top2], stack2[top2 - 1] - 1); --top2)
+			sub(g[i], range(stack2[top2], stack2[top2 - 1] - 1)), add_pop(i, stack2[top2]);
+		add(g[i], range(i, stack2[top2] - 1)), stack2[++top2] = i;
+	}
+	printf("%d\n", (SOS - g[1] + mod) % mod);
+	for (i = 1; i &lt;= n; ++i) {
+		undo(i);
+		for (int id : qs[i])
+			tag(i, val[id] - a[i]), reduce(ans[id]), sub(ans[id], deal()), tag();
+		for (f[i] = f[i - 1]; top1 &amp;&amp; avg(stack1[top1] + 1, i) &lt;= avg(stack1[top1 - 1] + 1, stack1[top1]); --top1)
+			sub(f[i], range(stack1[top1 - 1] + 1, stack1[top1]));
+		add(f[i], range(stack1[top1] + 1, i)), stack1[++top1] = i;
+	}
+	assert(f[n] == g[1]); for (i = 0; i &lt; q; ++i) printf("%d\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>二分时注意边界；以及在外层二分得到结果后记得再调用一遍内层二分函数。</p>
+		<p><strong>坑2：</strong>比较两个平均值的大小时，可以使用 <code>double</code>，也可以使用带分数式比较。</p>
+	</body>
+</html>

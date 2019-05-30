@@ -78,9 +78,8 @@ const
 	win.html2Text = function (s) {return htmlspecialcharsDecode(stripTags(s));}
 
 	win.htmlBalance = function (s, ch = '\x01') {
-		return s.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g, function (w) {return ch.repeat(w.length);});
+		return s.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g, x => ch.repeat(x.length));
 	}
-	// a.htmlBalance=function(a,b="\x01"){return a.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g,function(w){return b.repeat(w.length);})}
 
 	win.parseStr = function (s) {
 		var ret = {}, i, a, b;

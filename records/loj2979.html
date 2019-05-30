@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj2979][THUSC2017]换桌</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>班级聚会的时候，班主任为了方便管理，规定吃饭的时候同一个寝室的同学必须坐在一起；但是吃完饭后，到了娱乐时间，喜欢不同游戏的同学会聚到一起；在这个过程中就涉及到了座位分配的问题。</p>
+		<p>有 $n$ 张圆桌排成一排 (从左到右依次编号为 $0$ 到 $n - 1$)，每张桌子有 $m$ 个座位 (按照逆时针依次编号为 $0$ 到 $m - 1$)，在吃饭时每个座位上都有一个人；在吃完饭后的时候，每个人都需要选择一个新的座位 (新座位可能和原来的座位是同一个)，具体来说，第 $i$ 桌第 $j$ 个人的新座位只能在第 $L_{i, j}$ 桌到第 $R_{i, j}$ 桌中选，可以是这些桌中的任何一个座位。确定好新座位之后，大家开始移动，移动的体力消耗按照如下规则计算：</p>
+		<p>移动座位过程分为两步：</p>
+		<ol>
+			<li><p>从起始桌移动到目标桌<strong>对应座位</strong>，这个过程中的体力消耗为<strong>两桌距离的两倍</strong>，即从第 $i$ 桌移动到第 $j$ 桌对应座位的体力消耗为 $2 \times \left|i - j \right|$；</p></li>
+			<li><p>从目标桌的对应座位绕着桌子移动到目标座位，由于桌子是圆的，所以客人会选择<strong>最近的方向</strong>移动，体力消耗为<strong>移动距离的一倍</strong>，即从编号为 $x$ 的座位移动的编号为 $y$ 的座位的体力消耗为 $\min \left\{ \left| x - y \right|, m - \left| x - y \right| \right\}$。</p></li>
+		</ol>
+		<p>详情如下图：</p>
+		<img class="center-block" src="uploads/112.png" alt="例子" />
+		<p>现在，给定每个客人的限制(即每个人的新座位所在的区间)，需要你设计一个方案，使得<strong>所有客人消耗的体力和最小。本题中假设客人在移动的时候互不影响</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两者正整数 $n, m$ ($n \leq 300; m \leq 10$)。</p>
+		<p>接下来 $n$ 行，每行 $m$ 个整数，描述矩阵 $L$：其中，第 $i$ 行的第 $j$ 个数表示 $L_{i, j}$。</p>
+		<p>接下来 $n$ 行，每行 $m$ 个整数，描述矩阵 $R$：其中，第 $i$ 行的第 $j$ 个数表示 $R_{i, j}$ ($0 \leq L_{i, j} \leq R_{i, j} \leq n - 1$)。</p>
+		<p><strong>保证数据均匀随机生成。</strong></p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示总体力消耗的最小值。如果没有合法的方案则输出 <code>no solution</code>。</p>
+
+		<h3>题解</h3>
+		<p>建立二分图 $G = \left( V_1, V_2; E \right)$，其中 $V_1$ 表示所有人的集合，$V_2$ 表示所有座位的集合，它们的大小是相等的，均为 $n m$。</p>
+		<p>对于人 $v \in V_1$，考虑它能到达哪些位置，设可以到达 $p_1, p_2, \cdots, p_k$ 这些位置，则在 $G$ 中对 $v$ 和 $p_i$ ($1 \leq i \leq k$) 连边，边权 $v$ 走到 $p_i$ 的体力消耗值，容易计算得到。</p>
+		<p>于是得到一个二分图，如果它有完美匹配，说明存在合法方案，权值最小的匹配即为总体力消耗的最小值。</p>
+		<p>于是只需要实现一个<strong>二分图最大权匹配</strong> (完美匹配的最大权和最小权是容易转化的)，使用 Kuhn-Munkres 算法即可，<span style="color: fuchsia">虽然点数是 $3000$，但由于数据随机，它能跑过……</span></p>
+		<p><del class="text-muted">时间复杂度 $O \left( \left( n m \right)^3 \right)$。</del></p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 3054;
+
+int V, h, t;
+int e[N][N];
+int fb[N], fg[N];
+bool ub[N], ug[N];
+int boy[N], girl[N], prev[N];
+int d[N], delta, que[100054];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+void marry(int g) {for (int b; g; std::swap(girl[b], g)) boy[g] = b = prev[g];}
+
+bool bfs() {
+	int b, g, v;
+	for (h = 0; h &lt; t; ++h) {
+		ub[ b = que[h] ] = true;
+		for (g = 1; g &lt;= V; ++g) if (!ug[g]) {
+			if ((v = fb[b] + fg[g] - e[b][g]))
+				v &lt; d[g] &amp;&amp; (d[g] = v, prev[g] = b);
+			else {
+				ug[g] = true, prev[g] = b;
+				if (boy[g]) ub[ que[t++] = boy[g] ] = true;
+				else return marry(g), true;
+			}
+		}
+	}
+	return false;
+}
+
+int KM() {
+	int i, u, ans = 0;
+	for (i = 1; i &lt;= V; ++i) fb[i] = *std::max_element(e[i] + 1, e[i] + (V + 1));
+	for (i = 1; i &lt;= V; ++i) {
+		memset(ub, false, sizeof ub), memset(ug, false, sizeof ug);
+		memset(d, 127, sizeof d), memset(prev, 0, sizeof prev);
+		for (*que = i, t = 1; !bfs();  ) {
+			delta = INT_MAX;
+			for (u = 1; u &lt;= V; ++u) if (!ug[u]) down(delta, d[u]);
+			for (u = 1; u &lt;= V; ++u)
+				ub[u] &amp;&amp; (fb[u] -= delta), ug[u] ? fg[u] += delta : (d[u] -= delta);
+			for (u = 1; u &lt;= V; ++u)
+				if (!(ug[u] || d[u])) {
+					if (ug[u] = true, !boy[u]) {marry(u); break;}
+					else ub[ que[t++] = boy[u] ] = true;
+				}
+			if (u &lt;= V) break;
+		}
+	}
+	for (i = 1; i &lt;= V; ++i) ans += e[i][girl[i]];
+	return ans;
+}
+
+const int N1 = 354, N2 = 11, INF = 2003731;
+
+int n, m;
+int L[N1][N2], R[N1][N2];
+
+inline int dist(int T1, int S1, int T2, int S2) {return 2 * abs(T1 - T2) + std::min(abs(S1 - S2), m - abs(S1 - S2));}
+
+int main() {
+	int i, j, ni, nj, ret;
+	scanf("%d%d", &amp;n, &amp;m);
+	for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; m; ++j) scanf("%d", L[i] + j);
+	for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; m; ++j) scanf("%d", R[i] + j);
+	for (i = 0; i &lt; n; ++i)
+		for (j = 0; j &lt; m; ++j)
+			for (ni = L[i][j]; ni &lt;= R[i][j]; ++ni)
+				for (nj = 0; nj &lt; m; ++nj)
+					e[i * m + j + 1][ni * m + nj + 1] = INF - dist(i, j, ni, nj);
+	V = n * m, ret = V * INF - KM();
+	ret &gt;= INF ? puts("no solution") : printf("%d\n", ret);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 <code>INF</code> 的设定要合理，不能太大也不能太小。</p>
+		<p><strong>坑2：</strong>在写 Kuhn-Munkres 算法的时候注意细节，如不要忘记 <code>break;</code>，不然一不小心就变成 $O \left( \left( n m \right)^4 \right)$ 了 (那是真过不去了)。</p>
+	</body>
+</html>

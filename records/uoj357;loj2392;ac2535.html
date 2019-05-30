@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj357][loj2392][AtCoder2535][JOISC 2017 Day 1]烟花棒</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p><img class="center-block" src="uploads/110.png" alt="Sparklers" />
+		<p>有 $N$ 人站在一条数轴上。他们人手一个烟花，每人手中的烟花都恰好能燃烧 $T$ 秒。每个烟花只能被点燃一次。</p>
+		<p>$1$ 号站在原点，$i$ ($1 \leq i \leq N$) 号到 $1$ 号的距离为 $X_i$。保证 $X_1 = 0$，且 $X_1, X_2, \cdots, X_N$ <strong>单调</strong>递增 (可能有人位置重叠)。</p>
+		<p>开始时， $K$ 号的烟花刚开始燃烧，其他人的烟花均未点燃。他们的点火工具坏了，只能用燃着的烟花将未点燃的烟花点燃。当两人位置重叠且其中一人手中的烟花燃着时，另一人手中的烟花就可以被点燃。忽略点火所需时间。</p>
+		<p>求至少需要以多快的速度跑，才能点燃所有人的烟花 (此时可能有些人的烟花已经熄灭了)。<strong>速度必须是一个非负整数。</strong></p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $N, K, T$ ($1 \leq K \leq N \leq 10^5; 1 \leq T \leq 10^9$)，用空格分隔。</p>
+		<p>接下来的 $N$ 行，第 $i$ 行包含一个非负整数 $X_i$ ($0 = X_1 \leq X_2 \leq \cdots \leq X_N \leq 10^9$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示要想点燃所有人的烟花，全程中<strong>最大速度的最小值</strong>。</p>
+
+		<h3>题解</h3>
+		<p>看到 "最大速度的最小值"，容易想到二分答案，即将问题转化为：对于 $v$，若每个人在任何时刻的速度都不能超过 $v$，则能否点燃所有人的烟花。</p>
+		<p>注意到速度和时间的独立性，我们将速度和时间合并：表示为，一个烟花从开始燃烧到结束燃烧的时间内，每个人至多移动 $v T$ 单位的距离。</p>
+		<p>由于 $v T$ 的大小不影响我们对问题的解决，因此以下假设 $v T = 1$。</p>
+		<p>首先，我们来看几个结论：</p>
+		<p><strong style="color: green">引理 1：任一时刻不会有两个烟花同时燃烧。</strong></p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>反之，设某一时刻 $i$ 点燃了 $j$。可以说明，如果 $j$ 紧跟着 $i$ 的步伐，并在 $i$ 的烟花即将燃尽时将 $j$ 点燃，答案不劣。</p>
+			</div>
+		</div>
+		<p><strong style="color: orange">推论 1：所有人的相对顺序不改变。</strong></p>
+		<p><strong style="color: orange">推论 2：第 $i$ 个烟花在时刻 $\left[ i - 1, i \right]$ 中燃烧。</strong></p>
+		<p><strong style="color: green">引理 2：考虑整个过程中 "手中的烟花已经被燃烧过的人" 的编号集合，容易看出它一定是连续的，且每次只会在头部和尾部添加元素。比如 $\left\{ 3 \right\} \Rightarrow \left\{ 2, 3 \right\} \Rightarrow \left\{ 2, 3, 4 \right\} \Rightarrow \left\{ 1, 2, 3, 4 \right\}$。</strong></p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>这是因为，由于 $X_i \leq X_{i+1}$，因此如果 $i &lt; j &lt; k$ 满足 $i$ 的烟花，$k$ 的烟花均被烧过，且 $j$ 一直处在 $i$ 与 $k$ 之间，则一定存在这样一组 $\left( i', k' \right)$ 满足 $i'$ 传递给了 $k'$。此时 $i', j, k'$ 在同一位置，我们可以将 $i'$ 传给 $j$。</p>
+			</div>
+		</div>
+		<p>因此，我们用 $S_{i, j} = \left[ L_{i, j}, R_{i, j} \right]$ 表示区间 $\left[ i, j \right]$ 中的所有人的烟花都被烧过后，此时最终的 "人" 的可能位置区间 <span style="color: red">(ps: 由引理 1，可以得到若某一时刻 $i$ 点燃 $j$，则 $j$ 会紧跟着 $i$ 的步伐——可以理解成 $i, j$ "合体" 了。因此如果 $\left[ i, j \right]$ 中所有人的烟花都被烧过，则这些人都被 "合体" 了，从而位置只有一个)</span>。</p>
+		<p>首先，留给它们合体的时间只有至多 $j - i$ 个单位 (可以浪费前 $j - i$ 个烟花)，而它们最后要 "合为一体"，因此这个最终的坐标 $x$ 离每个人的距离都不能超过 $j - i$，即 $\left| x - X_k \right| \leq j - i$，从而 $$ S_{i, j} \subseteq \left[ X_j - \left( j - i \right), X_i + \left( j - i \right) \right] \tag 1 \label 1 $$</p>
+		<p>考虑使用动态规划 (类似区间 DP 的方法) 求出每个 $S_{i, j}$。</p>
+		<p>首先，显然有边界 $S_{K, K} = \left\{ X_K \right\}$ (单点集)。考虑转移，不妨设从 $S_{i, j}$ 转移到 $S_{i, j + 1}$。</p>
+		<p>由于 $j - i$ 单位时间后，最后那个 "合体人" 的可能位置区间为 $\left[ L_{i, j} - 1, R_{i, j} + 1 \right]$，于是 $S_{i, j + 1} \subseteq \left[ L_{i, j} - 1, R_{i, j} + 1 \right]$。</p>
+		<p>结合 $\eqref 1$，有 $$ S_{i, j + 1} \uparrow \left[ X_{j + 1} - \left( j + 1 - i \right), X_i + \left( j + 1 - i \right) \right] \cap \left[ L_{i, j} - 1, R_{i, j} + 1 \right] $$ ($S_{i, j + 1} \uparrow A$ 表示集合 $A$ 中的元素可以作为最终的可能位置)</p>
+		<p style="color: red">(ps: 上面的条件略有严苛，其实可以写成 $S_{i, j + 1} \uparrow \left[ X_{j + 1} - \left( j + 1 - i \right), + \infty \right) \cap \left[ L_{i, j} - 1, R_{i, j} + 1 \right]$，结果不变)</p>
+		<p>同理，也可以写出 $S_{i, j} \to S_{i - 1, j}$ 的转移方程。</p>
+		<p>最后只要判断 $S_{1, n}$ 是否为空集即可，时间复杂度 $O \left( N^2 \right)$。</p>
+		<hr />
+		<p>考虑优化这个 DP。首先，我们证明这样一个结论：</p>
+		<p><strong style="color: green">若 $S_{i, j} \neq \varnothing$，则 $S_{i, j} = \left[ X_j - \left( j - i \right), X_i + \left( j - i \right) \right]$。也就是说，对于<big>非空的</big> $S_{i, j}$，限制 $\eqref 1$ 已经足够。</strong></p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>对 $j - i$ 使用数学归纳法。当 $i = j$ 时结论显然成立。</p>
+				<p>如果我们证明结论能对转移成立，则结论自然就对所有 $i, j$ 成立啦。</p>
+				<p>由对称性，只考虑形如 $S_{i, j} \to S_{i, j + 1}$ 的转移。</p>
+				<p>只需证明，在归纳假设的条件下，$\left[ X_{j + 1} - \left( j + 1 - i \right), X_i + \left( j + 1 - i \right) \right] \subseteq \left[ L_{i, j} - 1, R_{i, j} + 1 \right]$。</p>
+				<p>两个区间的右端点显然是相等的，因为 $R_{i, j} = X_i + \left( j - i \right)$。</p>
+				<p>而 $L_{i, j} - 1 \leq X_{j+1} - \left( j + 1 - i \right) \Leftrightarrow L_{i, j} \leq X_{j+1} - \left( j - i \right)$，这由 $X_j \leq X_{j+1}$ 也十分明显。</p>
+				<p>这就说明了，若 $\left[ X_j - \left( j - i \right), X_i + \left( j - i \right) \right]$ 不为空集，且 $S_{i, j-1}$ 和 $S_{i+1, j}$ 只要有一个非空，则 $S_{i, j} = \left[ X_j - \left( j - i \right), X_i + \left( j - i \right) \right]$。</p>
+				<p>由数学归纳法知，原结论成立。</p>
+			</div>
+		</div>
+		<p>这说明，对于非空的 $S_{i, j}$，它的 DP 值我们预先就可以知道。</p>
+		<p>但是，$X_j - \left( j - i \right) \leq X_i + \left( j - i \right)$ 只是 $S_{i, j}$ 非空的一个<strong style="color: red">必要条件</strong>，而非充分必要。</p>
+		<p>因为，有可能 $S_{i, j-1}$ 和 $S_{i+1, j}$ 均为空，而 $X_j - \left( j - i \right) \leq X_i + \left( j - i \right)$。此时，由定义，$S_{i, j} = \varnothing$。</p>
+		<p>于是判断 $S_{1, n}$ 非空貌似就不是一个显然的事情了？</p>
+		<hr />
+		<p>首先，看着 $\left[ X_j - \left( j - i \right), X_i + \left( j - i \right) \right]$ 这种区间就感到心烦，我们尝试去化简一下。</p>
+		<p>因为 $X_j - \left( j - i \right) \leq X_i + \left( j - i \right) \Leftrightarrow X_i - 2 i \geq X_j - 2 j$，因此以下为方便起见，记 $A_i = X_i - 2 i$ ($1 \leq i \leq n$)。<span style="color: red">(ps: 对原题，则为 $A_i = X_i - 2 v T \cdot i$)</span></p>
+		<p>回顾 $S_{i, j} \neq \varnothing$ 的条件，有</p>
+		<ol>
+			<li><p>$S_{K, K} \neq \varnothing$。</p></li>
+			<li><p>对于 $i &lt; j$，当且仅当 $\left( S_{i, j - 1} \neq \varnothing \vee S_{i - 1, j} \neq \varnothing \right) \wedge A_i \geq A_j$ 时，$S_{i, j} \neq \varnothing$。</p></li>
+		</ol>
+		<p>再抽象一点，你可以理解为<strong style="color: fuchsia">有两个指针 $l, r$，初始时它们都在位置 $K$，你每次可以将 $l \gets l - 1$ 或 $r \gets r + 1$，但你需要时刻保证 $A_l \geq A_r$，询问是否能使 $l = 1 \wedge r = n$</strong>。</p>
+		<p>首先，如果存在 $i \leq l$ 使得 $A_i \geq A_l \wedge \left( \forall j \in \left[ i, l \right], A_j \geq A_r \right)$，则显然贪心地将 $l$ 移到 $i$，$r$ 侧同理。</p>
+		<p>如果此时已经能走到 $\left[ 1, n \right]$ 则直接 <code>return true;</code>，否则，设某一时刻两侧均无法扩展。设这个时候两个指针的值为 $l^C$ 和 $r^C$ (临界状态)</p>
+		<p>那么，如果此时存在一种合法方案的话，考虑将连续的 "$l$ 移动" 和 "$r$ 移动" 缩成一团，容易发现 $l$ 移动保持递减，$r$ 移动保持递增。</p>
+		<p>我们将其倒过来，就能发现，又是熟悉的 "$l$ 移动递增，$r$ 移动递减" 的操作了。</p>
+		<p>于是我们仿照双向 bfs 的思想，令反向指针 $l^R = 1, r^R = n$，按照上面类似操作贪心移动。如果最后它们能移动到 $l^C$ 和 $r^C$，说明存在合法方案 ($S_{1, n} \neq \varnothing$)，否则不存在 ($S_{1, n} = \varnothing$)。</p>
+		<p>只要模拟这个贪心即可，时间复杂度 $O \left( N \right)$。</p>
+		<p>套上最外面的那层二分，总时间复杂度 $O \left( N \log X_N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 100054;
+
+int n, K, T;
+int x[N];
+ll a[N];
+
+inline bool check(int v) {
+	int i, l, r, _l, _r, in_l, in_r, out_l, out_r; ll ef = 2ll * v * T;
+	for (i = 0; i &lt; n; ++i) a[i] = x[i] - ef * i;
+	l = r = K;
+	do {
+		_l = l, _r = r;
+		for (i = l; i &gt;= 0 &amp;&amp; a[i] &gt;= a[r]; --i) a[i] &gt;= a[l] &amp;&amp; (l = i);
+		for (i = r; i &lt; n &amp;&amp; a[i] &lt;= a[l]; ++i) a[i] &lt;= a[r] &amp;&amp; (r = i);
+	} while (_l != l || _r != r);
+	in_l = l, in_r = r;
+	l = 0, r = n - 1;
+	do {
+		_l = l, _r = r;
+		for (i = l; i &lt;= r &amp;&amp; a[i] &gt;= a[r]; ++i) a[i] &gt;= a[l] &amp;&amp; (l = i);
+		for (i = r; i &gt;= l &amp;&amp; a[i] &lt;= a[l]; --i) a[i] &lt;= a[r] &amp;&amp; (r = i);
+	} while (_l != l || _r != r);
+	out_l = l, out_r = r;
+	return in_l &lt;= out_l &amp;&amp; out_r &lt;= in_r;
+}
+
+int main() {
+	int i, L, R, M;
+	scanf("%d%d%d", &amp;n, &amp;K, &amp;T), --K;
+	for (i = 0; i &lt; n; ++i) scanf("%d", x + i);
+	R = (x[n - 1] - *x + 2 * T - 1) / (2 * T);
+	for (L = 0; L &lt; R; ) check(M = (L + R) / 2) ? R = M : L = M + 1;
+	printf("%d\n", L);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在第二次贪心的过程中 (即反向指针 $l^R, r^R$ 扩展的时候) 要始终保持 $l^R \leq r^R$。</p>
+		<p><strong>坑2：</strong>二分的上界可以为 $\left \lceil \dfrac {X_N} {2 T} \right \rceil$，以减少常数。</p>
+	</body>
+</html>

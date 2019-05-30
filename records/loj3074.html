@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj3074][互测2019]操作序列计数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个变量 $i$，初始时 $i = 1$。</p>
+		<p>现在有两种操作：</p>
+		<ol>
+			<li><p>$i \gets i + 1$；</p></li>
+			<li><p>$i \gets i \times k$。</p></li>
+		</ol>
+		<p>给定 $n, k$，对于所有可能的<strong>非负整数</strong> $L$，问有多少种操作序列，满足操作 $2$ 的个数为 $L$，且依次执行所有操作后，$i \leq n$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $k$ ($2 \leq k \leq 10$)。</p>
+		<p>第二行包含一个正整数 $n$ ($1 \leq n \leq k^{50}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>对于所有可能的<strong>非负整数</strong> $L$，按 $L$ 从小到大的顺序，每行输出一个答案。</p>
+
+		<h3>题解</h3>
+		<p>注意到 $i \leq n$ 有些麻烦，如果我们希望它能变成 $i = n$ 就好多了。</p>
+		<p>我们可以这样操作：对于每一合法的操作序列，最后添上 2 操作 ($\times k$)，然后不断 $+ 1$ 直到它等于 $n \cdot k$。</p>
+		<p>于是，每一个 $\leq n$ 的合法的操作序列，可以唯一对应到一个 $= n k$ 的合法操作序列，<strong>且后者操作 2 的个数比前者多 $1$</strong>；同理，每一个 $= n k$ 的合法操作序列，只要存在 2 操作，一定可以唯一对应到一个 $\leq n$ 的合法操作序列，<strong>且后者操作 2 的个数比前者少 $1$</strong>。</p>
+		<p>于是，将 $n \gets n \cdot k$ 后，我们就将 "$\leq$" 的问题转化为了 "$=$" 的问题。</p>
+		<p>观察整个操作实际上在干嘛，对于一个固定的 $L$，它实际上是在求这样一个方程解的组数：</p>
+		<p>\begin{cases} x_0 + k x_1 + k^2 x_2 + \cdots + k^L x_L = n \\ x_i \geq 0 &amp; \left( 0 \leq i &lt; L \right) \\ x_L \geq 1 \end{cases}</p>
+		<p><span style="color: red">下面记 $B$ 为原题中的 $k$</span>。我们将 $n$ 化成 $B$ 进制后再来观察这个问题。</p>
+		<p>我们用 $F_{n, k}$ 表示当 $L = k$ 时方程组的解数，再记 $f_{i, j, k} = F_{i \cdot B^j, k}$。</p>
+		<p>则设原来的 $n = \left( b_m b_{m-1} b_{m-2} \cdots b_0 \right)_B$，则容易观察出，<strong>一个 $L$ 合法当且仅当 $0 \leq L \leq m$</strong>。</p>
+		<p>考虑计算用 $1, B, B^2, \cdots, B^L$ 表示出 $n$ 的方案数 $F_{n, L}$。</p>
+		<p>设 $n$ 的某一种表示为 $n = a_1 + a_2 + \cdots + a_\lambda$，其中 $a_i \leq a_{i+1}$ 为 $B$ 的整数次幂。</p>
+		<p>则容易证明，一定存在一个前缀 $a_1, a_2, \cdots, a_{\lambda'}$，满足 $a_1 + a_2 + \cdots + a_{\lambda'} = \left( b_{m-1} b_{m-2} \cdots b_0 \right)_B$。</p>
+		<p>于是枚举 $a_{\lambda'}$ 的大小，我们可以得到：</p>
+		<p>若 $a_{\lambda'} = k^j$，则这部分的方案数即为用 $1, B, B^2, \cdots, B^j$ 表示出 $\left( b_{m-1} b_{m-2} \cdots b_0 \right)_B$ 的方案数乘上用 $B^j, B^{j+1}, \cdots, B^L$ 表示出 $b_m B^m$ 的方案数。前者等于 $F_{n', j}$ (记 $n' = \left( b_{m-1} b_{m-2} \cdots b_0 \right)_B$)，后者也等于用 $1, B, \cdots B^{L-j}$ 表示出 $b_m B^{m-j}$ 的方案数，即 $F_{b_m B^{m-j}, L-j} = f_{b_m, m-j, L-j}$。</p>
+		<p>综合一下，有 $$ \large F_{n, L} = \sum_{j=0}^L F_{n', j} \cdot f_{b_m, m-j, L-j} \tag 1 \label 1 $$</p>
+		<p>于是按位递归下去 (数位 DP) 的思想即可得到 $F_{n, L}$ 的值。</p>
+		<hr />
+		<p>现在的关键是求出 $f_{i, j, k}$ 的值。</p>
+		<p>由定义，$f_{i, j, k} = F_{i \cdot B^j, k}$，因此主体思路和刚才还是类似的。</p>
+		<p>不过 $\eqref 1$ 式就不能用了，因为此时 $\eqref 1$ 式变成了<strong>恒等式</strong>。</p>
+		<p>因此，我们可以发掘新的性质——类似地，对于 $i \cdot B^j$ 的一种表示 $i \cdot B^j = a_1 + a_2 + \cdots + a_\mu$ ($a_i \leq a_{i+1}$)，依然存在一个前缀 $a_1, a_2, \cdots, a_\mu'$，满足 $a_1 + a_2 + \cdots + a_\mu' = \left( i - 1 \right) \cdot B^j$。</p>
+		<p>因此，当 $i &gt; 1$ 时，这种方法就可以正常使用了。</p>
+		<p>当 $i = 1$ 时，直接用又会挂，需要分为两种情况：</p>
+		<ol>
+			<li><p>$k = j$。此时，由于 $x_k \geq 1$，因此至少需要一项 $B^k$，因此表示式是唯一的：$a_1 = B^j$，即 $f_{1, j, j} = 1$。</p></li>
+			<li><p>$k &lt; j$。此时，$1 \cdot B^j$ 可以看成 $B \cdot B^{j-1}$，因此可以看成 $i' = B, j' = j - 1$ 时的情况，使用上面的方法式即可。</p></li>
+		</ol>
+		<p>分析一下时间复杂度，每一次转移是 $O \left( L^2 \right)$ 的，一共转移 $O \left( L B + L \right)$ 次，因此总时间复杂度为 $O \left( L^3 B \right) = O \left( k \log_k^3 n \right)$ (不计高精度运算时间)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "<a href="uploads/1.h" download="decimal.h">decimal.h</a>"
+#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+const int N = 54, BM = 11;
+typedef Decimal vec[N], *pvec, mat[N][N], (*pmat)[N];
+
+int B, len = 1, ret[N];
+Decimal n, f[BM][N][N]; // f[i, j, k] : k powers division of number (i . B^j)
+vec ans, B1;
+
+void mul(int n, pmat f, pvec g, pvec ret) {
+	int i, j;
+	for (i = 0; i &lt; n; ++i)
+		for (B1[i] = j = 0; j &lt;= i; ++j) B1[i] += g[j] * f[n - j - 1][i - j];
+	std::copy(B1, B1 + n, ret);
+}
+
+int main() {
+	int i, j; mat &amp;g = f[1];
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; B &gt;&gt; n; n; n /= B) ret[len++] = (int)(n % B);
+	for (i = 0; i &lt; len; ++i) {
+		if (g[i][i] = 1, i) mul(i, g, f[B - 1][i - 1], g[i]);
+		for (j = 2; j &lt; B; ++j) mul(i + 1, g, f[j - 1][i], f[j][i]);
+	}
+	for (*ans = i = 1; i &lt; len; ++i) if (ret[i]) mul(i + 1, f[ret[i]], ans, ans);
+	for (i = 1; i &lt; len; ++i) cout &lt;&lt; ans[i] &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>初始不要忘记把 $n$ 乘以 $k$ (具体可以表现为在转为 $k$ 进制后在末尾补 $0$)。</p>
+		<p><strong>坑2：</strong>转移的时候类似一个矩阵乘法，因此可以写成一个函数。需要注意转移的时候不要把原数组给覆盖了。</p>
+	</body>
+</html>

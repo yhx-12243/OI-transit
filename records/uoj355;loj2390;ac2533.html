@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj355][loj2390][AtCoder2533][JOISC 2017 Day 1]开荒者</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>开荒者要让一片长方形的平原长满草。这个长方形可视为 $R$ 行 $C$ 列的正方形网格，底平行于南北方向，高平行于东西方向。我们用 $\left( 1, 1 \right)$ 表示网格的西北角，$\left( R, C \right)$ 表示网格的东南角。开始时有且只有 $N$ 个网格内长有野草，其余网格内既没有草也没有草籽。开荒者们可以控制这片平原上的风往东、西、南、北四个方向中的一个方向吹。</p>
+		<p>每年夏天，草会制造草籽。开荒者们会选定当年夏天的风向。所有草籽会被风扬起，并根据风向移动一格。来年春天，有草籽降落的网格就会有草萌发。假设草不会枯萎，不会有草籽从平原外飘进平原内，飘出网格的草籽不会发芽。试求：让这片平原长满草最少需要几年。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $R, C$ ($R, C \leq 10^9$)。</p>
+		<p>第二行包含一个正整数 $N$ ($N \leq 300$)。</p>
+		<p>接下来的 $N$ 行，第 $i$ 行包含两个正整数 $S_i, E_i$ ($1 \leq S_i \leq R; 1 \leq E_i \leq C; \left( S_i, E_i \right) \neq \left( S_j, E_j \right)$)，表示格子 $\left( S_i, E_i \right)$ 上长有野草。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示在理想方案下，这片平原长满草最少需要的年数。</p>
+
+		<h3>题解</h3>
+		<p>首先容易注意到，对于一个给定的初始状态，最终的结果只与东风、南风、西风、北风所刮的次数有关，与它们具体的顺序无关。</p>
+		<p>证明可以通过只有 $1$ 个草籽的情况所得到，因为此时若干年后形成的有草区域一定是一个<strong>矩形</strong>。</p>
+		<p>于是我们就只需要确定四种风刮的次数即可，时间复杂度 $O \left( R^3 C^3 \right)$。</p>
+		<p>显然这样做太暴力了，我们来看一个是不那么暴力的做法。</p>
+		<hr />
+		<p>先简化问题，考虑一维的情况 (或 $R = 1$ 的情况)。我们需要对这种情况找到一个复杂度比较优秀的算法 (至少也该优于 $O \left( C^3 \right)$)。</p>
+		<p>考虑刮风的次数，显然此时刮南风和北风是毫无意义的，因此只需考虑东风和西风的次数。</p>
+		<p>设初始状态有草籽的格子编号分别为 $1 \leq x_1 &lt; x_2 &lt; \cdots &lt; x_n \leq C$。</p>
+		<p>先是刮东风的次数，由于左数第 $1$ 个格子 (最西边的格子) 要被填充，因此至少需要刮 $x_1 - 1$ 次东风。</p>
+		<p>同理，至少需要刮 $C - x_n$ 次西风。</p>
+		<p>但是这样真的足够了吗？不一定的。</p>
+		<p>考虑初始状态为 $\left\{ x_1, x_2 \right\} = \left\{ 1, C \right\}$，照上面计算答案会变成 $0$。而实际上，(由于初始草籽可能不连通) 尽管两侧的格子已经被填充，但是中间的格子仍然是空的。</p>
+		<p>因此，我们还需要考虑相邻两个有草籽的格子中见的格子数，即 $x_{i+1} - x_i - 1$ ($1 \leq i &lt; n$)。对于这 $x_{i+1} -  x_i - 1$ 个格子，每刮一次风至多填充一个，因此<strong>至少需要刮 $x_{i+1} - x_i - 1$ 次风</strong>。</p>
+		<p>综上所述，对 $R = 1$ 的情况，总的刮风次数 (答案) 等于 $\max \left\{ \left( x_1 - 1 \right) + \left( C - x_n \right), \max\limits_{1 \leq i &lt; n} \left( x_{i+1} - x_i - 1 \right) \right\}$。</p>
+		<p>于是可以愉快的 $O \left( N \log N \right)$ 解决。</p>
+		<hr />
+		<p>那么，对于 $R = 1$ 的情况，如果<strong>我们限制只能刮东风和西风</strong>，则思路也是类似的。</p>
+		<p>首先，按行分开考虑，求出每一行所需的<strong>刮东风次数下限 $E_r = x_1 - 1$</strong>，<strong>刮西风次数下限 $W_r = C - x_n$</strong>，以及<strong>总刮风次数下限 $A_r = \max\limits_{1 \leq i &lt; n} \left( x_{i+1} - x_i - 1 \right)$</strong>，最后的答案就是 $\max\left\{ \left( \max\limits_{1 \leq r \leq R} E_r \right) + \left( \max\limits_{1 \leq r \leq R} W_r \right), \max\limits_{1 \leq r \leq R} A_r \right\}$。</p>
+		<p>那允许刮南风和北风了呢？首先，显然可以暴力枚举，复杂度 $O \left( R^3 \right)$，无法接受。</p>
+		<p>这个时候又要注意到一个性质：</p>
+		<p>对于一个状态，考虑它接下来刮南风或刮北风的结果。可以发现，如果不考虑边界，只考虑被填充的格子集合，则这两种方案是相同的 (即它们的被填充格子组成的图形是<strong>全等的</strong>)。</p>
+		<p>因此我们只需枚举<strong>南风北风刮的总次数</strong> $C_{NS}$，这样整个图形就唯一确定下来了，从而 $E_r, W_r, A_r$ 的值也是对应相等的。</p>
+		<p>最后，我们就要在图形中<strong>选择 $R$ 行</strong> $\left[ r_0, r_0 + R \right)$，计算 $\max\left\{ \left( \max\limits_{r_0 \leq r &lt; r_0 + R} E_r \right) + \left( \max\limits_{r_0 \leq r &lt; r_0 + R} W_r \right), \max\limits_{r_0 \leq r &lt; r_0 + R} A_r \right\}$ 的值。</p>
+		<p style="color: red">(ps: 约定：若一行 $r$ 为空，则定义 $E_r = W_r = A_r = + \infty$)</p>
+		<p>于是只需要对于不同的 $r_0$，动态维护 $\max\limits_{r_0 \leq r &lt; r_0 + R} arr_r$ 的值，其中 $arr$ 是一个数组。</p>
+		<p>可以发现，这就是经典的<strong>求所有定长子区间的最小值</strong> ("滑动窗口") 问题，可以使用单调队列解决。</p>
+		<p>于是时间复杂度就变为了 $O \left( R^2 \right)$。</p>
+		<hr />
+		<p>由于 $R$ 很大，因此它肯定不能作为枚举的依据，所以我们要考虑使用离散化思想。</p>
+		<p>注意到，当 <strong>"南风北风刮的总次数"</strong> $C_{NS}$ 确定时 (即形状确定时)，对于这么多每行，大多数的行其实是完全相同的。本质不同的行只和它们的分界点数有关，即不超过 $2 N + O \left( 1 \right)$。</p>
+		<p>因此我们只需对这些元素做滑动窗口即可，时间复杂度降至 $O \left( R N \right)$。</p>
+		<p>最后考虑剩下的那个 $R$，即我们枚举 $C_{NS}$，尝试对它也进行一遍离散化。</p>
+		<p>经过尝试可以发现，很多情况下，尽管 $C_{NS}$ 不同，但只要它在某一个区间内，最终即使形状不一样，将其离散化后的结果也是相同的。</p>
+		<p>于是，我们需要找到这样的关键点。主要有这么几类：</p>
+		<ol>
+			<li><p>某一个格子达到了上边界，即 $y_i - 1$。</p></li>
+			<li><p>某一个格子达到了下边界，即 $R - y_j$。</p></li>
+			<li><p>某两个格子分别达到了上边界和下边界，即 $\left( y_i - 1 \right) + \left( R - y_j \right)$。</p></li>
+			<li><p>对格子 $i, j$ 且 $y_i + 1 &lt; y_j$，经过适当的移动后，它们中间的 "gap" (裂缝) 消失了。即 $y_j - y_i - 1$。</p></li>
+		</ol>
+		<p>除此之外，并不会产生其它情况。</p>
+		<p>可以注意到，由于这样的 $R$ 不会超过 $O \left( N^2 \right)$ 个，因此总时间复杂度 $O \left( N^3 \right)$，略加卡常即可通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define templated template &lt;typename T&gt;
+#define EB emplace_back
+
+typedef unsigned int u32;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::pair &lt;u32, int&gt; upr;
+typedef std::tuple &lt;int, int, int&gt; tup;
+typedef std::vector &lt;int&gt; vector;
+const int N = 354, M = 654, INF = 0x7f7f7f7f;
+
+int R, C, n;
+vector prob, hi;
+pr a[N];
+tup hor[N][N], b[M];
+
+templated inline bool up(T &amp;x, const T y) {return x &lt; y ? x = y, 1 : 0;}
+templated inline bool down(T &amp;x, const T y) {return x &gt; y ? x = y, 1 : 0;}
+inline u32 max(const u32 x, const u32 y) {return x &lt; y ? y : x;}
+
+struct monoqueue {
+	int n, h, t;
+	pr *que;
+	monoqueue () : n(0), h(0), t(0), que(NULL) {}
+	~monoqueue () {if (que) delete [] (que);}
+	void resize(int _n) {if (que) delete [] (que); n = _n, h = t = 0, que = new pr[n + 1];}
+	inline void clear() {h = t = 0;}
+	void push(int key, int val) {for (; h &lt; t &amp;&amp; que[t - 1].second &lt;= val; --t); que[t++] = pr(key, val);}
+	int get(int key) {for (; h &lt; t &amp;&amp; que[h].first &lt; key; ++h); return que[h].second;}
+} LQ, RQ, MQ;
+
+namespace DC {
+	int F[M]; upr D[M];
+
+	int Discretize(int n) {
+		int i, cnt = 0; std::inplace_merge(D, D + n, D + n * 2);
+		for (i = 0; i &lt; n * 2; ++i) F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+}
+
+void init_horizontal() {
+	int i, j, la, L, R, M;
+	for (i = 0; i &lt; n; ++i)
+		for (hi.clear(), j = i; j &lt; n; ++j) {
+			hi.insert(std::lower_bound(hi.begin(), hi.end(), a[j].second), a[j].second);
+			la = L = hi.front() - 1, R = C - hi.back(), M = 0;
+			for (int c : hi) up(M, c - la - 1), la = c;
+			hor[i][j] = tup(L, R, M);
+		}
+}
+
+int work(int step, int ans) {
+	int i, l, r, cnt = 0, Lv, Rv, Mv; u32 ret = INF;
+	for (i = 0; i &lt; n; ++i)
+		DC::D[i] = upr(a[i].first, i), DC::D[i + n] = upr(a[i].first + step + 1, i + n);
+	cnt = DC::Discretize(n);
+	for (l = r = i = 0; i &lt; cnt - 1; ++i) {
+		for (; l &lt; n &amp;&amp; DC::F[l + n] &lt;= i; ++l);
+		for (; r &lt; n &amp;&amp; DC::F[r] &lt;= i; ++r);
+		if (l &gt;= r) return INF;
+		b[i] = hor[l][r - 1];
+	}
+	LQ.clear(), RQ.clear(), MQ.clear();
+	for (r = 0; r &lt; cnt - 1 &amp;&amp; DC::D[r].first &lt; DC::D-&gt;first + R; ++r)
+		std::tie(Lv, Rv, Mv) = b[r], LQ.push(r, Lv), RQ.push(r, Rv), MQ.push(r, Mv);
+	for (l = 0; r &lt; cnt; ++r) {
+		for (up(l, 0); l &lt;= r &amp;&amp; DC::D[l].first + R &lt;= DC::D[r].first; ++l);
+		if (l--) down&lt;u32&gt;(ret, max(LQ.get(l) + RQ.get(l), MQ.get(l)));
+		if (r &lt; cnt) std::tie(Lv, Rv, Mv) = b[r], LQ.push(r, Lv), RQ.push(r, Rv), MQ.push(r, Mv);
+	}
+	return ret;
+}
+
+int main() {
+	int i, j, limit; u32 ans;
+	scanf("%d%d%d", &amp;R, &amp;C, &amp;n), ans = R + C - 2;
+	for (i = 0; i &lt; n; ++i) scanf("%d%d", &amp;a[i].first, &amp;a[i].second);
+	std::sort(a, a + n), init_horizontal();
+	for (prob.EB(0), i = 0; i &lt; n; ++i) {
+		prob.EB(a[i].first - 1), prob.EB(R - a[i].first);
+		for (j = 0; j &lt; n; ++j)
+			prob.EB(a[j].first - a[i].first - 1), prob.EB((a[i].first - 1) + (R - a[j].first));
+	}	
+	std::sort(prob.begin(), prob.end()), prob.erase(std::unique(prob.begin(), prob.end()), prob.end());
+	LQ.resize(n * 2), RQ.resize(n * 2), MQ.resize(n * 2);
+	limit = (a-&gt;first - 1) + (R - a[n - 1].first);
+	for (int l : prob) if (limit &lt;= l &amp;&amp; (u32)l &lt;= ans) down&lt;u32&gt;(ans, l + work(l, ans));
+	printf("%u\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>虽然这题最终答案不会超过 <code>int</code> 范围 ($\leq 2 \times 10^9$)，但是在更新的时候，较劣的答案是可以超过 <code>int</code> 范围的 (但不超过 $4 \times 10^9$)。类似地，对于较大的 $C_{NS}$，点的纵坐标 (行数) 也可以超过 <code>int</code> 范围。</p>
+		<p>因此，在存储这些东西的时候注意使用 <code>unsigned int</code> (虽然 <code>long long</code> 也可以，但是本题常数略紧)。</p>
+		<p><strong>坑2：</strong>本题的时间比较紧，因此不要写出大常数或多复杂度的部分。</p>
+		<p>比如，在内层离散化的时候，<strong>不能</strong>使用 <code>std::sort</code>，而需要使用 <code>std::inplace_merge</code>，因为待离散化的数据 (坐标以及坐标平移 $C_{NS}$ 个单位的结果) 是两个有序表，合并是 $O \left( N \right)$ 的。否则时间复杂度将会退化到 $O \left( N^3 \log N \right)$，就会 TLE 了。</p>
+		<p><strong>坑3：</strong>还有一个卡常点是，在滑动窗口的过程，先暴力滑右指针，直到它滑到比初始位置多一个 $R$ 时再同时滑做指针。这样对于大数据就几乎减少了一半的判断左指针的时间。</p>
+	</body>
+</html>
