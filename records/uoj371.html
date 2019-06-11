@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj371]滑稽树下你和我</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵平面上的树，两个点在树上任意移动，最小化从开始到两个点都到达叶子的任意时刻两个点直线距离的最大值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, \mathrm{stx}, \mathrm{sty}$ ($3 \leq n \leq 1000; 1 \leq \mathrm{stx}, \mathrm{sty} \leq n$)。</p>
+		<p>接下来 $n$ 行，每行两个非负整数 $x_i, y_i$ ($0 \leq x_i, y_i \leq 10^6$)，表示第 $i$ 号节点的坐标。</p>
+		<p>接下来 $n-1$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq n; a_i \neq b_i$)，表示树上的一条边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示最小的任意时刻我们两个所控制的点之间距离的最大值。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-6}$。</p>
+
+		<h3>题解</h3>
+		<p>由于需要最大化最小值，于是考虑二分，变成判断可行性问题。</p>
+		<p>那对于给定的距离 $d$，什么时候两个点可以通过保持不超过 $\leq d$ 的距离到达两个叶子呢？</p>
+		<p>注意到 $n$ 不是太大，因此考虑使用搜索。这里我们使用的是 bfs (宽度优先搜索)。</p>
+		<p>考虑搜索的每个状态，它可以表示为 $\left( u, v \right)$，表示第一个点现在在 $u$，第二个点现在在 $v$。我们尝试去扩展更多的合法状态。</p>
+		<p>最简单地，如果 $\mathop{\mathrm{dist}} \left( u, v \right) \leq d$，且 $\mathop{\mathrm{dist}} \left( u, v' \right) \leq d$，则状态 $\left( u, v' \right)$ 可达的充要条件是 $\left( u, v \right)$ 可达。</p>
+		<p>但是只有这样的状态是可达的吗？</p>
+		<p>注意到两个点可以<strong>同时沿边移动</strong>，于是只要这两条线段足够近，就算一个线段的某个端点与另一个线段的某个端点离得很远也没关系。</p>
+		<p>举个例子，有一双筷子 $\left( A - B, C - D \right)$，两个点都在筷子的一侧 $\left( A, C \right)$，它们想移动到 $\left( B, D \right)$，此时只需要 $d \geq$ 两根筷子之间的距离即可，而此时 $\left| A D \right|, \left| B C \right|$ 的值可以很大。</p>
+		<p>因此，我们需要增加这样一种状态：$\left( s, u \to v \right)$，表示第一个点位于 $s$，第二个点在边 $\left( u, v \right)$ 上这个状态。</p>
+		<p>由于两个点的顺序无关紧要，因此 $\left( u \to v, s \right)$ 和 $\left( s, u \to v \right)$ 被认为是同一种状态。</p>
+		<p>我们考虑它们的转移条件：如果 $\left( u, v \right)$ 是可达的，那么一个必要条件是 $\mathop{\mathrm{dist}} \left( u, v \right) \leq d$，此时对于和 $v$ 关联的一条边 $\left( v, w \right)$，$\mathop{\mathrm{dist}} \left( u, v \to w \right) \leq \mathop{\mathrm{dist}} \left( u, v \right)$，因此状态 $\left( u, v \to w \right)$ 可达。<span style="color: red">(ps: $\mathop{\mathrm{dist}} \left( u, v \to w \right)$ 表示点 $u$ 到线段 $v - w$ 的距离)</span></p>
+		<p>同理，如果 $\left( u, v \to w \right)$ 可达且 $\mathop{\mathrm{dist}} \left( u, v \right) \leq d$，则状态 $\left( u, v \right)$ 可达。</p>
+		<p>但是这样仍旧不能解决 "筷子问题"。我们还需要增加一种操作：<strong>"易边操作"</strong>。</p>
+		<p>考虑有两条边 $s \to t$ 和 $u \to v$。目前已知 $\left( s, u \to v \right)$ 是可达的，且 $\mathop{\mathrm{dist}}\left( u, s \to t \right) \leq d$，则容易证明 $\left( u, s \to t \right)$ 可达。</p>
+		<p>有了这种 "易边操作" 后，可以证明，可达点能扩展的集合确实就是所有可达点的集合了。</p>
+		<p>于是只需要实现一个点到线段的距离，在进行一遍 bfs/dfs，即可检验合法性，时间复杂度 $O \left( n^2 \right)$。</p>
+		<p>然而这样由于常数太大会被卡(ha)常(ck) (<a href="uploads/2.in" download="hack.in">类 Hack 数据</a>)，因此在 uoj 上需要进行一波常数优化：</p>
+		<p style="color: blue">在队列中仅保留 $\left( s, u \to v \right)$ 型的转移，并<strong>只使用易边操作</strong>，如果遇到状态 $\left( u, v \to w \right)$ 满足 $u, v$ 都是叶子，则 <code>return true;</code>，可以证明这样的算法也可以得到正确结果。</p>
+		<p>时间复杂度 $O \left( n^2 \left| \log eps \right| \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define dot(x, y, z) (((y) - (x)) * ((z) - (x)))
+#define EB emplace_back
+
+typedef std::vector &lt;int&gt; vector;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 2540;
+
+struct vec2 {
+	int x, y;
+	vec2 (int _x = 0, int _y = 0) : x(_x), y(_y) {}
+	vec2 * read() {return scanf("%d%d", &amp;x, &amp;y), this;}
+	inline vec2 operator - () const {return vec2(-x, -y);}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline double operator * (const vec2 &amp;B) const {return (double)x * B.x + (double)y * B.y;}
+	inline double operator ^ (const vec2 &amp;B) const {return (double)x * B.y - (double)y * B.x;}
+	inline double norm2() const {return (double)x * x + (double)y * y;}
+	inline double norm() const {return sqrt((double)x * x + (double)y * y);}
+} p[N];
+
+struct line {
+	double A, B, C;
+	line (double A0 = 0.0, double B0 = 0.0, double C0 = 0.0) : A(A0), B(B0), C(C0) {}
+	line (const vec2 &amp;u, const vec2 &amp;v) : A(u.y - v.y), B(v.x - u.x), C(u ^ v) {}
+	inline double norm2() const {return A * A + B * B;}
+	inline double operator () (const vec2 &amp;P) const {return A * P.x + B * P.y + C;}
+};
+
+int n, s, t, ta, E = 0;
+bool is_leaf[N], used[N][N];
+double d[N][N];
+pr seg[N], que[2003731 * 2];
+vector G[N];
+
+inline void up(double &amp;x, const double y) {x &lt; y ? x = y : 0;}
+
+inline double dis2(const vec2 P, const line l) {return l(P) * l(P) / l.norm2();}
+
+inline void addedge(int u, int v) {G[u].EB(v), G[v].EB(u);}
+
+inline double dist(int x, int y) {
+	if (x &gt; y) std::swap(x, y);
+	if (y &lt;= n) return (p[x] - p[y]).norm();
+	if (x &gt; n) return 0.;
+	int u = seg[y - n].first, v = seg[y - n].second;
+	return dot(p[u], p[v], p[x]) &gt; 0 &amp;&amp; dot(p[v], p[u], p[x]) &gt; 0 ? sqrt(dis2(p[x], line(p[u], p[v]))) : std::min((p[x] - p[u]).norm(), (p[x] - p[v]).norm());
+}
+
+int tata = 0;
+bool debug = true;
+
+inline bool check(double limit) {
+	int h, u, v, e;
+	for (; ta; --ta) std::tie(u, v) = que[ta - 1], used[u][v] = false;
+	for (int w : G[s]) que[ta++] = pr(t, w), used[t][w] = true;
+	for (int w : G[t]) que[ta++] = pr(s, w), used[s][w] = true;
+	for (h = 0; h &lt; ta; ++h) {
+		std::tie(v, e) = que[h];
+		for (int w : G[v]) {
+			u = seg[e - n].first;
+			if (is_leaf[v] &amp;&amp; is_leaf[u] &amp;&amp; d[u][v] &lt;= limit) return true;
+			if (!used[u][w] &amp;&amp; d[u][w] &lt;= limit) used[u][w] = true, que[ta++] = pr(u, w);
+			u = seg[e - n].second;
+			if (is_leaf[v] &amp;&amp; is_leaf[u] &amp;&amp; d[u][v] &lt;= limit) return true;
+			if (!used[u][w] &amp;&amp; d[u][w] &lt;= limit) used[u][w] = true, que[ta++] = pr(u, w);
+		}
+	}
+	return false;
+}
+
+int main() {
+	int i, j, u, v; double L, R = 0., M;
+	char *_ = new char; std::mt19937 gen(time(NULL) + (size_t)_); delete _;
+	scanf("%d%d%d", &amp;n, &amp;s, &amp;t);
+	for (i = 1; i &lt;= n; ++i) p[i].read();
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), seg[i] = pr(u, v), G[u].EB(n + i), G[v].EB(n + i);
+	for (i = 1; i &lt;= n; ++i) is_leaf[i] = G[i].size() == 1;
+	for (i = 2; i &lt; 2 * n; ++i)
+		for (j = 1; j &lt; i; ++j) d[i][j] = d[j][i] = dist(i, j);
+	for (i = 2; i &lt;= n; ++i) for (j = 1; j &lt; i; ++j) up(R, d[i][j]);
+	if (is_leaf[s] &amp;&amp; is_leaf[t]) return printf("%.12lg\n", d[s][t]), 0;
+	for (L = d[s][t]; R - L &gt; 1e-8; )
+		check(M = (L + R) / 2) ? R = M : L = M;
+	printf("%.9lg\n", (L + R) / 2);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>可以预处理 $O \left( n^2 \right)$ 个点对和 (点, 线) 对之间的距离值，避免耗时的浮点运算。<del>(当然如果你的 CPU 浮点运算比内存访问还要快的话当我没说)</del></p>
+		<p><strong>坑2：</strong>注意定一个二分下界 $\mathop{\mathrm{dist}} \left( \mathrm{stx}, \mathrm{sty} \right)$，这样在初始两个点都在叶子的时候也不会输出 $0$。</p>
+	</body>
+</html>

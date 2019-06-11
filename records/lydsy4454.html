@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4454]C Language Practice</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style type="text/css">
+			dfn {font-weight: bold; color: fuchsia}
+		</style>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个长度为 $n$ 的序列 $a_0, a_1, \cdots, a_{n-1}$ 以及一个长度为 $m$ 的序列 $b_0, b_1, \cdots, b_{m-1}$，求：</p>
+		<p>$$ \sum_{i=0}^{n-1} \sum_{j=0}^{m-1} \gcd \left( a_i, b_j \right) \oplus i \oplus j $$</p> 
+		<p>因为答案可能很大，因此只需要输出答案对 $2^{32}$ 取模的结果即可。</p>
+		<p>注意：$\gcd \left( 0, x \right) = \gcd \left( x, 0 \right) = x$ 对<strong>任意 $x \in \mathbb N$</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 85$)，表示测试数据的组数。</p>
+		<p>对于每组数据，第一行包含两个正整数 $n, m$ ($n, m \leq 2000$)。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_0, a_1, \cdots, a_{n-1}$ ($0 \leq a_i \leq 10^6$)。</p>
+		<p>第三行包含 $m$ 个非负整数 $b_0, b_1, \cdots, b_{m-1}$ ($0 \leq b_i \leq 10^6$)。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据输出一行一个整数，即上式模 $2^{32}$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>一看这式子就不像是能化简的样子，于是考虑逐项暴力计算。</p>
+		<p>不过 $O \left( T n m \right)$ 的值已经很大了，要是 $\gcd$ 还需要一个 $\log$ 的话准 T 飞了。</p>
+		<p>然而，求 $\gcd$ 的 $a_i, b_i$ 都比较小，只有 $10^6$ 级别。于是，我们就需要引入一个黑科技 —— 预处理 $O \left( n \right)$，单次 $O \left( 1 \right)$ 的 $\gcd$ 算法。</p>
+		<p>如何才能在 $O \left( 1 \right)$ 的时间内计算 $\gcd$ 呢？<del>不要和我扯循环展开</del></p>
+		<p>假如要求 $\gcd \left( a, b \right)$，其中 $a, b \leq 1000$，那么容易设计出一个 $O \left( n^2 \right)$ 预处理的算法 —— 令 $f_{i, j} = \gcd \left( i, j \right)$，然后递推 $f_{i, j} = f_{\min \left\{ i, j \right\}, \left| i - j \right|}$ (或 $f_{i, j} = f_{j, i \bmod j}$)。</p>
+		<p>于是，不止对 $a, b \leq 1000$，我们对 $\min \left\{ a, b \right\} \leq 1000$ 的情况，也可以轻松求出它们的 $gcd$ —— 因为只需要做一次取模 <del>(膜法)</del> 即可。</p>
+		<p>那么对 $a, b \leq 10^6$，又该怎么办呢？</p>
+		<hr />
+		<p>不妨设 $b = u v$，其中 $u, v \leq 1000$。于是对于 $\forall a \in \mathbb N$，都容易知道 $\gcd \left( a, u \right), \gcd \left( a, v \right)$ 的值。我们考察如何得到 $\gcd \left( a, u \cdot v \right)$ 的值：</p>
+		<p>这是因为由 $\gcd$ 的性质，$\gcd \left( a, u \cdot v \right) = \gcd \left( a, u \right) \cdot \gcd \left( \dfrac a {\gcd \left( a, u \right)}, v \right)$。</p>
+		<p>简单证明：$\left( a, u \cdot v \right) = \left( a, u \right) \cdot \left( \dfrac a {\left( a, u \right)}, \dfrac u {\left( a, u \right)} \cdot v \right) = \left( a, u \right) \cdot \left( \dfrac a {\left( a, u \right)}, v \right)$。(最后一步是由于 $\dfrac a {\left( a, u \right)}$ 和 $\dfrac u {\left( a, u \right)}$ 是互素的)</p>
+		<p>于是我们希望其中一个数 $b$ 最好能分解成若干个较小的数的乘积，于是还是可以 $O \left( 1 \right)$ 求出 $\gcd$。</p>
+		<p>但是这样显然是不现实的，因为 $b$ 并不一定可以分解两个 $\leq \sqrt b$ 的数的乘积。比如当 $b$ 是一个大素数或含有大素数作为因子，就无法做到。</p>
+		<p>不过前者还是容易的，因为一旦 $b$ 是素数，则 $\gcd \left( a, b \right) = \begin{cases} b &amp; b \mid a \\ 1 &amp; b \nmid a \end{cases}$。对于是后者，设 $b = k p$，其中 $p$ 是 $&gt; \sqrt b$ 的素数。</p>
+		<p>此时，一定有 $k \leq \sqrt n$，因此对 $\forall a \in \mathbb N$，容易求出 $\left( a, k \right)$ 和 $\left( a, p \right)$，从而可以 $O \left( 1 \right)$ 求出 $\gcd \left( a, b \right)$。</p>
+		<p>于是，下面就有这样一个引理：</p>
+		<p><strong style="color: green">引理：对于 $\forall N \in \mathbb N^*$，总存在正整数 $a, b, c$ 满足 $N = a b c$ 且 $a, b, c$ 要么是素数，要么不超过 $\sqrt N$。我们把这样的 $\left( a, b, c \right)$ 称为 $N$ 的<dfn>迷之分解 (special decomposition)</dfn>，简称 SD。</strong></p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>若 $N$ 存在大于 $\sqrt N$ 的素因子 $p$，设 $a = 1, b = \dfrac Np, c = p$ 满足条件。</p>
+				<p>否则，设 $u$ 为 $N$ 的 $\geq \sqrt N$ 的因子中的最小者，$v = \dfrac Nu$ 为 $\leq \sqrt N$ 的因子中的最大者。</p>
+				<p>由假设，$u$ 不是素数，因此存在 $a, b &gt; 1$，使得 $u = a b$，因为 $u$ 的最小性，所以 $a, b \leq \sqrt N$。故 $a, b, v$ 是满足条件的分解。</p>
+			</div>
+		</div>
+		<p>因此，如果如果能对 $10^6$ 中的每个数找到它的 SD，则根据上面的方法，预处理出 $\gcd \left( i, j \right)$ ($i, j \leq \sqrt n$)，就可以 $O \left( 1 \right)$ 计算 $\gcd$ 了。</p>
+		<p>于是下面的主要问题在于如何快速地求出每个数的 SD。</p>
+		<hr />
+		<p>我们用线性筛去 "扫一遍"。设 $N p$ 的最小素因子为 $p$，分为两种情况：</p>
+		<ol>
+			<li><p>$p &gt; \sqrt {N p}$。</p>
+			<p>此时 $N$ 为素数，$\left( 1, 1, N \right)$ 即为满足条件的 SD。</p></li>
+			<li><p>$p \leq \sqrt {N p}$。</p>
+			<p>设 $N = a b c, a \leq b \leq c$，则 $a \leq \sqrt[3]N$。于是 $a \cdot p \leq \sqrt[3]N \cdot p \leq \sqrt{N p} \Leftrightarrow p \leq \sqrt[3]N$，而后者是显然正确的，因此 $\left( a p, b, c \right)$ 也是满足条件的 SD。</p></li>
+		</ol>
+		<p>因此，我们只需要将 $N$ 的 SD 中的最小者乘上 $p$ 即得 $N p$ 的 SD，于是这个预处理也可以在 $O \left( n \right)$ 时间内完成。</p>
+		<p>对于不超过 $\sqrt n$ 的元素的预处理，时间复杂度也是 $O \left( \left( \sqrt n \right)^2 \right) = O \left( n \right)$，于是整个预处理的复杂度就是 $O \left( n \right)$ 的。</p>
+		<p>不过由于这个算法的常数比较大 (取模比较多，而且 lydsy 还卡空间)，需要加一(da)些(liang)底层优化才能过，具体可以参见代码。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ID isdigit(c = getchar())
+
+struct Istream {
+	Istream &amp; operator &gt;&gt; (int &amp;x) {
+		int c; x = 0;
+		for (; !ID; ) if (!~c) return *this;
+		for (x = c &amp; 15; ID; x = x * 10 + (c &amp; 15));
+		return *this;
+	}
+} cin;
+
+const int N = 1000054, SN = 1001;
+
+int C[SN];
+short T[N / 2];
+unsigned int dec[N];
+int cur[3];
+
+int pn = 0, c[N], p[78540];
+
+inline int gcd(int x, int y) {return y ? T[C[x] + y] : x;}
+
+void init() {
+	int i, j, u[3], v, cnt = 0;
+	for (i = 1; i &lt;= 1000; ++i)
+		for (C[i] = C[i - 1] + i - 2, j = 1; j &lt; i; ++j)
+			T[cnt++] = gcd(j, i % j);
+	memset(c, -1, sizeof c);
+	for (i = 2; i &lt; N; ++i) {
+		if (!~c[i]) p[pn] = i, c[i] = pn++;
+		for (j = 0; (v = i * p[j]) &lt; N &amp;&amp; j &lt;= c[i]; ++j) c[v] = j;
+	}
+	dec[1] = 0x10001;
+	for (i = 2; i &lt; N; ++i)
+		j = i / (v = p[c[i]]), *u = dec[j] &gt;&gt; 16, u[1] = dec[j] &amp; 0xffff, u[2] = j / (*u * u[1]),
+		*u *= v, std::stable_sort(u, u + 3), dec[i] = u[0] &lt;&lt; 16 | u[1];
+}
+ 
+inline int GCD(int x, int y) {
+	if (!(x &amp;&amp; y)) return x | y;
+	int i, d, e, ret = 1;
+	for (i = 0; i &lt; 3; ++i)
+		if ((e = cur[i]) != 1) {
+			if (p[c[e]] == e) {
+				if (!(y % e)) ret *= e, y /= e;
+			} else
+				d = gcd(e, y % e), ret *= d, y /= d;
+		}
+	return ret;
+}
+
+int a[SN * 2];
+
+void work() {
+	int n, m, i, j, x, ans = 0;
+	cin &gt;&gt; n &gt;&gt; m;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; a[i];
+	for (j = 0; j &lt; m; ++j) {
+		cin &gt;&gt; x, x &amp;&amp; (*cur = dec[x] &gt;&gt; 16, cur[1] = dec[x] &amp; 0xffff, cur[2] = x / (*cur * cur[1]));
+		for (i = 0; i &lt; n; ++i)
+			ans += GCD(x, a[i]) ^ i ^ j;
+	}
+	printf("%u\n", ans);
+}
+ 
+int main() {
+	int T; init();
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意特判掉 $a_i = 0$ (或 $b_j = 0$) 的情况，以免被 $0$ 除 (取模)。</p>
+		<p><strong>坑2：</strong>在 GCD 的过程中，由于模运算开销比较大，因此使用 <code>if</code> 会比三目运算符快不少 (利用分支预测)。</p>
+	</body>
+</html>

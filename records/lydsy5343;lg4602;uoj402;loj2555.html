@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5343][lg4602][uoj402][loj2555][CTSC2018]混合果汁</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script type="text/javascript" src="../additional_files/sh_main.min.js"></script>
+		<script type="text/javascript" src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 R 热衷于做黑暗料理，尤其是混合果汁。</p>
+		<p>商店里有 $n$ 种果汁，编号为 $0, 1, 2, \cdots, n - 1$。$i$ 号果汁的美味度是 $d_i$，每升价格为 $p_i$。小 R 在制作混合果汁时，还有一些特殊的规定，即在一瓶混合果汁中，$i$ 号果汁最多只能添加 $l_i$ 升。</p>
+		<p>现在有 $m$ 个小朋友过来找小 R 要混合果汁喝，他们都希望小 R 用商店里的果汁制作成一瓶混合果汁。其中，第 $j$ 个小朋友希望他得到的混合果汁总价格不大于 $g_j$，体积不小于 $L_j$。</p>
+		<p>上述这些限制条件下，小朋友们还希望混合果汁的美味度尽可能地高，一瓶混合果汁的美味度等于所有参与混合的果汁的美味度的最小值。请你计算每个小朋友能喝到的最美味的混合果汁的美味度。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 10^5$)，表示果汁的种数和小朋友的数量。</p>
+		<p>接下来 $n$ 行，每行三个正整数 $d_i, p_i, l_i$ ($d_i, p_i, l_i \leq 10^5$)，表示 $i$ 号果汁的美味度为 $d_i$，每升价格为 $p_i$，在一瓶果汁中的添加上限为 $l_i$。</p>
+		<p>接下来 $m$ 行，依次描述所有小朋友：每行两个正整数 $g_j, L_j$ ($g_j, L_j \leq 10^{18}$) 描述一个小朋友，表示他最多能支付 $g_j$ 元钱，他想要至少 $L_j$ 升果汁。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个小朋友，输出一行一个整数，表示他能喝到的最美味的混合果汁的美味度。如果无法满足他的需求，则输出 $−1$。</p>
+
+		<h3>题解</h3>
+		<p>令最小值尽可能地大，开局直接二分。</p>
+		<p>于是问题转化成能否<strong>只用美味度 $\geq mid$ 的果汁，做出 $L_j \,\mathrm L$ 果汁，总价格不超过 $g_j$</strong>。</p>
+		<p>对于这个问题，如果确定了 $mid$，则有一个很显然的贪心策略：</p>
+		<p>每次在符合条件的果汁中暴力寻找最便宜的果汁，直到满 $L_j$ 升，检验价格是否 $\leq g_j$ 即可。</p>
+		<p>直接贪心是 $O \left( n \right)$ 的，显然不行，因为我们需要做 $O \left( m \log n \right)$ 次。</p>
+		<p>于是，如果没有最外层的二分，(还是需要做 $O \left( m \right)$ 次) 则直接将果汁按照价格排序，然后分段预处理出 $x$ 单位的果汁至少需要 $f \left( x \right)$ 元，然后直接 <code>std::lower_bound</code> 查找一下即可。</p>
+		<p>那如果有最外层的二分，就相当于限制了能使用的果汁集合。</p>
+		<p>而这样的集合只有 $O \left( n \right)$ 个，因此我们希望维护出这 $n$ 个预处理的数组。</p>
+		<p>因此可以想到使用<strong>可持久化线段树</strong>。</p>
+		<p>以价格为下标，建立线段树，维护一段区间的果汁卖满需要多少钱。于是加入一瓶果汁的时间复杂度就是 $O \left( \log p \right)$ 了。</p>
+		<p>询问时，在外面二分 $mid$，里面用线段树上二分查找价格，即可得到答案。</p>
+		<p>总时间复杂度 $O \left( n \log p + m \log n \log p \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+
+const int N = 100054;
+
+struct juice {
+	int d, p, l;
+	juice * read() {return scanf("%d%d%d", &amp;d, &amp;p, &amp;l), this;}
+	inline bool operator &lt; (const juice &amp;B) const {return d &gt; B.d;}
+} J[N];
+
+int n, P;
+int root[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+namespace ST {
+	struct node {ll vol, cost; int lc, rc;} x[2003731];
+	int cnt = 0;
+	
+	int adj(int id, int L, int R, int h, int v) {
+		int nid = ++cnt; x[nid] = x[id], x[nid].vol += v, x[nid].cost += (ll)h * v;
+		if (L == R) return nid;
+		int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[nid].lc = adj(x[id].lc, L, M, h, v) : (x[nid].rc = adj(x[id].rc, M + 1, R, h, v));
+		return nid;
+	}
+	
+	ll cheapest(int id, int L, int R, ll vol) {
+		int M; ll cost = 0;
+		if (x[id].vol &lt; vol) return LLONG_MAX;
+		for (; L &lt; R; )
+			M = (L + R - 1) &gt;&gt; 1, id = (vol &lt; x[id].lc[x].vol ? (R = M, x[id].lc) : (cost += x[id].lc[x].cost, vol -= x[id].lc[x].vol, L = M + 1, x[id].rc));
+		return cost + vol * L;
+	}
+}
+
+int main() {
+	int i, q, L, R, M; ll v, c;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 0; i &lt; n; ++i) up(P, J[i].read()-&gt;p); J[n].d = -1;
+	std::sort(J, J + n);
+	for (i = 0; i &lt; n; ++i) root[i + 1] = ST::adj(root[i], 1, P, J[i].p, J[i].l);
+	for (; q; --q) {
+		scanf("%lld%lld", &amp;c, &amp;v);
+		for (L = 0, R = n; L &lt; R; ST::cheapest(root[M + 1], 1, P, v) &lt;= c ? R = M : (L = M + 1))
+			M = (L + R) / 2;
+		printf("%d\n", J[L].d);
+	}
+	return 0;
+}
+</code><script type="text/javascript">syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在线段树上检验时，如果某个集合中所有的果汁的总量都不到 $L_j$，则直接判定为不合法 (或将对应的价格应置为 $+ \infty$)。</p>
+	</body>
+</html>

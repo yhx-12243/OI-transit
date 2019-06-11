@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj2848][CodeforcesGym102154C][ROI2018]Quick sort</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定序列 $a_1, a_2, \cdots, a_n$。对奇偶性不同的整数 $L, R$ ($L &lt; R$)，定义在区间 $\left[ L, R \right]$ 上的操作 $S \left( L, R \right)$ 为：</p>
+		<p>将这些数按照下述规则<strong>重新排列</strong>，先填充 $a_{L+1}, a_{L+3}, a_{L+5}, \cdots, a_R$，即满足 $i - L$ 为奇数的 $a_i$；紧跟着 $a_L, a_{L+2}, a_{L+4}, \cdots, a_{R-1}$，即满足 $i - L$ 为偶数的 $a_i$。其中每组之间的相对顺序不变。</p>
+		<p>例如，考虑序列 $\left[ 2, 4, 1, 5, 3, 6, 7, 8 \right]$，对区间 $\left[ 2, 6 \right]$ 应用操作 $S \left( 2, 6 \right)$，将会把子序列 $\left[ 4, 1, 5, 3, 6 \right]$ 变为 $\left[ 1, 3, 4, 5, 6 \right]$。从而整个序列将变成 $\left[ 2, 1, 3, 4, 5, 6, 7, 8 \right]$。</p>
+		<p>你需要使用这种操作，对一个序列进行排序。具体地，会给定一个正整数 $n$，以及一个 $1 \sim n$ 的排列 $p : p_1, p_2, \cdots, p_n$。你需要将它们按照升序 (从小到大的顺序) 进行排序。注意，<strong>你至多只能使用 $15000$ 次这种操作</strong>。</p>
+		<p>还是刚才那个例子。我们对序列 $\left[ 2, 4, 1, 5, 3, 6, 7, 8 \right]$ 应用操作 $S \left( 2, 6 \right)$ 后，将会得到序列 $\left[ 2, 1, 3, 4, 5, 6, 7, 8 \right]$，然后应用操作 $S \left( 1, 2 \right)$，即可得到有序序列 $\left[ 1, 2, 3, 4, 5, 6, 7, 8 \right]$。</p>
+		<p>你的任务就是编写一个程序，对于给定的序列，构造一种操作序列，使得进行这些操作后序列变回升序。你不需要最小化你的步数，只需要不超过 $15000$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 3000$)，表示序列的长度。</p>
+		<p>第二行包含 $n$ 个正整数 $p_1, p_2, \cdots, p_n$ ($1 \leq p_i \leq n$)，表示初始时的序列。保证 $p_1, p_2, \cdots, p_n$ 构成一个排列。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $k$ ($0 \leq k \leq 15000$)，表示你所构造的操作序列的长度。</p>
+		<p>接下来的 $k$ 行，每行两个正整数 $L, R$ ($1 \leq L &lt; R \leq n$，$L, R$ 奇偶性不同)，描述操作序列中的第 $i$ 步为操作 $S \left( L, R \right)$。</p>
+
+		<h3>题解</h3>
+		<p>先考虑使用暴力，按照 $1 \sim n$ 的顺序将对应数字复位。</p>
+		<p>考察对于一个 $1 \sim n$ 的排列，需要多少步才能将数 $1$ 移到位置 $1$ (即最左边)。</p>
+		<p>设我们需要将一个数 $v$ 从位置 $p$ 移动到位置 $1$。</p>
+		<p>则第一步，我们可以将其从位置 $p$ 移到位置 $\left \lceil \dfrac p2 \right \rceil$。具体操作是，如果 $2 \mid p$，则使用操作 $S \left( 1, p \right)$，否则使用操作 $S \left( 2, p \right)$。</p>
+		<p>于是我们需要在 $\left \lceil \log p \right \rceil$ 步内将在位置 $p$ 上的元素移至最左边。</p>
+		<p>因此，总的步数的一个上界为 $\left \lceil \log 1 \right \rceil + \left \lceil \log 2 \right \rceil + \cdots + \left \lceil \log n \right \rceil = O \left( n \log n \right)$。</p>
+		<p>而 $n \log n \approx 3.5 \times 10^4$ (当 $n$ 取 $n_\max = 3000$ 时)，而此时限制为 $15000$ 步，因此这个方法并不是最优的。</p>
+		<p>那该如何才能得到更优的方案呢？</p>
+		<p>考虑刚才方案的时间瓶颈在哪里。没错，就是将一个数从位置 $p$ 移动到位置 $1$，需要花费 $\left \lceil \log p \right \rceil$ 步，这个确实有点多了。</p>
+		<p>我们尝试反着做这个过程——将一个数从位置 $1$ 移动到位置 $p$，可以发现，当 $p \leq \left \lfloor \dfrac n2 \right \rfloor + 1$ 时，只需一次操作 ($S \left( 1, 2 p - 2 \right)$)，即可完成。</p>
+		<p>进一步地分析，可以得到对于任意给定的 $p$，所消耗的步数为 $\log n - \log \left( n - p \right) + O(1)$。</p>
+		<p>考察这个函数 $f \left( p \right) = \log n - \log \left( n - p \right)$ 的性质，可以发现，<strong>它在平均情况下是 $O(1)$ 的</strong>！</p>
+		<p>证明当然可以使用积分方法。或者也可以这么理解：</p>
+		<p>前一半的元素仅需一步即可完成，位于整个序列的 $\dfrac 12 \sim \dfrac 34$ 部分的元素只需 $2$ 步即可完成，位于序列 $\dfrac 34 \sim \dfrac 78$ 部分的元素只需要 $3$ 步即可到达，以此类推。</p>
+		<p>于是，步数的<strong>期望</strong>就等于 $\dfrac 12 \cdot 1 + \dfrac 14 \cdot 2 + \dfrac 18 \cdot 3 + \cdots = 2$ 为<strong>常数</strong>。</p>
+		<p>因此，对序列 $\left\{ p_n \right\}$，将其从<strong>有序状态</strong>切换到一个随机的无序状态的步数的期望为 $O(n)$ (更精确地讲，不超过 $2 n$)</p>
+		<p>那么，我们有理由可以讲，为什么将其打乱能比将其排序所需要的步数更少呢？我们在排序前是已经知道序列的整个信息的！</p>
+		<p><span style="color: green">现在就是最后的部分了</span>！我们只需注意这一点：我们所有的打乱过程，本质上来讲，都是一个<strong>置换</strong>，即在一个 <strong>$n$ 元置换群</strong>下所做的操作。多次操作，不过就是<strong>置换的乘积</strong>而已。</p>
+		<p>然而众所周知，<strong>置换是可逆的</strong>。我们能将其 "变过去"，也能将其 "变过来"。</p>
+		<p>我们考虑原来的子问题，将排列 $p$ 变为恒等排列 $e$，无非就是需要找到若干个操作 $g_1, g_2, \cdots, g_k$，其中每个操作可以表示成一种特定的置换，使得 $e = g_k \circ g_{k-1} \circ \cdots \circ g_2 \circ g_1 \circ p$。</p>
+		<p>由置换的可逆性，如果对恒等排列执行这些置换，我们将会得到排列 $p^{-1}$，也就是说，一定有 $$ p^{-1} = g_k \circ g_{k-1} \circ \cdots \circ g_2 \circ g_1 \circ e \tag 1 \label 1 $$</p>
+		<p>于是，我们把问题转化为：给定排列 $p^{-1}$，你需要找到若干个置换 $g_1, g_2, \cdots, g_k$，使得 $p^{-1} = g_k \circ g_{k-1} \circ \cdots \circ g_2 \circ g_1$，而这就是刚才我们所讨论过的问题，其中 $k$ 的<strong>期望</strong>为 $O(n)$。</p>
+		<p>但是这仅仅是期望，该怎么办呢？没关系，如果发现置换的个数太多，我们就先随机几个置换 $r_1, r_2, \cdots, r_m$ ($m$ 不用很大，$50$ 左右就够了)，令 $q \gets r_1^{-1} \circ r_2^{-1} \circ \cdots \circ r_m^{-1} \circ p^{-1}$，从而 $q$ 可以看称一个随机排列。</p>
+		<p>设 $q = g_k \circ g_{k-1} \circ \cdots \circ g_2 \circ g_1 \circ e $，则 $$ p^{-1} = r_m \circ r_{m-1} \circ \cdots \circ r_2 \circ r_1 \circ g_k \circ g_{k-1} \circ \cdots \circ g_2 \circ g_1 \circ e $$</p>
+		<p>这样操作步数就基本可以控制在 $2 n + O(1)$ 以内了，时间复杂度 $O \left( n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 30054;
+
+int n, cnt = 0;
+int a[N], perm[N];
+int L[N], R[N];
+std::mt19937 gen;
+
+void push(int l, int r, int *p) {
+	static int buf[N];
+	assert(l &lt; r &amp;&amp; (l ^ r) &amp; 1), L[cnt] = l, R[cnt++] = r;
+	int i, *a = p + l, n = (r - l + 1) / 2; memcpy(buf, a, n &lt;&lt; 3);
+	for (i = 0; i &lt; n; ++i) a[i * 2 + 1] = buf[i], a[i * 2] = buf[i + n];
+}
+
+void solve(int n, int *p) {
+	int i, l, r, m = n, pos, *u = p + 1; cnt = 0;
+	for (i = 1; i * i + 54 &lt; n; push(l, r, p), ++i)
+		std::tie(l, r) = std::minmax(gen() % ((n + 1) / 2) * 2 + 1, gen() % (n / 2) * 2 + 2);
+	for (i = 1; i &lt;= n; ++i, --m, ++u)
+		for (pos = std::find(u, u + m, i) - u; pos; assert(u[pos] == i))
+			pos = (pos &lt;= m / 2 ? (push(i, pos * 2 - 1 + i, p), 0) : (push(pos * 2 - m + i, m - 1 + i, p), pos * 2 - m));
+}
+
+int main() {
+	int i, x;
+	char *_ = new char; gen.seed(time(NULL) + (unsigned long)_); delete _;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", &amp;x), a[x] = i;
+	do memcpy(perm, a, (n + 1) &lt;&lt; 2), solve(n, perm); while (cnt &gt; 15000);
+	printf("%d\n", cnt);
+	for (i = cnt - 1; i &gt;= 0; --i) printf("%d %d\n", L[i], R[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在具体实现时注意操作的顺序，对于 $\eqref 1$ 式，我们通常会更倾向于寻找 $e = g_1^{-1} \circ g_2^{-1} \circ \cdots \circ g_k^{-1} \circ p^{-1}$，此时要对整个式子取逆，注意取逆时所有置换需要反序。</p>
+	</body>
+</html>

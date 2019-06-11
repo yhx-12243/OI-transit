@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[CodeforcesGym100431E]Word Cover</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义串 $t$ 是串 $s$ 的 cover，当且仅当对于 $\forall 1 \leq i \leq \left| s \right|$，$\exists i - \left| t \right| + 1 \leq j \leq i$，满足 $s \left[ j .. j + \left| t \right| - 1 \right] = t$。</p>
+		<p>容易发现，$t$ cover $s$ 的一个必要条件是 $t \sqsubseteq s$。定义 $\mathop{\mathrm{mincov}} \left( s \right) = s \left[ 1 .. k \right]$，其中 $k$ 为最小的满足 $s \left[ 1 .. k \right]$ cover $s$ 的串。</p>
+		<p>给定字符串 $s$，你需要对 $s$ 的每一个前缀 $s \left[ 1 .. i \right]$ ($1 \leq i \leq \left| s \right|$)，求出 $\left| \mathop{\mathrm{mincov}} \left( s \left[ 1 .. i \right] \right) \right|$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个由小写字母构成的，长度不超过 $2.5 \times 10^5$ 的字符串。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n$ 个整数。其中第 $i$ ($1 \leq i \leq \left| s \right|$) 个整数表示 $\left| \mathop{\mathrm{mincov}} \left( s \left[ 1 .. i \right] \right) \right|$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>首先，容易得到 $t$ cover $s \Rightarrow t \trianglelefteq s$，即 $t$ 是 $s$ 的 cover 的<strong>必要条件</strong>为 $t$ 是 $s$ 的 border。</p>
+		<p>因为只需要在 cover 的定义中令 $i = 1$ 和 $\left| s \right|$ 即可。</p>
+		<p>而且，如果 $t \vartriangleleft s$，则 $t$ cover $s$ 的另一个必要条件是 $t$ cover $next \left( s \right)$，其中 $next \left( s \right)$ 为 $s$ 的最长 border。</p>
+		<p>于是，有一个重要的引理：</p>
+		<p><strong style="color: green">设 $t = next \left( s \right)$ 为 $s$ 的最长 border，则 $\mathop{\mathrm{mincov}} \left( s \right) = s$ 或 $\mathop{\mathrm{mincov}} \left( s \right) = \mathop{\mathrm{mincov}} \left( t \right)$。</strong></p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>设 $c = \mathop{\mathrm{mincov}} \left( s \right)$，若 $c \neq s$，则 $c$ 是 $t$ 的 cover。</p>
+				<p>若 $t$ 有更短的 cover $c'$，则由上面的性质有 $c'$ cover $c$。</p>
+				<p>由 cover 的传递性知，$c'$ cover $s$，与 $c$ 是最小 cover 矛盾。</p>
+			</div>
+		</div>
+		<p>于是我们只需要判定 $\mathop{\mathrm{mincov}} \left( next \left( s \right) \right)$ 是否 cover $s$ 即可。</p>
+		<p>我们对于 $s$ 的每一个前缀 $s \left[ 1 .. i \right]$，记录它最远能 cover 到哪里，设为 $max_i$。</p>
+		<p>则设 $\mathop{\mathrm{mincov}} \left( next \left( s \right) \right) = s \left[ 1 .. i \right]$，则 $s \left[ 1 .. i \right]$ cover $s$ 当且仅当 $max_i + i \geq \left| s \right|$。</p>
+		<p>于是只需要一个 KMP 并动态维护 $max$ 数组即可，时间复杂度 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 254000;
+
+int n;
+char s[N];
+int f[N], c[N], max[N];
+
+int main() {
+	int i, j = *f = -1, t;
+	freopen("cover.in", "r", stdin); // this problem need 'File I/O'
+	freopen("cover.out", "w", stdout);
+	scanf("%s", s), n = strlen(s);
+	for (i = 0; i &lt; n; ) {
+		for (; ~j &amp;&amp; s[j] != s[i]; j = f[j]);
+		f[++i] = ++j, max[i] = c[i] = i;
+		if (f[i] &amp;&amp; (t = c[f[i]], max[t] + t &gt;= i))
+			c[i] = t, max[t] = i;
+	}
+	for (i = 1; i &lt;= n; ++i) printf("%d%c", c[i], i == n ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意这道题在 Gym 中要开文件 I/O！！！</p>
+		<p><strong>坑2：</strong>在判断 $\mathop{\mathrm{mincov}} \left( next \left( s \right) \right)$ 前应先判断 $s$ 有没有非平凡 border。</p>
+	</body>
+</html>

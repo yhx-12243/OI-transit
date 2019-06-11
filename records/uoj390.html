@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj390]百鸽笼</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $N$ 只鸽子和 $N + 1$ 个鸽笼，这些鸽笼共有 $n$ 列，第 $i$ 列有 $a_i$ 个鸽笼，其中 $\displaystyle \sum_{i=1}^n a_i = N + 1$。</p>
+		<p>这 $N$ 只鸽子现在要按顺序回到鸽笼里。每当一个鸽子回来时，会先<strong>等概率的在所有还有剩余的鸽笼的列中随机</strong>一个列，然后住到这列剩下的鸽笼里编号最小的一个中。</p>
+		<p>现在这 $N$ 只鸽子都回笼了之后，还有一列会空出一个鸽笼。你能对于每一列，求出这一列有空鸽笼的概率吗？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 30$)，表示鸽笼的列数。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($1 \leq a_i \leq 30$)，分别表示每列鸽笼的数量。其中 $\displaystyle N = \sum_{i=1}^n a_i - 1$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n$ 个整数，分别表示对应鸽笼空的概率对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>由于每次选择是在<strong>还剩下空鸽笼的列</strong>中选择，这个并不好处理，因此我们稍稍转化一下过程：</p>
+		<p>有 $n$ 个数 $a_1, a_2, \cdots, a_n$ 以及若干次操作 (可能超过 $N$ 次)，每次等概率随机一个 $i$ ($1 \leq i \leq n$)，令 $a_i = \max \left\{ a_i - 1, 0 \right\}$，显然在期望有限步后 $\displaystyle \sum_{i=1}^n a_i$ 会等于 $1$，此时令随机变量 $X$ 为剩下那个唯一非零的 $a_i$ 的下标 $i$。</p>
+		<p>你需要求的就是随机变量 $X$ 的分布列，容易证明这个转化是等价的。</p>
+		<p>我们先计算单点的值，最后把这个过程重复 $n$ 次即可。枚举在第 $m + 1$ 步末 $\displaystyle \sum_{i=1}^n a_i$ 首次变为 $0$。则在第 $m$ 步末 $\displaystyle \sum_{i=1}^n a_i = 1$，且一定是 $a_1 = 1, a_2 = a_3 = \cdots = a_n = 0$。</p>
+		<p>因此，在这前 $m$ 步，$a_1$ 操作了恰好 $a_1 - 1$ 次，其它 $a_i$ 操作了<strong>至少 $a_i$ 次</strong>。</p>
+		<p>于是我们可以令 $\displaystyle G_t \left( x \right) = \sum_{i \geq t} \frac {x^i} {i!}$，则整个过程的指数生成函数可以看成 $\displaystyle F \left( x \right) = \frac {x^{a_1 - 1}} {\left( a_1 - 1 \right) !} \cdot G_{a_2} \left( x \right) \cdot G_{a_3} \left( x \right) \cdots G_{a_n} \left( x \right) = \frac {x^{a_1 - 1}} {\left( a_1 - 1 \right) !} \cdot \prod_{i=2}^n G_{a_i} \left( x \right)$。</p>
+		<p>而 $F \left( x \right)$ 的 $x^m$ 项系数的 $m !$ 倍就是合法的操作序列数，最后还需要乘以总的概率 $\dfrac 1 {n^{m+1}}$。</p>
+		<p>由于 $G_t \left( x \right) = \mathrm e^x - \left( 1 + x + \dfrac {x^2} {2 !} + \dfrac {x^3} {3 !} + \cdots + \dfrac {x^{t - 1}} {\left( t - 1 \right) !} \right) \xrightarrow {\mathrm{def}} \mathrm e^x - T_t \left( x \right)$，因此 $$ F \left( x \right) = \frac {x^{a_1 - 1}} {\left( a_1 - 1 \right) !} \cdot \prod_{i=2}^n \left( \mathrm e^x - T_{a_i} \left( x \right) \right) \tag 1 \label 1 $$
+		<p>然而 $\eqref 1$ 式是一个<strong>无穷级数</strong>，不可能将其按照幂级数展开。不过我们可以仿照 <a href="lydsy5517%3Blg5326%3Buoj469%3Bloj3045%3Bsoj471.html" target="_blank">[ZJOI2019]开关</a> 的<strong>另一种思路</strong> <del>(链接点进去可能并没有什么卵用)</del>，将 $\mathrm e^x$ 看作一个整体 $y$，于是 $\eqref 1$ 就变成了一个<strong>二元生成函数</strong>：$$ F \left( x, y = \mathrm e^x \right) = \frac {x^{a_1 - 1}} {\left( a_1 - 1 \right) !} \cdot \prod_{i=2}^n \left( y - T_{a_i} \left( x \right) \right) $$</p>
+		<hr />
+		<p>此时可以将其展开，得到若干个形如 $y^i x^j$ 的项，即 $\mathrm e^{i x} x^j$。</p>
+		<p>对于其中的一项，考察其中的贡献：首先，有 $\mathrm e^{i x}$ 的幂级数展开，有 $\mathrm e^{i x} = 1 + i x + \dfrac {i^2 x^2} {2 !} + \dfrac {i^3 x^3} {3 !} + \cdots$，因此取 $\mathrm e^{i x}$ 的项 $\dfrac {i^s x^s} {s !}$，乘上 $x^j$，即为 $\dfrac {i^s} {s !} \cdot x^{s + j}$。</p>
+		<p>由于 $\left[ x^m \right] F \left( x \right)$ 对最后答案的贡献为 $\dfrac {m ! \left[ x^m \right] F \left( x \right)} {n^{m+1}}$，于是上面这项对答案的贡献就是</p>
+		<p>\begin{align*}
+&amp; \frac {m!} {n^{m+1}} \cdot \frac {i^s} {s !} \\
+=&amp; \frac {\left( s + j \right) ! \cdot i^s} {n^{s + j + 1} \cdot s !} \\
+=&amp; j ! \cdot \binom {s + j} j \cdot \frac {i^s} {n^{s+j+1}} \\
+=&amp; \frac {j !} {n^{j + 1}} \binom {s + j} j \cdot \left( \frac in \right)^s \tag 2 \label 2
+\end{align*}</p>
+		<p>注意到 $\displaystyle \sum_{s \geq 0} \binom {n + s} n x^s = \frac 1 {\left( 1 - x \right)^{n + 1}}$，对 $\eqref 2$ 求和，得 \begin{align*}
+&amp; \sum_{s \geq 0} \frac {j !} {n^{j + 1}} \binom {s + j} j \cdot \left( \frac in \right)^s \\
+=&amp; \frac {j !} {n^{j + 1}} \cdot \frac 1 {\left( 1 - i \middle / n \right)^{j + 1}} \\
+=&amp; \frac {j !} {n^{j + 1}} \cdot \left( \frac n {n - i} \right)^{j + 1} \\
+=&amp; \frac {j !} {\left( n - i \right)^{j + 1}}
+\end{align*}</p>
+		<p>也就是说，项 $\mathrm e^{i x} x^j$ 对最终答案的贡献式子异常简单，就是 $\dfrac {j !} {\left( n - i \right)^{j + 1}}$。</p>
+		<p>于是我们只需要枚举 $F \left( x, \mathrm e^x \right)$ 中的每一项分别计算贡献即可，这部分的时间复杂度是 $O \left( n \cdot \sum a_i \right)$。</p>
+		<hr />
+		<p>于是最后的问题是，如何快速地求 $F \left( x \right)$？</p>
+		<p>如果每次都暴力地展开，则单次展开的时间复杂度为 $O \left( n \cdot \left( \sum a_i \right)^2 \right)$，然而要做 $n$ 遍，复杂度就变成 $O \left( n^2 \cdot \left( \sum a_i \right)^2 \right)$ 了，这个量可是在 $10^8 \sim 10^9$ 这个级别的，因此比较危险。</p>
+		<p>不过，我们可以使用 <a href="lydsy5340%3Blg4564%3Buoj399%3Bloj2552.html" target="_blank">[CTSC2018]假面</a> 的思想，注意到乘以一个多项式是可逆的过程，我们只需要一开始将所有多项式乘起来，然后除掉一项就可以了。</p>
+		<p>一开始将所有多项式乘起来的复杂度显然是 $O \left( n \cdot \left( \sum a_i \right)^2 \right)$，除以其中一个因子的复杂度为 $O \left( n \cdot a_i \cdot \sum a_i \right)$，后续计算的时间复杂度为 $O \left( n \cdot \sum a_i \right)$。</p>
+		<p>因此总时间复杂度为 $O \left( n \cdot \left( \sum a_i \right)^2 \right)$ ($\sum a_i = \Omega \left( n \right)$)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 34, N2 = 954, mod = 998244353, pmod = mod - 1;
+
+int n, s = 0, s0 = 0;
+int a[N], fact[N2], finv[N2];
+int coeff[2][N][N2], (*f)[N2] = *coeff, (*g)[N2] = coeff[1];
+int quo[N][N2];
+// f[i][j] : coefficient of e^(i x) x^j = y^i x^j
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline void add(int &amp;x, const int y) {reduce(x += y - mod);}
+inline void sub(int &amp;x, const int y) {reduce(x -= y);}
+
+ll PowerMod(ll a, int n, ll c = 1) {for (n += n &gt;&gt; 31 &amp; pmod; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(int n) {
+	int i;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], -1);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+int solve(int id) {
+	int i, j, l, rj, deg = s0 - a[id] + 1; ll ret = 0;
+	// divide by (e^x - G[ a[id] ]) = (y - G[ a[id] ])
+	memset(quo, 0, sizeof quo);
+	for (i = n - 1; i &gt;= 0; --i)
+		for (j = 0; j &lt;= deg; ++j) if (add(quo[i][j], f[i + 1][j]), i &amp;&amp; quo[i][j])
+			for (l = 0; l &lt; a[id]; ++l)
+				quo[i - 1][j + l] = (quo[i - 1][j + l] + (ll)quo[i][j] * finv[l]) % mod;
+	for (i = 0; i &lt; n; ++i)
+		for (j = 0, rj = a[id] - 1; j &lt;= deg; ++j, ++rj) if (quo[i][j])
+			ret += PowerMod(n - i, -(rj + 1), (ll)fact[rj] * quo[i][j] % mod);
+	return ret % mod * finv[a[id] - 1] % mod;
+}
+
+int main() {
+	int i, j, k, l;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) scanf("%d", a + i), s += a[i];
+	init(s), **f = 1;
+	for (i = 0; i &lt; n; s0 += a[i] - 1, ++i) {
+		std::swap(f, g), memset(f, 0, sizeof *coeff);
+		for (j = 0; j &lt;= i; ++j)
+			for (k = 0; k &lt;= s0; ++k) if (g[j][k])
+				for (add(f[j + 1][k], g[j][k]), l = 0; l &lt; a[i]; ++l)
+					reduce(f[j][k + l] = (f[j][k + l] - (ll)g[j][k] * finv[l]) % mod);
+	}
+	for (i = 0; i &lt; n; ++i) printf("%d%c", solve(i), i == n - 1 ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>进行多项式乘法/除法 (类背包转移) 时注意更新顺序，避免计算错误。</p>
+		<p><strong>坑2：</strong>在计算时最后不要忘记除以底下的 $\left( a_i - 1 \right) !$。</p>
+	</body>
+</html>

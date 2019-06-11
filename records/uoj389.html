@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj389]白鸽</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在二维平面上，有一个给定一张 $n$ 个点 $m$ 条边的无向图作为线路，保证无自环。点从 $1$ 开始编号。</p>
+		<p>在这张图上的每个节点都在二维平面上有自己的坐标，而一条边对应了连接这两个点的线段，白鸽需要<strong>从 $1$ 号点</strong>开始飞行，每次沿着一条线段到达一个新的点，循环往复最后停<strong>在 $1$ 号点</strong>，且经过<strong>每条线段恰好一次</strong>。同时你需要<strong>最大化</strong>围绕原点<strong>顺时针</strong>旋转的次数。</p>
+		<p>顺时针旋转的次数：假设你在白鸽飞行的过程中始终保持正面朝向白鸽，那么在白鸽结束飞行之后你原地右转的圈数就是顺时针旋转的次数 (可以为负)。</p>
+		<p>如果无解输出 $-1$。保证没有两个点重合，没有点和原点重合，且没有两个点所确定的直线经过原点。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 20000$)，分别表示这张无向图的点数和边数。</p>
+		<p>接下来 $n$ 行，每行两个整数 $x_i, y_i$ ($-10^9 \leq x_i, y_i \leq 10^9$)，表示第 $i$ 个点的坐标。</p>
+		<p>接下来 $m$ 行，每行两个整数 $u_i, v_i$ ($1 \leq u_i, v_i \leq n; u_i \neq v_i$)，表示从点 $u_i$ 到点 $v_i$ 之间有一条无向边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，如果无解输出 $-1$，否则表示最大的旋转次数。</p>
+
+		<h3>题解</h3>
+		<p>显然，有解的充要条件是原图 $G$ 是 Euler 图，<strong>不过要注意图可以不连通，此时不与 $1$ 号点连通的点都应是孤立点</strong> ($0$ 度点)，这是因为只需要经过每条<strong>边</strong>一次。</p>
+		<p>判断完 Euler 性后，考虑如何最大化顺时针转的次数。</p>
+		<p>考虑如何判断一个折线绕原点 $O \left( 0, 0 \right)$ 转了几圈呢？</p>
+		<p>先考虑折线是一个简单多边形 $P$ 的情况，可以发现，当且仅当 $O \in P$ 时转了一圈，否则转了 $0$ 圈。</p>
+		<p>因此，对于简单多边形的情形，转的圈数和 $O$ 是否在多边形内部有关。</p>
+		<p>而判断点 $O$ 是否在多边形内，<del>除了用愚蠢的角度法</del>，更通用的其实是射线法。</p>
+		<p>从原点 $O$ 任意引出一条射线 (如 $r : y = 0 \left( x \geq 0 \right)$)，如果一条线段 "向下" 穿过这条射线，则令计数器 $+ 1$，如果 "向上" 穿过，则令计数器 $- 1$，"擦过" 不计。</p>
+		<p>则最后计数器的值就是这条折线绕 $O$ 转的圈数 (顺时针)。</p>
+		<p>于是，对于每条边，我们都可以对它的两种定向赋予不同的权值。比如，与射线 $r$ 不相交的线段，无论怎么定向，权值都是 $0$；与射线 $r$ 相交的线段，如果是向下穿过，则边权为 $1$；如果是向上穿过 (反向)，则边权为 $-1$。</p>
+		<p>无论怎样，对于一条边 $u \to v$，权值 $w \left( u \to v \right)$ 与 $w \left( v \to u \right)$ 一定是<strong>相反数</strong>，这使我们想起了<strong>费用流</strong>。</p>
+		<p>我们给边定向，使得每条边的<strong>边权被最大化</strong>。这样可以得到答案的一个上界 $\sup$。</p>
+		<p>显然这个定向是不一定符合 Euler 图的标准的，我们需要对其进行调整。</p>
+		<p>设一个点 $v$ 在当前的定向中出度 $d^+ \left( v \right)$ 大于入度 $d^- \left( v \right)$，则我们需要将其 $\dfrac {d^+ \left( v \right) - d^- \left( v \right)} 2$ 条出边<em>反向</em>，或者再反向相同数量的出边和入边。</p>
+		<p>假设一条边反向当且仅当这条边有流量，因此该点的<strong>总流出量</strong>是 $\dfrac {d^+ \left( v \right) - d^- \left( v \right)} 2$，于是我们从源点 $S$ 向其供应 $\dfrac {d^+ \left( v \right) - d^- \left( v \right)} 2$ 的流量即可 (即连接一条从 $S$ 到 $v$ 容量为 $\dfrac {d^+ \left( v \right) - d^- \left( v \right)} 2$ 的边)。</p>
+		<p>同理，如果一个点 $v$ 的入度 $d^- \left( v \right)$ 大于出度 $d^+ \left( v \right)$，通过类似的分析也可以得到，我们需要连一条从 $v$ 到 $T$ 容量为 $\dfrac {d^- \left( v \right) - d^+ \left( v \right)} 2$ 的边。</p>
+		<p>最后我们只需对整张图跑一遍<strong>最小费用最大流</strong>，这个网络显然是需要满流的，最小的费用 $cost$ 就是所有要反向的的权值和。由于每条边反向后贡献会减少 $2$ 倍的边权，于是答案就等于最初的上界减去费用的两倍，即 $\sup - 2 cost$。</p>
+		<p>由于是单位容量网络，因此时间复杂度是 $O \left( n^{1 - \epsilon} \left( n + m \right) \right)$ 的。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) ((x - 1 ^ 1) + 1)
+
+typedef long long ll;
+const int N = 25400;
+
+namespace CF {
+	const int N = ::N, M = ::N * 4, INF = 0x7f7f7f7f;
+
+	struct edge {
+		int u, v, c, f;
+		edge (int u0 = 0, int v0 = 0, int c0 = 0, int f0 = 0) : u(u0), v(v0), c(c0), f(f0) {}
+	} e[M];
+
+	int V, E, si = 1, ti = 2, flow, cost;
+	int first[N], next[M];
+	int dep[N], cur[N], que[2003731];
+	char in_que[N], used[N];
+
+	inline void addedge(int u, int v, int c, int f) {
+		e[++E] = edge(u, v, c, f); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u, -c); next[E] = first[v]; first[v] = E;
+	}
+
+	bool bfs() {
+		int h = 1000000, t = h + 1, i, x, y;
+		memset(dep, 127, (V + 1) &lt;&lt; 2);
+		que[h] = ti; dep[ti] = 0; in_que[ti] = 1;
+		for (; h &lt; t; ) {
+			x = que[h++]; in_que[x] = 0;
+			for (i = first[x]; i; i = next[i])
+				if (dep[y = e[i].v] &gt; dep[x] - e[i].c &amp;&amp; e[ad(i)].f)
+					if (dep[y] = dep[x] - e[i].c, !in_que[y])
+						in_que[y] = 1, (dep[y] &gt;= dep[que[h]] ? que[t++] : que[--h]) = y;
+		}
+		return dep[si] &lt; INF;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		used[x] = 1;
+		for (int &amp;i = cur[x]; i; i = next[i])
+			if (dep[e[i].v] == dep[x] - e[i].c &amp;&amp; e[i].f &amp;&amp; !used[e[i].v]) {
+				a = std::min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c; e[ad(i)].f += c;
+				if ((f += c) == lim) return used[x] = 0, f;
+			}
+		return used[x] = 0, f;
+	}
+
+	void Dinic() {
+		int f;
+		for (cost = flow = 0; bfs(); ) {
+			memcpy(cur, first, (V + 1) &lt;&lt; 2);
+			memset(used, 0, V + 1);
+			flow += f = dfs(si, INF);
+			cost += dep[si] * f;
+		}
+	}
+}
+
+struct vec2 {
+	int x, y;
+	vec2 * read() {return scanf("%d%d", &amp;x, &amp;y), this;}
+	inline ll operator ^ (const vec2 &amp;B) const {return (ll)x * B.y - (ll)y * B.x;}
+} ps[N];
+
+int V, E;
+int p[N], deg[N];
+
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+int main() {
+	int i, u, v, w, all = 0;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 1; i &lt;= V; ++i) ps[i].read(), p[i] = i;
+	for (i = 0; i &lt; E; ++i) {
+		scanf("%d%d", &amp;u, &amp;v); if (ps[u].y &gt; ps[v].y) std::swap(u, v);
+		all += w = (ps[u].y &lt;= 0 &amp;&amp; 0 &lt; ps[v].y &amp;&amp; (ps[u] ^ ps[v]) &gt; 0);
+		CF::addedge(u + 2, v + 2, w, 1);
+		p[ancestor(u)] = ancestor(v), ++deg[u], --deg[v];
+	}
+	for (i = 1; i &lt;= V; ++i)
+		if (deg[i] &amp; 1 || (deg[i] &amp;&amp; ancestor(i) != ancestor(1))) return puts("-1"), 0;
+	for (i = 1; i &lt;= V; ++i)
+		if (deg[i] &gt; 0) CF::addedge(1, i + 2, 0, deg[i] / 2);
+		else if (deg[i] &lt; 0) CF::addedge(i + 2, 2, 0, -deg[i] / 2);
+	CF::V = V + 2, CF::Dinic();
+	printf("%d\n", all - CF::cost * 2);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 Dinic 费用流的时候 dfs 完一个点 <code>return</code> 时需要把<strong>入栈标记</strong> (<code>used[]</code>) 清空。</p>
+		<p><strong>坑2：</strong>孤立点 ($0$ 度点) 是不需要判断与 $1$ 的连通性的。</p>
+	</body>
+</html>

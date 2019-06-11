@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Local #17]Lovely</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定字符串 $S$，定义两个长度为 $m$ 的子串是<strong>差不多</strong>的，当且仅当存在<strong>至多一个</strong> $i$，使得这两个字符串仅有第 $i$ 个字符不同 (即两个子串的 <a href="https://en.wikipedia.org/wiki/Hamming_distance" target="_blank">Hamming 距离</a>不超过 $1$)。</p>
+		<p>你需要对 $S$ 中每个长度为 $m$ 的子串，求出 $S$ 中<strong>除了它以外</strong>有多少个长度为 $m$ 的片段和它<strong>差不多</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($1 \leq m \leq n \leq 10^5$)，表示 $S$ 的长度和子串的长度。</p>
+		<p>第二行包含一个长度为 $n$ 的字符串 $S$，保证其中每个字符都是 $\texttt A, \texttt T, \texttt G, \texttt C$ 之一。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n - m + 1$ 个整数，其中第 $i$ 个表示与从左到右第 $i$ 个子串差不多的子串个数。</p>
+
+		<h3>题解</h3>
+		<p><a href="https://blog.csdn.net/qq_39972971/article/details/90775922" target="_blank">参考链接</a></p>
+		<p>首先，如果差不多的定义是 "完全相同"，那么是非常容易的，直接对原串建出后缀树后枚举每个节点即可。</p>
+		<p>我们先把上面这种情况计入答案。</p>
+		<p>考虑两个 Hamming 距离恰为 $1$ 的串 $s, t$，设 $s = u c v, t = u c' v$ (其中 $u, v$ 为满足 $\left| u \right| + \left| v \right| = m - 1$ 的串，$c, c'$ 为单字符)，则在后缀树上一定存在一个节点，它所表示的最长串为 $u$ (因为 $u$ 后面存在分岔)。</p>
+		<p>考虑后缀树上以 $u$ 为根的子树，每个子树 $c$ 表示以 $u \cdot c$ 为前缀的串的集合。</p>
+		<p>由于我们假设这两个串的 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr> 为 $u$，因此下一位一定是不一样的——即来自两个不同的子树。</p>
+		<p>因此，我们考虑对两个子树进行 "交叉合并"，从而去更新答案。</p>
+		<p>对每棵子树，设它所代表的最长串为 $u$，我们需要记录一个 <code>map</code>，表示对于所有长度为 $m - \left| u \right|$ 的串 $z$，$u \cdot z$ 在 $S$ 中出现了几次 (当然，出现 $0$ 次是不需要记录的)。</p>
+		<p>可以使用后缀自动机来表示一个串，当然用 Hash 也是可以的。</p>
+		<p>这个出现的次数可以用一个树形 DP + 启发式合并来解决。首先容易求出后缀树中每个点所代表的串在 $S$ 中的出现次数 (对应到后缀自动机来说就是 right 集合大小)，然后这个信息可以直接更新到 "叶" 节点 (我们把 val 值 $\geq m$ 的节点称为 "叶" 节点。</p>
+		<p>对于非 "叶" 节点，可以用启发式合并的方式，将其合并到 <code>map</code> 大小最大的一棵子树。</p>
+		<p>这涉及到对一个 <code>map</code> 执行区间加的操作 (Hash 值)，直接打个全局标记即可。</p>
+		<p>对两个子树进行的 "交叉合并"，可以在启发式合并更新父节点的过程中顺便完成。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef unsigned long long u64;
+typedef std::unordered_map &lt;u64, int&gt; map;
+const int N = 200054;
+const u64 BASE = 20030731;
+
+int n, K;
+char s[N];
+u64 hash[N], pw[N];
+map ans;
+
+inline u64 getHash(int L, int R) {return hash[R] - hash[L] * pw[R - L];}
+
+namespace SAM {
+	int p, np = 1, cnt = 1;
+	int pa[N], d[N][4], val[N];
+	int pos[N], rgt[N], child[N][4];
+	bool used[N];
+	u64 offset[N];
+	map f[N];
+
+#define q d[p][x]
+	int extend(int x) {
+		for (p = np, val[np = ++cnt] = val[p] + 1; p &amp;&amp; !q; q = np, p = pa[p]);
+		if (!p) pa[np] = 1;
+		else if (val[p] + 1 == val[q]) pa[np] = q;
+		else {
+			int nq = ++cnt;
+			val[nq] = val[p] + 1, memcpy(d[nq], d[q], 16);
+			pa[nq] = pa[q], pa[np] = pa[q] = nq;
+			for (int Q = q; p &amp;&amp; q == Q; q = nq, p = pa[p]);
+		}
+		return rgt[np] = 1, np;
+	}
+#undef q
+
+	void dfs(int x) {for (int i = 0, y; i &lt; 4; ++i) if (y = child[x][i]) dfs(y), rgt[x] += rgt[y];}
+
+	void build() {
+		int i, j, c; used[1] = true;
+		for (i = cnt; i; --i) if (~pos[i])
+			for (c = n, j = i; !used[j]; j = pa[j])
+				c += val[pa[j]] - val[j], pos[pa[j]] = pos[j],
+				child[pa[j]][(int)s[c]] = j, used[j] = true;
+		dfs(1);
+	}
+
+	void solve(int x) {
+		int i, j, y, z = 0, ch = -1; u64 ha, lcp, tt;
+		map::iterator it;
+		for (i = 0; i &lt; 4; ++i) if (y = child[x][i]) {
+			if (val[y] &gt;= K)
+				f[y][ getHash(pos[y] + val[x] + 1, pos[y] + K) ] += rgt[y],
+				ans[ getHash(pos[y], pos[y] + K) ] += rgt[y];
+			else
+				solve(y), offset[y] += getHash(pos[y] + val[x] + 1, pos[y] + val[y]) * pw[K - val[y]];
+		}
+		lcp = getHash(pos[x], pos[x] + val[x]) * pw[K - val[x]], tt = pw[K - val[x] - 1];
+		for (i = 0; i &lt; 4; ++i) if ((y = child[x][i]) &amp;&amp; f[y].size() &gt; f[z].size()) z = y, ch = i;
+		if (!z) return; f[x].swap(f[z]), offset[x] = offset[z] + (ch + 1) * tt;
+		for (i = 0; i &lt; 4; ++i) if ((y = child[x][i]) &amp;&amp; y != z) {
+			for (auto _ : f[y]) {
+				int val = _.second; ha = _.first + offset[y];
+				for (j = 0; j &lt; 4; ++j)
+					if (j != i &amp;&amp; (it = f[x].find(ha + (j + 1) * tt - offset[x])) != f[x].end())
+						ans[lcp + (j + 1) * tt + ha] += val, ans[lcp + (i + 1) * tt + ha] += it-&gt;second;
+				f[x][(i + 1) * tt + ha - offset[x]] += val;
+			}
+			f[y].clear();
+		}
+	}
+}
+
+int main() {
+	int i;
+	scanf("%d%d%s", &amp;n, &amp;K, s);
+	memset(SAM::pos, -1, sizeof SAM::pos);
+	for (i = n - 1; i &gt;= 0; --i)
+		s[i] = s[i] % 5 - (s[i] == 84), SAM::pos[SAM::extend(s[i])] = i;
+	for (*pw = 1, i = 0; i &lt; n; ++i)
+		hash[i + 1] = hash[i] * BASE + s[i] + 1, pw[i + 1] = pw[i] * BASE;
+	SAM::build(), SAM::solve(1);
+	for (i = 0; i &lt;= n - K; ++i) printf("%d%c", ans[getHash(i, i + K)] - 1, i == n - K ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在启发式合并的时候，需要找到当前 <code>map</code> 的 size 的最大者，当然，它也有可能是真的叶节点，此时直接 <code>return;</code> 即可。</p>
+		<p><strong>坑2：</strong>为了加速，这里的 Hash 采用了自然溢出 (虽然这是可以轻松卡的)，但是底数千万不要选择偶数 (否则想不卡也难啊)。</p>
+	</body>
+</html>

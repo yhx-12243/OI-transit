@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Local #16]Area</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在二维坐标平面上有 $n$ 个点 $A_1, A_2, \cdots, A_n$。</p>
+		<p>现在给出 $m$ 组询问，每次询问给出一个点 $P$，请找到一段区间 $\left[ L, R \right]$ ($1 \leq L \leq R \leq n$)，使得 $\displaystyle 2 \sum_{i=L}^R S_{\Delta OPA_i}$ 最大，并输出这个最大值。</p>
+		<p>其中：$S_{\Delta ABC} = \dfrac {\overrightarrow{AB} \times \overrightarrow{AC}} 2$ 表示三角形 $ABC$ 的有向面积。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 10^5; m \leq 10^6$)，表示点的个数和询问的个数。</p>
+		<p>接下来 $n$ 行，每行两个整数 $x_i, y_i$ ($-10^5 \leq x_i, y_i \leq 10^5$)，表示点 $A_i \left( x_i, y_i \right)$。</p>
+		<p>接下来 $m$ 行，每行两个整数 $x_j, y_j$ ($-10^5 \leq x_j, y_j \leq 10^5$)，表示一个询问点 $P_j \left( x, y \right)$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 行，每行一个整数，表示对应询问的答案。</p>
+
+		<h3>题解</h3>
+		<p>既然大佬 <a href="https://blog.csdn.net/qq_39972971/article/details/91368875" target="_blank"><samp>cz_xuyixuan</samp></a> 都公开了，那我也不加密了吧~</p>
+		<p>首先转化一下题意，即给定序列 $\left\{ x_n \right\}, \left\{ y_n \right\}$，每次询问给出一对 $\left( A, B \right)$，要求寻找一个非空子段 $\left[ L, R \right]$，使得 $\displaystyle A \cdot \sum_{i=L}^R y_i - B \cdot \sum_{i=L}^R x_i$ 最大。</p>
+		<p>如果令数列 $c_i = A \cdot y_i - B \cdot x_i$，我们所要求的就是 <strong>$\left\{ c_n \right\}$ 的最大子段和</strong>，可以在 $O \left( n \right)$ 时间内完成。</p>
+		<p>不过这样太暴力了 ($O \left( n m \right)$)，如何才能优化它呢？</p>
+		<hr />
+		<p>考虑求最大子段和的方法，$O \left( n \right)$ 的暴力 DP 法不像是有优化的余地，我们尝试观察另一种求最大子段和的方法。</p>
+		<p>令 $\displaystyle C_k = \sum_{i=1}^k c_i$，我们就是需要寻找 $0 \leq L &lt; R \leq n$ 使得 $C_R - C_L$ 最大。</p>
+		<p>而这显然是可以分治的：我们只需考虑对于给定的 $mid$，$L &lt; mid \leq R$ 的所有方案：取下标 $\geq mid$ 中的所有数的最大者，减去下标 $&lt; mid$ 中的所有数的最小者。对于 $L, R$ 同 $&lt; mid$ 或同 $\geq mid$ 的情况，留到分治的时候处理。</p>
+		<p>这样的复杂度虽然是 $O \left( n \log n \right)$ 的，但它有很大的优化空间。</p>
+		<p>类似地，设 $\displaystyle X_k = \sum_{i=1}^k x_i, Y_k = \sum_{i=1}^k y_i$，我们就是要找到 $0 \leq L &lt; R \leq n$，去最大化 $A \cdot \left( Y_R - Y_L \right) - B \cdot \left( X_R - X_L \right)$。</p>
+		<p>而对这种问题，整体的分治就有些麻烦了，我们考虑这个式子有什么特点。</p>
+		<p>可以观察到，尽管式子变成了这样，但它还是有一个明显的<strong>外积</strong>的特点。</p>
+		<p>我们令点集 $P = \left\{ \left( X_R - X_L, Y_R - Y_L \right) \mid 0 \leq L &lt; R \leq n \right\}$，则我们就是要寻找一个点 $p \in P$，使得 $\left( A, B \right) \times p$ 最大。</p>
+		<p>对，它的本质还是<a href="soj489%3Bcf1067D.html" target="_blank"><strong>向量组最大内积问题</strong></a> (由于 $A, B$ 是已知量，因此内积和外积没有本质区别)。</p>
+		<p>由熟知结论，这样的 $p$ 一定在点集 $P$ 构成的凸包 $CH \left( P \right)$ 上，且是 $CH \left( P \right)$ 上与 $\left( A, B \right)$ 平行的切线的切点。</p>
+		<p>于是，我们只需要构造出点集 $P$ 的凸包，然后每次询问在凸包上二分即可。</p>
+		<hr />
+		<p>然而 $\left| P \right| = O \left( n^2 \right)$，即点集 $P$ 的大小是 $O \left( n^2 \right)$ 级别的，看似不像是能暴力构造的样子！</p>
+		<p>我们要回到上面的<strong>分治</strong>思想了。先考虑 $L &lt; mid \leq R$ 的所有点所构成的凸包，即</p>
+		<p>$$ P_0 = \left\{ \left( X_R - X_L, Y_R - Y_L \right) \mid 0 \leq L &lt; mid \wedge mid \leq R \leq n \right\} $$</p>
+		<p>可以看出，右边的条件中 $L$ 与 $R$ 已经独立了，<del>很有 Cartesian 积的风范</del>。令 $P_L = \left\{ \left( X_L, Y_L \right) \mid 0 \leq L &lt; mid \right\}, P_R = \left\{ \left( X_R, Y_R \right) \mid mid \leq R \leq n \right\}$，则 $P_0 = \left\{ r - l \mid r \in P_R, l \in P_l \right\}$。</p>
+		<p>而我们现在需要求的是 $CH \left( P_0 \right)$。发现了什么吗？<strong>$CH \left( P_0 \right)$ 是 $CH \left( P_R \right)$ 与 $CH \left( - P_L \right)$ 的 Minkowski 和</strong>！</p>
+		<p>而两个凸包 $A, B$ 的 Minkowski 和可以在 $O \left( \left| A \right| + \left| B \right| \right)$ 时间内完成构造 (边追赶 edge chasing 算法)。而 $P_L, P_R$ 的大小并不是很大，凸包也可以使用 Graham 等算法求出，因此直接套用边追赶算法即可得到 $CH \left( P_0 \right)$。</p>
+		<p>这部分的时间为 $O \left( n \log n \right)$ 或 $O \left( n \right)$ (后者表示先分治然后归并排序)。</p>
+		<p>于是一直分治到底，时间复杂度为 $O \left( n \log^2 n \right)$ 或 $O \left( n \log n \right)$，我们得到了一个集合 $P'$，它表示 <strong>$P$ 中可能成为凸包上的点的集合</strong>，其中 $\left| P' \right| = O \left( n \log n \right)$。于是对 $P$ 再做一次凸包合并即可，时间复杂度 $O \left( n \log^2 n \right)$ 或 $O \left( n \log n \right)$ (两个凸包可以在线性时间内合并)。</p>
+		<p>于是我们可以在 $O \left( n \log^2 n \right)$ 或 $O \left( n \log n \right)$ 的时间内求出 $CH \left(P \right)$，它的大小也是 $O \left( n \log n \right)$ 的。</p>
+		<p>而在询问的时候，直接在我们所求出的凸包上二分，即可找到外积的最大值。总时间复杂度 $O \left( n \log^2 n + q \log n \right)$ (常规) 或 $O \left( \left( n + q \right) \log n \right)$ (理论最优)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+typedef long long ll;
+typedef __int128 lll;
+
+const int N = 100054, M = 1000054;
+
+struct vec2 {
+	ll x, y;
+	vec2 (ll _x = 0, ll _y = 0) : x(_x), y(_y) {}
+	inline vec2 operator - () const {return vec2(-x, -y);}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline lll operator * (const vec2 &amp;B) const {return (lll)x * B.x + (lll)y * B.y;}
+	inline lll operator ^ (const vec2 &amp;B) const {return (lll)x * B.y - (lll)y * B.x;}
+	inline lll norm2() const {return (lll)x * x + (lll)y * y;}
+	inline bool operator &lt; (const vec2 &amp;B) const {return x &lt; B.x || (x == B.x &amp;&amp; y &lt; B.y);}
+	inline bool operator == (const vec2 &amp;B) const {return x == B.x &amp;&amp; y == B.y;}
+} p[N];
+
+typedef std::vector &lt;vec2&gt; poly;
+
+int n, q, nlower = 0, nupper = 0;
+ll maxX = LLONG_MIN, minX = LLONG_MIN;
+vec2 lower[2003731], upper[2003731];
+poly CH;
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+vec2 P1[M], P2[M];
+poly graham(const poly &amp;ps) {
+	int i, n = ps.size(); vec2 *ret = P2;
+	if (n &lt;= 2) return ps;
+	std::copy(ps.begin(), ps.end(), P1), std::iter_swap(P1, std::min_element(P1, P1 + n));
+	std::stable_sort(P1 + 1, P1 + n, [] (const vec2 &amp;A, const vec2 &amp;B) {lll r = cross(*P1, A, B); return r &gt; 0 || (r == 0 &amp;&amp; (A - *P1).norm2() &lt; (B - *P1).norm2());});
+	for (i = 0; i &lt; n; *ret++ = P1[i++])
+		for (; ret &gt; P2 + 1 &amp;&amp; cross(ret[-2], P1[i], ret[-1]) &gt;= 0; --ret);
+	return poly(P2, ret);
+}
+
+inline bool geStraight(const vec2 A, const vec2 B) {return (A ^ B) &lt; 0 || (!(A ^ B) &amp;&amp; A * B &lt; 0);}
+
+poly tmp, lh, rh, su;
+poly minkowski(const poly &amp;lp, const poly &amp;rp) {
+	if (lp.empty()) return rp;
+	if (rp.empty()) return lp;
+	int l, r, i, j, L = lp.size(), R = rp.size(); tmp.clear(), tmp.reserve(L + R);
+	if (L &lt; 2 || R &lt; 2) {
+		for (i = 0; i &lt; L; ++i) for (j = 0; j &lt; R; ++j) tmp.EB(lp[i] + rp[j]);
+		return graham(tmp);
+	} else {
+		i = l = std::min_element(lp.begin(), lp.end()) - lp.begin();
+		j = r = std::min_element(rp.begin(), rp.end()) - rp.begin();
+		do
+			geStraight(lp[ (i+1)%L ] - lp[i], rp[ (j+1)%R ] - rp[j]) ? ++j %= R : ++i %= L, tmp.EB(lp[i] + rp[j]);
+		while (i != l || j != r);
+		return tmp;
+	}
+}
+
+void solve(int L, int R) {
+	if (L + 1 == R) return;
+	int i, M = (L + R) / 2; solve(L, M), solve(M, R);
+	for (lh.clear(), lh.reserve(M - L), i = L; i &lt; M; ++i) lh.EB(-p[i]);
+	for (rh.clear(), rh.reserve(R - M); i &lt; R; ++i) rh.EB(p[i]);
+	su = minkowski(graham(lh), graham(rh)), CH.insert(CH.end(), su.begin(), su.end());
+}
+
+int main() {
+	int i, x, y, L, R, M; vec2 g;
+	ll X = 0, Y = 0, c1 = 0, c2 = 0;
+	poly::iterator p, lm, rm;
+	scanf("%d%d", &amp;n, &amp;q), *::p = vec2();
+	for (i = 1; i &lt;= n; ++i) {
+		scanf("%d%d", &amp;x, &amp;y), ::p[i] = vec2(X += x, Y += y);
+		up(maxX, c1 += x), up(c1, 0), up(minX, c2 -= x), up(c2, 0);
+	}
+	solve(0, ++n), CH = graham(CH);
+//	for (auto p : CH) fprintf(stderr, "(%lld, %lld)\n", p.x, p.y);
+	std::tie(lm, rm) = std::minmax_element(CH.begin(), CH.end());
+	for (p = lm; p != rm; ++p == CH.end() &amp;&amp; (p = CH.begin(), 0)) lower[nlower++] = *p; lower[nlower] = *p;
+	for (p = lm; p != rm; --(p == CH.begin() ? p = CH.end() : p)) upper[nupper++] = *p; upper[nupper] = *p;
+	for (; q; --q) {
+		scanf("%d%d", &amp;x, &amp;y), g = vec2(x, y);
+		if (!x) printf("%lld\n", y * (y &gt; 0 ? minX : -maxX));
+		else if (x &gt; 0) {
+			for (L = 0, R = nupper; L &lt; R; ((upper[M + 1] - upper[M]) ^ g) &gt;= 0 ? R = M : L = M + 1)
+				M = (L + R) / 2;
+			printf("%lld\n", (ll)(g ^ upper[L]));
+		} else {
+			for (L = 0, R = nlower; L &lt; R; ((lower[M + 1] - lower[M]) ^ g) &gt;= 0 ? R = M : L = M + 1)
+				M = (L + R) / 2;
+			printf("%lld\n", (ll)(g ^ lower[L]));
+		}
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $X_i, Y_i$ 的范围可以达到 $10^{10}$，因此在求内/外积的时候注意使用 <code>__int128</code> 或 <code>double</code> (浮点类型)。</p>
+		<p><strong>坑2：</strong>直接在凸包上二分会比较麻烦，此时可以将凸包拆成下凸包 (lower hull) 和上凸包 (upper hull)，然后根据 $A$ 的正负性决定在哪儿二分。注意这种方法需要特判 $A = 0$ 的情况。</p>
+	</body>
+</html>

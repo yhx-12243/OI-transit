@@ -76,38 +76,30 @@
 
 		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
 #define ad(x) (((x - 1) ^ 1) + 1)
+#define ID isdigit(c = *next++)
+
+struct Istream {
+	int size; char *next, buf[20030731 * 3 / 2];
+	Istream (FILE *f = stdin) {fread(buf, 1, sizeof buf, f); next = buf;}
+	Istream &amp; operator &gt;&gt; (int &amp;x) {
+		int c; x = 0;
+		for (; !ID; ) if (!~c) return *this;
+		for (x = c &amp; 15; ID; x = x * 10 + (c &amp; 15));
+		return *this;
+	}
+} cin;
 
 const int N = 510000, M = 2040000 * 2;
 
-int n, V, E, Es;
+int n, V, E, Es = 0;
 
 inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
-
-namespace U {
-	int p[N];
-
-	int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
-
-	bool test(int x, int y, bool un = false) {
-		if ((x = ancestor(x)) == (y = ancestor(y))) return true;
-		return un &amp;&amp; (p[x] = y), false;
-	}
-}
 
 namespace Green_Hackenbush {
 	int to[M], first[N], Tfirst[N], next[M];
 	int cnt = 0, id[N], low[N];
+	int stc = 0, stack[N], top[N], w[N];
 	bool bridge[M];
-	int bcc_cnt = 0, bcc[N], root;
-
-	void init() {
-		Es = 0;
-		memset(first, 0, sizeof first);
-		memset(Tfirst, 0, sizeof Tfirst);
-		memset(id, 0, sizeof id);
-		memset(bridge, false, sizeof bridge);
-		std::iota(U::p, U::p + (V + 1), 0);
-	}
 
 	inline void addedge(int u, int v, int *fst) {
 		to[++Es] = v; next[Es] = fst[u]; fst[u] = Es;
@@ -115,39 +107,36 @@ namespace Green_Hackenbush {
 	}
 	
 	void dfs(int x, int px = 0) {
-		int i, y; id[x] = low[x] = ++cnt;
-		for (i = first[x]; i; i = next[i]) {
+		int i, y; id[x] = low[x] = ++cnt; stack[stc++] = x;
+		for (i = first[x]; i; i = next[i])
 			if (!id[y = to[i]]) {
-				dfs(y, x);
-				down(low[x], low[y]);
-				if (id[x] &lt; low[y])
-					bridge[ad(i)] = bridge[i] = true;
-			} else if (y != px) down(low[x], id[y]);
-		}
+				dfs(y, i); down(low[x], low[y]);
+				if (id[x] &lt; low[y]) bridge[ad(i)] = bridge[i] = true;
+			} else if (px - 1 ^ i - 1 ^ 1)
+				down(low[x], id[y]);
+		if (id[x] == low[x])
+			for (y = 0; y != x; )
+				y = stack[--stc], top[y] = x;
 	}
 
 	int dfs2(int x, int px = 0) {
-		int i, y, ret = 0, loop = 0;
+		int i, y, ret = 0;
 		for (i = Tfirst[x]; i; i = next[i])
 			if ((y = to[i]) != px)
-				y == x ? ++loop : (ret ^= dfs2(y, x) + 1);
-		return ret ^ (loop &gt;&gt; 1 &amp; 1);
+				ret ^= dfs2(y, x) + 1;
+		return ret ^ w[x];
 	}
 
-	// you should ensure it is a connected graph with root 1
 	int main() {
 		int i, u, v;
-		scanf("%d%d", &amp;V, &amp;E); init();
-		for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v, first);
+		cin &gt;&gt; V &gt;&gt; E;
+		for (i = 0; i &lt; E; ++i) cin &gt;&gt; u &gt;&gt; v, addedge(u, v, first);
 		dfs(1);
-		for (i = 1; i &lt;= Es; i += 2)
-			if (!bridge[i]) U::test(to[i], to[i + 1], true);
-		for (bcc_cnt = 0, i = 1; i &lt;= V; ++i)
-			if (U::p[i] == i) bcc[i] = ++bcc_cnt;
-		root = bcc[U::ancestor(1)];
-		for (i = 1; i &lt;= E * 2; i += 2)
-			u = U::ancestor(to[i]), v = U::ancestor(to[i + 1]), addedge(u, v, Tfirst);
-		return dfs2(root);
+		for (i = 1; i &lt;= E * 2; i += 2) {
+			u = top[to[i]], v = top[to[i + 1]];
+			u == v ? w[u] ^= 1 : (addedge(u, v, Tfirst), 0);
+		}
+		return dfs2(top[1]);
 	}
 }
 

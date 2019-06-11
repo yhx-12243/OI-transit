@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5153][lg4221][uoj348][loj2340][WC2018]州区划分</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 S 现在拥有 $n$ 座城市，第 $i$ 座城市的人口为 $w_i$，城市与城市之间可能有双向道路相连。</p>
+		<p>现在小 S 要将这 $n$ 座城市划分成若干个州，每个州由至少一个城市组成，每个城市在恰好一个州内。</p>
+		<p>假设小 S 将这些城市划分成了 $k$ 个州，设 $V_i$ 是第 $i$ 个州包含的所有城市组成的集合。</p>
+		<p>定义一条道路是一个州的内部道路，当且仅当这条道路的两个端点城市都在这个州内。</p>
+		<p>如果一个州<strong>内部</strong>存在一条起点终点相同，不经过任何不属于这个州的城市，且经过这个州的所有内部道路都恰好一次并且<strong>经过这个州的所有城市至少一次</strong>的路径 (路径长度可以为 $0$)，则称这个州是<strong>不合法</strong>的。</p>
+		<p>定义第 $i$ 个州的满意度为：第 $i$ 个州的人口在前 $i$ 个州的人口中所占比例的 $p$ 次幂，即：</p>
+		<p>$$ \left( \frac {\sum_{x \in V_i} w_x} {\sum_{j=1}^i \sum_{x \in V_j} w_x} \right)^p $$</p>
+		<p>定义一个划分的满意度为所有州的满意度的<strong>乘积</strong>，求所有合法的划分方案的满意度之和，答案对 $998244353$ 取模。</p>
+		<p>两个划分 $\left\{ V_1, V_2, \cdots, V_k \right\}$ 和 $\left\{ C_1, C_2, \cdots C_s \right\}$ 是不同的，当且仅当 $k \neq s$，或存在某个 $1 \leq i \leq k$，使得 $V_i \neq C_i$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, m, p$ ($n \leq 21; m \leq \dbinom n2; p \leq 2$)，表示城市个数、城市之间的道路个数以及题目描述中的常数 $p$。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v)$，描述一条无向的道路，保证无重边无自环。</p>
+		<p>第 $m + 2$ 行包含 $n$ 个正整数 $w_1, w_2, \cdots, w_n$ ($1 \leq w_i \leq 100$)，分别表示每个州的人数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示答案在模 $998244353$ 意义下的取值。</p>
+
+		<h3>题解</h3>
+		<p>由题意，一个集合 $T$ 不合法当且仅当它导出的子图 $G \left[ T \right]$ 是 Euler 图。</p>
+		<p>而判定一张图是 Euler 图 &#8660; 图连通且每个点的度数均为偶数，因此不难在 $O \left( n^2 \right)$ 时间内完成判断。</p>
+		<p>从而可以在 $O \left( 2^n n^2 \right)$ 时间内对 $V = \left\{ 1, 2, \cdots, V \right\}$ 的每个导出子图的 Euler 性的判断。</p>
+		<p>接下来考虑使用 DP 计算最后的答案，设 $f_{i, S}$ 表示大小为前 $i$ 个州 (有顺序) 的不相交的并集为 $S$ 的划分方案满意度乘积。</p>
+		<p>枚举<strong>合法集合</strong> $T$，且<strong>不与 $S$ 相交</strong>，则有 $$ f_{i + 1, S \cup T} \uparrow f_{i, S} \cdot \frac {w^p \left( T \right)} {w^p \left( S \cup T \right)} $$ (ps: $a \uparrow b$ 在 C++ 中表示为 <code>a += b</code>，$w \left( S \right)$ 表示集合 $S$ 中的总人口)</p>
+		<p>转化一下，就是对所有<strong>不相交</strong>的集合对 $S, T$，有 $$ f_{i + 1, S \cup T} \cdot w^p \left( S \cup T \right) \uparrow f_{i, S} \cdot w^p \left( T \right) \cdot \left[ T \text{ is not eulerian} \right] $$</p>
+		<p>从而 $$ f_{i + 1, S} = \frac 1 {w^p \left( S \right)} \sum_{T \subseteq S} w^p \left( T \right) \cdot \left[ T \text{ is not eulerian} \right] \cdot f_{i, S \setminus T} $$</p>
+		<p>可以看出，右边可以拆成<strong>只和 $T$ 有关的项</strong>与<strong>只和 $S \setminus T$ 有关的项</strong>的乘积，因此这是一个<a href="vijos%20%236%3Bsoj49.html" target="_blank"><strong>子集卷积</strong></a>。</p>
+		<p>于是直接按照子集卷积的方法做快速 Möbius 变换 (FMT) 即可，时间复杂度 $O \left( 2^n n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define popc __builtin_popcount
+#define parity __builtin_parity
+#define ctz __builtin_ctz
+
+typedef long long ll;
+const int N = 22, N2 = 2097154, mod = 998244353, pmod = mod - 1;
+
+int V, E, ALL, p;
+int G[N], w[N], W[N2];
+int f[N][N2], g[N][N2];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void sub(int &amp;x, const int y) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (n += n &gt;&gt; 31 &amp; pmod; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+#define mobius(f, g) void f(int *a) { \
+		int i, j, k, len = 1; \
+		for (i = 0; i &lt; V; ++i, len &lt;&lt;= 1) \
+			for (j = 0; j &lt;= ALL; j += len &lt;&lt; 1) \
+				for (k = j; k &lt; j + len; ++k) \
+					g(a[k + len], a[k]); \
+	}
+
+mobius(FMT, add)
+mobius(IFMT, sub)
+
+bool eulerian(int A) {
+	int i, j, u, v, F, S; static int con[N];
+	for (i = A; i; i &amp;= i - 1)
+		if (con[ctz(i)] = i &amp; -i, parity(G[ctz(i)] &amp; A)) return false;
+	for (i = A; i; i &amp;= i - 1)
+		for (u = ctz(i), j = i &amp; (i - 1); j; j &amp;= j - 1)
+			if (v = ctz(j), 1 &lt;&lt; v &amp; G[u] &amp; ~con[u])
+				for (S = F = con[u] | con[v]; S; S &amp;= S - 1) con[ctz(S)] = F;
+	for (i = A; i; i &amp;= i - 1) if (con[ctz(i)] != A) return false;
+	return true;
+}
+
+int main() {
+	int i, j, u, v, s;
+	scanf("%d%d%d", &amp;V, &amp;E, &amp;p), ALL = ~(-1 &lt;&lt; V);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), --u, --v, G[u] |= 1 &lt;&lt; v, G[v] |= 1 &lt;&lt; u;
+	for (i = 0; i &lt; V; ++i) scanf("%d", w + i);
+	for (i = 1; i &lt;= ALL; ++i)
+		W[i] = W[i &amp; (i - 1)] + w[ctz(i)], eulerian(i) || (g[popc(i)][i] = PowerMod(W[i], p));
+	for (i = 1; i &lt;= ALL; ++i) W[i] = PowerMod(W[i], -p);
+	for (**f = i = 1; i &lt;= V; ++i) {
+		FMT(f[i - 1]), FMT(g[i]);
+		for (j = 0; j &lt; i; ++j)
+			for (s = 0; s &lt;= ALL; ++s)
+				f[i][s] = (f[i][s] + (ll)f[j][s] * g[i - j][s]) % mod;
+		IFMT(f[i]);
+		for (s = 0; s &lt;= ALL; ++s) f[i][s] = (ll)f[i][s] * W[s] % mod;
+	}
+	printf("%d\n", f[V][ALL]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>判断图连通性的时候不用判错，可以使用并查集或 bfs 等等，上面的代码是使用位运算优化暴力并查集。</p>
+		<p><strong>坑2：</strong>在每次子集卷积结束后不要忘记乘上最后的 $\dfrac 1 {w^p \left( S \right)}$。</p>
+	</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5419][lg4775][uoj397][loj2722][soj151][NOI2018]情报中心</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给出一棵 $n$ 个点的树，每条边有非负边权。</p>
+		<p>再给出 $m$ 条树上的链，用端点表示，每条链都有一个<strong>非正的</strong>价值。</p>
+		<p>你需要选出两条链，满足这两条链至少有一条边相交，并最大化<strong>选出的链的权值和</strong>加上<strong>被至少一条链覆盖的边的边权和</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p><strong>输入包含多组数据。</strong></p>
+		<p>第一行包含一个正整数 $T$，表示数据组数。</p>
+		<p>每组数据包含 $\left( n + m + 1 \right)$ 行：</p>
+		<p>第一行包含一个正整数 $n$ ($1 \leq n \leq 50000; \sum n \leq 1000233$)，表示树的点数。</p>
+		<p>第 $2$ 到第 $n$ 行中，第 $\left( i + 1 \right)$ 行包含三个非负整数 $a_i, b_i, c_i$ ($1 \leq a_i &lt; b_i \leq n; 0 \leq c_i \leq 10^9$，$b_i$ 互不相同)，表示树上有一条连接节点 $a_i$ 和 $b_i$，边权为 $c_i$ 的双向边。</p>
+		<p>第 $\left( n + 1 \right)$ 行包含一个非负整数 $m$ ($0 \leq m \leq 10^5$)，表示链的条数。</p>
+		<p>第 $\left( n + 2 \right)$ 到 $\left( n + m + 1 \right)$ 行中，第 $\left( n + i + 1 \right)$ 行包含三个非负整数 $x_i, y_i, v_i$ ($1 \leq x_i, y_i \leq n; 0 \leq v_i \leq 10^{10} \times n$)，表示第 $i$ 条链的两个端点为 $x_i$ 和 $y_i$，权值为 $\color {red} {- v_i}$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行：如果存在合法的方案，则输出一个整数表示最大的总收益减去总代价的差；否则输出一个字符串 <code>F</code>。</p>
+
+		<h3>题解</h3>
+		<p><del>这个样例，无疑是善良的出题人无私的馈赠。大量精心构造的 $n \leq 100; m \leq 200$ 的测试数据，涵盖了测试点中所有出现性质的组合。你可以利用这个测试点，对自己的程序进行全面的检查。足量的数据组数、不大的数据范围和多种多样的数据类型，能让程序中的错误无处遁形。出题人相信，这个美妙的样例，可以给拼搏于 AC 这道题的逐梦之路上的你，提供一个有力的援助。</del></p>
+		<p>按照部分分的指示，我们将整个问题分为两种情况讨论：<strong>两条链的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 不同</strong> ($S_1$)，以及<strong>两条链的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 相同</strong> ($S_2$)。</p>
+		<p>下面分别考虑这两种情况，为了方便起见，我们定义一条链的<strong>总权</strong>为它所覆盖的边权加上它本身的权值 (负数)。</p>
+		<ol>
+			<li><p>两条链的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 不同。</p>
+			<p>由于链交非空，且两条链的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 不同，因此容易证明这两条链的交一定是一条深度 "单调" 的链 (即它们的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 是其中某一个点)，如下图 (图来自 NOI2018《CHAIN 命题报告》)：</p>
+			<img class="center-block" src="uploads/129.png" alt="LCA 不同" />
+			<p>设两条链分别为 $\left( u_1, v_1 \right), \left( u_2, v_2 \right)$，总权分别为 $C_1, C_2$。</p>
+			<p>则在固定<span style="color: red">红点 $r$</span> 后，$u_1, u_2$ 位于 $\color {red} r$ 的<strong>不同子树</strong>中，且<span style="color: green">绿点 $g$</span>、<span style="color: blue">蓝点 $b$</span> 均为<span style="color: red">红点 $r$</span> 的祖先节点。</p>
+			<p>则这种方案的贡献等于 $\Large C_1 + C_2 - \left( dep_{\color {red} r} - \max \left\{ dep_{\color {green} g}, dep_{\color {blue} b} \right\} \right)$。</p>
+			<p>由于 $u_1, u_2$ 位于 $\color {red} r$ 的不同子树中，因此考虑使用<strong>线段树合并</strong>。</p>
+			<p>对链的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 建立线段树，在线段树中维护这样两个信息：</p>
+			<ul>
+				<li><p><abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为 $v$ 的链中 (叶节点) / <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 在一段区间的链中 (分支节点)，$C$ 的最大值。</p></li>
+				<li><p><abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为 $v$ 的链中 (叶节点) / <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 在一段区间的链中 (分支节点)，$C + dep_v$ 的最大值。</p></li>
+			</ul>
+			<p>然后就可以线段树合并了，记得点 $v$ 合并完毕后把下标为 $v$ 对应的值删掉，以及对 $u_1 = u_2$ 的点也不要忘记更新答案。</p>
+			<p>因此这部分问题就解决了，时间复杂度 $O \left( \left( n + m \right) \log n \right)$。</p></li>
+			<li><p>两条链的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 相同。</p>
+			<p>首先我们枚举两条链的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>，然后就转化为 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为根节点 ($1$ 号点) 的情况了。</p>
+			<p>现在不妨设 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为 $1$。此时这两条链是交不再是深度 "单调" 的链了 (当然也有可能恰好是)，我们考虑更一般的情形，如下图：</p>
+			<img class="center-block" src="uploads/130.png" alt="LCA 相同" />
+			<p>还是设两条链分别为 $\left( u_1, v_1 \right), \left( u_2, v_2 \right)$，总权为 $C_1, C_2$。</p>
+			<p>由于最上面的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 是个定点，因此我们不予考虑。</p>
+			<p>于是这种方案的贡献就等于 $\Large C_1 + C_2 - dep_{\color {red} r} - dep_{\mathop{\mathrm{LCA}} \left( v_1, v_2 \right)}$ (ps: <span style="color: blue">蓝点为 $u_1, u_2$</span>，<span style="color: green">绿点为 $v_1, v_2$</span>，<span style="color: red">红点为 $r = \mathop{\mathrm{LCA}} \left( u_1, u_2 \right)$</span>)。</p>
+			<p>继续固定<span style="color: red">红点 $r$</span>，我们则需要求 $C_1 + C_2 - dep_{\mathop{\mathrm{LCA}} \left( v_1, v_2 \right)}$，稍稍转化一下，可以看成某种意义下的<strong>最远点对</strong>。</p>
+			<p>而树上的最远点对信息是可以直接合并的 ($S_1, S_2$ 的最远点对一定是 $S_1$ 的最远点对和 $S_2$ 的最远点对的<strong>并的子集</strong>)，因此直接在树上 dfs 一遍合并信息即可，一次合并是 $O \left( 1 \right)$ 的。</p>
+			<hr />
+			<p>而最顶上的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 不一定是 $1$，可以是其它节点，这样做 $n$ 次该怎么办呢？</p>
+			<p class="text-muted">这里有一个<del>小 trick</del>：对于每个点 $v$，维护一个 <code>std::vector</code>，表示 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为 $v$ 的<strong>链</strong>的集合，然后枚举 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 后直接在这个 <code>std::vector</code> 上计算即可。</p>
+			<p>然后，我们需要对每一个 $v$ 点，把所有这些链做一个<strong>虚树</strong>。容易发现，这些虚树的大小之和是 $O \left( m \right)$ 的。</p>
+			<p>具体的虚树可以通过 <a href="../index.html?tag=%E8%99%9A%E6%A0%91" target="_blank"><abbr title="Depth Stack Algorithm, 深度栈算法">DSA</abbr> 算法</a>来构造，合并时，直接拿 <abbr title="Depth Stack Algorithm, 深度栈算法">DSA</abbr> 中的栈去和新元素进行合并即可。</p>
+			<p>于是这部分的时间复杂度就是 $O \left( n + m \right)$ 的。</p>
+		</ol>
+		<p>最后只需要对这两部分的答案取 $\min$，整个问题可以在 $O \left( \left( n + m \right) \log n \right)$ 的时间内得到解决。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+#define EB emplace_back
+
+typedef long long ll;
+const int N = 54000, M = N * 2;
+const ll INF = 0x3f3f3f3f3f3f3f3fll;
+
+struct chain {
+	int u, v; ll cost;
+	chain * read() {return scanf("%d%d%lld", &amp;u, &amp;v, &amp;cost), this;}
+} c[M];
+
+int n, m;
+int p[N];
+ll ans, weight[N];
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+inline ll max(const ll x, const ll y) {return x &lt; y ? y : x;}
+
+namespace Tree {
+	int fc[N], nc[N], dep[N];
+	ll deep[N];
+	int cnt, id[N], st[21][M], *o = *st;
+
+	inline void link(int x, int px) {p[x] = px, nc[x] = fc[px], fc[px] = x;}
+	inline int dmin(const int x, const int y) {return dep[x] &lt; dep[y] ? x : y;}
+
+	void dfs(int x) {
+		o[cnt] = x, id[x] = cnt++;
+		for (int y = fc[x]; y; y = nc[y])
+			dep[y] = dep[x] + 1, deep[y] = deep[x] + weight[y], dfs(y), o[cnt++] = x;
+	}
+
+	void build_st_table() {
+		int *f, *g = o, i, j, k = cnt;
+		for (j = 0; 1 &lt;&lt; (j + 1) &lt;= cnt; ++j) {
+			f = g, g = st[j + 1], k -= 1 &lt;&lt; j;
+			for (i = 0; i &lt; k; ++i)
+				g[i] = dmin(f[i], f[i + (1 &lt;&lt; j)]);
+		}
+	}
+
+	inline void init() {cnt = 0, dfs(1), build_st_table();}
+
+	inline int LCA(int x, int y) {
+		int L, R, c; std::tie(L, R) = std::minmax(id[x], id[y]), c = lg2(++R - L);
+		return dmin(st[c][L], st[c][R - (1 &lt;&lt; c)]);
+	}
+
+	inline ll dist(int x, int y, int lca) {return deep[x] + deep[y] - deep[lca] * 2;}
+}
+
+namespace DIFF {
+#define U using Tree::
+	U dep;U deep;U dist;U fc;U nc;
+#undef U
+	
+	namespace ST {
+		struct node {
+			ll v, vd; int lc, rc;
+		} x[20030731];
+
+		int cnt;
+		ll ret;
+
+		inline void update(node &amp;ret, const node &amp;l, const node &amp;r) {ret.v = max(l.v, r.v), ret.vd = max(l.vd, r.vd);}
+
+		int merge(int id1, int id2, int L, int R) {
+			if (!(id1 &amp;&amp; id2)) return id1 | id2;
+			if (L == R) return up(x[id1].v, x[id2].v), up(x[id1].vd, x[id2].vd), id1;
+			up(ret, x[id1].lc[x].v + x[id2].rc[x].vd), up(ret, x[id2].lc[x].v + x[id1].rc[x].vd);
+			int M = (L + R - 1) &gt;&gt; 1;
+			x[id1].lc = merge(x[id1].lc, x[id2].lc, L, M);
+			x[id1].rc = merge(x[id1].rc, x[id2].rc, M + 1, R);
+			return update(x[id1], x[id1].lc[x], x[id1].rc[x]), id1;
+		}
+
+		int adj(int id, int L, int R, int h, ll v, ll vd, bool upd = true) {
+			id || (x[++cnt] = *x, id = cnt);
+			if (L == R) return upd ? (up(x[id].v, v), up(x[id].vd, vd), id) : (x[id].v = v, x[id].vd = vd, id);
+			int M = (L + R - 1) &gt;&gt; 1;		
+			h &lt;= M ? x[id].lc = adj(x[id].lc, L, M, h, v, vd, upd) : (x[id].rc = adj(x[id].rc, M + 1, R, h, v, vd, upd));
+			up(ret, x[id].lc[x].v + x[id].rc[x].vd);
+			return update(x[id], x[id].lc[x], x[id].rc[x]), id;
+		}
+	}
+#define U (ST::ret = -INF)
+	int root[N];
+
+	void solve(int x) {
+		for (int y = fc[x]; y; y = nc[y])
+			solve(y), U, root[x] = ST::merge(root[x], root[y], 1, n), up(ans, ST::ret - deep[x]);
+		if (p[x] &amp;&amp; root[x]) root[x] = ST::adj(root[x], 1, n, p[x], -INF, -INF, false);
+	}
+
+	int main() {
+		int i, u, v, w; ll cost; ST::cnt = 0;
+		ST::x-&gt;vd = ST::x-&gt;v = -INF, memset(root, 0, (n + 1) &lt;&lt; 2);
+		for (i = 0; i &lt; m; ++i) {
+			u = c[i].u, v = c[i].v; if (dep[u] &gt; dep[v]) std::swap(u, v);
+			w = Tree::LCA(u, v), cost = dist(u, v, w) - c[i].cost;
+			if (u != w)
+				U, root[u] = ST::adj(root[u], 1, n, w, cost, cost + deep[w]), up(ans, ST::ret - deep[u]);
+			U, root[v] = ST::adj(root[v], 1, n, w, cost, cost + deep[w]), up(ans, ST::ret - deep[v]);
+		}
+		solve(1);
+		return 0;
+	}
+#undef U
+}
+
+namespace SAME {
+#define U using Tree::
+	U dep;U deep;U dist;U id;
+#undef U
+	typedef std::vector &lt;int&gt; vector;
+	typedef std::pair &lt;int, ll&gt; pr;
+	typedef std::vector &lt;pr&gt; vecpr;
+	typedef std::array &lt;pr, 2&gt; prs;
+
+	vector cs[N];
+	vecpr infos[N];
+	int cnt_ps, ps[M * 2];
+	int top = 0, stack[N];
+	int cur_root;
+	prs far[N];
+
+	inline bool idcmp(const int A, const int B) {return Tree::id[A] &lt; Tree::id[B];}
+	inline ll weight(const pr &amp;A, const pr &amp;B) {return A.first || B.first ? (A.first &amp;&amp; B.first ? A.second + B.second - (deep[Tree::LCA(A.first, B.first)] - deep[cur_root]) : -INF) : -INF - 1;}
+
+	ll ret;
+
+	prs merge(const prs &amp;l, const prs &amp;r) {
+		int i, j; ll v; prs best; ret = -INF - 1;
+		for (i = 0; i &lt; 2; ++i)
+			for (j = 0; j &lt; 2; ++j)
+				if ((v = weight(l[i], r[j])) &gt; ret)
+					best[0] = l[i], best[1] = r[j], ret = v;
+		if (weight(l[0], l[1]) &gt; weight(best[0], best[1])) best = l;
+		if (weight(r[0], r[1]) &gt; weight(best[0], best[1])) best = r;
+		return best;
+	}
+
+	void DSA(int n, int *h) {
+		int i, x, y;
+		for (; top; --top) stack[top] = 0;
+		h[n++] = cur_root;
+		for (i = 0; i &lt; n; ++i) {
+			x = h[i];
+			if (top) {
+				stack[top + 1] = 0;
+				for (y = Tree::LCA(x, stack[top]); top &amp;&amp; dep[stack[top]] &gt;= dep[y]; --top)
+					if (top &gt; 1 &amp;&amp; stack[top + 1])
+						far[ stack[top] ] = merge(far[ stack[top] ], far[ stack[top + 1] ]),
+						up(ans, ret - (deep[ stack[top] ] - deep[cur_root]));
+				if (i == n - 1) return;
+				if (stack[++top] != y) far[y] = far[stack[top]], stack[top] = y;
+			}
+			stack[++top] = x, far[x] = prs();
+			for (const pr &amp;info : infos[x])
+				if (far[x] = merge(far[x], {info, pr()}), x != cur_root) up(ans, ret - (deep[x] - deep[cur_root]));
+		}
+	}
+
+	int main() {
+		int i, u, v, w; ll cost;
+		for (i = 0; i &lt; m; ++i) u = c[i].u, v = c[i].v, w = Tree::LCA(u, v), cs[w].EB(i);
+		for (w = 1; w &lt;= n; ++w) if (!cs[w].empty()) {
+			cnt_ps = 0, ps[cnt_ps++] = cur_root = w;
+			for (int id : cs[w]) {
+				u = c[id].u, v = c[id].v, cost = dist(u, v, w) - c[id].cost;
+				infos[u].EB(v, cost), infos[v].EB(u, cost);
+				ps[cnt_ps++] = u, ps[cnt_ps++] = v;
+			}
+			std::sort(ps, ps + cnt_ps, idcmp), cnt_ps = std::unique(ps, ps + cnt_ps) - ps;
+			DSA(cnt_ps, ps), cs[w].clear();
+			for (i = 0; i &lt; cnt_ps; ++i) infos[ ps[i] ].clear();
+		}
+		return 0;
+	}
+}
+
+void work() {
+	int i, x, px; ans = -INF;
+	scanf("%d", &amp;n), memset(Tree::fc, 0, (n + 1) &lt;&lt; 2);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;px, &amp;x), Tree::link(x, px), scanf("%lld", weight + x);
+	Tree::init(), scanf("%d", &amp;m);
+	for (i = 0; i &lt; m; ++i) if (c[i].read(), c[i].u == c[i].v) --i, --m;
+	DIFF::main(), SAME::main();
+	ans &lt;= -INF / 2 ? putchar(70), putchar(10) : printf("%lld\n", ans);
+}
+
+int main() {
+	int T;
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意读入时把长度为 $0$ 的链先清除掉 (它无法覆盖任意一条边)。</p>
+		<p><strong>坑2：</strong>线段树合并新建节点的时候不要忘记将初值赋为 $- \infty$。</p>
+		<p><strong>坑3：</strong>求虚树弹栈时记得先令	 <code>stack[top + 1] = 0</code>。</p>
+		<p><strong>坑4：</strong>深度数组要开两个，边数和边权和分清楚，边权和会超过 <code>int</code> 范围。</p>
+		<p><strong>坑5：</strong>在 "<abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 相同" 部分的计算中，同一个蓝点可能会添加多个红点，注意此时也需要更新答案。</p>
+	</body>
+</html>

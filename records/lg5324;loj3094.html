@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg5324][loj3094][BJOI2018]删数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于任意一个数列，如果能在有限次进行下列删数操作后将其删为空数列，则称这个数列可以删空。一次删数操作定义如下：</p>
+		<blockquote>记当前数列长度为 $k$，则删掉数列中所有等于 $k$ 的数。</blockquote>
+		<p>现有一个长度为 $n$ 的数列 $a$，有 $m$ 次修改操作，第 $i$ 次修改后你要回答：经过 $i$ 次修改后的数列 $a$，至少还需要修改几个数才可删空？</p>
+		<p>每次修改操作为单点修改或数列整体加一或数列整体减一。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 1.5 \times 10^5)$，分别表示数列长度和修改次数。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($1 \leq a_i \leq n$)，表示数列 $a$。</p>
+		<p>接下来 $m$ 行，每行两个整数 $p, x$ ($0 \leq p \leq n$)，表示一次修改操作。</p>
+		<p>当 $1 \leq p \leq n$ 时，该操作为单点修改，将数列中第 $p$ 个数 $a_p$ 修改为 $x$ ($1 \leq x \leq n$)。</p>
+		<p>当 $p = 0$ 时，该操作为数列整体加 $x$ ($x \in \left\{ -1, 1 \right\}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 行，每行一个整数，第 $i$ 行的整数表示前 $i$ 次修改后的答案。</p>
+
+		<h3>题解</h3>
+		<p>先考虑没有修改操作时的做法。</p>
+		<p>考察一个长度为 $n$ 的序列可以删空的充要条件。容易得到：<strong style="color: green">序列 $a_1 \leq a_2 \leq \cdots \leq a_n$ 可以删空，当且仅当存在 $S = \left\{ 1, 2, \cdots, n \right\}$ 的包含 $n$ 的子集 $T$ (即 $T$ 满足 $\left\{ n \right\} \subseteq T \subseteq S$)，满足 $a_i = \begin{cases} i &amp; i \in T \\ a_{i+1} &amp; i \notin T \end{cases}$</strong>。</p>
+		<p>证明？简单归纳一下就可以了。</p>
+		<p>于是，我们可以顺水推舟地得到一个序列需要修改的数的数量的最小值。</p>
+		<p>考虑对当前序列进行 "删数" 操作。如果当前序列没有 $n$，则必须要修改一个数，使之变为 $n$，才能继续操作。</p>
+		<p>否则，不妨设当前序列中有 $k$ 个 $n$。于是第一轮删数后数的个数就变成了 $n - k$。变成了一个规模为 $n - k$ 的子问题。</p>
+		<p>于是，对于每<strong>种</strong>数 $i$ ($1 \leq i \leq n$)，设它有 $c_i$ 个，我们将其对应于一个区间 $\left( i - c_i, i \right]$。</p>
+		<p>最后观察 $\left[ 1, n \right]$ 中有多少个<strong>整数</strong>未被覆盖，就是需要修改的数的数量的一个下界。</p>
+		<p>同样，容易证明这个下界是紧的，只需要按照上面的方法构造出一个 $S$ 的子集 $T$ 即可。</p>
+		<hr />
+		<p>所以接下来就是如何快速维护这个东西了。</p>
+		<p>我们使用一棵线段树去维护对于 $1 \leq i \leq n$，这一坨区间 $\left( i - c_i, i \right]$ 的并。具体地，我们把区间 "并" 可以看成若干个区间加法，于是最后未被覆盖的数的个数就是 $0$ 的个数。</p>
+		<p>而维护一个常量的个数并不好做，不过可以发现这个线段树的<strong>最小值</strong>不会小于 $0$，因此只需要维<strong>最小值</strong>及其<strong>出现次数</strong>即可。</p>
+		<p>对于全局的修改，由于增量为 $\pm 1$，因此也只是 $O \left( 1 \right)$ 个区间的加删，和一个全局标记而已。</p>
+		<p>总时间复杂度 $O \left( n + m \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+#define exist_pd if (x[id].tag) push_down(x[id], x[lc], x[rc]);
+
+typedef unsigned int u32;
+const int N = 154000;
+
+int n, inf, sup, global = 0;
+int a[N], _fy_[N * 4], *count = _fy_ + N;
+
+struct node {int v, cnt, tag;} x[N * 16];
+
+inline void add(node &amp;ret, int v) {ret.v += v, ret.tag += v;}
+inline void update(node &amp;ret, const node &amp;l, const node &amp;r) {l.v == r.v ? (ret.v = l.v, ret.cnt = l.cnt + r.cnt) : (ret = (l.v &lt; r.v ? l : r), ret.tag = 0);}
+inline void push_down(node &amp;ret, node &amp;l, node &amp;r) {add(l, ret.tag), add(r, ret.tag), ret.tag = 0;}
+
+void build(int id, int L, int R) {
+	x[id].tag = x[id].v = 0, x[id].cnt = R - L + 1; if (L == R) return;
+	segc; build(lc, L, M), build(rc, M + 1, R);
+}
+
+void add(int id, int L, int R, int ql, int qr, int v) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) return add(x[id], v);
+	segc; exist_pd;
+	if (ql &lt;= M) add(lc, L, M, ql, qr, v);
+	if (qr &gt; M) add(rc, M + 1, R, ql, qr, v);
+	update(x[id], x[lc], x[rc]);
+}
+
+node range(int id, int L, int R, int ql, int qr) {
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id];
+	segc; exist_pd;
+	if (qr &lt;= M) return range(lc, L, M, ql, qr);
+	if (ql &gt; M) return range(rc, M + 1, R, ql, qr);
+	node l = range(lc, L, M, ql, M), r = range(rc, M + 1, R, M + 1, qr), s;
+	return update(s, l, r), s;
+}
+
+inline void modifyseg(int x, int v) {if (count[x]) add(1, inf, sup, x - count[x] + 1, x, v);}
+inline void cover(int x) {int C = count[x]++; if ((u32)(x + global - 1) &lt; (u32)n) add(1, inf, sup, x - C, x - C, 1);}
+inline void uncover(int x) {int C = --count[x]; if ((u32)(x + global - 1) &lt; (u32)n) add(1, inf, sup, x - C, x - C, -1);}
+
+int main() {
+	int i, p, q, x; node ret;
+	scanf("%d%d", &amp;n, &amp;q), build(1, inf = -n - q, sup = n + q);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i), ++count[a[i]];
+	for (i = 1; i &lt;= n; ++i) modifyseg(i, 1);
+	for (; q; --q) {
+		if (scanf("%d%d", &amp;p, &amp;x), p) {
+			if (a[p] + global != x) uncover(a[p]), cover(a[p] = x - global);
+		} else global += x, x &gt; 0 ? (modifyseg(1 - global, 1), modifyseg(n + 1 - global, -1))
+								  : (modifyseg(-global, -1), modifyseg(n - global, 1));
+		ret = range(1, inf, sup, 1 - global, n - global);
+		printf("%d\n", ret.v ? 0 : ret.cnt);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意最后的值域是 $\left[ -n - q, n + q \right]$ 级别的，因此数组不要开小了，如果有必要可以做一个 <code>offset</code> (偏移)。</p>
+		<p><strong>坑2：</strong>询问完毕后要先判断区间最小值是否是 $0$，再输出出现次数。</p>
+	</body>
+</html>
