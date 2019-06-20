@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6669]Nauuo and Binary Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Nauuo 是一个喜欢二叉树的女孩子。</p>
+		<p>这天，她创造了一个有 $n$ 个节点的二叉树。节点的编号从 $1$ 到 $n$，其中 $1$ 是二叉树的根节点。</p>
+		<p>不过，她不记得这棵二叉树具体长什么样子了，她只记录了二叉树上任意两个节点之间的距离。你可以通过向她询问有关距离的信息来还原这棵二叉树，两个节点之间的距离定义为它们之间最短路上的边数。</p>
+		<p>你可以向 Nauuo 询问不超过 $30000$ 次有关距离的信息。你只需要告诉她 $2\sim n$ 号节点的父亲的编号就可以了。</p>
+
+		<h3>交互方式</h3>
+		<p>最开始，交互器会向标准输入中输入一个正整数 $n$。</p>
+		<p>接下来，你可以通过标准输出向交互器询问两个节点之间的距离。</p>
+		<p>对于一次询问，你需要输出一行 <code>? <em>u</em> <em>v</em></code> 表示你想让 Nauuo 告诉你节点 $u$ 和节点 $v$ 在这棵二叉树上距离，然后换行并刷新缓存。</p>
+		<p>在每次询问后，交互器会向标准输入中输入一个非负整数 $d$，表示节点 $u$ 和节点 $v$ 之间的距离。</p>
+		<p>当你的所有询问结束后，你需要输出一行 <code>! <em>p</em></code>，$p$ 是一个长为 $n - 1$ 的正整数序列，第 $i$ 个数表示第 $i + 1$ 个节点在这棵二叉树上的父亲，然后<strong>换行</strong>并刷新缓存。</p>
+		<p>当你的程序正确时，保证交互器使用的时间不会超过 $500 \,\mathrm{ms}$。</p>
+
+		<h3>题解</h3>
+		<p>先询问每个点到 $1$ 号点的距离，得到每个点的深度。我们考虑按深度一层层依次确定每个点。</p>
+		<p>假设我们以及处理完了前 $d - 1$ 层的点，考虑一个第 $i$ 层的点 $v$，我们如何才能快速定位到它的父节点。</p>
+		<p>任取一个点 $u$，如果我们知道了 $u$ 到 $v$ 的距离，由 "树上两点间的距离公式" 的变形得 $dep_{LCA \left( u, v \right)} = \dfrac {dep_u + dep_v - \operatorname{dist} \left( u, v \right)} 2$，于是我们可以得到点 $LCA \left( u, v \right)$ 的深度。</p>
+		<p>我们取 $u$ 为当前所得的前 $d - 1$ 层的树的一个叶节点，设根 ($1$) 到 $u$ 的链为 $1 \to u_1 \to u_2 \to \cdots \to u_k = u$，则询问 $u, v$ 后就可以求得它们的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>，假设为 $u_l$。</p>
+		<p>然后还是容易根据已知信息得出 $\operatorname{dist} \left( u_l, v \right)$ 的值。如果 $\operatorname{dist} \left( u_l, v \right) = 1$，则说明此时已经找到了 $v$ 的父节点。</p>
+		<p>否则，我们把 $u_l$ 的 "另一个" 子节点 (即不是 $u_{l+1}$ 的那个，由于是二叉树因此至多一个) 当做新的 "根" $r'$。</p>
+		<p>类似地，在以 $r'$ 为根的子树中再找到一个点 $u'$，类似上面的操作还是可以找到 $u'$ 和 $v$ 的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>，……，如此往复，一定会在有限步内结束，找到 $v$ 的父节点。</p>
+		<p>但是这样询问次数真的够吗？可以发现，每个点询问的次数最坏是 $O \left( d \right)$ (深度) 的，因此总的询问次数可以达到 $O \left( n^2 \right)$ 这看似不可接受。</p>
+		<p>不过我们仔细分析这个找父节点的过程，可以发现，它有点类似<strong>树链剖分</strong>的过程：即先选择一条主重链，在重链上查询，如果不对，再跳一步轻边，然后再提取出下一条重链……</p>
+		<p>如果我们使用了<strong>轻重链剖分</strong>，可以证明，每失败一次 (即不能直接确定 $v$ 的父节点)，剩下的根对应的子树大小一定不超过原来的一半，于是询问次数不超过 $O \left( \log n \right)$，就可以接受了。</p>
+		<p>因此，我们可以动态实时维护这个轻重链剖分的形态：因为每加入一个点，它只会影响 $O \left( d \right)$ (深度) 个点的 $size$，暴力更新即可。</p>
+		<p>总询问次数 $O \left( n \log n \right)$ (常数略小于 $1$)，时间复杂度 $O \left( n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+using std::endl;
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 3054;
+
+int n, D;
+int p[N], dep[N], size[N];
+int ch[N][2];
+vector ps[N];
+int t[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+inline void link(int x, int px) {p[x] = px, ch[px][*ch[px] ? 1 : 0] = x;}
+
+inline int query(int u, int v) {return cout &lt;&lt; '?' &lt;&lt; ' ' &lt;&lt; u &lt;&lt; ' ' &lt;&lt; v &lt;&lt; endl, cin &gt;&gt; v, v;}
+
+void update(int x) {
+	for (; x; x = p[x]) {
+		int &amp;l = ch[x][0], &amp;r = ch[x][1]; ++size[x];
+		if (l &amp;&amp; r &amp;&amp; size[l] &lt; size[r]) std::swap(l, r);
+	}
+}
+
+void explore(int current_depth) {
+	int i, r, u, dist, remain, cnt = 0;
+	for (int v : ps[current_depth])
+		for (r = 1; ; r = t[i / 2], r = ch[r][1]) {
+			for (cnt = 0, u = r; u; u = ch[u][0]) t[cnt++] = u;
+			if (cnt == 1) {link(v, *t), update(v); break;}
+			dist = query(t[--cnt], v), remain = dep[v] - dep[r];
+			i = cnt + remain - dist, assert(!(i &amp; 1) &amp;&amp; 0 &lt;= i &amp;&amp; i &lt;= cnt * 2);
+			if (dist + remain - cnt == 2) {link(v, t[i / 2]), update(v); break;}
+		}
+}
+
+int main() {
+	int i;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (i = 2; i &lt;= n; ++i) up(D, dep[i] = query(1, i)), ps[dep[i]].EB(i);
+	for (i = 1; i &lt;= D; ++i) explore(i);
+	cout &lt;&lt; '!';
+	for (i = 2; i &lt;= n; ++i) cout &lt;&lt; ' ' &lt;&lt; p[i];
+	cout &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意可以减少一些部分的常数，比如当 $\operatorname{dist} \left( u_l, v \right) = 1$ 时就无需询问、同一个点对不询问两次等。</p>
+		<p><strong>坑2：</strong>注意新的 "深度" 需要用原先 $v$ 的深度 $dep_v$ 减去当前根 $r'$ 的深度 $dep_{r'}$。</p>
+	</body>
+</html>

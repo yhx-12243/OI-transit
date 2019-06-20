@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj443][WMTC2018]不可名状</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个长度为 $2^n$ 的数组 (下标从 $0$ 开始)，初始 $a_0 = 1$，其余为 $0$。</p>
+		<p>有一个复数 $x$，满足 $x^{2^n} = 1$。你需要实现一个函数 <code>SOL(t)</code> 来猜出 $x$。</p>
+		<p>你可以调用如下函数：</p>
+		<ul>
+			<li><code>INI(n)</code>
+			<ul>
+				<li>其中 $1 \leq n \leq 16$。该函数<strong>须在调用下文的函数前调用恰一次</strong>，表示初始化一个长为 $2^n$ 的数组。</li>
+			</ul></li>
+			<li><code>CU(d, k)</code>
+			<ul>
+				<li>其中 $0 \leq d &lt; n, -2^{16} &lt; k &lt; 2^{16}$。</li>
+				<li>调用该函数后，对于所有二进制第 $d$ 位为 1 的 $i$，令 $a'_i = x^k \cdot a_i$。随后 $a_i$ 更新为 $a'_i$。</li></li>
+			</ul></li>
+			<li><code>CR(d1, d2, A)</code>
+			<ul>
+				<li>其中 $0 \leq d_1, d_2 &lt; n$，$\mathbf A$ 是一个 $2 \times 2$ 的复数矩阵，<strong>满足 $\mathbf A \mathbf A^\dagger = \mathbf I$ </strong>，其中 $\mathbf I$ 为单位矩阵，$\mathbf A^\dagger$ 为 $\mathbf A$ 的共轭转置。</li>
+				<li>调用该函数后，对于所有二进制第 $d_1, d_2$ 位均为 $1$ 的 $i$，令 \begin{cases} a'_{i-2^{d_2}} = A_{0, 0} a_{i - 2^{d_2}} + A_{1, 0} a_i \\ a'_{i} = A_{0, 1} a_{i - 2^{d_2}} + A_{1, 1} a_i \end{cases}</li>
+				<li>随后 $a_{i-2^{d_2}}$ 更新为 $a'_{i-2^{d_2}}$， $a_{i}$ 更新为 $a'_{i}$。</p>
+			</ul></li>
+			<li class="text-muted"><code>ACR(A)</code>
+			<ul>
+				<li>其中 $A$ 指向一个 $2^n \times 2^n$ 的复数矩阵，满足 $\mathbf A \mathbf A^\dagger = \mathbf I$。</li>
+				<li>调用该函数后，令 $\displaystyle a'_i = \sum_{j=0}^{2^n-1} A_{i, j} a_j$ ，随后 $a_i$ 更新为 $a'_i$。</li>
+				<li><strong>如果需要调用该函数，请注意时空复杂度。</strong></li>
+			</ul></li>
+			<li><code>QR()</code>
+			<ul>
+				<li>会随机返回一个 $\left[ 0, 2^n \right)$ 间的整数，返回 $i$ 的概率为 $\dfrac {\left| a_i \right|^2} {\sum_j \left| a_j \right|^2}$。</li>
+				<li><strong>本函数至多只能调用一次。</strong></li>
+			</ul></li>
+		</ul>
+
+		<h3>实现细节</h3>
+		<p>源代码需要包含头文件 <code>unnamable.h</code> 。</p>
+		<p>涉及到的函数接口如下：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">std::complex&lt;double&gt; SOL(int t);
+void INI(int n);
+void CU(int d, int k);
+void CR(int d1, int d2, std::complex&lt;double&gt; A[2][2]);
+void ACR(std::complex&lt;double&gt; **A);
+int QR();
+</code></pre>
+
+		<h3>题解</h3>
+		<p>又是一道<a href="uoj328.html" target="_blank">量子题</a>……</p>
+		<p>可以发现，只有 <code>CU</code> 操作会用到我们欲猜的数 $x$，因此我们尝试去利用它。</p>
+		<p>考察 <code>CU</code> 操作，如果我们对 $d = 0, 1, \cdots, 15, k = 2^d$ 依次做一遍 <code>CU</code> 操作后，可以发现新的 $a'_i = x^i a_i$。</p>
+		<p>因此我们希望先把 $a_i$ 变相等。即我们希望使用一个<strong>可逆变换</strong>将所有 $a_i$ 的都变为 $1$。</p>
+		<p>不难发现 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 满足要求，因此我们只需先对序列执行一遍 (可逆) <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr>，然后每个位置都不会变成 $\dfrac 1 {2^{n/2}}$。</p>
+		<p><abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 的具体实现方式可以见 <a href="uoj328.html" target="_blank">[uoj328]量子破碎</a>，总体思路是差不多的。</p>
+		<p><abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 完毕后，我们的对 $d = 0, 1, \cdots, 15$ 依次做一遍 <code>CU(<em>d</em>, 2<sup><em>d</em></sup>)</code>，于是此时	(不考虑整体常数的话) $a_i = x^i$。</p>
+		<p>设答案 $x = \omega^A$，其中 $\omega = \omega_{2^{16}}$，则考虑函数 $f \left( x \right) = x^A$，它在 $\omega^i$ 处的点值恰好是 $x^i。</p>
+		<p>也就是说，此时 $a_i$ 就是这个函数 $f \left( x \right)$ 的<strong>点值序列</strong>。如果我们能对其进行 <abbr title="Inverse Discrete Fourier Transform, 逆离散傅里叶变换">IDFT</abbr> 的话，那么最终的结果就只有 $b_A \neq 0$ 了，于是一次询问即可完成。</p>
+		<p>因此问题来了，如何<del>在量子计算机上</del>做 <abbr title="Inverse Discrete Fourier Transform, 逆离散傅里叶变换">IDFT</abbr> 呢？</p>
+		<p>由于 <abbr title="Inverse Discrete Fourier Transform, 逆离散傅里叶变换">IDFT</abbr> 和 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr> 只差一个系数的方向，而且在正交的变换中系数是不会差的，只会差一个方向，而方向我们只需要将 <code>QR</code> 的返回值取个负即可，因此现在关键的问题是如何实现 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr>。</p>
+		<p>下面先给出 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr> 的伪代码：</p>
+		<pre class="sh_sourceCode"><code><span class="sh_keyword">def</span> <span class="sh_function">DFT</span><span class="sh_symbol">(</span>l<span class="sh_symbol">,</span> d<span class="sh_symbol">)</span>
+	t <span class="sh_symbol">=</span> <span class="sh_symbol">[]</span>
+	<span class="sh_keyword">for</span> i <span class="sh_symbol">&#8592;</span> <span class="sh_number">0</span> <span class="sh_keyword">to</span> <span class="sh_number">2</span><sup>l</sup> <span class="sh_symbol">-</span> <span class="sh_number">1</span>
+		t<sub>i<sup>R</sup></sub> <span class="sh_symbol">=</span> d<sub>i</sub>
+	<span class="sh_keyword">for</span> i <span class="sh_symbol">&#8592;</span> <span class="sh_number">0</span> <span class="sh_keyword">to</span> l <span class="sh_symbol">-</span> <span class="sh_number">1</span>
+		<span class="sh_keyword">for</span> j <span class="sh_symbol">&#8592;</span> <span class="sh_number">0</span> <span class="sh_keyword">to</span> <span class="sh_number">2</span><sup>l</sup> <span class="sh_symbol">-</span> <span class="sh_number">1</span>
+			<span class="sh_keyword">if</span> <span class="sh_function">binary</span><span class="sh_symbol">(</span>j<span class="sh_symbol">)</span><sub>i</sub> <span class="sh_symbol">==</span> <span class="sh_number">0</span>
+				t'<sub>j</sub> <span class="sh_symbol">&#8592;</span> t<sub>j</sub> <span class="sh_symbol">+</span> t<sub>j <span class="sh_symbol">+</span> <span class="sh_number">2</span><sup>i</sup></sub> <span class="sh_symbol">*</span> w<sub><span class="sh_number">2</span><sup>i <span class="sh_symbol">+</span> <span class="sh_number">1</span></sup></sub><sup style="margin-left: -3.3em">j <span class="sh_symbol">&amp;</span> <span class="sh_number">2</span><sup>i</sup> <span class="sh_symbol">-</span> <span class="sh_number">1</span></sup>
+				t'<sub>j <span class="sh_symbol">+</span> <span class="sh_number">2</span><sup>i</sup></sub> <span class="sh_symbol">&#8592;</span> t<sub>j</sub> <span class="sh_symbol">-</span> t<sub>j <span class="sh_symbol">+</span> <span class="sh_number">2</span><sup>i</sup></sub> <span class="sh_symbol">*</span> w<sub><span class="sh_number">2</span><sup>i <span class="sh_symbol">+</span> <span class="sh_number">1</span></sup></sub><sup style="margin-left: -3.3em">j <span class="sh_symbol">&amp;</span> <span class="sh_number">2</span><sup>i</sup> <span class="sh_symbol">-</span> <span class="sh_number">1</span></sup>
+				t<sub>j</sub> <span class="sh_symbol">&#8592;</span> t'<sub>j</sub>
+				t<sub>j <span class="sh_symbol">+</span> <span class="sh_number">2</span><sup>i</sup></sub> <span class="sh_symbol">&#8592;</span> t'<sub>j <span class="sh_symbol">+</span> <span class="sh_number">2</span><sup>i</sup></sub>
+	<span class="sh_keyword">return</span> t
+</code></pre>
+		<p>首先，第一步我们需要对整个数组的<strong>下标</strong>做一个<strong>位翻转</strong>。</p>
+		<p>这可以通过将 <code>CU(<em>d</em>, 2<sup><em>d</em></sup>)</code> 改为 <code>CU(<em>d</em>, 2<sup>15 - <em>d</em></sup>)</code> 来完成。</p>
+		<p>其次就是执行卷积过程了。</p>
+		<p>观察外面的过程，可以发现最外面套的是一个类似 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 一样的矩阵 $\begin{pmatrix} 1 &amp; 1 \\ 1 &amp; -1 \end{pmatrix}$，因此我们先考虑完成内部的工作，即令</p>
+		<p>\begin{align*}
+t'_j &amp;= t_j \\
+t'_{j + 2^i} &amp;= t_{j + 2^i} \cdot \omega_{2^{i+1}}^{j \mathbin{\&amp;} \left( 2^i - 1 \right)}
+\end{align*}</p>
+		<p>于是可以使用 <code>CR</code> 变换完成，类似 <code>CU</code> 的二进制分解操作，用 <code>d1</code> 控制 $j$ 的某个二进制位，<code>d2</code>$= i$，合理调整矩阵 $\mathbf A$ 的 $A_{1, 1}$ 即可。</p>
+		<p>最后再来一个 <code>CR(i, i, </code>$\begin{bmatrix} \dfrac 1 {\sqrt 2} &amp; \dfrac 1 {\sqrt 2} \\ \dfrac 1 {\sqrt 2} &amp; - \dfrac 1 {\sqrt 2} \end{bmatrix}$<code>)</code> 即可。</p>
+		<p>总时间复杂度就是 <abbr title="Fast Fourier Transform, 快速傅里叶变换">FFT</abbr> 的复杂度，$O \left( 2^n \cdot n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "unnamable.h"
+
+typedef std::complex &lt;double&gt; C;
+const C r = M_SQRT1_2;
+
+C w[17], M[2][2] = {{r, r}, {r, -r}}, fft[2][2] = {{1, 0}, {0, 0}};
+
+C SOL(int) {
+	int i, j, ans; double angle = M_PI; C ret(1, 0);
+	INI(16);
+	for (i = 0; i &lt; 16; ++i) CR(i, i, M);
+	for (i = 0; i &lt; 16; ++i) CU(i, 1 &lt;&lt; (15 - i)); // a[rev[i]] = w^(i . ans)
+	for (i = 15; i &gt;= 0; angle *= .5, --i) w[i] = C(cos(angle), sin(angle));
+	for (i = 0; i &lt; 16; CR(i, i, M), ++i)
+		for (j = 0; j &lt; i; ++j) fft[1][1] = w[15 - i + j], CR(i, j, fft);
+	for (ans = -QR(), i = 0; i &lt; 16; ++i) if (ans &gt;&gt; i &amp; 1) ret *= w[i];
+	return ret;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意单位根还是可以预处理的，<abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr> 每一轮结束后不要忘记 <code>CR</code> 回去。</p>
+	</body>
+</html>

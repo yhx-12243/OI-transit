@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj426][WMTC2018]石像</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n, m$ 以及 $k$ 对限制关系 $x_i, y_i$ ($1 \leq x_i, y_i \leq n; x_i \neq y_i$)，求 $$ \left( \sum_{a_1=1}^m \sum_{a_2=1}^m \cdots \sum_{a_n=1}^m \left( d \left( \gcd \left( a_1, a_2, \cdots, a_n \right)^3 \right) \right)^3 \cdot \prod_{i=1}^k \left[ a_{x_i} \leq a_{y_i} \right] \right) \bmod 2^{32} $$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, m, k$ ($1 \leq n \leq 20; 1 \leq m \leq 10^{10}; 0 \leq k \leq n \left( n - 1 \right)$)。</p>
+		<p>接下来 $k$ 行，每行两个正整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq n; x_i \neq y_i$)，描述一对限制。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示题目中所求式子的值。</p>
+
+		<h3>题解</h3>
+		<p>设 $f \left( n \right) = d \left( n^3 \right)^3$，$g = f \ast \mu$ (其中 $\ast$ 为 Dirichlet 卷积)，则 $f = g \ast \mathbf 1$。</p>
+		<p>于是，(不考虑取模的) 原式 \begin{align*}
+&amp;= \sum_{a_1=1}^m \sum_{a_2=1}^m \cdots \sum_{a_n=1}^m f \left( \gcd \left( a_1, a_2, \cdots, a_n \right) \right) \cdot \prod_{i=1}^k \left[ a_{x_i} \leq a_{y_i} \right] \\
+&amp;= \sum_{a_1=1}^m \sum_{a_2=1}^m \cdots \sum_{a_n=1}^m \sum_{d \mid a_1, d \mid a_2, \cdots, d \mid a_n} g \left( d \right) \cdot \prod_{i=1}^k \left[ a_{x_i} \leq a_{y_i} \right] \\
+&amp;= \sum_{d=1}^n g \left( d \right) \cdot \left( \sum_{d \mid a_1} \sum_{d \mid a_2} \cdots \sum_{d \mid a_n} \prod_{i=1}^k \left[ a_{x_i} \leq a_{y_i} \right] \right) \\
+&amp;= \sum_{d=1}^n g \left( d \right) \left( \sum_{b_1=1}^{\left \lfloor m/d \right \rfloor} \sum_{b_2=1}^{\left \lfloor m/d \right \rfloor} \cdots \sum_{b_n=1}^{\left \lfloor m/d \right \rfloor} \prod_{i=1}^k \left[ b_{x_i} \leq b_{y_i} \right] \right) \\
+&amp;= \sum_{d=1}^n g \left( d \right) R \left( \left \lfloor \frac md \right \rfloor \right)
+\end{align*} (最后一步是因为，当 $x_i, y_i$ 确定时，右边括号内的值<strong>只和 $\left \lfloor \dfrac md \right \rfloor$ 的值有关</strong>，因此可以写成关于 $\left \lfloor \dfrac md \right \rfloor$ 的函数)</p>
+		<p>使用整除分块后，问题化为两个：</p>
+		<ol>
+			<li><p>对 $x \in S \left( m \right) = \left\{ \left \lfloor \dfrac mi \right \rfloor \bigg\vert 1 \leq i \leq m \right\}$，快速求出 $\displaystyle \sum_{i=1}^x g \left( i \right)$。</p></li>
+			<li><p><span class="text-muted">对 $x \in S \left( m \right)$</span>，快速求出 $R \left( x \right)$ 的单点值。</p></li>
+		</ol>
+		<p>先考虑前半部分。容易验证 $f$ 是积性函数，因此 $g$ 也是积性函数。</p>
+		<p>而 $f \left( p^c \right) = \left( 3 c + 1 \right)^3 = 1 + 9 c + 27 c^2 + 27 c^3$，因此 $g \left( p^c \right) = f \left( p^c \right) - f \left( p^{c-1} \right) = \left( 1 + 9 c + 27 c^2 + 27 c^3 \right) - \left( 1 + 9 \left( c - 1 \right) + 27 \left( c - 1 \right)^2 + 27 \left( c - 1 \right)^3 \right) = 9 - 27 c + 81 c^2$ ($\color{red} {c \geq 1}$)。</p>
+		<p>因此 $g \left( p^c \right)$ 的值容易计算。加上 $g \left( p \right) = 63$ 是关于 $p$ 的低次多项式，且 $g$ 具有积性，因此 <strong>$g$ 符合洲阁筛所需的条件</strong>，因此可以通过洲阁筛来得到对于 $\forall x \in S \left( m \right), \sum_{i=1}^x g \left( i \right)$ 的值。</p>
+		<p style="color: red">(ps: 和 <a href="uoj452.html" target="_blank">[WMTC2018]彩虹般绚烂</a> 类似，由于我们要知道 $S \left( m \right)$ 中所有元素位置处的前缀和，因此不能使用 min-25 筛，<strong>只能使用洲阁筛</strong>)</p>
+		<hr />
+		<p>后一个问题是，如何快速对函数 $R$ 进行求值。</p>
+		<p>稍加观察可以发现，题目中的 $x_i, y_i$ 等关系构成了一张<strong>有向图</strong>，其中如果 $u$ 可以到达 $v$，则 $a_u$ 必须<strong>不大于</strong> $a_v$。</p>
+		<p>我们用 $R_G \left( x \right)$ 来表示在有向图 $G$ 中选择 $a_i$ 的方案数。</p>
+		<p>可以通过类似证明<strong>色多项式</strong>的方法证明，$R_G \left( x \right)$ 是一个关于 $x$ 的不超过 $\left| G \right|$ 次<strong>整值多项式</strong>，其中 $\left| G \right|$ 为图 $G$ 的阶，即 $n$。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>不妨设 $G$ 是<strong>有向无环图</strong> (DAG)，否则将 $G$ 进行 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 缩点后答案不变。</p>
+				<p>设 $G$ 中入度为 $0$ 的点的集合为 $v_1, v_2, \cdots, v_k$，则枚举这些点中有哪些值为 $1$，运用容斥原理即可得到 $$ \sum_{S \subseteq \left\{ v_1, v_2, \cdots, v_k \right\}} \left( -1 \right)^{\left| S \right|} R_{G \setminus S} \left( x \right) = R_G \left( x - 1 \right) $$</p>
+				<p>移项后对二元组 $\left( \left| G \right|, x \right)$ 进行归纳即可得证。</p>
+			</div>
+		</div>
+		<p>于是，我们只需要知道 $R \left( x \right)$ 在 $0, 1, 2, \cdots, n$ 处的值即可，然后插值出这个多项式。</p>
+		<p>由于这里模数不是素数，因此我们使用<strong>下降幂插值法</strong>：$R \left( x \right) = a_0 + a_1 \dbinom x1 + a_2 \dbinom x2 + \cdots + a_n \dbinom xn$，可以证明 $a_i$ 一定是整数，且其系数只要对原点值序列<strong>做 $n$ 次差分</strong>即得 (具体见代码)。</p>
+		<p>对于求值的问题，涉及到一个组合数取模，由于模数是 $2$ 的次幂，因此只需记录下组合数各因子中 $2$ 出现了多少次，以及剔除 $2$ 部分后在模 $2^{32}$ 意义下的值。</p>
+		<p>于是最终的问题就只剩下求小范围的 $R \left( x \right)$ 了。</p>
+		<p>上面的证明过程中其实也给出了一种求法，不过由于复杂度太劣<del>而只能被运用于证明</del>。</p>
+		<p>具体可以考虑状态压缩 DP <del>(FMT)</del> 的方法，设其中一个拓扑序为 $n, n - 1, \cdots, 3, 2, 1$，考虑从大到小的顺序来 DP (确定能取到最大值 $I$ 的数)。</p>
+		<p>用 $f_S$ 表示集合 $S$ 可填数的方案数，其中 $S$ 是 $G$ 的<a href="../memos/14.html" target="_blank">闭合子图</a>。我们每次枚举一个新的点 $v$，考察 $v$ 能否取到最大值 $I$。</p>
+		<p>对于一个不包含 $v$，但<strong>包含所有 $v$ 所能到达的点</strong>的集合 $S$，如果 $a_v &lt; I$，则整个状态就是一个 "旧状态"，我们不予考虑。</p>
+		<p>如果 $a_v = I$，则根据定义，所有 $&lt; v$ 的点的点值不能超过 $I$，$&gt; v$ 的点值不能超过 $I - 1$。因此我们只需令 $f_{S \cup \left\{ v \right\}} \gets f_{S \cup \left\{ v \right\}} + f_S$ 即可。</p>
+		<p>这样 DP 的时间复杂度就是 $O \left( 2^n n^2 \right)$ 了，可以接受。</p>
+		<p>因此这道题的总时间复杂度为 $O \left( 2^n n^2 + n \sqrt m + \dfrac {m^{3/4}} {\log m} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ctz __builtin_ctz
+#define ctz64 __builtin_ctzll
+
+typedef unsigned int u32;
+typedef long long ll;
+
+const int N = 22, N2 = 1054000;
+const u32 inv[N] = {0u, 1u, 1u, 2863311531u, 1u, 3435973837u, 2863311531u, 3067833783u, 1u, 954437177u, 3435973837u, 3123612579u, 2863311531u, 3303820997u, 3067833783u, 4008636143u, 1u, 4042322161u, 954437177u, 678152731u, 3435973837u, 1022611261u};
+
+int V, E;
+int _u[N * N], _v[N * N], G[N], G2[N];
+int cnt = 0, id[N], low[N];
+int stc = 0, sta[N], top[N];
+int scc = 0;
+u32 f[N2], func[N2], coe[N2];
+bool in_stack[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+void dfs(int x) {
+	int i, y;
+	id[x] = low[x] = ++cnt, in_stack[x] = true, sta[stc++] = x;
+	for (i = G[x]; i; i &amp;= i - 1)
+		if (!id[y = ctz(i)]) dfs(y), down(low[x], low[y]);
+		else if (in_stack[y]) down(low[x], id[y]);
+	if (id[x] == low[x]) {
+		for (y = -1; y != x; y = sta[--stc], in_stack[y] = false, top[y] = scc); ++scc;
+	}
+}
+
+u32 poly(ll x) {
+	int i, b, d = 0; u32 ret = 0, C = 1; ll t;
+	for (i = 1; i &lt;= V &amp;&amp; i &lt;= x; ++i) {
+		t = x - i + 1, b = ctz64(t), t &gt;&gt;= b;
+		C = C * (u32)t * inv[i];
+		ret += func[i] * C &lt;&lt; (d += b - ctz(i));
+	}
+	return ret;
+}
+
+namespace NT {
+	const int N = 100054, M = N * 2;
+
+	ll n, v[M];
+	int srn, cnt;
+	int pn = 0, c[N], p[9600];
+	u32 g[M], f[M];
+
+	inline int ID(ll x) {return x &lt;= srn ? x : cnt + 1 - n / x;}
+	inline u32 fy(ll x) {return 9 * ((3 * (u32)x - 1) * (3 * (u32)x) + 1);}
+
+	void sieve(int n) {
+		int i, j, v; memset(c, -1, sizeof c);
+		for (i = 2; i &lt;= n; ++i) {
+			if (!~c[i]) p[pn] = i, c[i] = pn++;
+			for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt;= c[i]; ++j) c[v] = j;
+		}
+	}
+	
+	void sieve_g() {
+		int i, j, p; ll J, K;
+		for (j = 1; j &lt;= cnt; ++j) g[j] = J = v[j];
+		for (i = 0; (p = NT::p[i]) &lt;= srn; ++i)
+			for (j = cnt; j; --j) {
+				if (J = v[j], (K = J / p) &lt; p) break;
+				g[j] -= g[ID(K)] - g[p - 1];
+			}
+	}
+
+	inline u32 sget(int id, int pid) {return v[id] &gt;= (ll)p[pid] * p[pid] ? f[id] : v[id] &lt; p[pid] ? 1 : 63u * (g[id] - g[p[pid - 1]]) + 1;}
+
+	void sieve_f() {
+		int i, j, k, p, c; ll J, K;
+		for (i = pn - 1; i &gt;= 0; --i)
+			for (p = NT::p[i], j = cnt; j; --j) {
+				if ((J = v[j]) &lt; (ll)p * p) break;
+				f[j] = sget(j, i + 1);
+				for (K = J / p, c = 1; K; K /= p, ++c)
+					k = ID(K), f[j] += sget(k, i + 1) * fy(c);
+			}
+		for (j = 1; j &lt;= cnt; ++j) if (v[j] &lt; 4) f[j] = 63u * (g[j] - 1) + 1;
+	}
+
+	int main() {
+		int i, j; u32 ret = 0; sieve(N - 1);
+		srn = sqrt(n), cnt = srn * 2 - (srn * (srn + 1ll) &gt; n);
+		for (i = 1; i &lt;= srn; ++i) v[i] = i, v[cnt - i + 1] = n / i;
+		sieve_g(), sieve_f();
+		for (i = 1, j = cnt; i &lt;= cnt; ++i, --j) ret += (f[i] - f[i - 1]) * poly(v[j]);
+		return ret;
+	}
+}
+
+int main() {
+	int i, j, u, v, S, ALL;
+	scanf("%d%lld%d", &amp;V, &amp;NT::n, &amp;E);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", _u + i, _v + i), G[--_u[i]] |= 1 &lt;&lt; --_v[i];
+	for (u = 0; u &lt; V; ++u) if (!id[u]) dfs(u);
+	V = scc, ALL = ~(-1 &lt;&lt; V), memset(G, 0, sizeof G);
+	for (i = 0; i &lt; E; ++i) if ((u = top[_u[i]]) != (v = top[_v[i]])) G[u] |= 1 &lt;&lt; v;
+	for (*f = i = 1; i &lt;= V; ++i) {
+		for (v = 0; v &lt; V; ++v)
+			for (S = 1 &lt;&lt; v, j = G[v] | S; j &lt;= ALL; j = (j + 1) | G[v] | S)
+				f[(j &amp; ~S) | 1 &lt;&lt; v] += f[j &amp; ~S];
+		func[i] = f[ALL];
+	}
+	for (i = 1; i &lt;= V; ++i) for (j = V; j &gt;= i; --j) func[j] -= func[j - 1];
+	printf("%u\n", NT::main());
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于模数不是素数，因此尤其要注意没有逆元的情况。还有自变量传入时不要直接对 $mod = 2^{32}$ 取模，因为它<strong>不一定是整系数多项式</strong>。</p>
+		<p><strong>坑2：</strong>注意 <abbr title="Strongly-connected Component, 强连通分量">SCC</abbr> 缩点后得到的相对顺序就是在某种意义上的拓扑序。</p>
+		<p><strong>坑3：</strong>差分求系数时注意从后往前 <code>for</code>，而且只能 <code>for</code> 到 $i$，不然会更新错误的值。</p>
+	</body>
+</html>

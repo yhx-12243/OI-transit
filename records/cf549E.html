@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces549E]Sasha Circle/[WMTC2018]圆</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定平面上两组整点，问是否存在一个圆，满足其中一组点均在圆内 (含边界)，另外一组点均在圆外 (不含边界)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 10000$)，分别表示两组点的个数。</p>
+		<p>接下来 $n$ 行，每行包含两个整数 $M_x, M_y$ ($-10000 \leq M_x, M_y \leq 10000$)，描述第一组整点。</p>
+		<p>接下来 $m$ 行，每行包含两个整数 $S_x, S_y$ ($-10000 \leq M_x, M_y \leq 10000$)，描述第二组整点。</p>
+		<p>保证所有点坐标互不相同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个字符串，如果存在符合条件的圆，则输出 <code>YES</code>，否则输出 <code>NO</code>。</p>
+
+		<h3>题解</h3>
+		<p>不妨假设两组整点分别为红点和蓝点，且我们需要找一个圆覆盖所有的红点，且不包含任何一个蓝点。(如果是覆盖蓝点的话就把红蓝交换再做一次)</p>
+		<p>首先，容易验证，只有红点的凸包是有效的，因此下面默认红点相连后形成一个凸集。</p>
+		<p>如果凸包大小为 $1$，则显然是有解的 (由于坐标互不相同，因此以那个点为圆心，$\varepsilon$ 为半径的圆符合条件。</p>
+		<p>如果凸包大小为 $2$，则可以假设这个圆过这两个点，否则，我们可以找一个真包含于给定的圆且覆盖这两个点的圆，因此容易判断。</p>
+		<p>如果凸包大小 $\geq 3$，则还是可以假设这个圆过其中两个点。</p>
+		<p>那如何刻画 "对于一个圆，一些点在圆内，一些点在圆外" 这一性质呢？</p>
+		<p>根据 <a href="lg4502%3Bloj2530%3Bsoj111.html" target="_blank">[ZJOI2018]保镖</a> 的经验，我们需要将其<strong>升维</strong>，转化为空间中平面的问题。</p>
+		<p>对于圆 $x^2 + y^2 + D x + E y + F = 0$，令 $z = x^2 + y^2$ 后，可以写成 $D x + E y + z + F = 0$，即<strong>空间中平面的方程</strong>。</p>
+		<p>因此，如果我们对每个点，如果都沿 $z$ 轴投射到椭圆抛物面 $z = x^2 + y^2$ 上，则我们就从 "<em>找圆</em>" <del>进化</del>成了 "<em>找一个平面</em>"，将两种颜色的点分割，<span style="color: red">其中红点在平面的下方 ($\left( 0, 0, - \infty \right)$ 所在半空间)，蓝点在平面的上方 ($\left( 0, 0, + \infty \right)$ 所在半空间</span>。</p>
+		<p>于是我们只要对红点求一遍三维凸包，找到它的上凸包，枚举每一条边，检验是否存在一个平面经过这两个点且将红点和蓝点隔离。</p>
+		<hr />
+		<p>但是做三维凸包显然太费时间了 ($O \left( n \log n \right)$ 的代码量比较大)，况且在三维空间中检验也不是一件方便的事情。因此，我们考虑重新<strong>回归二维</strong>来思考。</p>
+		<p>考察上凸包对应的每个三角形，根据那一题的结论，它的外接圆就是一个<strong>支配圆</strong> (包含所有点的圆)！</p>
+		<p>于是，我们将上凸包投影到二维，就能得到原图的一个<big><strong>支配三角剖分</strong></big> (最远点意义下 Voronoi 图的对偶)！</p>
+		<p>也就是说，我们只需要枚举 "支配三角剖分" 中的所有边进行检验即可。</p>
+		<p>而一个凸多边形的 "三角剖分" 中的边的条数仅仅只有 $2 n - 3$，为线性的级别，因此整个问题就得到了初步解决。</p>
+		<hr />
+		<p>最后还剩下两个问题：<strong>如何求三角剖分</strong>以及<strong>如何检验</strong>。</p>
+		<p>对于如何求三角剖分，注意到是<strong>凸多边形</strong>，于是我们可以考虑<strong>分治法</strong>。</p>
+		<p>设凸多边形为 $C_0 C_1 C_2 \cdots C_{k-1}$，则边 $C_0 C_{k-1}$ 一定隶属于一个三角形 $C_0 C_{k-1} C_i$ ($1 \leq i \leq k - 2$)，其中这个三角形是<strong>在所有 $i$ 中，外接圆最大的三角形</strong>。容易证明这个三角形对应的外接圆是支配圆，因此 $\triangle C_0 C_{k-1} C_i$ 在原多边形的支配三角剖分中。</p>
+		<p>接下来我们所要做的就是向两边递归，递归边 $C_0 C_i$ 和边 $C_i C_{k-1}$，一直到只有 $2$ 个点，于是我们就得到了整个凸多边形的三角剖分，时间复杂度是最坏 $O \left( k^2 \right)$ 级的。</p>
+		<p>关于如何检验一条边 $A B$ 是否合法，我们只需注意到，<strong>如果一个圆过两个定点，则圆心的轨迹是它们的中垂线</strong>。因此，每一个点可以定位到一个区间：</p>
+		<p>如果这个点是一个红点，我们就希望这个圆包含它，于是可以解出圆心在这条直线上的区间 (一般是一条射线)，同理蓝点也可以确定，只不过要取一个补集。</p>
+		<p>具体实现的时候，我们可以根据等弦对等角的性质，计算角 $\angle A P B$ (或弧 $\overset{\frown} {A B}$) 的度数的取值范围，实现起来会较容易，并且可以通过取正切值来避免反三角、开方等运算。</p>
+		<p>由于坐标范围为 $R$ 的<strong>整点</strong>构成的凸包点数是不超过 $O \left( R^{2/3} \right)$ 的，因此总时间复杂度就是 $O \left( R^{2/3} \left( n + m \right) + n \log n + m \log m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define dot(x, y, z) (((y) - (x)) * ((z) - (x)))
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+typedef long long ll;
+const int N = 25400;
+
+struct vec2 {
+	int x, y;
+	vec2 (int x0 = 0.0, int y0 = 0.0) : x(x0), y(y0) {}
+	vec2 * read() {return scanf("%d%d", &amp;x, &amp;y), this;}
+	inline vec2 operator - () const {return vec2(-x, -y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline ll operator * (const vec2 &amp;B) const {return (ll)x * B.x + (ll)y * B.y;}
+	inline ll operator ^ (const vec2 &amp;B) const {return (ll)x * B.y - (ll)y * B.x;}
+	inline ll norm2() const {return (ll)x * x + (ll)y * y;}
+	inline bool operator &lt; (const vec2 &amp;B) const {return x &lt; B.x || (x == B.x &amp;&amp; y &lt; B.y);}
+	inline bool operator == (const vec2 &amp;B) const {return x == B.x &amp;&amp; y == B.y;}
+	inline bool operator &lt;&lt; (const vec2 &amp;B) const {return (y &lt; 0) ^ (B.y &lt; 0) ? B.y &lt; 0 : (*this ^ B) &gt; 0 || ((*this ^ B) == 0 &amp;&amp; x &gt;= 0 &amp;&amp; B.x &lt; 0);}
+} a[N], b[N], ch[N], *o;
+
+int A, B, CH, O;
+
+inline int &amp; inc(int &amp;x) {return ++x == CH ? x = 0 : x;} 
+inline int &amp; dec(int &amp;x) {return --(x ? x : x = CH);}
+inline bool up(vec2 &amp;x, const vec2 y) {return x &lt;&lt; y ? x = y, 1 : 0;}
+inline bool down(vec2 &amp;x, const vec2 y) {return y &lt;&lt; x ? x = y, 1 : 0;}
+
+inline vec2 angle_vec(const vec2 O, const vec2 u, const vec2 v) {return vec2(dot(O, u, v), cross(O, u, v));}
+
+int graham(int n, vec2 *p, vec2 *dest) {
+	int i; vec2 *ret = dest;
+	std::iter_swap(p, std::min_element(p, p + n));
+	std::sort(p + 1, p + n, [p] (const vec2 A, const vec2 B) {ll r = cross(*p, A, B); return r &gt; 0 || (r == 0 &amp;&amp; (A - *p).norm2() &lt; (B - *p).norm2());});
+	for (i = 0; i &lt; n; *ret++ = p[i++])
+		for (; ret &gt; dest + 1 &amp;&amp; cross(ret[-2], p[i], ret[-1]) &gt;= 0; --ret);
+	return *ret = *p, ret - dest;
+}
+
+bool check_inside(int L, int R) {
+	int i, p = -1; vec2 ang, min(1, 0), max(INT_MAX, -1);
+	for (i = L + 1; i &lt; R; ++i) if (up(min, angle_vec(ch[i], ch[L], ch[R]))) p = i;
+	for (; inc(i) != L; down(max, -angle_vec(ch[i], ch[L], ch[R])));
+	for (i = 0; i &lt; O; ++i) {
+		ang = angle_vec(o[i], ch[L], ch[R]);
+		if (!ang.y) {if (ang.x &lt;= 0) break;}
+		else if (ang.y &lt; 0) down(max, ang);
+		else up(min, -ang);
+		if (!(min &lt;&lt; max)) break;
+	}
+	return i == O || (~p &amp;&amp; (check_inside(L, p) || check_inside(p, R)));
+}
+
+int main() {
+	int i;
+	scanf("%d%d", &amp;A, &amp;B);
+	for (i = 0; i &lt; A; ++i) a[i].read();
+	for (i = 0; i &lt; B; ++i) b[i].read();
+	CH = graham(A, a, ch), O = B, o = b;
+	if (CH == 1 || check_inside(0, CH - 1)) return puts("YES"), 0;
+	CH = graham(B, b, ch), O = A, o = a;
+	if (CH == 1 || check_inside(0, CH - 1)) return puts("YES"), 0;
+	return puts("NO"), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意特判 $n$ (凸包大小) $= 1$ 的情况，避免出现死递归。</p>
+		<p><strong>坑2：</strong>两个向量 $\mathbf a, \mathbf b$ 的有向夹角的正切值等于 $\dfrac {\mathbf a \times \mathbf b} {\mathbf a \cdot \mathbf b}$，在寻找区间的时候要 <del>对 $\pi$ 取模</del> 注意一下正负。</p>
+	</body>
+</html>

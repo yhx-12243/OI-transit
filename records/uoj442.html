@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj442][WMTC2018]观众小 P</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 P 最近迷上了石头剪刀布，他观看了一场沙雕石头剪刀布大赛。</p>
+		<p>比赛共有 $2^n$ 个沙雕参加，分为 $n$ 轮，在每轮中，第 $0$ 位选手和第 $1$ 位选手对战，胜者作为新的第 $0$ 位选手，第 $2$ 位和第 $3$ 位对战，胜者作为新的第 $1$ 位选手，以此类推。</p>
+		<p>小 P 得知，每个沙雕都有一种固定的偏爱决策，每个沙雕在每一次对战中都只会使用他的偏爱决策。</p>
+		<p>如果一次对战的双方的偏爱决策相同，那么这次对战就永远不会结束，那么作为观众会十分无聊。</p>
+		<p>现在，小 P 知道了偏爱每种决策的沙雕数目，他想知道一种能够决出最终胜负的初始的次序。</p>
+		<p>若有多种可能次序，我们设<strong>字典序最小</strong>的为答案。</p>
+		<p>因为答案可能很长，你只需要输出答案的 $hash$ 值以及第 $l$ 到 $r$ 位。</p>
+		<p>$$ hash = \left( \sum_{i=0}^{2^n-1} S_i \times 233^i \right) \bmod 998244353 $$ ($S_i$ 表示初始标号为 $i$ 的人的偏好决策对应 ($\texttt R, \texttt S$ 或 $\texttt P$) 的大写字母 ASCII 码)</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, op$ ($n \leq 3 \times 10^5; 1 \leq op \leq 3$)，表示数据规模和数据类型。</p>
+		<p>第二行包含一个整数 $R$，表示偏爱决策为石头的人数。</p>
+		<p>第三行包含一个整数 $S$，表示偏爱决策为剪刀的人数。</p>
+		<p>第四行包含一个整数 $P$，表示偏爱决策为布的人数，<strong>保证 $R + S + P = 2^n$</strong>。</p>
+		<p>若 $op \neq 1$，则第五，六行分别包含一个 $n$ 位二进制数 $l, r$ ($0 \leq r - l \leq 3 \times 10^5$)，表示要求你输出的范围。</p>
+
+		<h3>输出格式</h3>
+		<p>若不存在合法初始序列，输出 $-1$，否则：</p>
+		<p>若 $op \neq 2$，输出一行一个整数，表示最优序列 $hash$ 值。</p>
+		<p>若 $op \neq 1$，输出一行，包含一个由 $\texttt R, \texttt S, \texttt P$ 构成的长度为 $r - l + 1$ 的字符串，表示最优序列的第 $l$ 到 $r$ 位。</p>
+
+		<h3>题解</h3>
+		<p>有一个重要的性质：如果序列合法 (可以结束)，则 $\max \left\{ R, S, P \right\} - \min \left\{ R, S, P \right\} = 1$。</p>
+		<p>证明：直接使用数学归纳法即可。</p>
+		<p>因此，可以通过计算 $R, S, P$ 中哪一个元素比其它两个相差 $1$，并结合 $n$ 的值判断出最终胜利的人的决策 ($\texttt R, \texttt S$ 或 $\texttt P$)。</p>
+		<p>注意到，设两个人进行一场比赛后，如果你知道了胜利者的决策，则你是可以容易推出这两个人的决策集合的。比如，胜利的人如果是石头 ($\texttt R$)，则它一定是戳掉了剪刀 ($\texttt S$)，从而这两个的决策集合为 $\left\{ \texttt R, \texttt S \right\}$。</p>
+		<p>因此我们可以考虑 DP 求出最优序列。</p>
+		<p>用 $f_{i, j}$ 表示一共有 $2^i$ 个人，胜利者的决策为 $j$ ($j \in \left\{ \texttt R, \texttt S, \texttt P \right\}$)，最优的答案序列。</p>
+		<p>边界即为 $f_{0, j} = j$，转移的话，这里仅举 $j = \texttt R$ 的例子：$$ f_{i, \texttt R} = \min \left\{ f_{i-1, \texttt R} \cdot f_{i-1, \texttt S}, f_{i-1, \texttt S} \cdot f_{i-1, \texttt R} \right\}$$ (这里 $a \cdot b$ 表示字符串的<strong>连接</strong>)</p>
+		<p>然而这些串都比较长，因此直接存储它们是不现实的。不过，仿照<strong>倍增后缀排序</strong>的思想，每递归完一层 ($i$)，就记录当前串 $f_{i, \texttt R}, f_{i, \texttt S}, f_{i, \texttt P}$ 的<strong>相对大小</strong>，这样就可以在下一轮中转移了。</p>
+		<p>当然，在转移的时候不要忘了记录一下 (用来输出的) Hash 值 $hash_{i, j}$。</p>
+		<p>于是这样就可以在 $O \left( n \right)$ 的时间内解决第一问了。</p>
+		<hr />
+		<p>至于第二问，即输出最后的序列。根据<a href="cf1110H.html" target="_blank">这一题</a>的经(tao)验(lu)，考虑直接 (对二进制位) 使用 dfs 去搜索。</p>
+		<p>不过此时我们需要知道对于下数第 $d$ 层的节点，如果当前决策为 $j$ ($j \in \left\{ \texttt R, \texttt S, \texttt P \right\}$)，左子树是走它本身 ($j$) 还是被 $j$ 打败的那方 (记作 $j'$)。</p>
+		<p>这可以通过比较 $f_{d-1, j}$ 和 $f_{d-1, j'}$ 的大小来得到。</p>
+		<p>于是这个问题也可以在 $O \left( n + \left( r - l \right) \right)$ 时间内解决。</p>
+		<p>故总时间复杂度为 $O \left( n + \left( r - l \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 300054, base = 233, mod = 998244353, rk_[6][3] = {{0, 1, 2}, {0, 2, 1}, {1, 2, 0}, {2, 1, 0}, {2, 0, 1}, {1, 0, 2}};
+const char fy[3] = {80, 82, 83};
+
+int n, op, root;
+char s[3][N], buf[2][N], *L, *R;
+int hash[N][3];
+
+inline bool check_root(int id) {
+	char *small = s[(id + 1) % 3], *big = s[id]; int ns = strlen(small), nb = strlen(big);
+	if (n &amp; 1) std::swap(small, big);
+	return ns == nb &amp;&amp; !memcmp(small, big, ns - 1) &amp;&amp; big[ns - 1] == 1 + small[ns - 1];
+}
+
+inline int rank(int id, int x) {return rk_[id % 6][x];}
+
+void dfs(int state, int dep, bool bl = true, bool br = true) {
+	if (!~dep) {putchar(fy[state]); return;}
+	int u = state, v = (u + 1) % 3;
+	if (rank(dep, u) &gt; rank(dep, v)) std::swap(u, v);
+	if (!bl || L[-dep] == 48) dfs(u, dep - 1, bl, br &amp;&amp; R[-dep] == 48);
+	if (!br || R[-dep] == 49) dfs(v, dep - 1, bl &amp;&amp; L[-dep] == 49, br);
+}
+
+int main() {
+	int i, j, u, v; ll g = base;
+	scanf("%d%d%s%s%s", &amp;n, &amp;op, s[1], s[2], s[0]);
+	for (i = 0; i &lt; 3 &amp;&amp; strcmp(s[(i + 1) % 3], s[(i + 2) % 3]); ++i);
+	if (i == 3 || !check_root(i)) return puts("-1"), 0;
+	root = (i + n) % 3;
+	for (i = 0; i &lt; 3; ++i) hash[0][i] = fy[i];
+	for (i = 0; i &lt; n; ++i, g = g * g % mod)
+		for (j = 0; j &lt; 3; ++j) {
+			if (rank(i, u = j) &gt; rank(i, v = (j + 1) % 3)) std::swap(u, v);
+			hash[i + 1][j] = (hash[i][u] + hash[i][v] * g) % mod;
+		}
+	if (op &amp; 1) printf("%d\n", hash[n][root]);
+	if (op &amp; 2) scanf("%s%s", buf[0], buf[1]), L = buf[0] + (n - 1), R = buf[1] + (n - 1), dfs(root, n - 1);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>事实上，$f_{i, j}$ 的相对大小是 (下标 $i$ 维) 以 $6$ 为周期的，因此可以预处理出相对打表后直接计算，省去排序的时间。</p>
+		<p><strong>坑2：</strong>注意初始的顺序是 $\texttt P &lt; \texttt R &lt; \texttt S$ 而不是 $\texttt R &lt; \texttt S &lt; \texttt P$。</p>
+	</body>
+</html>

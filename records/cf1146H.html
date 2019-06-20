@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces1146H]Satanic Panic</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定二维平面上的 $n$ 个点，<strong>保证没有三点共线</strong>。</p>
+		<p>定义一个<strong>五角星</strong>为一个<strong>无序五元组</strong> $\left( A, B, C, D, E \right)$ 满足下面的拓扑性质：</p>
+		<img class="center-block" src="uploads/135.png" alt="一个五角星" style="width: 360px" />
+		<p>"满足拓扑性质" 即<strong>线段的长度无关紧要，只要对应线段的交点的确存在</strong>。</p>
+		<p>问给定的 $n$ 个点可以构成多少个不同的五角星。</p>
+		
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($5 \leq n \leq 300$)，表示点的个数。</p>
+		<p>接下来 $n$ 行，每行两个整数 $x_i, y_i$ ($-10^6 \leq x_i, y_i \leq 10^6$)，表示第 $i$ 个点的坐标。保证没有三点共线。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示五角星的数量。</p>
+
+		<h3>题解</h3>
+		<p>容易注意到，$\left( A, B, C, D, E \right)$ 可以构成五角星的充要条件是，这 $5$ 个点均在它们的凸包上。</p>
+		<p>这个不是非常好数，因此我们可以考虑<strong>减法原理</strong> (补集转化)，去计算凸包大小 (即凸包点数) 为 $3$ 和 $4$ 的无序五元组个数，然后再用总数 $\dbinom n5$ 去减即得。</p>
+		<p>首先，容易在 $O \left( n^3 \right)$ 的时间内算出每条直线的一侧有哪些点，然后使用 <code>std::bitset</code> 存储。</p>
+		<p>于是，凸包大小为 $3$ 的五元组个数就非常好求了：</p>
+		<p>枚举凸包上的三个点 ($O \left( n^3 \right)$)，计算三条边对应的 <code>bitset</code> 的交的大小 $t$ ($O \left( \dfrac n \omega \right)$)，然后对答案的贡献就是 $\dbinom t2$。</p>
+		<p>于是可以在 $O \left( \dfrac {n^4} {6 \omega} \right)$ 的时间内求出凸包大小为 $3$ 的五元组个数，<span style="color: fuchsia">记作 $C_3$</span>。</p>
+		<p>接下来考虑计算凸包大小为 $4$ 的五元组个数。</p>
+		<p>如图，由于没有三点共线，于是另外一个点一定在四块区域中的某一块，不妨设位置如下图所示 (反正都是对称的，无所谓的)：</p>
+		<img class="center-block" src="uploads/136.png" alt="凸包大小为 4" />
+		<p>则考虑其中任意三点构成的三角形，可以发现，恰好有两个三角形包含了其中另一个点：<strong>$\Delta ABC$ 包含点 $E$，$\Delta BCD$ 包含点 $E$</strong>。</p>
+		<p>而对于凸包大小为 $5$ 的五元组，不存在一个三角形，包含其中另外一个点。</p>
+		<p>而对于凸包大小为 $3$ 的五元组，类似也可以说明，这样的包含关系恒有 $4$ 组。</p>
+		<p>于是我们只需要数包含关系的总数，就可以计算出凸包大小为 $4$ 的五元组个数了。</p>
+		<p>具体地，设满足 $D \in \Delta ABC$ 的<strong>无序四元组</strong>的个数为 $w$，则先要找另一个点与之形成无序五元组，共 $\left( n - 4 \right) \cdot w$ 种方案，然后除以 $2$ (因为每个凸包大小为 $4$ 的五元组会有这样两对包含关系)。</p>
+		<p>然而，对于这种情况会将凸包大小为 $3$ 的情况算重 $2$ 次，故 $$ C_4 = \dfrac {\left( n - 4 \right) \cdot w} 2 - 2 C_3 $$</p>
+		<p>最后，凸包大小为 $5$ 的五元组个数 $C_5 = \dbinom n5 - C_3 - C_4$。</p>
+		<p>总时间复杂度不变，还是 $O \left( \dfrac {n^4} {6 \omega} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+typedef long long ll;
+const int N = 354;
+typedef std::bitset &lt;N&gt; bitset;
+
+struct vec2 {
+	int x, y;
+	vec2 (int _x = 0, int _y = 0) : x(_x), y(_y) {}
+	vec2 * read() {return scanf("%d%d", &amp;x, &amp;y), this;}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline ll operator ^ (const vec2 &amp;B) const {return (ll)x * B.y - (ll)y * B.x;}
+} p[N];
+
+int n;
+ll C3, C4, C5, ALL;
+bitset e[N][N];
+
+int main() {
+	int i, j, k, t;
+	scanf("%d", &amp;n), ALL = n * (n - 1ll) / 2 * (n - 2ll) / 3 * (n - 3ll) / 4 * (n - 4ll) / 5;
+	for (i = 0; i &lt; n; ++i) p[i].read();
+	for (i = 0; i &lt; n; ++i)
+		for (j = i + 1; j &lt; n; ++j)
+			for (k = j + 1; k &lt; n; ++k)
+				cross(p[i], p[j], p[k]) &gt;= 0
+					? (e[j][k].set(i), e[k][i].set(j), e[i][j].set(k))
+					: (e[k][j].set(i), e[i][k].set(j), e[j][i].set(k));
+	for (i = 0; i &lt; n; ++i)
+		for (j = i + 1; j &lt; n; ++j)
+			for (k = j + 1; k &lt; n; ++k)
+				t = (e[i][j].test(k) ? e[i][j] &amp; e[j][k] &amp; e[k][i] : e[i][k] &amp; e[k][j] &amp; e[j][i]).count(),
+				C3 += t * (t - 1ll) / 2, C4 += t;
+	C4 = C4 * (n - 4) / 2 - C3 * 2, C5 = ALL - C3 - C4;
+	printf("%lld\n", C5);
+//	fprintf(stderr, "C3 = %lld, C4 = %lld, C5 = %lld\n", C3, C4, C5);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>枚举三点时尽量不要重复 (判一次叉积即可)，以减少常数。</p>
+	</body>
+</html>

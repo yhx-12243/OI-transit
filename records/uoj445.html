@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj445][WMTC2018]暴躁的排序鸽</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个 $k$ 元排序器，它能在一个单位时间内将一个大小为 $k$ 的数组排序。</p>
+		<p>你现在有一个长度为 $n$ 的序列，你需要<strong>在尽可能少的时间内</strong>，使用这个 $k$ 元排序器将整个序列排序。</p>
+
+		<h3>任务</h3>
+		<p>你需要实现一个函数 <code>sort(int id, int n, int k, int *a)</code>：</p>
+		<ul>
+			<li>$1 \leq id \leq 3$ 为传入的子任务编号；</li>
+			<li>$n$ ($n \leq 524288$) 为序列长度；</li>
+			<li>$k$ ($k \leq 16$) 为比较器的规模；</li>
+			<li>$a$ 为传出答案的数组。</li>
+		</ul>
+		<p>你需要将排序后第 $1 \leq i \leq n$ 小的数<strong>在原数列中的位置</strong> $0 \leq p &lt; n$，存放到 <code>a[i - 1]</code> 的位置。所有的下标都是从 $\mathbf 0$ 开始的。</p>
+		<p>举例而言，如果待排序的数组 $A = \left[ 3, 2, 0, 1, 4 \right]$，排好序后的数组是 $A' = \left[ 0, 1, 2, 3, 4 \right]$，你应当返回的数组 $a = \left[ 2, 3, 1, 0, 4 \right]$。</p>
+		<p>在每个测试点中，交互库都会调用恰好一次 <code>sort</code> 函数。</p>
+		<p>你可以调用函数 <code>super_sort(int *a, int len, int *b)</code> 来请求排序鸽为你排序：</p>
+		<ul>
+			<li>$len$ 表示待排序的数的个数，要求 $len \leq k$；</li>
+			<li>$a$ 传入待排序的数<strong>在原数列中的位置</strong>，且 $0 \leq a_i &lt; n$；</li>
+			<li>$b$ 传出排好序的数<strong>在原数列中的位置</strong>，即 $b$ 是 $a$ 的一个排列，且对于任意的 $i &lt; j$，$A_{b_i} &lt; A_{b_j}$。</li>
+		</ul>
+		<h5>子任务介绍</h5>
+		<ol>
+			<li>$n = 1024, k = 4, L = 5700$。</li>
+			<li>$n = 1024, k = 16, L = 840$。</li>
+			<li>$n = 524288, k = 16, L = 562000$。</li>
+		</ol>
+
+		<h3>实现细节</h3>
+		<p>本题只支持 C++。</p>
+		<p>源代码中需要包含头文件<code>sort.h</code>。</p>
+		<p>你需要实现的函数 <code>sort</code>：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">void sort(int id, int n, int k, int *a);</code></pre>
+		<p>函数 <code>super_sort</code> 的接口信息如下：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">void super_sort(int *a, int len, int *b);</code></pre>
+
+		<h3>题解</h3>
+		<p>众所周知，如果排序中使用<strong>一般的二元比较器</strong>，则排序比较的次数为 $n \log_2 n + O \left( n \right)$。</p>
+		<p>对于第一个子任务，我们想到使用最暴力的 ($n \log_2 n + O \left( n \right)$) 排序方法，而 $n \log_2 n = 10240 &gt; L$，因此需要改进。</p>
+		<p>注意到对于一个 4 元排序器，我们可以将其弱化为 "两次 2 元比较器"，因此可以将整个序列分成两段，分别排序，这样只需要花一倍的 $\dfrac n2 \log_2 \dfrac n2$ 的时间，约为 $4608$，然后将左右两边序列归并起来，需要一个 $\dfrac n2$，因此总次数为 $5120$ 就可以通过 Subtask 1 了。</p>
+		<p>对于后两个 Subtask，如果把 16 元排序器看成 8 次 2 元比较器，这显然就太亏了，我们需要寻找一个新的思想。</p>
+		<p>我们考虑使用<strong>快速排序</strong>：传统的快速排序是定一个参考点 (Pivot)，然后将所有点根据参考点的大小分到两边 (即做一个 <code>std::partition</code>)，然后对两边分别递归排序。</p>
+		<p>那么，在定完参考点后，一个 16 元排序器每轮可以将 $15$ 个元素找到指定的位置。然后分割为两个大小为 $\dfrac n2$ 的子问题。到 $n = 16$ 这一层时停止递归。</p>
+		<p>分析一下时间复杂度，有 $T \left( n \right) = 2 \cdot T \left( \dfrac n2 \right) + \left \lceil \dfrac n {15} \right \rceil$。</p>
+		<p>简单计算一下可以得到，如果 $T \left( n \right)$ 严格地满足这个递推式 (即每次划分都是精准的对半分)，当 $n = 524288$ 时 $T \left( n \right) &gt; 580000$，因此可以过第 2 个 Subtask，<strong>不能过第 3 个 Subtask</strong>。</p>
+		<p>我们考虑快速排序 (分治) 的过程，它将整个区间分为了两段，然后分别递归。</p>
+		<p>对于这种方法，排序器剩下的 $15$ 个位置都用于界定元素 (属于哪一段) 了，并没有充分发挥它的作用。</p>
+		<p>如果我们考虑将整个区间分为更多段，又会怎么样呢？</p>
+		<p>最极端的情况是找 $15$ 个参考点 (Pivot)，然后将序列分为 $16$ 段，这种方法的时间复杂度满足</p>
+		<p>$$ T \left( n \right) = 16 \cdot T \left( \dfrac n {16} \right) + n $$</p>
+		<p>这样做反而更劣，最优情况下的 $T \left( n \right)$ 都超过了 $2 \times 10^6$。</p>
+		<p>因此，我们考虑 "折中" 一下，即顶一个阈值 $a$ ($1 \leq a &lt; 16$)，选择 $a$ 个参考点，将序列分为 $a + 1$ 段，然后每次可以界定 $16 - a$ 个元素的位置，于是复杂度的递推公式为</p>
+		<p>$$ T \left( n \right) = \left( a + 1 \right) T \left( \dfrac n {a + 1} \right) + \left \lceil \dfrac n {16 - a} \right \rceil $$</p>
+		<p>计算表明，当 $5 \leq a \leq 7$ 的时候，比较次数取到较小值，不超过 $350000$ (在最优情况下)。</p>
+		<p><del>由于在最优情况下不会超过 $350000$，因此我们把整个序列 <code>random_shuffle</code> 一下，期望的步数也应该不会超过 $560000$ ($1.6$ 倍) 的</del>。</p>
+		<p>经测试，这个方法可以通过 1, 2, 3 三个 Subtask。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "sort.h"
+#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef std::vector &lt;int&gt; vector;
+
+std::mt19937 gen;
+int k, K;
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+void sort(int n, int *a) {
+	if (n &lt;= 1) return;
+	if (n &lt;= K) return super_sort(a, n, a);
+	std::shuffle(a, a + n, gen);
+	int i, j, z, limit, *o = a, piv[7], buf[16]; vector g[7];
+	if (k == 1) *piv = *a;
+	else super_sort(a, k, piv);
+	piv[k] = -1;
+	for (i = 0; i &lt; k; ++i) g[i].EB(piv[i]);
+	for (; i &lt; n; i += limit) {
+		limit = min(n - i, K - k);
+		memcpy(buf, piv, k &lt;&lt; 2), memcpy(buf + k, a + i, limit &lt;&lt; 2);
+		super_sort(buf, k + limit, buf);
+		for (z = j = 0; j &lt;= k; ++j, ++z)
+			for (; z &lt; k + limit &amp;&amp; buf[z] != piv[j]; ++z) g[j].EB(buf[z]);
+	}
+	for (i = 0; i &lt;= k; ++i)
+		sort(g[i].size(), g[i].data()), o = std::copy(g[i].begin(), g[i].end(), o);
+}
+
+void sort(int, int n, int k_, int *a) { 
+	gen.seed(time(NULL) + (size_t)a);
+	K = k_, k = (K == 4 ? 1 : 6), sort(n, a);
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意取 $a$ 个参考点会将序列分为 $a + 1$ 段而不是 $a$ 段。</p>
+		<p><strong>坑2：</strong>不要忘记一开始把整个序列随机化，以免被针对卡 (其实大多数的快速排序都是需要加随机化的)。</p>
+	</body>
+</html>

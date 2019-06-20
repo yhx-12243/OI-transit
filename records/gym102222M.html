@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[CodeforcesGym102222M]Acyclic Orientation</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>求<strong>完全二分图</strong> $K_{n, m}$ 中有多少个给边定向的方案，使得最终得到的图为<strong>有向无环图</strong> (DAG)。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。</p>
+		<p>第一行包含一个正整数 $T$ ($T \leq 600$)，表示数据组数。</p>
+		<p>对于每组数据，共一行，包含三个正整数 $n, m, q$ ($1 \leq n, m \leq 60000; 10^8 \leq q \leq 10^9$，$p$ 为素数)，表示二分图两部的点数和模数。</p>
+		<p>保证只有至多 $60$ 组数据满足 $\max \left\{ n, m \right\} &gt; 60$，至多 $6$ 组数据满足 $\max \left\{ n, m \right\} &gt; 600$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出 <code>Case #<em>x</em>: <em>y</em></code>，其中 $x$ 表示当前数据编号 (从 $1$ 开始)，$y$ 表示定向的方案数对 $q$ 取模后的值。</p>
+
+		<h3>题解</h3>
+		<p>由熟知结论，一张图 $G = \left( V, E \right)$ 的 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> 定向方案数为 $\left( -1 \right)^{\left| V \right|} \cdot P_G \left( -1 \right)$，其中 $P_G \left( x \right)$ 为 $G$ 的<strong>色多项式</strong>。</p>
+		<p>于是如果我们求出了图的色多项式，问题就得到了解决。</p>
+		<p>考虑完全二分图的色多项式。设两部分别有 $n, m$ 个顶点，一共有 $x$ 种颜色。</p>
+		<p>不妨假设左部一共用了 $c$ 种颜色，则在 $x$ 种颜色中选 $c$ 种有 $\dbinom xc$ 种方案。</p>
+		<p>假设已经固定了颜色集合，我们需要将左部的 $n$ 个点分为 $c$ 个本质不同的非空集合，而这有 $\displaystyle c ! \cdot {n \brace c}$ 种方案，其中 $\displaystyle {n \brace k}$ 为第二类 Stirling 数。</p>
+		<p>于是左部用 $c$ 种颜色的方案一共有 $\displaystyle \binom xc \cdot \left( c ! \cdot {n \brace c} \right)$ 种。</p>
+		<p>对于每一种左部用 $c$ 种颜色的方案，右部每个点均有 $x - c$ 个颜色供选择，因此右部方案数即为 $\left( x - c \right)^m$。</p>
+		<p>因此，最终的方案数即为 $$ P_G \left( x \right) = \sum_{c=0}^n c ! \cdot \binom xc \cdot {n \brace c} \cdot \left( x - c \right)^m $$</p>
+		<p>代入 $x = -1$，得 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> 定向方案数为 \begin{align*}
+\left( -1 \right)^{\left| V \right|} \cdot P_G \left( -1 \right) &amp;= \left( -1 \right)^{n + m} \cdot \sum_{c=0}^n c ! \cdot \binom {-1} c \cdot {n \brace c} \cdot \left( -1 - c \right)^m \\
+&amp;= \left( -1 \right)^{n + m} \cdot \sum_{c=0}^n c ! \cdot \left( -1 \right)^c \cdot {n \brace c} \cdot \left( -1 \right)^m \cdot \left( 1 + c \right)^m \\
+&amp;= \sum_{c=0}^n \left( -1 \right)^{n + c} \cdot \left( c ! \cdot {n \brace c} \right) \cdot \left( 1 + c \right)^m
+\end{align*}</p>
+		<p>因此我们需要对每个 $0 \leq c \leq n$，求出 $\displaystyle {n \brace c}$ 的值。</p>
+		<p>以下设 $n \leq m$。如果 $n \leq 600$，那么显然可以使用 $O \left( n^2 \right)$ 的递推求出所有的 $\displaystyle {n \brace c}$。</p>
+		<p>如果 $n \leq 60000$，我们不能使用 $O \left( n^2 \right)$ 的暴力了。不过我们注意到我们只需要求 Stirling 数的一行，因此或许会有更快的方法。</p>
+		<p>下面简单介绍其中两种：</p>
+		<ol>
+			<li><p style="color: red">(组合意义)</p>
+			<p><a href="loj2058.html" target="_blank"><del>众所周知</del></a>，第二类 Stirling 数有一个容斥的组合解释：$$ {n \brace r} = \dfrac 1 {r!} \sum_{k=0}^r \left( -1 \right)^k \binom rk \left( r - k \right)^n $$</p>
+			<p>将其化简，得到 $$ {n \brace r} = \sum_{k=0}^r \frac {\left( -1 \right)^k} {k !} \cdot \frac {\left( r - k \right)^n} {\left( r - k \right) !} $$</p>
+			<p>于是就变成了卷积，使用拆系数 FFT/多模数 NTT/<strong>分治乘</strong>即可解决。</p></li>
+			<li><p style="color: red">(多项式)</p>
+			<p>由 Stirling 数的另一种等价定义，得 $$ x^n = \sum_{i=0}^n {n \brace i} x^{\underline i} $$</p>
+			<p>于是，我们相当于寻找 $f \left( x \right) = x^n$ 的一个下降幂表示。</p>
+			<p>而我们容易求出多项式 $f \left( x \right)$ 在 $0 \sim n$ 处的点值。</p>
+			<p>于是根据 <a href="soj201.html" target="_blank">[soj201]&#913; &#215; &#914; Problem</a> 的方法，可以在 $O \left( n \log n \right)$ 的时间内求出 $f \left( x \right)$ 的下降幂系数表示。</p></li>
+		</ol>
+		<p>不过，不管怎么说，这两种方法在代码实现上是<big><strong>完全相同</strong></big>的，也就是实现了真正的殊途同归。</p>
+		<p>于是我们就将整个问题转化为了一次卷积，由于 $n$ 较大的数据并不是很多，因此使用分治乘就可以通过了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 2054;
+
+int mod;
+int n, m;
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	const int N = 135400;
+
+	int fact[N], finv[N], r[N], E[N], S[N];
+
+	void conv(int n, int *a, int *b, int *ret) {
+		int i, j;
+		if (n &lt; 16) {
+			static unsigned long long Ret[33];
+			memset(Ret, 0, (n * 2 + 1) &lt;&lt; 3);
+			for (i = 0; i &lt;= n; ++i)
+				for (j = 0; j &lt;= n; ++j)
+					Ret[i + j] += (ll)a[i] * b[j];
+			for (i = 0; i &lt;= n * 2; ++i) ret[i] = Ret[i] % mod;
+		} else {
+			memset(ret, 0, (n * 2 + 1) &lt;&lt; 2);
+			int h = n / 2 + 1, u[h], v[h], w[2 * h - 1];
+			conv(h - 1, a, b, ret); conv(n - h, a + h, b + h, ret + h * 2);
+			for (i = 0; i &lt; h; ++i) u[i] = a[i], v[i] = -b[i];
+			for (i = 0; i &lt;= n - h; ++i) u[i] -= a[i + h], v[i] += b[i + h];
+			for (i = 0; i &lt; h; ++i) u[i] += u[i] &gt;&gt; 31 &amp; mod, v[i] += v[i] &gt;&gt; 31 &amp; mod;
+			conv(h - 1, u, v, w);
+			for (i = 2 * (n - h); i &gt;= 0; --i) add(w[i], ret[i + h * 2]);
+			for (i = 2 * (h - 1); i &gt;= 0; --i) add(ret[i + h], w[i]), add(ret[i + h], ret[i]);
+		}
+	}
+
+	int main(int n) {
+		int i;
+		for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+		finv[n] = PowerMod(fact[n], mod - 2);
+		for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+		for (i = 0; i &lt;= n; ++i)
+			E[i] = (i &amp; 1 ? mod - finv[i] : finv[i]), r[i] = PowerMod(i, n, finv[i]);
+		conv(n, r, E, S);
+		for (i = 0; i &lt;= n; ++i) S[i] = (ll)S[i] * fact[i] % mod;
+		return 0;	
+	}
+}
+
+void work(int testcase) {
+	int i, t; ll ans = 0;
+	scanf("%d%d%d", &amp;n, &amp;m, &amp;mod);
+	if (n &gt; m) std::swap(n, m);
+	Poly::main(n);
+	for (i = 0; i &lt;= n; ++i)
+		t = PowerMod(i + 1, m, Poly::S[i]), (i ^ n) &amp; 1 ? ans -= t : ans += t;
+	ans %= mod;
+	printf("Case #%d: %lld\n", testcase, ans + (ans &gt;&gt; 63 &amp; mod));
+}
+
+int main() {
+	int i, T;
+	for (scanf("%d", &amp;T), i = 0; i &lt; T; work(++i));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意模数不同，因此每次的阶乘及阶乘逆元都要重新预处理一下。</p>
+		<p><strong>坑2：</strong>不要忘记色多项式最后还要乘一个 $\left( -1 \right)^{n + m}$。</p>
+	</body>
+</html>

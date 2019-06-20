@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces1007E]Mini Metro/[WMTC2018]取石子</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style type="text/css">
+			dfn {font-weight: bold; color: fuchsia}
+		</style>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个站台，从左往右编号为 $1, 2, \cdots, n$，每个站台初始时 ($0$ 时刻) 有 $a_i$ 个人。</p>
+		<p>每个时刻，会依次发生如下事件：</p>
+		<ol>
+			<li><p>你可以选择召唤一辆向右行驶的火车 (最大载客量为 $K$)，接走所有站台上<strong>从左往右数</strong>的前 $K$ 个人。</p>
+			<p>如果所有站台上的总人数不足 $K$，则接走所有站台上的人。</p>
+			<p>这个过程你可以执行任意多次 (即在同一时刻可以召唤任意辆火车)。</p></li>
+			<li><p>在该时刻末，第 $i$ 个站台上会增加 $b_i$ (只与站台编号有关的常数) 个人。</p>
+			<p><em>如果第 $i$ 个站台上的人数<strong>超过</strong> $c_i$，则认为<strong>你输了</strong></em>。</p></li>
+		</ol>
+		<p>你现在要坚持 $t$ 时刻，求你在<strong>不输</strong>的前提下，至少需要召唤多少辆火车。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, t, k$ ($n, t \leq 200; k \leq 10^9$)，表示站台的个数，你需要坚持的时间以及每辆火车的载客量。</p>
+		<p>接下来的 $n$ 行，每行包含三个非负整数 $a_i, b_i, c_i$ ($0 \leq a_i, b_i \leq c_i \leq 10^9$)，表示第 $i$ 个站台的初始人数，每个单位时刻增加的人数以及人数上限。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示需要召唤的火车数量的最小值。</p>
+
+		<h3>题解</h3>
+		<p>为了方便，我们在最后加一个站台，初始时有 $N$ 个人，每一时刻会增加 $N$ 个人，人数上限为 $+ \infty$ (其中 $N$ 是一个充分大的数，比如 $2^{32}$)，容易证明这个操作不影响答案。</p>
+		<p>这样就可以保证一辆火车每次<strong>恰好</strong>送走 $K$ 个人。</p>
+		<p>我们使用<del>玄学</del> DP，用 $f_{i, j}$ 表示<strong>只考虑</strong>前 $i$ 个站台，你要撑 $j$ 个单位时间，并且保持不输所需要召唤的火车的最少数目；$g_{i, j}$ 表示<strong>只考虑</strong>前 $i$ 个站台，撑 $j$ 单位时间保持不输，且将<strong>除了第 $i$ 个站台外的所有站台</strong>的人都接走所需要叫的火车的最少总数目。此外，我们把 $g_{i, j}$ 撑 $j$ 单位时间保持不输<strong>后叫的火车</strong>称为 "<dfn>额外火车</dfn>" (因为它是起 "清空" 作用的)。</p>
+		<p>注意，<em style="color: red">这两种状态均要求每次<strong>恰好</strong>接走 $K$ 个人</em>，如果做不到这一点，则状态为 $+ \infty$。</p>
+		<p>于是边界为 $f_{0, j} = 0$，答案为 $f_{n, t}$。</p>
+		<p>考虑 $\left( i, j \right)$ 的转移，有如下两种情况：</p>
+		<ol>
+			<li><p>前 $j$ 轮中没有一辆火车接走站台 $i$ 的人，即站台 $i$ 的所有人都是靠 "额外火车" 接走的。</p>
+			<p>于是，这种状态存在的充要条件是 $a_i + j \cdot b_i \leq c_i \wedge f_{i-1, j} &lt; + \infty$。</p>
+			<p>此时 $f_{i, j} = f_{i-1, j}$，考虑 $g_{i, j}$，由于前 $i - 1$ 个站台在前 $j$ 时刻一共产生了 $\displaystyle L = \sum_{v &lt; i} \left( a_v + j \cdot b_v \right)$ 个人，于是至少需要派 $\left \lceil \dfrac LK \right \rceil$ 辆火车来接走。</p>
+			<p>当然，为了保证<strong>每次恰好接走 $K$ 个人</strong>，因此总接的人数 $\left \lceil \dfrac LK \right \rceil \cdot K$ <strong>不应超过</strong>当前前 $i$ 个站台的总人数 $\displaystyle \sum_{v \leq i} \left( a_v + j \cdot b_v \right)$。</p>
+			<p>即当且仅当 $\displaystyle \left \lceil \dfrac LK \right \rceil \cdot K \leq \sum_{v \leq i} \left( a_v + j \cdot b_v \right)$ 时，更新 $g_{i, j} = \left \lceil \dfrac LK \right \rceil$。</p></li>
+			<li><p>前 $j$ 轮中有火车接走站台 $i$ 的人。设最后一次是在 $r$ 单位时间。</p>
+			<p>因此，在前 $r$ 轮中也一定清空了前 $i - 1$ 个站台，共花了 $g_{i, r}$ 辆火车。</p>
+			<p>此时，设第 $i$ 个站台还有 $rem = a_i + r \cdot b_i - K \cdot g_{i, r}$ 个人，则它在剩下 $j - r$ 轮中会 "涨" 到 $rem + \left( j - r \right) \cdot b_i$。</p>
+			<p>于是，在这个时候，我们需要派 $need = \left \lceil \dfrac {\max \left\{ rem + \left( j - r \right) \cdot b_i - c_i, 0 \right\}} K \right \rceil$ "额外火车" 排除第 $i$ 个站台的 "潜在危险"。</p>
+			<p>还是为了<strong>每次恰好接走 $K$ 个人</strong>，因此必须保证接走的总人数 $need \cdot K \leq rem$。</p>
+			<p>如果 $need \cdot K \leq rem$ 成立，在剩下的 $j - r$ 轮中，由于不再动第 $i$ 个站台，相当于对前 $i - 1$ 个站台<strong>重新开始游戏</strong>。</p>
+			<p>不过此时需要有 $a_i = 0$，但这里并不麻烦，只需要在 DP 外面加一维，表示这 $i$ 个站台初始时是<strong>有 $a_i$ 个人的</strong>，还是<strong>空的</strong>。</p>
+			<p>考虑 $f_{i, j}$，对于 $i - 1$ 个站台，可以动 $j - r$ 轮，这个 DP 值就是 $f_{i-1, j-r}$ <span style="color: red">(ps: 不论前面的 $f$ 是什么，这里的 $f$ 都是初始时为<strong>空的</strong>时的状态)</span>。</p>
+			<p>对 $g_{i, j}$ 来说，由于总人数为 $\displaystyle L = \left( j - r \right) \cdot \sum_{v &lt; i} b_v$，因此需要派 $\left \lceil \dfrac LK \right \rceil$ 辆火车，和上面类似地判断一下是否保证<strong>每次恰好接走 $K$ 个人</strong>即可。</p>
+			<p>(在可行的情况下) 转移方程即为 $f_{i, j} \downarrow g_{i, r} + need + f_{i-1, j-r}, \ g_{i, j} \downarrow g_{i, r} + need + \left \lceil \dfrac {\left( j - r \right) \cdot \sum_{v &lt; i} b_v} K \right \rceil$。</p></li>	
+		</ol>
+		<p>总时间复杂度为 $O \left( n t^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 254;
+const ll INF = 0x3f3f3f3f3f3f3f3fll;
+
+int n, t, K;
+int a[N], d[N];
+ll A[N], D[N], lim[N];
+ll f[N][N][2], g[N][N][2];
+// f : last people, g : last train to empty (and not exceed)
+
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+inline ll max(const ll x, const ll y) {return x &lt; y ? y : x;}
+
+int main() {
+	int i, j, k, r; ll times, time2, rem, need;
+	scanf("%d%d%d", &amp;n, &amp;t, &amp;K);
+	for (i = 1; i &lt;= n; ++i) scanf("%d%d%lld", a + i, d + i, lim + i);
+	++n, a[n] = d[n] = INT_MAX, lim[n] = INF;
+	for (i = 1; i &lt;= n; ++i) A[i] = A[i - 1] + a[i], D[i] = D[i - 1] + d[i];
+	memset(f, 63, sizeof f), memset(g, 63, sizeof g);
+	memset(f, 0, sizeof*f), memset(g, 0, sizeof*g);
+	for (i = 1; i &lt;= n; ++i)
+		for (j = 0; j &lt;= t; ++j)
+			for (k = 0; k &lt; 2; ++k) {
+				if ((ll)k * a[i] + (ll)j * d[i] &lt;= lim[i] &amp;&amp; f[i - 1][j][k] &lt; INF) {
+					down(f[i][j][k], f[i - 1][j][k]), times = (k * A[i - 1] + j * D[i - 1] + K - 1) / K;
+					if (times * K &lt;= k * A[i] + j * D[i]) down(g[i][j][k], times);
+				}
+				for (r = 0; r &lt; j; ++r) if ((times = g[i][r][k]) &lt; INF) {
+					rem = k * A[i] + r * D[i] - K * times, assert(rem &gt;= 0);
+					need = (max(0, rem + (ll)(j - r) * d[i] - lim[i]) + K - 1) / K;
+					if (need * K &lt;= rem &amp;&amp; f[i - 1][j - r][0] &lt; INF) {
+						down(f[i][j][k], times + need + f[i - 1][j - r][0]);
+						time2 = ((j - r) * D[i - 1] + K - 1) / K;
+						if (time2 * K &lt;= (j - r) * D[i] + (rem - need * K)) down(g[i][j][k], times + need + time2);
+					}
+				}
+			}
+	printf("%lld\n", f[n][t][1]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>尤其要注意 "<strong>保证恰好接走 $K$ 个人</strong>" 的性质，这是这道题的点睛之笔，如果不加上这个限制，则整个状态是<strong>无法转移的</strong>。</p>
+		<p><strong>坑2：</strong>注意答案可能会超过 <code>int</code>，需要使用 <code>long long</code>。</p>
+	</body>
+</html>

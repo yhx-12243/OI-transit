@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6482]LJJ 爱数数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定正整数 $n$，求有多少个<strong>正整数</strong> (有序) 三元组 $\left( a, b, c \right)$，满足 $1 \leq a, b, c \leq n, \gcd \left( a, b, c \right) = 1$，且 $\dfrac 1a + \dfrac 1b = \dfrac 1c$。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 10^{12}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示三元组的个数。</p>
+
+		<h3>题解</h3>
+		<p>将式子等价变形一下，$\dfrac 1a + \dfrac 1b = \dfrac 1c \Leftrightarrow \left( a - c \right) \left( b - c \right) = c^2$。</p>
+		<p>首先证明 $\gcd \left( a - c, b - c \right) = 1$。</p>
+		<p>反之，设存在素数 $p$ 满足 $p \mid a - c, p \mid b - c$，则 $p \mid c^2 \Rightarrow p \mid c \Rightarrow p \mid a, b \Rightarrow p \mid \left( a, b, c \right)$，矛盾。</p>
+		<p>因此 $\gcd \left( a - c, b - c \right) = 1$，由数论经典结论知，存在互素的正整数对 $u, v$，满足 $a - c = u^2, b - c = v^2$。</p>
+		<p>此时 $c^2 = u^2 v^2 \Rightarrow c = u v$，从而 $\color {red} {\left( a, b, c \right) = \left( u \left( u + v \right), v \left( u + v \right), u v \right)}$。也就是说，每一对满足题目条件的解都可以被唯一确定地表示成 $\left( u \left( u + v \right), v \left( u + v \right), u v \right)$ 的形式，且 $\left( u, v \right) = 1$。</p>
+		<p>于是我们只需要统计有多少对 $\left( u \left( u + v \right), v \left( u + v \right), u v \right)$ 满足 $\max \left\{ u, v \right\} \cdot \left( u + v \right) \leq n$ 且 $\left( u, v \right) = 1$。</p>
+		<p>和<a href="loj6627.html" target="_blank">这题</a>类似，考虑使用 <strong>Möbius 反转变换</strong>去掉第二个条件的限制。因此问题就变成了一个<strong>区域内整点计数</strong>的问题：</p>
+		<blockquote>询问有多少个整数对 $\left( x, y \right)$ 满足 $\max \left\{ x, y \right\} \cdot \left( x + y \right) \leq n$。</blockquote>
+		<p>与计算 $x y \leq n$ 内整点个数时的方法类似，可以发现当 $\max \left\{ x, y \right\} \leq \left \lfloor \sqrt {\dfrac n2} \right \rfloor$ 时一定满足。</p>
+		<p>如果 $\max \left\{ x, y \right\} &gt; \sqrt {\dfrac n2}$，则不妨设 $x &gt; \sqrt {\dfrac n2}$，则 $y \leq \sqrt {\dfrac n2}$，更精细地，$y \leq \dfrac nx - x$。</p>
+		<p>于是，只需要对每一个大于 $\left \lfloor \sqrt {\dfrac n2} \right \rfloor$ 的 $x$ 算出合法的 $y$ 的数量，乘以 $2$ 后加上 $\left \lfloor \sqrt {\dfrac n2} \right \rfloor^2$ 即可。</p>
+		<p>这样单次计算时间复杂度是 $O \left( \sqrt n \right)$ 的。</p>
+		<p>由于外面需要套一层 Möbius 反转变换，总时间复杂度 $O \left( \sqrt n \log n \right)$。<!-- 因为这个界肯定不是紧的 --></p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 720000;
+
+ll n, ans;
+int s2n, srn;
+int pn = 0, c[N], mu[N], p[58054];
+
+void sieve(int n) {
+	int i, j, v; mu[1] = 1;
+	memset(c, -1, sizeof c);
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i]) p[pn] = i, c[i] = pn++, mu[i] = -1;
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt; c[i]; ++j) c[v] = j, mu[v] = -mu[i];
+		if (v &lt;= n) c[v] = j;
+	}
+}
+
+ll compute(int i) {
+	int x = srn / i, y = s2n / i; ll c = n / ((ll)i * i), ret = 0;
+	for (; x &gt; y; --x) ret += c / x - x;
+	return ret * 2 + (ll)y * y;
+}
+
+int main() {
+	int i;
+	scanf("%lld", &amp;n), s2n = sqrt(n * .5), srn = sqrt(n), sieve(s2n);
+	for (i = 1; i &lt;= s2n; ++i)
+		if (mu[i]) ~mu[i] ? ans += compute(i) : ans -= compute(i);
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>计算的时候可以只对 $\mu$ 非零部分计算以减少常数。</p>
+	</body>
+</html>

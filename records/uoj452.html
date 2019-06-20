@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj452][WMTC2018]彩虹般绚烂</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义 $f \left( i \right) = \left( k \cdot i \right)^{k \cdot i \cdot \left[ i \text{ 是素数} \right]}, g \left( i \right) = \left( k \cdot i \right)^{k \cdot \phi \left( i \right)}$。
+		<p>定义 \begin{align*}
+&amp; F_1 \left( n \right) = \prod_{i=1}^n f \left( i \right) \\
+&amp; F_2 \left( n \right) = \prod_{i=1}^n g \left( i \right) \\
+&amp; F_3 \left( n \right) = \prod_{i=1}^n \prod_{j=1}^{\left \lfloor n/i \right \rfloor} f \left( j \right)^{\left \lfloor n/j \right \rfloor} \\
+&amp; F_4 \left( n \right) = \prod_{i=1}^n \prod_{j=1}^{\left \lfloor n/i \right \rfloor} g \left( j \right)^{\left \lfloor n/j \right \rfloor}
+\end{align*}
+		<p>给定 $n, k$，你需要求出前 $m$ 个式子的值，答案对 $1000000007$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含三个正整数 $n, k, m$ ($n, k \leq 10^9; 1 \leq m \leq 4$)，如题所述。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 行，每行一个整数，第 $i$ 行的整数表示 $F_i \left( n \right) \bmod \left( 10^9 + 7 \right)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>看到那么多乘积式，容易想到使用<strong>离散对数</strong>变为和式，最后在 "$\exp$" 回去。</p>
+		<p>任取模 $10^9 + 7$ 的原根 $g$，比如 $g = 5$，<strong>以下 $\log a$ 默认表示 $\mathop{\mathrm{ind}}_g a$</strong>。</p>
+		<p>于是就有 $\log f \left( x \right) = k \cdot i \cdot \left[ i \text{ 是素数} \right] \cdot \log \left( k \cdot i \right), \log g \left( x \right) = k \cdot \phi \left( i \right) \cdot \log \left( k \cdot i \right)$。下面我们一个一个式子来分析：</p>
+		<hr />
+		<h4> ---- Subtask 1 ---- </h4>
+		<p>$$ \log F_1 \left( x \right) = \sum_{i=1}^n \log f \left( i \right) = k \cdot \sum_{p \leq n, p \in \mathbb P} i \cdot \log \left( k \cdot i \right) = k \cdot \left( \sum_{p \leq n, p \in \mathbb P} i \cdot \log i + \log k \sum_{p \leq n, p \in \mathbb P} i \right) $$</p>
+		<p>也就是说，我们需要求出 $\displaystyle \color {fuchsia} {\sum_{p \leq n, p \in \mathbb P} p \cdot \log p}$ (所有素数的 $n \log n$ 之和) 以及 $\displaystyle \color {fuchsia} {\sum_{p \leq n, p \in \mathbb P} p}$ (所有素数之和)。</p>
+		<p>后者非常容易，就是一个裸的洲阁筛 (或 min-25 筛，因为前半部分是相同的)，至于前者，看似这个函数不是积性的，但是注意到 $\log \left( a b \right) = \log a + \log b$ 的性质，因此它也是可以进行洲阁筛的：</p>
+		<p>如果现在筛到了素数 $p$ 这一轮，我们要用 $\sum a \log a$ 去筛除 $\sum \left( p \cdot a \right) \log \left( p \cdot a \right)$。</p>
+		<p>而 $\sum \left( p \cdot a \right) \log \left( p \cdot a \right) = p \cdot \left( \sum a \log a + \log p \sum a \right)$，因此在筛素数之和 (后者) 的同时，是可以对前者作出转移的，具体地，有 \begin{align*}
+g_{i, j} &amp;= g_{i - 1, j} - f(p_i) \cdot \left( g_{i - 1, \left \lfloor j / p_i \right \rfloor} - g_{i - 1, p_i - 1} \right) \\
+G_{i, j} &amp;= G_{i - 1, j} - p_i \cdot \left( G_{i - 1, \left \lfloor j / p_i \right \rfloor} - G_{i - 1, p_i - 1} + \log p_i \cdot \left( g_{i - 1, \left \lfloor j / p_i \right \rfloor} - g_{i - 1, p_i - 1} \right) \right)
+\end{align*}
+		<p>于是可以使用洲阁筛直接计算。</p>
+		<p>不过现在还留下两个问题：</p>
+		<ol>
+			<li><p>虽然转移问题已经搞定了，但是初值 $\displaystyle \sum_{i=1}^n i \log i$ 并不好求，该怎么办呢？</p></li>
+			<li><p>如何快速计算离散对数 $\log p$？</p>
+		</ol>
+		<p>这两个问题我们留到最后去解决。</p>
+		<hr />
+		<h4> ---- Subtask 3 ---- </h4>
+		<p>先把和 $f$ 有关的式子都搞完。</p>
+		<p>$$ \log F_3 \left( x \right) = \sum_{i=1}^n \sum_{j=1}^{\left \lfloor n/i \right \rfloor} \left \lfloor \frac nj \right \rfloor \log f \left( j \right) = \sum_{j=1}^n \log f \left( j \right) \cdot \left \lfloor \frac nj \right \rfloor^2 $$</p>
+		<p>这个式子显然是可以整除分块的，因此我们如果知道了对于集合 $S \left( n \right) = \left\{ \left \lfloor \dfrac ni \right \rfloor \bigg\vert 1 \leq i \leq n \right\}$ 中的任意元素 $a$，$\displaystyle \sum_{i=1}^a \log f \left( i \right)$ 的值，那么整个问题可以在 $O \left( \sqrt n \right)$ 时间解决。</p>
+		<p>而事实上，洲阁筛所求得的也不知是 $\displaystyle \sum_{i=1}^n \log f \left( i \right)$，在它的 DP 状态中，其实也是有形如 $\displaystyle \sum_{i=1}^{\left \lfloor n/k \right \rfloor} \log f \left( i \right)$ 的状态的。</p>
+		<p>因此，这就是洲阁筛所得到的 "副产品"，因此只要用洲阁筛实现了 Subtask 1，这个问题还是比较容易处理的。</p>
+		<hr />
+		<h4> ---- Subtask 2 ---- </h4>
+		<p>接下来出稍稍难一些的 Subtask 2。先进行和式变换，有 $$ \log F_2 \left( x \right) = \sum_{i=1}^n \log g \left( i \right) = k \cdot \sum_{i=1}^n \phi \left( i \right) \cdot \left( \log k \cdot i \right) = k \cdot \left( \sum_{i=1}^n \phi \left( i \right) \cdot \log \left( i \right) + \log k \sum_{i=1}^n \phi \left( i \right) \right) $$</p>
+		<p>因此主要任务还是两个：求出 $\displaystyle \color {fuchsia} {\sum_{i=1}^n \phi \left( i \right) \cdot \log \left( i \right)}$ 和 $\displaystyle \color {fuchsia} {\sum_{i=1}^n \phi \left( i \right)}$。</p>
+		<p>虽然说后者可以通过杜教筛直接计算，不过在后续的分析中逐渐可以发现，这个杜教筛是<strong>不必要的</strong>。因为对它使用洲阁筛可以帮助前者的计算。</p>
+		<p>在这里，我们<strong>不使用</strong>记忆化搜索替代 DP (即<strong>不</strong>使用 min-25 筛)，因为在 Subtask 4 中，同理地我们需要得出集合 $S \left( n \right)$ 中所有元素的状态。</p>
+		<p>因此，在这里我们还是使用最原始的<a href="spojDIVCNT3.html" target="_blank">洲阁筛</a>。</p>
+		<p>类似地，后者的转移还是较容易的，为 $$ f_{i, j} = \sum_{c \geq 0} \phi \left( p_i^c \right) f_{i-1, \left \lfloor j / p_i^c \right \rfloor} $$
+		<p>那对于前者，该如何处理呢？</p>
+		<p>考虑使用 $p^c$ ($c \geq 0$) 将 $a$ 更新为 $p^c \cdot a$，即把 $\sum \phi \left( a \right) \cdot \log a$ 变为 $\sum \phi \left( p^c \cdot a \right) \cdot \log \left( p^c \cdot a \right)$。</p>
+		<p>事实上，$\sum \phi \left( p^c \cdot a \right) \cdot \log \left( p^c \cdot a \right) = p^{c-1} \left( p - 1 \right) \cdot \left( \sum \phi \left( a \right) \log a + c \log p \sum \phi \left( a \right) \right)$，因此，如果我们真的去用洲阁筛去筛 $\phi$，就确实可以转移 $\left( \phi \cdot \log \right)$。具体地，有</p>
+		<p>$$ F_{i, j} = F_{i-1, j} + \sum_{c \geq 1} \phi \left( p_i^c \right) \cdot \left( F_{i-1, \left \lfloor j / p_i^c \right \rfloor} + c \log p \cdot f_{i-1, \left \lfloor j / p_i^c \right \rfloor} \right) $$</p>
+		<p>最后来考察一下初值 —— 即所有素数的函数值之和。</p>
+		<p>对素数 $p$，有 $\phi \left( p \right) = p - 1, \phi \left( p \right) \cdot \log p = p \log p - \log p$。</p>
+		<p>因此，$\displaystyle \sum_{p \in \mathbb P} \phi \left( p \right) = \sum_{p \in \mathbb P} p - \sum_{p \in \mathbb P} 1, \sum_{p \in \mathbb P} \phi \left( p \right) \cdot \log p = \sum_{p \in \mathbb P} p \log p - \sum_{p \in \mathbb P} \log p$。</p>
+		<p>这样一来，在上面的 $\displaystyle \sum_{p \in \mathbb P} p$ 和 $\displaystyle \sum_{p \in \mathbb P} p \log p$ 的基础上，还需要多筛两个函数：$\displaystyle \color{green} {\sum_{p \in \mathbb P} \log p}$ (所有素数的对数和) 与 $\displaystyle \color{green} {\sum_{p \in \mathbb P} 1}$ (区间素数个数)。</p>
+		<p>同样还是在前一部分的洲阁筛中完成。</p>
+		<p>于是，Subtask 2 也可以在 $O \left( \dfrac {n^{3/4}} {\log n} \right)$ 时间内解决。</p>
+		<hr />
+		<h4> ---- Subtask 4 ---- </h4>
+		<p>使用类似地方法，有
+		<p>$$ \log F_4 \left( x \right) = \sum_{i=1}^n \sum_{j=1}^{\left \lfloor n/i \right \rfloor} \left \lfloor \frac nj \right \rfloor \log g \left( j \right) = \sum_{j=1}^n \log g \left( j \right) \cdot \left \lfloor \frac nj \right \rfloor^2 $$</p>
+		<p>因此在筛完 $\left( \phi \cdot \log \right)$ 后，直接整除分块一下就好了。</p>
+		<hr />
+		<p>现在是时候解决历史遗留问题<del>以及分析复杂度</del>了。</p>
+		<p>首先，我们先来看一个至关重要的问题：<strong>如何快速计算离散对数</strong>。</p>
+		<p>纵观整个过程，我们先观察有哪些地方需要用到离散对数。</p>
+		<ol>
+			<li><p>对于一开始各处的 $k$，需要计算 $\log k$。</p></li>
+			<li><p>在两个筛的过程中，对于 $\leq \sqrt n$ 的素数 $p$，需要频繁用到 $\log p$。</p>
+			<li><p>Subtask 1 的初值中需要求 $\displaystyle \sum_{i=1}^n i \log i$ 和 $\displaystyle \sum_{i=1}^n \log i$。</p>
+		</ol>
+		<p>先假设我们使用了最愚蠢的大步小步算法，那么对于 Case 1，我们还是可以接受的，而对于 Case 2/3，我们就无法接受了。</p>
+		<p>因此，由这一道题的名称 "<samp>itoaibad</samp>" = reverse("<samp>dabiaoti</samp>")，我们需要使用<strong>打表</strong>！</p>
+		<p>首先，$\leq \sqrt n$ 的素数只有 $3401$ 个，我们暴力把这些数的离散对数打表起来。</p>
+		<p>设每个数需要用 $4$ 字节，则代码长度会增加约 $13.3 \,\mathrm{KiB}$。</p>
+		<p>进一步地，如果知道了所有 $\leq \sqrt n$ 的<strong>素数</strong>的离散对数值，利用 $\log \left( a b \right) = \log a + \log b$，就可以通过线性筛法得到所有 $\leq \sqrt n$ 的<strong>正整数</strong>的离散对数值。
+		<p>紧接着，如果知道了所有 $\leq \sqrt {\color {fuchsia} {mod}}$ 的<strong>正整数</strong>的离散对数值后，可以通过类似 "<em>线性推逆元</em>" 的方法在 $O \left( M \right)$ 时间内得到 $1 \leq M$ 的离散对数值。</p>
+		<p>具体地，设 $\sqrt {mod} &lt; a \leq mod$，则设 $mod = a \cdot q + r$，则 $q \leq \sqrt {mod} &lt; a, r &lt; a$。</p>
+		<p>于是 $a = -r \cdot q^{-1}$，因此 $\log a = \log \left( -1 \right) + \log r - \log q$。</p>
+		<p>而 $\log \left( -1 \right) = \dfrac {mod - 1} 2$，$\log r, \log q$ 均为已知量，因此可以计算。</p>
+		<p>将上述算法稍作改进，即可得到一个 (在预处理条件下的) $O \left( \log n \right)$ 求离散对数的算法。</p>
+		<hr />
+		<p>因此，现在 Case 1 和 Case 2 已经解决，接下来是 Case 3。</p>
+		<p>注意到 $\displaystyle \sum_{i=1}^n \log i = \log \prod_{i=1}^n i$，然而这两者均不是很好计算，因此我们考虑进行<strong>分段打表</strong>。</p>
+		<p>考察计算初值是所调用的自变量，容易发现，需要求的自变量的集合恰好就是 $S \left( n \right) = \left\{ \left \lfloor \dfrac ni \right \rfloor \bigg\vert 1 \leq i \leq n \right\}$。</p>
+		<p>因此，对于较小的 $n$，我们使用线性推对数的算法，在程序内部预处理出 $\displaystyle \sum_{i=1}^n i \log i$ 和 $\displaystyle \sum_{i=1}^n \log i$；对于较大的 $n$，我们需要使用分段打表。</p>
+		<p>我们将这两个函数每隔 $2 \times 10^5$ 个数分一个段，于是段数约有 $\dfrac n {2 \times 10^5} \approx 5000$。</p>
+		<p>由于有两个函数，因此代码长度共会增加约 $39.1 \,\mathrm{KiB}$。</p>
+		<p>如果现在要计算一个较大的函数值，就需要现在表中查到它，然后在单独计算 $10^5$ 个 $\log$。</p>
+		<p>然而计算一个大数的 $\log$ 的复杂度是 $O \left( \log mod \right)$，因此我们考虑先乘起来再一起计算 $\log$，于是复杂度就是 $O \left( r - l + \log mod \right)$。</p>
+		<p>对于前者，我们需要计算 $\displaystyle \sum_{i=l}^r i \log i$，它等于 $\displaystyle \sum_{i=0}^{r-l} \left( i + l \right) \log \left( i + l \right) = \sum_{i=0}^{r-l} i \log \left( i + l \right) + l \sum_{i=l}^r \log i$。
+		<p>根据上面的方法，$\displaystyle \sum_{i=l}^r \log i$ 可以在 $O \left( r - l + \log mod \right)$ 时间内求出，而对于前者，它又等于 $\displaystyle \sum_{j=1}^{r-l} \sum_{i=l+j}^r \log i$，因此也可以在 $O \left( r - l + \log mod \right)$ 时间内求出。</p>
+		<hr />
+		<p>设程序内部预处理的上界 (阈值) 为 $A$ ($A \geq \sqrt n$)，则需要通过分段打表计算的自变量个数为 $\dfrac nA + O \left( 1 \right)$，每计算一次的代价看成 $10^5$。</p>
+		<p>于是总的代价约为 $A + \dfrac nA \cdot 10^5 = A + \dfrac {10^{14}} A$，因此当 $A = 10^7$ 的时候取到最优值。</p>
+		<p>因此程序内部可以预处理到 $10^7$，超过的部分打表计算，总的复杂度也就维持在 $10^7$ 这个<strong>数量级</strong>了。</p>
+		<p>总的代码长度也在 $60 \,\mathrm{KiB}$ 左右，满足不超过 $100 \,\mathrm{KiB}$ 的限制。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 66666, B = 200000, mod = 1000000007, pmod = 1000000006, HF = pmod / 2;
+
+int n, x, X, level;
+int srn, cnt;
+int v[N], Cnt[N], Slg[N], G[N], F[N];
+ll g[N], f[N];
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline void add(int &amp;x, const int y) {reduce(x += y - mod);}
+inline void sub(int &amp;x, const int y) {reduce(x -= y);}
+inline int &amp; preduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; pmod;}
+inline void padd(int &amp;x, const int y) {preduce(x += y - pmod);}
+inline void psub(int &amp;x, const int y) {preduce(x -= y);}
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+inline int ID(int x) {return x &lt;= srn ? x : cnt + 1 - n / x;}
+
+namespace Tables {
+	const char *T1 = R"f<a href="uploads/3.cpp" download="itoaibad.cpp">(...)</a>f", *T2 = R"f<a href="uploads/3.cpp" download="itoaibad.cpp">(...)</a>f", *T3 = R"f<a href="uploads/3.cpp" download="itoaibad.cpp">(...)</a>f";
+}
+
+namespace NT { // Number Theory
+	const int N = 33334, MAX = 10000001;
+	int pn = 0, c[N], p[3600];
+	int lg[MAX], slg[MAX], snlgn[MAX];
+	const int *const pt = (const int*)Tables::T1;
+	const int *const ot = (const int*)Tables::T2;
+	const int *const qt = (const int*)Tables::T3;
+
+	void sieve(int n) {
+		int i, j, v;
+		memset(c, -1, sizeof c), lg[1] = 0;
+		for (i = 2; i &lt;= n; ++i) {
+			if (!~c[i]) p[pn] = i, lg[i] = pt[pn], c[i] = pn++;
+			for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt;= c[i]; ++j) c[v] = j, padd(lg[v] = lg[i], lg[p[j]]);
+		}
+	}
+
+	int log(int n) {
+		if (n &lt; MAX) return lg[n];
+		div_t s = div(mod, n);
+		int t = s.rem &lt;= n / 2 ? HF + log(s.rem) - lg[s.quot] : log(n - s.rem) - lg[s.quot + 1];
+		return t %= pmod, t + (t &gt;&gt; 31 &amp; pmod);
+	}
+
+	void __init__() {
+		int i, l = N - 1, r, q, t;
+		sieve(N - 1);
+		for (i = 29999; i &gt;= 100; --i, --l) {
+			preduce(t = HF - lg[i]), t -= pmod;
+			for (r = mod / i, q = mod - ++l * i; l &lt;= r; ++l, q -= i) lg[l] = t + lg[q], lg[l] += lg[l] &gt;&gt; 31 &amp; pmod;
+		}
+		for (i = 2; i &lt; MAX; ++i) padd(slg[i] = slg[i - 1], lg[i]), snlgn[i] = (snlgn[i - 1] + (ll)i * lg[i]) % pmod;
+	}
+
+	int sumlogN(int n) {
+		if (n &lt; MAX) return slg[n];
+		int b = n / B, c = b * B, i; ll p = 1;
+		for (i = n; i &gt; c; --i) p = p * i % mod;
+		return (log(p) + ot[b]) % pmod;
+	}
+
+	// log 1 + 2 log 2 + 3 log 3 + ... + n log n
+	int sumNlogN(int n) {
+		if (n &lt; MAX) return snlgn[n];
+		int b = n / B, c = b * B, i; ll p = 1, r = 1;
+		for (i = n; i &gt; c; --i) p = p * i % mod, r = r * p % mod;
+		return ((ll)c * log(p) + log(r) + qt[b]) % pmod;
+	}
+}
+
+using NT::log;
+
+void sieve_g() {
+	int i, j, k, p, J, K;
+	for (j = 1; j &lt;= cnt; ++j) {
+		Cnt[j] = J = v[j], Slg[j] = NT::sumlogN(J);
+		g[j] = J * (J + 1ll) / 2, G[j] = NT::sumNlogN(J);
+	}
+	for (i = 0; (p = NT::p[i]) &lt;= srn; ++i)
+		for (j = cnt; j; --j) {
+			if (J = v[j], (K = J / p) &lt; p) break; k = ID(K);
+			G[j] = (G[j] - p * (((g[k] - g[p - 1]) % pmod * log(p) + G[k] - G[p - 1]) % pmod)) % pmod;
+			Slg[j] = (Slg[j] - ((ll)(Cnt[k] - Cnt[p - 1]) * log(p) + Slg[k] - Slg[p - 1])) % pmod;
+			Cnt[j] -= Cnt[k] - Cnt[p - 1];
+			g[j] -= (ll)p * (g[k] - g[p - 1]);
+		}
+}
+
+inline ll sget_phi(int id, int pid) {
+	return v[id] &gt;= (ll)NT::p[pid] * NT::p[pid] ? f[id] : v[id] &lt; NT::p[pid] ? 1
+		: (g[id] - Cnt[id]) - (g[ NT::p[pid - 1] ] - Cnt[ NT::p[pid - 1] ]) + 1;
+}
+
+inline int sget_philog(int id, int pid) {
+	return v[id] &gt;= (ll)NT::p[pid] * NT::p[pid] ? F[id] : v[id] &lt; NT::p[pid] ? 0
+		: ((ll)(G[id] - Slg[id]) - (G[ NT::p[pid - 1] ] - Slg[ NT::p[pid - 1] ])) % pmod;
+}
+
+void sieve_f() {
+	int i, j, k, p, J, K, c, Mg;
+	for (i = NT::pn - 1; i &gt;= 0; --i)
+		for (p = NT::p[i], j = cnt; j; --j) {
+			if ((J = v[j]) &lt; p * p) break;
+			F[j] = sget_philog(j, i + 1), f[j] = sget_phi(j, i + 1);
+			for (K = J / p, c = 1, Mg = p - 1; K; K /= p, ++c, Mg *= p) {
+				k = ID(K);
+				F[j] = (F[j] + (sget_philog(k, i + 1) + sget_phi(k, i + 1) * c % pmod * log(p)) % pmod * Mg) % pmod;
+				f[j] += sget_phi(k, i + 1) * Mg;
+			}
+		}
+	for (j = 1; j &lt;= cnt; ++j) if (v[j] &lt; 4) f[j] = g[j] - Cnt[j] + 1, F[j] = G[j] - Slg[j];
+}
+
+namespace Subtask0 {
+	int main() {
+		int ret; sieve_g();
+		preduce(ret = ((g[cnt] - 1) % pmod * x + G[cnt]) % pmod);
+		return PowerMod(5, (ll)ret * X % pmod);
+	}
+}
+
+namespace Subtask1 {
+	int main() {
+		int ret; sieve_f();
+		preduce(ret = (f[cnt] % pmod * x + F[cnt]) % pmod);
+		return PowerMod(5, (ll)ret * X % pmod);
+	}
+}
+
+namespace Subtask2 {
+	int main() {
+		int i, j, s, t, ret = 0;
+		for (i = 1, j = cnt; i &lt;= cnt; ++i, --j) {
+			preduce(s = ((g[i] - 1) % pmod * x + G[i]) % pmod * X % pmod);
+			t = (ll)(v[j] + v[j - 1]) * (v[j] - v[j - 1]) % pmod;
+			ret = (ret + (ll)s * t) % pmod;
+		}
+		return PowerMod(5, ret);
+	}
+}
+
+namespace Subtask3 {
+	int main() {
+		int i, j, s, t, ret = 0;
+		for (i = 1, j = cnt; i &lt;= cnt; ++i, --j) {
+			preduce(s = (f[i] % pmod * x + F[i]) % pmod * X % pmod);
+			t = (ll)(v[j] + v[j - 1]) * (v[j] - v[j - 1]) % pmod;
+			ret = (ret + (ll)s * t) % pmod;
+		}
+		return PowerMod(5, ret);
+	}
+}
+
+int main() {
+	int i; NT::__init__();
+	scanf("%d%d%d", &amp;n, &amp;X, &amp;level), x = log(X);
+	srn = sqrt(n), cnt = srn * 2 - (srn * (srn + 1) &gt; n);
+	for (i = 1; i &lt;= srn; ++i) v[i] = i, v[cnt - i + 1] = n / i;
+	if (printf("%d\n", Subtask0::main()), level &lt; 2) return 0;
+	if (printf("%d\n", Subtask1::main()), level &lt; 3) return 0;
+	if (printf("%d\n", Subtask2::main()), level &lt; 4) return 0;
+	if (printf("%d\n", Subtask3::main()), level &lt; 5) return 0;
+	return 1;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<p>(打表内容过长，就不显示了，完整代码见<a href="uploads/3.cpp" download="itoaibad.cpp">此处</a>)</p>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意各种常数优化，比如尽可能地减少除法次数、在预处理 $\log$ 时的分块加速等。</p>
+		<p><strong>坑2：</strong>打表时可以用 C++11 的<strong>原声字符串</strong> <code>R"(...)"</code>，来减少代码长度。</p>
+	</body>
+</html>

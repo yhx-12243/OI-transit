@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj449][WMTC2018]喂鸽子</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 Z 是养鸽子的人。一天，小 Z 给鸽子们喂玉米吃。一共有 $n$ 只鸽子，小 Z 每秒会等概率选择一只鸽子并给他一粒玉米。一只鸽子饱了当且仅当它吃了的玉米粒数量 $\geq k$。</p>
+		<p>小 Z 想要你告诉他，期望多少秒之后所有的鸽子都饱了。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, k$ ($n \leq 50; k \leq 1000$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示期望时间在模 $998244353$ 意义下的结果。</p>
+
+		<h3>题解</h3>
+		<p>由于 "所有鸽子都饱了" 这个量不好计算，因此我们使用 <strong>Min-Max 容斥原理</strong>，将其转化为一个集合中的鸽子 "至少一个饱了" 的期望时间。</p>
+		<p>由于这 $n$ 只鸽子是本质相同的，因此我们只需要对于 $\forall 1 \leq i \leq n$，计算出使得某指定的 $i$ 只鸽子 (比如说最前面的 $i$ 只鸽子) 被喂饱所需的期望时间 $E_i$。然后套用 Min-Max 容斥原理的公式，即得 $$ ans = \sum_{i=1}^n \left( -1 \right)^{i-1} \binom ni E_i $$</p>
+		<p>接下来考虑如何求出 $E_m$。以下假设我们希望<strong>前 $m$ 只鸽子中至少有一只被喂饱</strong>。</p>
+		<p>仿照 <a href="uoj390.html" target="_blank">[uoj390]百鸽笼</a> 的思路 <del>(怎么也是个鸽子题)</del>，我们枚举<strong>在前 $m$ 只鸽子中第一只饱的鸽子饱的轮数</strong> (这里的轮数指的是小 Z 在前 $m$ 只鸽子中共计投入了多少粒玉米)，把这个数记为 $i$。</p>
+		<p>首先，我们要计算出小 Z 在前 $m$ 只鸽子中投入 $i$ 粒玉米的时间期望。</p>
+		<p>我们可以把事件 "投入 $i$ 粒玉米" 看成 $i$ 个先后发生的事件 "投入 $1$ 粒玉米"，由几何分布，每 "投入 $1$ 粒玉米"，期望事件为 $\dfrac nm$。于是，<span class="text-muted">(由期望的线性性)</span>，投入 $i$ 粒玉米的期望时间就是 $i \cdot \dfrac nm$。</p>
+		<hr />
+		<p>接下来考虑这 $i$ 粒玉米分布在 $m$ 只鸽子的情况，由乘法原理，一共有 $m^i$ 种可能的情况。</p>
+		<p>对于特定的一种情况，如果它满足<strong>前 $i - 1$ 粒玉米不能喂饱任何一只鸽子，$i$ 粒玉米恰能喂饱一只鸽子</strong>，则说明这个状态是合法的，会对答案产生 $\dfrac 1 {m^i}$ 的贡献。否则，就不产生贡献。</p>
+		<p>于是，接下来的任务就是计算有多少种合法的状态了。</p>
+		<p>考虑这 $i$ 粒玉米的分布序列 (以下简称<dfn>玉米序列</dfn>) $c_1, c_2, \cdots, c_i$ ($1 \leq c_j \leq m$)，则由定义，如果这个玉米序列是<strong>合法的</strong> (即 $i - 1$ 粒喂不饱，$i$ 粒能喂饱)，则它喂饱的鸽子一定是 $c_i$ 号。</p>
+		<p>于是，我们只需计算出 $c_i = 1$ 的情形，最后乘上 $m$ 即可。</p>
+		<p>此时，在 $c_1, c_2, \cdots, c_{i-1}$ 中，<span style="color: fuchsia">$1$ 要出现恰好 $k - 1$ 次，其它数出现<strong>不得超过</strong> $k - 1$ 次</span>。</p>
+		<p>是不是有一种似曾相识的感觉？回忆一下 <a href="uoj390.html" target="_blank">[uoj390]百鸽笼</a>：</p>
+		<blockquote>因此，在这前 $m$ 步，$a_1$ 操作了恰好 $a_1 - 1$ 次，其它 $a_i$ 操作了<strong>至少 $a_i$ 次</strong>。</blockquote>
+		<p><del>(尼玛不就是对偶了一下吧……)</del></p>
+		<p>那剩下的事情就套路了呗，还是考虑使用<strong>指数生成函数</strong>来解决。</p>
+		<p>首先，$1$ 的生成函数就是 $\dfrac {x^{k - 1}} {\left( k - 1 \right) !}$，其余数的生成函数均为 $\displaystyle 1 + x + \dfrac {x^2} {2 !} + \dfrac {x^3} {3 !} + \cdots + \dfrac {x^{k - 1}} {\left( k - 1 \right) !} = \sum_{0 \leq j &lt; k} \dfrac {x^j} {j !}$。</p>
+		<p>因此最终的生成函数就应该是 $$ \frac {x^{k - 1}} {\left( k - 1 \right) !} \cdot \left( 1 + x + \frac {x^2} {2 !} + \frac {x^3} {3 !} + \cdots + \frac {x^{k - 1}} {\left( k - 1 \right) !} \right)^{m - 1} $$</p>
+		<p>其中 $x^{i - 1}$ 项系数的 $\left( i - 1 \right) !$ 倍就是长度为 $i$ 的合法玉米序列的数量 (的 $\dfrac 1m$)。</p>
+		<hr />
+		<p>由于出现次数是 $\leq$ 而不是 $\geq$，因此它也不是无穷级数，故我们想办法把这个多项式的展开求出来。</p>
+		<p>不过这个多项式到最终会是 $O \left( n \cdot k \right)$ 次的，加上这个 $m$ 也能从 $1$ 变化到 $n$，于是我们总共就需要求 $O \left( n^2 k \right)$ 项，如果求单项又需要一个 $O \left( k \right)$，<del>那估计有凉凉了</del> 那十有八九是要 TLE 的。</p>
+		<p>因此，这里我们需要一些简单的多项式技<del>(珂)</del>巧<del>(技)</del>。</p>
+		<p>下面记 $f \left( x \right) = 1 + x + \dfrac {x^2} {2 !} + \dfrac {x^3} {3 !} + \cdots + \dfrac {x^{k - 1}} {\left( k - 1 \right) !}$，则我们需要求 $\dfrac {x^{k - 1}} {\left( k - 1 \right) !} f^{m-1} \left( x \right)$ 的各项系数。</p>
+		<p>当然，如果我们已经知道了 $f^{m-1} \left( x \right)$ 的各项系数，那么求 $\dfrac {x^{k - 1}} {\left( k - 1 \right) !} f^{m-1} \left( x \right)$ 的系数也是一件易如反掌的事情。</p>
+		<p>因此现在考虑如何求 $f^{m-1} \left( x \right)$ 的系数。</p>
+		<p>我们尝试在两边取 $x^i$ 项系数得出一些有用的恒等式，然而貌似搞不太出来的样子。</p>
+		<p>这时候就需要用一个<del>比较套路的技巧</del>了：<big><strong>对幂级数求导</strong></big>。</p>
+		<p>注意到 $f \left( x \right)$ 和 $\mathrm e^x$ 是 "同源" 的 (即长得很像)，而 $\left( \mathrm e^x \right)' = \mathrm e^x$ 本身，因此 $f \left( x \right)$ 求导后 ($f' \left( x \right)$) 也应和 $f \left( x \right)$ 长得非常像。</p>
+		<p>事实上，有 $\color {red} {f' \left( x \right) = f \left( x \right) - \dfrac {x^{k - 1}} {\left( k - 1 \right) !}}$。因此，$$ \left( f^m \left( x \right) \right)' = m \cdot f^{m-1} \left( x \right) \cdot f' \left( x \right) = m \cdot f^{m-1} \left( x \right) \cdot \left( f \left( x \right) - \frac {x^{k - 1}} {\left( k - 1 \right) !} \right) = m \cdot \left( f^m \left( x \right) - \frac {x^{k - 1}} {\left( k - 1 \right) !} f^{m-1} \left( x \right) \right) $$</p>
+		<p>两边取 $x^{i-1}$ 项系数，得到 $$ i \cdot \left[ x^i \right] f^m \left( x \right) = m \cdot \left( \left[ x^{i-1} \right] f^m \left( x \right) - \left[ x^{i-1} \right] \frac {x^{k - 1}} {\left( k - 1 \right) !} f^{m-1} \left( x \right) \right) $$</p>
+		<p>而 $\left[ x^{i-1} \right] f^m \left( x \right)$，$\left[ x^{i-1} \right] \dfrac {x^{k - 1}} {\left( k - 1 \right) !} f^{m-1} \left( x \right)$ 均为已知量，因此可以 $O \left( 1 \right)$ 递推出 $\left[ x^i \right] f^m \left( x \right)$。</p>
+		<hr />
+		<p>于是，现在我们已经可以成功在 $O \left( n^2 k \right)$ 时间内预处理出所有多项式的所有项系数了，现在就是将这些 "零件" 拼起来组成答案。</p>
+		<p>对于我们所枚举的 $m, i$，首先，有 $m \cdot \left( i - 1 \right) ! \left[ x^{i-1} \right] \left( \dfrac {x^{k - 1}} {\left( k - 1 \right) !} \cdot f^{m-1} \left( x \right) \right)$ 种合法的玉米序列，对于每一种合法的玉米序列，它占玉米序列总数的 $\dfrac 1 {m^i}$，为了实现 "投入 $i$ 粒玉米"，小 Z 期望花费 $i \cdot \dfrac nm$ 的时间。</p>
+		<p>将它们三者相乘，就得到这一对 $\left( m, i \right)$ 对答案的贡献：</p>
+		<p>$$ m \cdot \left( i - 1 \right) ! \left[ x^{i-1} \right] \left( \frac {x^{k - 1}} {\left( k - 1 \right) !} \cdot f^{m-1} \left( x \right) \right) \cdot \frac 1 {m^i} \cdot i \cdot \frac nm = i ! \left[ x^{i-1} \right] \left( \frac {x^{k - 1}} {\left( k - 1 \right) !} \cdot f^{m-1} \left( x \right) \right) \cdot \frac n {m^i} $$</p>
+		<p>将 $i$ 从 $k$ 到 $m \left( k - 1 \right) + 1$ 求和，就是 $E_m$ 的值 (前 $m$ 只格子喂饱所需的<strong>期望时间</strong>)。</p>
+		<p>于是我们成功求出了所有 $E_m$，从而问题可以在 $O \left( n^2 k \right)$ 的时间内解决。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt; 
+
+typedef long long ll;
+const int N = 54, NK = 54000, mod = 998244353;
+
+int n, K;
+int fact[NK], inv[NK], finv[NK];
+int f[N][NK], g[N][NK];
+/*
+	Let A(x) = 1 + x + x^2/2! + x^3/3! + ... + x^(k-1)/(k-1)!.
+	f[i][j] = [x^j] A^i(x)
+	g[i][j] = [x^j] x^(k-1)/(k-1)! A^i(x)
+*/
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i, j;
+	for (inv[1] = 1, i = 2; i &lt;= n * K; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt;= n * K; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+	**f = 1, g[0][K - 1] = finv[K - 1];
+	for (i = 1; i &lt;= n; ++i)
+		for (g[i][K - 1] = finv[K - 1], *f[i] = j = 1; j &lt;= i * (K - 1); ++j)
+			f[i][j] = (ll)(f[i][j - 1] - g[i - 1][j - 1] + mod) * i % mod * inv[j] % mod,
+			g[i][j + K - 1] = (ll)f[i][j] * finv[K - 1] % mod;
+}
+
+inline ll C(int n, int r) {return (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+int get(int m) {
+	int i, ret = 0; ll coe = PowerMod(m, mod - 1 - K, n);
+	for (i = K; i &lt;= m * (K - 1) + 1; ++i)
+		ret = (ret + coe * fact[i] % mod * g[m - 1][i - 1]) % mod, coe = coe * inv[m] % mod;
+	return ret;
+}
+
+int main() {
+	int i; ll t, ans = 0;
+	scanf("%d%d", &amp;n, &amp;K), init();
+	for (i = 1; i &lt;= n; ++i) t = C(n, i) * get(i) % mod, i &amp; 1 ? ans += t : ans -= t;
+	ans %= mod, printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>计算系数的时候不要下标越界了 (<code>g[]</code> 数组的下标可以达到 $\left( n + 1 \right) k$)。</p>
+		<p><strong>坑2：</strong>推式子的时候分析清楚每一项，不要忘记乘 $i$ 或者多除了一个 $m$ 等。</p>
+	</body>
+</html>

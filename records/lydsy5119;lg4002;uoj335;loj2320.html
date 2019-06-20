@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy5119][lg4002][uoj335][loj2320][清华集训2017]生成树计数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在一个 $s$ 个点的图中，存在 $s - n$ 条边，使图中形成了 $n$ 个连通块，第 $i$ 个连通块中有 $a_i$ 个点。</p>
+		<p>现在我们需要再连接 $n - 1$ 条边，使该图变成一棵树。对一种连边方案，设原图中第 $i$ 个连通块连出了 $d_i$ 条边，那么这棵树 $T$ 的价值为：</p>
+		<p>$$ \mathop{\mathrm{val}} \left( T \right) = \left( \prod_{i=1}^n d_i^m \right) \left( \sum_{i=1}^n d_i^m \right) \tag 1 \label 1 $$</p>
+		<p>你的任务是求出所有可能的生成树的价值之和，对 $998244353$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($2 \leq n \leq 30000; 0 \leq m \leq 30$)，意义见题目描述。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($1 \leq a_i &lt; 998244353$)，分别表示每个连通块的大小。</p>
+		<p>你可以由 $a_i$ 计算出图的总点数 $s$，所以在输入中不再给出 $s$ 的值。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示生成树的价值之和模 $998244353$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>由<a href="lydsy5475%3Blg5206%3Bloj2983.html#lemma" target="_blank">熟知结论</a>：</p>
+		<blockquote><strong>有一个由 $k$ 棵树 (连通块) 构成的森林，每棵树的大小分别为 $a_1, a_2, \cdots, a_k$，记 $n = a_1 + a_2 + \cdots + a_k$ 为森林的阶数，则这棵森林的生成超树 (即以这棵森林为生成森林的树) 的数量为 $n^{k-2} \cdot a_1 a_2 \cdots a_k$。</strong></blockquote>
+		<p><del>于是我们就成功解决了 $m = 0$ 的情况啦！</del></p>
+		<p>那对 $k &gt; 0$，又该怎么处理呢？</p>
+		<p>观察那道题对上面引理的两种证明。可以发现，由于 $\eqref 1$ 式中出现了<strong>度数</strong>，因此，Kirchhoff's Matrix-Tree 定理就难以推广了，然而 Prufer 序列的方法——貌似有希望。</p>
+		<p>考虑该树的 Prufer 序列 $\mathbf p = \left[ p_1, p_2, \cdots, p_k \right]$，设 $i$ 在 $\mathbf p$ 中出现了 $c_i$ 次，则 $\bar i$ 的度数 $d \left( \bar i \right) = c_i + 1$。</p>
+		<p>于是对于一棵确定的树 (即确定的 Prufer 序列)，连边方式有多少种呢？</p>
+		<p>首先，和<a href="lydsy5475%3Blg5206%3Bloj2983.html#lemma" target="_blank">那道题</a>类似，将新树 $\mathbf p$ 还原到原树中有 $\displaystyle \prod_{i=1}^n a_i^{c_i + 1}$ 种方案，然后它的贡献 $\displaystyle \mathop{\mathrm{val}} \left( \mathbf p \right) = \left( \prod_{i=1}^n \left( c_i + 1 \right)^m \right) \left( \sum_{i=1}^n \left( c_i + 1 \right)^m \right)$。</p>
+		<p>于是，序列 $\mathbf p$ 对答案的贡献即为 $$ \left( \prod_{i=1}^n a_i^{c_i + 1} \cdot \left( c_i + 1 \right)^m \right) \left( \sum_{i=1}^n \left( c_i + 1 \right)^m \right) \tag 2 \label 2 $$</p>
+		<p>和那道题不同的是，由于这里出现了 $c_i$ 的幂次，因此 $\eqref 2$ 式就很难转化成关于 $p_i$ 的初等函数。</p>
+		<p>所以我们改变求和方式，不对 $\mathbf p$ 求和，而是对序列 $\left[ c_1, c_2, \cdots, c_n \right]$ 求和。</p>
+		<p>而对它求和，需要有两个不同的地方：</p>
+		<ol>
+			<li><p>首先，$c_i$ 的取值不是独立的，必须满足 $c_1 + c_2 + \cdots + c_n = n - 2$。</p></li>
+			<li><p>其次，对于一组确定的 $c_i$，合法的 $\mathbf p$ 的数量为 $\dbinom {n - 2} {c_1, c_2, \cdots, c_n} = \dfrac {\left( n - 2 \right) !} {c_1 ! c_2 ! \cdots c_n !}$。</p>
+		</ol>
+		<p>因此，化简一下 $\eqref 2$ 式，得到：\begin{align*}
+&amp; \sum_{\mathbf p} \left( \prod_{i=1}^n a_i^{c_i + 1} \cdot \left( c_i + 1 \right)^m \right) \left( \sum_{i=1}^n \left( c_i + 1 \right)^m \right) \\
+=&amp; \sum_{c_1 + c_2 + \cdots + c_n = n - 2} \frac {\left( n - 2 \right) !} {c_1 ! c_2 ! \cdots c_n !} \cdot \left( \prod_{i=1}^n a_i^{c_i + 1} \cdot \left( c_i + 1 \right)^m \right) \left( \sum_{i=1}^n \left( c_i + 1 \right)^m \right) \\
+=&amp; \left( n - 2 \right) ! \cdot a_1 a_2 \cdots a_n \cdot \sum_{c_1 + c_2 + \cdots + c_n = n - 2} \left( \prod_{i=1}^n \frac {a_i^{c_i} \left( c_i + 1 \right)^m} {c_i !} \right) \left( \sum_{i=1}^n \left( c_i + 1 \right)^m \right)
+\end{align*}</p>
+		<p>第一个 $\sum$ 左边的是常量，先不管它。考虑后面部分的求和，注意到 $c_1 + c_2 + \cdots + c_n = n - 2$，因此我们可以尝试构建一个生成函数去计算贡献。然而被求和项的两个因子中，后面的是<strong>和式</strong>，不是<strong>乘积式</strong>，该怎么办呢？</p>
+		<p>根据 <a href="soj486.html" target="_blank">[soj486]不科学的图论</a> 的经验，遇到求和的话，<del>利用期望的线性性</del> 只需要考虑<strong>和式中每一项</strong>对最终答案的贡献，最终相加即可。</p>
+		<p>现在我们假设去计算 $\left( c_1 + 1 \right)^m$ 的贡献，于是这个乘积式即为 $$ \frac {a_1^{c_1} \left( c_1 + 1 \right)^{\color{red} {2 m}}} {c_1 !} \cdot \frac {a_2^{c_2} \left( c_2 + 1 \right)^m} {c_2 !} \cdot \frac {a_3^{c_3} \left( c_3 + 1 \right)^m} {c_3 !} \cdots \frac {a_n^{c_n} \left( c_n + 1 \right)^m} {c_n !} \tag 3 \label 3 $$</p>
+		<hr />
+		<p>现在就可以构造生成函数了。</p>
+		<p>令 $\displaystyle G \left( x \right) = \sum_{i \geq 0} \left( i + 1 \right)^{2 m} \frac {x^i} {i!}, F \left( x \right) = \sum_{i \geq 0} \left( i + 1 \right)^m \frac {x^i} {i!}$，从而对 $\eqref 3$ 式求和后，这个值就等于</p>
+		<p>$$ \left[ x^{n-2} \right] G \left( a_1 x \right) F \left( a_2 x \right) F \left( a_3 x \right) \cdots F \left( a_n x \right) \tag 4 \label 4 $$</p>
+		<p>对 $\eqref 4$ 式再进行求和，得到 \begin{align*}
+ans &amp;= \left[ x^{n-2} \right] \sum_{i=1}^n G \left( a_i x \right) \prod_{j \neq i} F \left( a_j x \right) \\
+&amp;= \left[ x^{n-2} \right] \sum_{i=1}^n G \left( a_i x \right) \cdot \left( \frac 1 {F \left( a_i x \right)} \cdot \prod_{j=1}^n F \left( a_j x \right) \right) \\
+&amp;= \left[ x^{n-2} \right] \sum_{i=1}^n \frac {G \left( a_i x \right)} {F \left( a_i x \right)} \cdot \prod_{j=1}^n F \left( a_j x \right) \\
+&amp;= \left[ x^{n-2} \right] \left( \sum_{i=1}^n \frac {G \left( a_i x \right)} {F \left( a_i x \right)} \right) \left( \prod_{i=1}^n F \left( a_i x \right) \right) \\
+&amp;= \left[ x^{n-2} \right] \left( \sum_{i=1}^n \frac {G \left( a_i x \right)} {F \left( a_i x \right)} \right) \cdot \exp \left( \sum_{i=1}^n \ln F \left( a_i x \right) \right)
+\end{align*}
+		<p>于是等式两端都是类似地形式：给定一个多项式/幂级数 $f \left( x \right)$ (在左边为 $f \left( x \right) = \dfrac {G \left( x \right)} {F \left( x \right)}$，在右边为 $f \left( x \right) = \ln F \left( x \right)$)，你需要快速得到多项式 $\displaystyle \mathcal F \left( x \right) = \sum_{i=1}^n f \left( a_i x \right)$ 的值。</p>
+		<p>考察 $\left[ x^i \right] \mathcal F \left( x \right)$，可以看出它应该等于 $\left( a_1^i + a_2^i + \cdots + a_n^i \right) \cdot \left[ x^i \right] f \left( x \right)$。</p>
+		<p>也就是说，你需要对 $0 \leq i \leq n - 2$，求出 $a_1^i + a_2^i + \cdots + a_n^i$ 的值。</p>
+		<p>在<a href="soj381.html" target="_blank">这道题</a>中，我们通过 $a_1^i + a_2^i + \cdots + a_n^i$ 的值成功得到了 $\left( x - a_1 \right) \left( x - a_2 \right) \cdots \left( x - a_n \right)$ 的各项系数。那么这道题就是要<strong>倒着推回去</strong>，具体的做法都是一样的，<del>鉴于某些同学可能无法访问前面的链接，这里就再复读一遍</del>：</p>
+		<blockquote>
+			<p>令 $\displaystyle F \left( x \right) = \sum_{k \geq 1} \left( a_1^k + a_2^k + \cdots + a_n^k \right) \cdot x^{k-1} = \sum_{i=1}^n \left( a_i + a_i^2 x + a_i^3 x^2 + \cdots + a_i^n x^{n-1} + \cdots \right) = \sum_{i=1}^n \frac {a_i} {1 - a_i x}, G \left( x \right) = \prod_{i=1}^n \left( 1 - a_i x \right) = \left( 1 - a_1 x \right) \left( 1 - a_2 x \right) \cdots \left( 1 - a_n x \right)$，则容易验证 $F \left( x \right) = - \dfrac {G' \left( x \right)} {G \left( x \right)}$。</p>
+			<p><del>(到这步好像可以直接从 $G \left( x \right)$ 推到 $F \left( x \right)$ 了，于是问题解决)</del><p>
+			<p>如果想要从 $F \left( x \right)$ 推到 $G \left( x \right)$，则继续化简，有 $F \left( x \right) = - \left( \ln G \left( x \right) \right)'$，从而 $\displaystyle G \left( x \right) = \exp \left( - \int F \left( x \right) \mathrm dx \right)$。</p>
+		</blockquote>
+		<p>于是问题就解决了，<strong>时间复杂度</strong>的瓶颈在于求 $G \left( x \right)$ 的那个分治 NTT，即 $O \left( n \log^2 n \right)$，不过这个并不是<strong>运行时间</strong>的瓶颈。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define lg2(x) (31 - __builtin_clz(x))
+
+const int N = 135400, mod = 998244353, half_mod = (mod + 1) / 2, root = 31;
+typedef long long ll;
+typedef std::vector &lt;int&gt; vector;
+typedef int vec[N], *pvec;
+
+vec fact, inv, finv;
+
+inline int &amp; reduce(int &amp;x) {return x += (x &gt;&gt; 31 &amp; mod);}
+inline ll &amp; reduce(ll &amp;x) {return x += (x &gt;&gt; 63 &amp; mod);}
+inline int &amp; half(int &amp;x) {return x = (x &gt;&gt; 1) + (-(x &amp; 1) &amp; half_mod);}
+inline ll &amp; half(ll &amp;x) {return x = (x &gt;&gt; 1) + (-(x &amp; 1) &amp; half_mod);}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
+inline ll &amp; neg(ll &amp;x) {return x = (!x - 1) &amp; (mod - x);}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) {
+					R = (ll)y[k - j] * k[len] % mod;
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+				}
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3, B4, B5, B6, B7;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		DNTT(a, c), DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c), std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+
+	void Inv(int deg, pvec a, pvec b) {
+		int len, i; ll iv = half_mod;
+		*b = PowerMod(*a, mod - 2), b[1] = 0;
+		*B1 = *a, B1[1] = a[1];
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
+			NTT_init(len + 2);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B1[i] = 0;
+			DNTT(b, B2), DNTT(B1, B3);
+			for (i = 0; i &lt; n; ++i) reduce(B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod);
+			DNTT(B2, B3), std::reverse(B3 + 1, B3 + n), half(iv);
+			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B3[i] * iv % mod;
+			for (; i &lt; n; ++i) b[i] = 0, B1[i] = a[i];
+		}
+	}
+
+	void Mul(vector &amp;a, vector &amp;b, vector &amp;ret) {
+		int degA = a.size() - 1, degB = b.size() - 1;
+		if (!(degA || degB)) {ret.emplace_back((ll)a[0] * b[0] % mod); return;}
+		NTT_init(lg2(degA + degB) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		memcpy(B1, a.data(), (degA + 1) &lt;&lt; 2), memset(B1 + (degA + 1), 0, (n - degA - 1) &lt;&lt; 2);
+		memcpy(B2, b.data(), (degB + 1) &lt;&lt; 2), memset(B2 + (degB + 1), 0, (n - degB - 1) &lt;&lt; 2);
+		DNTT(B1, B3), DNTT(B2, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * B3[i] % mod;
+		DNTT(B1, B3), std::reverse(B3 + 1, B3 + n); ret.clear(), ret.reserve(degA + degB + 1);
+		for (i = 0; i &lt;= degA + degB; ++i) ret.EB(B3[i] * iv % mod);
+	}
+
+	void Diff(int deg, vec a, vec b) {for (int i = 1; i &lt;= deg; ++i) b[i - 1] = (ll)a[i] * i % mod;}
+
+	void Intg(int deg, vec a, vec b, int ct = 0) {for (int i = 1; i &lt;= deg; ++i) b[i] = (ll)a[i - 1] * inv[i] % mod, *b = ct;}
+
+	void Ln(int deg, vec a, vec b, bool need_reintegrate = true) {
+		deg -= need_reintegrate, assert(deg);
+		int i, j = deg * 2 - 1; NTT_init(lg2(j) + 1);
+		Diff(deg, a, B4), Inv(deg, a, B5);
+		for (i = deg; i &lt; n; ++i) B4[i] = B5[i] = 0;
+		Mul(j, B4, B5, B6);
+		if (need_reintegrate) Intg(deg, B6, b);
+		else memcpy(b, B6, deg &lt;&lt; 2);
+	}
+
+	void Exp(int deg, vec a, vec b) {
+		int len, i, n = 2;
+		*b = 1, b[1] = 0;
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len, n &lt;&lt;= 1) {
+			Ln(n, b, B7); *B7 = 1;
+			for (i = 1; i &lt; n; ++i) reduce(B7[i] = a[i] - B7[i]);
+			for (; i &lt; n &lt;&lt; 1; ++i) B7[i] = b[i] = 0;
+			Mul((n &lt;&lt; 1) - 1, b, B7, B6);
+			for (i = 0; i &lt; n; ++i) b[i] = B6[i];
+			for (; i &lt; n &lt;&lt; 1; ++i) b[i] = 0;
+		}
+	}
+}
+
+int n, K, cnt;
+vec A, B, invA, lnA;
+vec a, F, G, lhs, rhs;
+vector g[N];
+
+int solve(int L, int R) {
+	if (L + 1 == R) return L;
+	int M = (L + R) / 2, id = cnt++, lp = solve(L, M), rp = solve(M, R);
+	return Poly::Mul(g[lp], g[rp], g[id]), id;
+}
+
+void calc_deg_sum() {
+	int i, id;
+	for (i = 0; i &lt; n; ++i) g[i].EB(1), g[i].EB(mod - a[i]);
+	cnt = n, id = solve(0, n);
+	memcpy(G, g[id].data(), (n + 1) &lt;&lt; 2);
+	Poly::Ln(n, G, F + 1, false);
+	for (*F = n, i = 1; i &lt;= n; ++i) neg(F[i]);
+}
+
+int main() {
+	int i, j, ans = 0;
+	scanf("%d%d", &amp;n, &amp;K), init();
+	for (i = 0; i &lt; n; ++i) scanf("%d", a + i);
+	if (n &lt;= 1) return putchar(48), putchar(10), 0;
+	if (n == 2) return printf("%lld\n", 2ll * *a * a[1] % mod);
+	calc_deg_sum();
+	for (i = 0; i &lt; n - 1; ++i) A[i] = PowerMod(i + 1, K, finv[i]), B[i] = PowerMod(i + 1, 2 * K, finv[i]);
+	Poly::Ln(n, A, lnA), lnA[n - 1] = 0;
+	memcpy(invA, Poly::B5, (n - 1) &lt;&lt; 2);
+	for (i = 0; i &lt; n - 1; ++i) lnA[i] = (ll)lnA[i] * F[i] % mod;
+	Poly::Exp(n - 1, lnA, rhs);
+	Poly::Mul(2 * (n - 2), B, invA, lhs);
+	for (i = 0; i &lt; n - 1; ++i) lhs[i] = (ll)lhs[i] * F[i] % mod;
+	for (; i &lt; Poly::n; ++i) lhs[i] = 0;
+//	Poly::Mul(2 * (n - 2), lhs, rhs, ans);
+	for (i = 0, j = n - 2; i &lt; n - 1; ++i, --j) ans = (ans + (ll)lhs[i] * rhs[j]) % mod;
+	for (i = 0; i &lt; n; ++i) ans = (ll)ans * a[i] % mod;
+	printf("%lld\n", (ll)ans * fact[n - 2] % mod);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><del><strong>坑1：</strong>如果 $n = 1$，记得特判一下边界，答案为 $0$ (因为度数为 $0$)。</del></p>
+		<p><strong>坑2：</strong>最后一步 $\displaystyle \sum_{i=1}^n \frac {G \left( a_i x \right)} {F \left( a_i x \right)}$ 和 $\displaystyle \exp \left( \sum_{i=1}^n \ln F \left( a_i x \right) \right)$ 之间的卷积由于只需要求一项，因此不用 NTT，直接暴力 <code>for</code> 一遍计算即可。</p>
+	</body>
+</html>
