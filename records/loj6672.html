@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6672]惠和惠惠和惠惠惠</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你和你的朋友在玩三国杀，一开始你的血量为 $0$。</p>
+		<p>一共有 $n + 1$ 个回合 (编号为 $0 \sim n$)。</p>
+		<p>在每个回合，你可以选择如下操作：</p>
+		<ol>
+			<li>使用「桃」，下一个回合一开始你的血量加一；</li>
+			<li>使用「摸鱼」，下一个回合一开始你的血量不变；</li>
+			<li>使用「苦肉计」，下一个回合一开始你的血量减一。</li>
+		</ol>
+		<p>任何一个回合中，如果你的血量小于 $0$，你将会直接输掉比赛。</p>
+		<p>你的朋友不会影响你的血量，且由于<del>起胡番的</del>设定，他不会赢得比赛。</p>
+		<p>你的武将有一个锁定技，即如果你在这 $n + 1$ 个回合中，恰好血量为 $0$ 了 $k$ 个回合，<strong style="color: red">且当前的血量也为 $0$</strong>，那么在第 $n + 1$ 个回合结束时 (也就是说你只需要指定出 $n$ 个操作)，你将直接胜利。</p>
+		<p>求有多少种不同的操作方法，使得你能靠你的锁定技获得胜利。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, k$ ($n, k \leq 10^5$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示不同操作方法的总数，答案对 $998244353$ 取模。</p>
+
+		<h3>题解</h3>
+		<p>为了方便起见，先考虑 $k = 2$ 的做法 (由于开始和结束时的血量必须为 $0$)，即中间的过程中血量均不能为 $0$ 的方案数，记作 $f_n$。</p>
+		<p>而每一次操作，相当于可以选择以下 $3$ 个向量中的一个：$\left( 1, 1 \right), \left( 1, 0 \right), \left( 1, -1 \right)$，你需要按顺序选取 $n$ 个向量，使得它们的和为 $\left( n, 0 \right)$，且中间过程中不能<strong>到达 $x$ 轴或 $x$ 轴以下的部分</strong>。</p>
+		<p>当 $n \geq 2$ 时，容易验证，第一步一定是 $\left( 1, 1 \right)$，最后一步一定是 $\left( 1, -1 \right)$。而中间的 $n - 2$ 步相当于一个从 $\left( 0, 0 \right)$ 到 $\left( n - 2, 0 \right)$ 的 "路径"，且<strong>不经过第四象限</strong> (即 $x$ 轴一下的部分)。我们把这个值记作 $m_n$。</p>
+		<p>不难发现，$m_n$ 就是所谓的<del>赫赫有名的</del> Motzkin 数，位于 OEIS 的 <a href="http://oeis.org/A001006" target="_blank">A001006</a>。</p>
+		<p>和 Catalan 数/Schröder 数的推理方法类似，可以得到 $m_n$ 的生成函数 $$ M \left( x \right) = \dfrac {1 - x - \sqrt {1 - 2 x - 3 x^2}} {2 x^2} $$</p>
+		<p>由于 $f_n = \begin{cases} 0 &amp; n = 0 \\ 1 &amp; n = 1 \\ m_{n - 2} &amp; n \geq 2 \end{cases}$，因此 $f_n$ 的生成函数 $F \left( x \right) = x + x^2 \cdot M \left( x \right) = \dfrac {1 + x - \sqrt {1 - 2 x - 3 x^2}} 2$。</p>
+		<p>于是 $k = 2$ 的答案就等于 $\left[ x^n \right] F \left( x \right) = \left[ x^n \right] \dfrac {1 + x - \sqrt {1 - 2 x - 3 x^2}} 2$。</p>
+		<p>接下来是 $k \geq 2$ 的情况。</p>
+		<p>设触碰 $x$ 轴的 $k$ 次分别为 $0, b_1, b_2, \cdots, b_{k-2}, n$，则我们把这个 "行走" 的过程分为 $k - 1$ 段：$\left[ 0, b_1 \right], \left[ b_1, b_2 \right], \cdots, \left[ b_{k-2}, n \right]$，每一段可以看成一个 $k = 2$ 的情况。</p>
+		<p>因此总的生成函数就应该是 $k = 2$ 时的生成函数的 $k - 1$ 次，即 $$ F_k \left( x \right) = F^{k-1} \left( x \right) = \left( \frac {1 + x - \sqrt {1 - 2 x - 3 x^2}} 2 \right)^{k-1} $$</p>
+		<p>这样一来，即可以通过多项式的相关算法来求解 $\left[ x^n \right] F^{k-1} \left( x \right)$ 了，如果使用多项式快速幂，则时间复杂度为 $O \left( n \log n \log k \right)$，如果使用 $\ln$/$\exp$，则时间复杂度为 $O \left( n \log n \right)$ 或 $O \left( n \log^2 n \right)$ 不等。</p>
+		<p>注意到 $F \left( x \right)$ 有根式形式，因此可以通过对其求导等操作得到一个整系数微分方程进行递推求解系数，从而省去多项式开根这个麻烦的操作。</p>
+		<p>其实 $\ln F \left( x \right)$ 也有这个性质，只不过递推式是 $3$ 次的，稍微麻烦一点 (下面代码就直接递推求解 $\ln' F \left( x \right) = \dfrac {F' \left( x \right)} {F \left( x \right)}$ 了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef long long ll;
+const int N = 1000054, mod = 998244353, root = 31;
+typedef int vec[N], *pvec;
+
+vec inv;
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i) x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3;
+	void Mul(int degA, int degB, pvec a, pvec b, pvec c) { 
+		if (!degA &amp;&amp; degB == 1) {*c = (ll)*a * *b % mod, c[1] = (ll)*a * b[1] % mod; return;}
+		if (degA == 1 &amp;&amp; !degB) {*c = (ll)*a * *b % mod, c[1] = (ll)a[1] * *b % mod; return;}
+		NTT_init(lg2(degA + degB) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		memcpy(B1, a, (degA + 1) &lt;&lt; 2), memset(B1 + (degA + 1), 0, (n - degA - 1) &lt;&lt; 2);
+		memcpy(B2, b, (degB + 1) &lt;&lt; 2), memset(B2 + (degB + 1), 0, (n - degB - 1) &lt;&lt; 2);
+		DNTT(B1, B3), DNTT(B2, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * B3[i] % mod;
+		DNTT(B1, B3), std::reverse(B3 + 1, B3 + n);
+		for (i = 0; i &lt;= degA + degB; ++i) c[i] = B3[i] * iv % mod;
+	}
+}
+
+int n, K;
+vec f, g, C;
+
+void solve(int L, int R) {
+	int i, M = (L + R) / 2;
+	if (L + 1 == R) {g[L] = (L ? (ll)g[L] * inv[L] % mod : 1); return;}
+	solve(L, M);
+	Poly::Mul(M - L - 1, R - L - 1, g + L, f, C);
+	for (i = M; i &lt; R; ++i) add(g[i], C[i - L]);
+	solve(M, R);
+}
+
+int main() {
+	int i;
+	scanf("%d%d", &amp;n, &amp;K);
+	if ((n -= --K) &gt;&gt; 31) return putchar(48), putchar(10), 0;
+	for (inv[1] = 1, i = 2; i &lt;= n; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	f[1] = f[2] = 1;
+	for (i = 3; i &lt;= n; ++i) f[i] = (f[i - 1] + ((5ll * i - 6) * f[i - 2] + (3ll * i - 6) * f[i - 3]) % mod * inv[i]) % mod;
+	for (i = 1; i &lt;= n; ++i) f[i] = (ll)f[i] * K % mod;
+	solve(0, n + 1), printf("%d\n", g[n]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>用 $O \left( n \log^2 n \right)$ 的 $\exp$ (分治多项式技巧) 的时候不要忘记将初始多项式 "求导"。</p>
+		<p><strong>坑2：</strong>由于多项式的常数项为 $0$，因此在 $\exp$ 时要先除以 $x$，最后再乘回 $x^{k-1}$。</p>
+	</body>
+</html>

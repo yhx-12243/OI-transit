@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj3145][APIO2019]Bridges</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>圣彼得堡位于由 $m$ 座桥梁连接而成的 $n$ 个岛屿上。岛屿用 $1$ 到 $n$ 的整数编号，桥梁用 $1$ 到 $m$ 的整数编号。每座桥连接两个不同的岛屿。</p>
+		<p>有些桥梁是在彼得大帝时代建造的，其中一些是近期建造的。这导致了不同的桥梁可能有不同的重量限制。更具体地，只有重量不超过 $d_i$ 的汽车才能通过第 $i$ 座桥梁。</p>
+		<p>有时圣彼得堡的一些桥梁会进行翻新，但这并不一定会使桥梁承重变得更好，也就是说，进行翻新的桥梁的 $d_i$ 可能会增加或减少。</p>
+		<p>你准备开发一个产品，用于帮助公民和城市客人。目前，你开发的模块要能执行两种类型的操作：</p>
+		<ol>
+			<li><p>将桥梁 $b_j$ 的重量限制改为 $r_j$。</p></li>
+			<li><p>统计一辆重为 $w_j$ 的汽车从岛屿 $s_j$ 出发能够到达多少个不同的岛屿。</p></li>
+		</ol>
+		<p>请你回答所有第二种操作的答案。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($1 \leq n \leq 50000; 0 \leq m \leq 10^5$)，表示圣彼得堡的岛屿数量与桥梁数量。</p>
+		<p>接下来 $m$ 行，每行三个整数 $u_i, v_i, d_i$ ($1 \leq u_i, v_i \leq n; 1 \leq d_i \leq 10^9$)。第 $i$ 行的整数描述了一座连接岛屿 $u_i$ 和 $v_i$，初始时重量限制为 $d_i$ 的桥梁。</p>
+		<p>第 $m + 2$ 行包含一个正整数 $q$ ($q \leq 10^5$)，表示操作的数量。</p>
+		<p>接下来 $q$ 行，按顺序每行描述一个操作。</p>
+		<p>每行的第一个整数 $t_j$ ($t_j \in \left\{ 1, 2 \right\}$) 表示操作类型：</p>
+		<ul>
+			<li><p>若 $t_j = 1$，则该操作是第一种类型，该行接下来给定两个整数 $b_j$ 和 $r_j$ ($1 \leq b_j \leq m; 1 \leq r_j \leq 10^9$)，表示桥梁 $b_j$ 的重量限制将变为 $r_j$。</p></li>
+			<li><p>若 $t_j = 2$，则该操作是第二种类型，该行接下来给定两个整数 $s_j$ 和 $w_j$ ($1 \leq s_j \leq n; 1 \leq w_j \leq 10^9$)，表示一辆重为 $w_j$ 的汽车将要从第 $s_j$ 个岛屿出发。</p></li>
+		</ul>
+
+		<h3>输出格式</h3>
+		<p>对于每个第 2 种类型的询问，输出一行一个整数，表示答案。</p>
+
+		<h3>题解</h3>
+		<p>容易看出，"动态图连通性" 问题可以归约到它，因此它的难度不小于 "动态图连通性"。</p>
+		<p>而<del>众所周知</del>，<strong>强制在线</strong>的动态图连通性是<del>非常</del>复杂的一个问题，<del>理论上不可能在 APIO 上出现</del>，因此这引导我们使用<strong>离线算法</strong>。</p>
+		<p>对于 "动态图连通性" 问题，最简单的离线算法莫过于<a href="../index.html?tag=%E6%97%B6%E9%97%B4%E6%88%B3%E7%BA%BF%E6%AE%B5%E6%A0%91" target="_blank"><strong>时间戳线段树</strong></a>了，然而这道题中貌似这个不太可行，因为边权在不断变化中。</p>
+		<p>因此，我们考虑换一种思路 —— 分块：将操作按照时间分块。</p>
+		<p>我们将每 $B$ 个操作分为一组，先处理前 $B$ 个，再处理 $B + 1 \sim 2 B$，然后一批一批处理下去，……，直到最后所有块都处理完毕。</p>
+		<p>那么如何才能快速处理 $B$ 个连续的操作呢？</p>
+		<p>首先能够注意到，在 $B$ 个操作中，<strong>边权有变化的边的数量是不会超过 $B$ 的</strong>，这说明<strong>至少 $m - B$ 条边的边权是确定的</strong>。(设这些边构成的集合为 $F$) 因此 $F$ 中的边我们可以将它拉出来一起处理。</p>
+		<p>那怎么处理方便呢？当然是希望只有加边没有删边了呢，这样就可以愉快地使用并查集啦！因此我们将这些询问按照 $w_j$ 从大到小排序，然后每处理一个询问，将 $F$ 中多出来的可行边用并查集连通一下。</p>
+		<p>对于会改变边权的 (不超过 $B$ 条) 边 (设集合为 $G$)，对于每次询问，考察询问的时刻 (时间戳)，暴力模拟在这个询问之前的所有操作 (当然是在同一个<strong>组</strong>内)，计算出 $G$ 中每条边的 "<strong>最终边权</strong>"，将边权 $\geq w_j$ 的所有边用并查集连通一下。</p>
+		<p>不过 $G$ 中的边在处理完这个询问之后，下一轮就会发生变化，因此我们需要先把这些边清除 —— 这可以通过<a href="../index.html?tag=%E5%8F%AF%E6%92%A4%E9%94%80%E5%B9%B6%E6%9F%A5%E9%9B%86" target="_blank"><strong>可撤销并查集</strong></a>来实现。</p>
+		<p>最后来分析一下时间复杂度，对于 $F$ 中的边，它有 $O \left( m \right)$ 条，且需要进行<em>排序</em>，而一共有 $O \left( \dfrac qB \right)$ 个块，因此这部分的复杂度是 $O \left( \dfrac qB \cdot m \log m \right)$，对于 $G$ 中的边，每处理一组询问就要对并查集进行 $O \left( B \right)$ 次操作，故复杂度为 $O \left( q B \right)$。</p>
+		<p>可以发现，当取 $B = O \left( \sqrt {m \log m} \right)$ 时，总时间复杂度达到最小值 $O \left( q \cdot \sqrt {m \log m} \right)$。实践表明，当 $B = 1024$ 时运行速度比较快。</p>
+		
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 100054, M = N * 2, B = 1024;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+	edge * read() {return scanf("%d%d%d", &amp;u, &amp;v, &amp;w), this;}
+	inline bool operator &lt; (const edge &amp;B) const {return w &gt; B.w;}
+} e[M];
+
+struct request {
+	int type, v1, v2, id;
+	request * read(int _id) {return scanf("%d%d%d", &amp;type, &amp;v1, &amp;v2), v1 -= type == 1, id = _id, this;}
+} qry[M], qq[M];
+
+int V, E, Ef, Eg;
+int stamp = 0, mask[M];
+int ef[M], eg[M];
+int ans[M], temp_w[M];
+
+namespace UFSex {
+	int p[N], size[N];
+	int t, hist[20030731];
+
+	inline void reset(int n) {for (t = 0; n; --n) p[n] = n, size[n] = 1;}
+
+	int ancestor(int x) {return p[x] == x ? x : ancestor(p[x]);}
+
+	void Union(int x, int y) {
+		if ((x = ancestor(x)) != (y = ancestor(y))) {
+			if (size[x] &gt; size[y]) std::swap(x, y);
+			p[x] = y, size[y] += size[x], hist[++t] = x;
+		}
+	}
+
+	inline void undo(int time) {for (int x; t &gt; time; --t) x = hist[t], size[p[x]] -= size[x], p[x] = x;}
+}
+
+int main() {
+	int i, j, k, l, q, t0, cnt;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 0; i &lt; E; ++i) e[i].read();
+	scanf("%d", &amp;q);
+	for (i = 0; i &lt; q; ++i) qry[i].read(i);
+	for (i = 0; i &lt; q; i += B) {
+		++stamp, cnt = 0;
+		for (j = i; j &lt; i + B &amp;&amp; j &lt; q; ++j)
+			if (qry[j].type == 1) mask[qry[j].v1] = stamp;
+			else qq[cnt++] = qry[j];
+		std::sort(qq, qq + cnt, [] (const request &amp;A, const request &amp;B) {return A.v2 &gt; B.v2;});
+
+		for (Ef = Eg = j = 0; j &lt; E; ++j) (mask[j] == stamp ? eg[Eg++] : ef[Ef++]) = j;
+		std::sort(ef, ef + Ef, [] (const int x, const int y) {return e[x] &lt; e[y];});
+
+		UFSex::reset(V);
+		for (k = j = 0; j &lt; cnt; ++j) {
+			for (; k &lt; Ef &amp;&amp; e[ef[k]].w &gt;= qq[j].v2; ++k) UFSex::Union(e[ef[k]].u, e[ef[k]].v);
+			for (l = 0; l &lt; Eg; ++l) temp_w[eg[l]] = e[eg[l]].w;
+			for (l = i; l &lt; qq[j].id; ++l) if (qry[l].type == 1) temp_w[qry[l].v1] = qry[l].v2;
+			t0 = UFSex::t;
+			for (l = 0; l &lt; Eg; ++l) if (temp_w[eg[l]] &gt;= qq[j].v2) UFSex::Union(e[eg[l]].u, e[eg[l]].v);
+			ans[qq[j].id] = UFSex::size[UFSex::ancestor(qq[j].v1)];
+			UFSex::undo(t0);
+		}
+		for (j = i; j &lt; i + B &amp;&amp; j &lt; q; ++j)
+			if (qry[j].type == 1) e[qry[j].v1].w = qry[j].v2;
+	}
+	for (i = 0; i &lt; q; ++i) if (ans[i]) printf("%d\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>如果排序不是使用诸如基数排序等方法，则时间复杂度中会多出一个 $\log m$，此时块大小要略大于根号，取 $\sqrt m$ (常数不好) 很有可能会 TLE。</p>
+		<p><strong>坑2：</strong>在分块处理的时候注意细节 (比如 <code>memset</code> 等)，不要退化成 $O \left( q \cdot m \right)$ 了。</p>
+	</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj427][WMTC2018]化学竞赛</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 Abelian 群 $G = Z_{c_1} \times Z_{c_2} \times \cdots \times Z_{c_t}$ 和 $G$ 中的 $m$ 个元素 $g_1, g_2, \cdots, g_m$。</p>
+		<p>有 $q$ 组询问，每次给出两个正整数 $L_i, R_i$，求 $g_{L_i}, g_{L_i + 1}, g_{L_i + 2}, \cdots, g_{R_i - 1}, g_{R_i}$ 的<a href="http://mathworld.wolfram.com/GroupGenerators.html" target="_blank"><strong>生成子群</strong></a>的大小 $\left| \left&lt; g_{L_i}, g_{L_i + 1}, g_{L_i + 2}, \cdots, g_{R_i - 1}, g_{R_i} \right&gt; \right|$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $t, m, q$ ($m, q \leq 10^6$)，分别表示群的<strong>直积分解式</strong>的大小，给出的元素的个数，和询问的次数。</p>
+		<p>第二行包含 $t$ 个正整数 $c_1, c_2, \cdots, c_t$，表示 $G = Z_{c_1} \times Z_{c_2} \times \cdots \times Z_{c_t}$，保证 $\left| G \right| = c_1 \cdot c_2 \cdot \cdots \cdot c_t \leq 3000$。</p>
+		<p>第三行包含 $m$ 个 $\left[ 1, \left| G \right| \right]$ 正整数，按照 "<em>字典序</em>" 依次描述群中的 $m$ 个元素。</p>
+		<p>接下来 $q$ 行，每行两个正整数 $L_i, R_i$，表示你需要求 $\left| \left&lt; g_{L_i}, g_{L_i + 1}, g_{L_i + 2}, \cdots, g_{R_i - 1}, g_{R_i} \right&gt; \right|$ 的值。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行一个整数，表示第 $i$ 组询问的生成子群的大小。</p>
+
+		<h3>题解</h3>
+		<p>当 $c_1 = c_2 = \cdots = c_t = 2$ 时，可以发现，$G$ 就是大家熟悉的 ($\mathbb F_2$ 上) $n$ 维 $\texttt 0/ \texttt 1$ 向量的加法群 ($n$ 位整数关于异或运算构成的群)，于是一些元素 $S$ 的生成子群 $\left&lt; S \right&gt;$ 就是这些向量所<strong>张成的子线性空间</strong>。</p>
+		<p>因此，对于 $S = \left\{ s_1, s_2, \cdots, s_k \right\}$，生成子群的<strong>大小</strong> $\left| \left&lt; S \right&gt; \right|$ 就等于线性空间的维数，因此只需要将 $s_1, s_2, \cdots, s_k$ 依次加入<strong>线性基</strong>中，设加入后线性基有 $r$ 个元素 (即向量组 $s_1, s_2, \cdots, s_k$ 的秩为 $r$)，则 $\left| \left&lt; S \right&gt; \right| = 2^r$。</p>
+		<p>至于如何处理询问，<del>(显然区间线性基太麻烦了，而且还很慢，我们把它扔进垃圾桶)</del> 考虑将询问离线，按照左端点从大到小排序处理。</p>
+		<p>对于每个左端点 $l$，我们将元素 $g_L, g_{L + 1}, g_{L + 2}, \cdots, g_m$ 依次加入线性基，然后依次回答每个询问。</p>
+		<p>但是这样每个元素会被插入 $O \left( m \right)$ 次，时间复杂度会达到 $O \left( m^2 \right)$。</p>
+		<p>不过不用担心，由于线性基中的元素至多只有 $t$ 个，因此对于一个固定的左端点 $l$，只有<strong>不超过 $t$ 个</strong>元素在线性基中是 "<strong>插入成功</strong>" 的，剩下的元素均为 "<strong>插入失败</strong>" 的。</p>
+		<p>而一旦有一个元素 $g_i$ 插入失败，则在<strong>左端点左移</strong>的过程中元素 $g_i$ 必然还是插入失败的 (因为它还是能被已经插入的元素<em>线性表示</em>)，于是我们直接将其删去即可。</p>
+		<p>具体实现可以使用一个链表，来维护元素的删除。于是总时间复杂度就是 $O \left( m \log^2 n \right)$ ($n = \left| G \right|$，每个左端点插入 $O \left( \log n \right)$ 次，每次插入耗时 $O \left( \log n \right)$)。</p>
+		<hr />
+		<p>我们需要将这个算法进行推广。首先，考察所有 $c_i$ 均为素数的情形。</p>
+		<p>由于对于一个素数 $p$，群 $Z_p$ 上的所有<strong>非单位元素</strong>均为<strong>该群的生成元</strong>，也就是说，只要集合 $S \subseteq Z_p$ 中包含一个非零元素，则 $\left&lt; S \right&gt; = Z_p$。</p>
+		<p>还是考虑维护一个 "<em>线性基</em>" 状物：其中第 $i$ 个元素在 $Z_{c_i}$ 的分量中非 $0$，更高的分量中均为 $0$。</p>
+		<p>不过这里需要注意，如果线性基中只有一个元素，则生成子群的大小也不一定就是 $c_i$，有可能是若干个 $c_i$ 的乘积：</p>
+		<p>比如 $G = Z_2 \times Z_3, a = \left( 1, 1 \right)$。则实际上 $G \cong Z_6$，$a$ 在同构意义下为 $1$，是 $Z_6$ 的生成元，因此生成子群的大小就是 $6$。</p>
+		<p>这是因为，当 $a^k$ 满足第一维分量为 $0$ 时 ($a^2 = \left( 0, 2 \right)$) 后面的分量不一定是 $0$，而如果后面的分量不是 $0$，由于 $c_i$ 是素数，则我们相当于得到了不变子群 $Z_{c_i}$ 的一个生成元，从而可以生成一切形如 $\left( 0, a \right), a \in Z_{c_i}$ 的元素。</p>
+		<p>因此，在线性基中插入元素 $a$ 的过程中，依次考虑每一维 (设是第 $i$ 维)：</p>
+		<ol>
+			<li><p>如果线性基中存在第 $i$ 个元素，则用其消掉 $a$ 的第 $i$ 维。</p></li>
+			<li><p>否则，先将 $a$ 置入线性基中的第 $i$ 个位置。</p>
+			<p><strong style="color: fuchsia">其次 (和 $\mathbb F_2$ 线性基的不同之处)，令 $b = a^{c_i}$，此时 $b$ 的第 $i$ 维分量为 $0$，但后面的分量不一定为 $0$。将元素 $b$ 继续往线性基的更低维中插入</strong>。</p>
+			<p>这里选择 $c_i$ 的原因是，(由于 $c_i$ 是素数) $c_i$ 是最小的 $t$ 使得 $a^t$ 的第 $i$ 维分量为 $0$。因此，由群的性质，设 $a^k$ 的第 $i$ 维分量为 $0$，则必有 $c_i \mid k$，换句话说，$a^k$ 是 $a^{c_i}$ 的整数次幂 ($a^k = \left( a^{c_i} \right)^t$)。</p>
+		</ol>
+		<p>举个例子 (还是刚才的例子)，将 $\left( 1, 1 \right)$ 插入 $Z_2 \times Z_3$ 的线性基中，则线性基的第一个元素为 $\left( 1, 1 \right)$，第二个元素为 $\left( 0, 2 \right)$ ($= \left( 1, 1 \right)^2$)。</p>
+		<p>容易证明，插入一个元素的复杂度仍不超过 $O \left( \log n \right)$，因此总时间复杂度仍为 $O \left( m \log^2 n \right)$。</p>
+		<hr />
+		<p>接下来我们需要考虑更一般的情况了 ($c_i$ 是任意整数)。</p>
+		<p>孙子定理保证了，对于 $\left( m, n \right) = 1$，有 $Z_{m n} \cong Z_m \times Z_n$。因此，我们可以将一开始给出的群 $G$ 做一遍 "<em>有限 Abelian 群分解</em>"，这样就可以使得每个 $c_i$ 均为素数。<span style="color: red">(ps: 实际上这就是有限 Abelian 群分解定理：每个有限 Abelian 群均可以唯一地分解为若干个循环群的直积，其中每个循环群的阶均为素数的幂)</span></p>
+		<p>还是使用刚才 "线性基" 的思想 (群的线性表示理论)，尝试维护一个 "线性基" 状的结构来。</p>
+		<p>首先，由于单个循环群是 $Z_{p^k}$ 而不再是 $Z_p$，因此群中的元素可以分为 $k + 1$ 种：单位元 $e$ (阶为 $1$)，阶为 $p$ 的元素 (共 $p - 1$ 个)，阶为 $p^2$ 的元素 (共 $\left( p - 1 \right) p$) 个，……，阶为 $p^k$ 的元素 (共 $\left( p - 1 \right) p^{k - 1}$) 个。</p>
+		<p>考虑在这个循环群 (这一维) 中加入一个元素 $a$：</p>
+		<ol>
+			<li><p>如果它的阶 $\left| a \right|$ 不超过线性基中对应元素对应维的阶，则说明它 (在这一维) 可以被线性基中的元素<em>线性表示</em>出来，因此直接消掉它即可。</p></li>
+			<li><p>否则，说明 $\left| a \right|$ 已经超过了线性基中对应元素的阶，从而它可以表示出线性基中的对应元素，设为 $b$。</p>
+			<p>于是，我们需要 "交换一下 $a$ 和 $b$ 的身份"：<strong>将 $a$ 插入线性基</strong>，将 $b$ 弹回，在剩下的阶段我们将 $b$ 看作带插入元素再插入一次；</p>
+			<p>还是要注意，在新插入元素过后，由于后面的分量不一定可以达到 $0$，于是我们需要找到最小的 $t = \left| a \right|$ 使得 $a^t$ 的第 $i$ 为分量为 $0$，然后还需要将 $a^t$ 插入一次 (也就是说，一共需要插入两次)。</p></li>
+		</ol>
+		<p>容易证明，这样的过程所得到的线性基是正确的 (即线性基的生成子群就是原来元素集合的生成子群)，至于时间复杂度，由于每次 "<em>插入成功</em>" 至少使得生成子群大小翻倍，于是插入次数不超过 $O \left( \log n \right)$，每次插入耗时 $O \left( \log n \right)$，总时间复杂度 $O \left( m \log^2 n \right)$。</p>
+		<p>这里有一个细节是，如何快速判断两个元素的阶孰大孰小，朴素的方法是使用 $\gcd$，不过会达到 $O \left( m \log^3 n \right)$ 的复杂度。我们可以预处理对每个 $c_i = p^k$，$f_{i, u, v}$ 表示最小的 $t$，使得 $u t \equiv v \pmod {p^k}$，如果不存在则为 $-1$。这样后续每次的计算都可以达到 $O \left( 1 \right)$，从而可以通过此题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define ID isdigit(c = *next++)
+
+struct Istream {
+	char *next, buf[20030731 * 2];
+	Istream (FILE *f = stdin) {fread(buf, 1, sizeof buf, f), next = buf;}
+	Istream &amp; operator &gt;&gt; (int &amp;x) {
+		int c; x = 0;
+		for (; !ID; ) if (!~c) return *this;
+		for (x = c &amp; 15; ID; x = x * 10 + (c &amp; 15));
+		return *this;
+	}
+} cin;
+
+struct Ostream {
+	char *next, buf[20030731], _buf[34];
+	Ostream () {next = buf;}
+	void flush(FILE *f = stdout) {fwrite(buf, 1, next - buf, f), next = buf;}
+	Ostream &amp; operator &lt;&lt; (int x) {
+		if (!x) return put(48), *this;
+		int i;
+		for (i = 0; x; x /= 10) _buf[++i] = x % 10 | 48;
+		for (; i; --i) put(_buf[i]);
+		return *this;
+	}
+	Ostream &amp; operator &lt;&lt; (char c) {return put(c), *this;}
+	void put(char c) {*next++ = c;}
+} cout;
+
+typedef std::vector &lt;int&gt; vector;
+typedef std::pair &lt;int, int&gt; pr;
+const int D = 11, G = 3054, N = 1000054;
+typedef int element[D], *pelement;
+
+int Dim, rawDim, n, q;
+pr dim[D];
+element e[N];
+int rawdim[D], dimp[D], rgt[N], ans[N];
+int cur, L[N], R[N];
+vector qs[N];
+
+namespace NT {
+	int pn = 0, c[G], p[450];
+	int red[D][G][G];
+
+	int PowerMod(int a, int n, int mod, int c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+	void sieve(int n) {
+		int i, j, v;
+		memset(c, -1, sizeof c);
+		for (i = 2; i &lt;= n; ++i) {
+			if (!~c[i]) p[pn] = i, c[i] = pn++;
+			for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt;= c[i]; ++j) c[v] = j;
+		}
+	}
+
+	inline void init() {sieve(G - 1);}
+
+	void pre_calc() {
+		int i, j, J, k, l, *f;
+		for (i = 0; i &lt; Dim; ++i)
+			for (j = 0, J = -dimp[i]; j &lt; dimp[i]; ++j, ++J) {
+				memset(f = red[i][j], -1, dimp[i] &lt;&lt; 2), k = l = 0;
+				do f[l] = k++, l += J, l += l &gt;&gt; 31 &amp; dimp[i]; while (l);
+				*f = k;
+			}
+	}
+
+	inline bool reducible(int x, int y, int id, int &amp;ret) {return ~(ret = red[id][x][y]);}
+}
+
+namespace AbelianGroup {
+	int size, begin[D];
+
+	int FAGF(int n, int *d) { // Finite Abelian Group Factorization
+		using NT::p; int i, j, k, x, y, cnt = 0;
+		for (i = 0; i &lt; n; ++i)
+			for (begin[i] = cnt, size *= x = d[i]; x &gt; 1; dim[cnt] = pr(p[j], k), dimp[cnt++] = y)
+				for (k = 0, j = NT::c[x], y = 1; !(x % p[j]); x /= p[j], y *= p[j], ++k);
+		return begin[n] = cnt;
+	}
+
+	void get(int x, int n, int *d, pelement ret) {
+		int i, j; div_t t;
+		for (i = n - 1; i &gt;= 0; x = t.quot, --i)
+			for (t = div(x, d[i]), j = begin[i]; j != begin[i + 1]; ++j) ret[j] = t.rem % dimp[j];
+	}
+}
+
+namespace GroupBase {
+	int span_size;
+	element lb[D];
+
+	inline void reset() {for (int i = 0; i &lt; D; ++i) memset(lb[i], 0, Dim &lt;&lt; 2); span_size = 1;}
+
+	bool insert(pelement x, int r = Dim) {
+		int i, j, cur, New, coe; bool success = false; element y;
+		if (std::count(x, x + r, 0) == r || span_size == AbelianGroup::size) return false;
+		for (i = r - 1; i &gt;= 0; --i) if (New = x[i]) {
+			cur = lb[i][i];
+			if (NT::reducible(cur, New, i, coe))
+				for (j = i; j &gt;= 0; --j)
+					x[j] = (x[j] - coe * lb[i][j]) % dimp[j], x[j] += x[j] &gt;&gt; 31 &amp; dimp[j];
+			else {
+				for (j = i; j &gt;= 0; --j) std::swap(lb[i][j], x[j]);
+				assert(NT::reducible(New, cur, i, coe));
+				span_size *= NT::red[i][New][0] / NT::red[i][cur][0];
+				for (j = i; j &gt;= 0; --j)
+					x[j] = (x[j] - coe * lb[i][j]) % dimp[j], x[j] += x[j] &gt;&gt; 31 &amp; dimp[j];
+				coe = NT::red[i][New][0];
+				for (j = i - 1; j &gt;= 0; --j) y[j] = lb[i][j] * coe % dimp[j];
+				insert(y, i), success = true;
+				success = true;
+			}
+		}
+		return success;
+	}
+}
+
+inline bool cmp(const int x, const int y) {return rgt[x] &lt; rgt[y];}
+
+int main() {
+	int i, j, k, x, qq; element t; NT::init();
+	cin &gt;&gt; rawDim &gt;&gt; n &gt;&gt; q;
+	for (i = 0; i &lt; rawDim; ++i) cin &gt;&gt; rawdim[i];
+	Dim = AbelianGroup::FAGF(rawDim, rawdim), NT::pre_calc();
+	for (i = 1; i &lt;= n; ++i) cin &gt;&gt; x, AbelianGroup::get(--x, rawDim, rawdim, e[i]);
+	for (i = 0; i &lt; q; ++i) cin &gt;&gt; x &gt;&gt; rgt[i], qs[x].EB(i);
+	for (i = 0; i &lt;= n; ++i) L[i + 1] = i, R[i] = i + 1;
+	for (i = n; i; --i) {
+		if (!(qq = qs[i].size())) continue;
+		std::sort(qs[i].begin(), qs[i].end(), cmp);
+		cur = k = 0, GroupBase::reset();
+		for (j = i; j &lt;= n &amp;&amp; k &lt; qq; j = R[j]) {
+			memcpy(t, e[j], Dim &lt;&lt; 2);
+			if (!GroupBase::insert(t)) L[R[j]] = L[j], R[L[j]] = R[j];
+			for (; k &lt; qq &amp;&amp; rgt[qs[i][k]] &lt; R[j]; ans[qs[i][k]] = GroupBase::span_size, ++k);
+		}
+	}
+	for (i = 0; i &lt; q; ++i) cout &lt;&lt; ans[i] &lt;&lt; '\n';
+	cout.flush();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>本题常数非常紧 (尤其是 Hack 数据)，因此一定要做充分的常数优化 (当然，复杂度错的先去纠正复杂度)，经尝试，如果预处理 $\gcd$ 常数会比较大 (多余的乘除)，像上文所说预处理 $f_{i, u, v}$ 常数较小。</p>
+		<p>当然，还可以加诸如跳过空左端点、不插入单位元、子群已满的判断来减少常数。<del>用 <code>int</code> 存储元素貌似比数组较快，不过可能因为除法原因优势不明显</del>。</p>
+		<p><strong>坑2：</strong>在读入的时候元素的编号是从 $1 \sim n$ 的，因此不要忘记先对其 $- 1$。</p>
+		<p><strong>坑3：</strong>一些数组的大小要合适，不要太小 (RE/TLE) 或太大 (TLE/MLE) 了。</p>
+	</body>
+</html>

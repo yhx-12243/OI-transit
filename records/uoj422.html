@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj422][WMTC2018]小 Z 的礼物</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 Z 有一个神奇的自动售货机，里面有 $n \times m$ 种物品，分别放在 $n$ 行 $m$ 列个格子中。每当小 Z 向自动售货机中投入一枚硬币，他就能获得一对相邻格子中的物品 (已经获得的物品可能再次获得)，获得每一对相邻格子中的物品的概率是相等的。</p>
+		<p>在这 $n \times m$ 种物品中，有一些物品是小 Z 喜欢的 (小 Z 喜欢的用 <code>*</code> 表示，其他的用 <code>.</code> 表示)，他想把这些物品包装成一份礼物。小 Z 想知道，期望投入多少枚硬币后，就可以获得这些他喜欢的物品。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($1 \leq n \leq 6; 2 \leq m \leq 100$)。</p>
+		<p>接下来 $n$ 行，每行一个长度为 $m$ 的字符串，字符串中仅包含 <code>*</code> 和 <code>.</code> 两种字符。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示期望硬币数在模 $998244353$ 意义下的结果。</p>
+
+		<h3>题解</h3>
+		<p><del>根据套路</del>，对于 "<strong>获得所有想要的物品</strong>"，使用 <strong>Min-Max</strong> 容斥原理，转化为对于每个 "<strong>想要的物品的子集</strong>"，期望多少次后可以<strong>至少拿到一个</strong>，然后容斥一下就 win 了。</p>
+		<p>对于一个子集，这个期望次数是非常好计算的，直接使用<strong>几何分布</strong>的结论，设有 $K$ 种成功的方案，期望次数就是 $\dfrac N K$，其中 $N = 2 n m - n - m$ 为总方案数。</p>
+		<p>然而这样的时间复杂度是 $O \left( 2^{cnt} \cdot \operatorname{poly} \left( n, m \right) \right)$ 的 (根据题目描述，$cnt$ 为输入中 <code>*</code> 的数量)，显然是无法接受的。</p>
+		<p>那该怎么优化呢？注意到 $n \leq 6$，这引导我们使用<strong>轮廓线/插头 DP</strong>。</p>
+		<p>根据以前的<a href="../index.html?search=%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92&tag=%E5%AE%B9%E6%96%A5%E5%8E%9F%E7%90%86" target="_blank">容斥题</a>的思想，我们使用 DP 来求解容斥系数。</p>
+		<p>使用插头 DP，用 $f_{i, j, k, S}$ 表示当前扫描到第 $i$ 列第 $j$ 行，已经有 $k$ 种成功的方案，前一列中<strong>被选礼物</strong>构成的集合为 $S$ 的容斥系数。</p>
+		<p>转移也不难，考虑 $\left( i, j \right)$ 上的礼物选不选。如果不选，则直接转移即可 ($f_{i, j+1, k, S'} \gets f_{i, j, k, S}$)；如果选了 (前提是 $\left( i, j \right)$ 上有 <code>*</code> 型礼物)，则根据 $i, j$ 是否是边界以及 $j - 1, j$ 是否 $\in S$，来决定新的 $k'$ 值并转移。注意转移时由于礼物集合 $T$ 增大了 $1$，因此更新时需要使用 <code>-=</code>。</p>
+		<p>最后只需要统计 $\sum\limits_S f_{m, n, k, S}$ 的值，即得成功方案数为 $k$ 的容斥系数的和，直接乘以 $\dfrac Nk$，最后再对 $k$ 求个和，就是所要的答案了。</p>
+		<p>时间复杂度 $O \left( 2^n n^2 m^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 108, F = 1270, mod = 998244353;
+
+int R, C, n, ALL;
+char map[N][6], tmp[N];
+int dp[2][N][F], (*cur)[F] = *dp, (*nxt)[F] = dp[1];
+int inv[F];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void sub(int &amp;x, const int y) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+
+int main() {
+	int i, j, k, nk, s, ns, t, res = 0;
+	scanf("%d%d", &amp;C, &amp;R), ALL = ~(-1 &lt;&lt; C), n = 2 * R * C - (R + C);
+	for (inv[1] = 1, i = 2; i &lt;= n; ++i)
+		inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	for (j = 0; j &lt; C; ++j)
+		for (scanf("%s", tmp), i = 0; i &lt; R; ++i) map[i][j] = tmp[i] == 42;
+	nxt[0][0] = 1;
+	for (i = 0; i &lt; R; ++i)
+		for (j = 0; j &lt; C; ++j) {
+			std::swap(cur, nxt), memset(nxt, 0, sizeof *dp);
+			for (s = 0; s &lt;= ALL; ++s)
+				for (k = 0; k &lt;= n; ++k) if (t = cur[s][k]) {
+					ns = s &amp; ~(1 &lt;&lt; j), add(nxt[ns][k], t);
+					if (map[i][j])
+						nk = k + !((s &lt;&lt; 1 | 1) &gt;&gt; j &amp; 1) + (i &amp;&amp; !(s &gt;&gt; j &amp; 1)) + (j &lt; C - 1) + (i &lt; R - 1),
+						sub(nxt[ns | 1 &lt;&lt; j][nk], t);
+				}
+		}
+	for (s = 0; s &lt;= ALL; ++s)
+		for (k = 1; k &lt;= n; ++k) res = (res + (ll)nxt[s][k] * inv[k]) % mod;
+	printf("%lld\n", (ll)(mod - res) * n % mod);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>计算新的 $k'$ 时注意 $i, j$ 边界的影响，不要遗漏了。</p>
+		<p><strong>坑2：</strong>逆元要预处理到 $2 n m$，而不是 $O \left( m \right)$ 或 $n m$。</p>
+	</body>
+</html>

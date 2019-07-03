@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6673]EntropyIncreaser 与山林</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定简单图 $G = \left( V, E \right)$，你需要计算出有多少个边的子集 $E' \subseteq E$，使得由这些边构成的 $G$ 的<strong>生成子图</strong>是 Euler 图。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个整数 $n, m$ ($1 \leq n \leq 20; 0 \leq m \leq \dbinom n2$)，表示图的点数 $\left| V \right|$ 和边数 $\left| E \right|$。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，表示一条连接 $u$ 和 $v$ 的无向边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示是 Euler 图的生成子图个数模 $998244353$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>由 Euler 图的充要条件知，$G$ 为 Euler 图 &#8660; $G$ 连通且每个顶点的度数为偶数。</p>
+		<p>先不考虑 "连通" 这个条件，考虑由多少个边的子集 $E' \subseteq E$ 使得每个顶点的度数均为偶数。</p>
+		<p>考虑对于边 $e$，建立变量 $x_e$ 表示这条边是否出现在 $E'$ 中。</p>
+		<p>由于新图 $\left( V, E' \right)$ 中每个点的度数均为偶数，因此对于 $\forall u \in V$，必有 $\displaystyle \bigoplus_{v \in N \left( u \right)} x_{\left( u, v \right)} = 0$。</p>
+		<p>同理，一共可以得到 $n$ 个方程，从而得到一个<strong>异或方程组</strong>。</p>
+		<p>因此合法的子集 $E'$ 的数量就等于这个异或方程组的解的组数。</p>
+		<p>由于异或方程组的解的组数等于 $2^{m - \operatorname{rank} \mathbf A}$，其中 $m$ 为边 (自变量) 的个数，$\operatorname{rank} \mathbf A$ 表示矩阵 $\mathbf A$ 的秩。</p>
+		<p>然而令人惊喜地是，这个矩阵 $\mathbf A$ 是这张图 $G$ 的<strong>关联矩阵</strong>！而<del>众所周知</del>，$\mathbb F_2$ 意义下关联矩阵的秩等于图 $G$ 的<strong>点数</strong>减去<strong>连通分量</strong>的个数！因此我们可以得到如下结论：</p>
+		<p><strong style="color: green">对于图 $G = \left( V, E \right)$，满足 $E' \subseteq E$ 且 $\left( V, E' \right)$ 是 "Euler 图" (这里的 "Euler 图" 指的是每个点的度数均为偶数<strong>但不一定连通</strong>的图) 的 $E'$ 的个数为 $2^{\left| E \right| - \left| V \right| + conn \left( G \right)}$，其中 $conn \left( G \right)$ 为图 $G$ 的连通分量个数</strong>。</p>
+		<p style="color: red">(ps: 至于 $\mathbb F_2$ 意义下关联矩阵的秩为什么等于 $\left| V \right| - conn \left( G \right)$，可以如下理解：考虑一个点集 $V_0$ 对应的行向量，如果它们加起来等于 $0$，说明每条边的要么都在 $V_0$ 中，要么都在 $V_0$ 外。从而 $V_0$ 是 $G$ 中若干个连通分量的并)</p>
+		<hr />
+		<p>接下来考虑加上 "<strong>$G$ 连通</strong>" 这个条件后该怎么处理。</p>
+		<p>我们先来思考这样一个问题：<strong>如果我们已经知道了 $G$ 的 Eulerian 生成子图的数量，如何求 $G$ 的每个点度数均为偶数的生成子图数量</strong>。</p>
+		<p>这明显是求不出来的，因为你不知道 $G$ 的连通分量分布情况。</p>
+		<p>现在我们放宽条件：假设我们已经知道了，对于 $G$ 的点集 $V$ 的每一个子集 $V' \subseteq V$，它<strong>导出</strong>的子图 $G \left[ V' \right]$ 中有多少个生成子图是 Euler 的，这样就可以求 $G$ 的每个点度数均为偶数的生成子图的数量了。</p>
+		<p>由于一个 "每个点度数均为偶数的生成子图" 是若干个 Euler 图的<a href="../memos/14.html" target="_blank">直和</a>，因此我们容易想到通过状态压缩 DP 来完成，更精细地，使用<strong>子集卷积</strong>。</p>
+		<p>用集合幂级数 $A \left( x \right) = \sum_S f_S x^S$ 表示对于每个 $S \subseteq V$，导出子图 $G \left[ S \right]$ 中 Eulerian 生成子图的数量。</p>
+		<p>考虑 "每个点度数均为偶数的生成子图"，如果它只有一个连通分量 (即就是 Euler 图)，那显然应该是 $A \left( x \right)$，如果有两个 连通分量，那就应该是 $\dfrac {A^2 \left( x \right)} 2$ <span style="color: red">(ps: 这里的幂、乘法表示<strong>子集卷积</strong>)</span>，……，如果是 $k$ 个，就应该是 $\dfrac {A^k \left( x \right)} {k !}$。</p>
+		<p>不难看出，最终允许不连通的集合幂级数 $$ \mathcal F \left( x \right) = A \left( x \right) + \frac {A^2 \left( x \right)} {2 !} + \frac {A^3 \left( x \right)} {3 !} + \cdots = \mathrm e^{A \left( x \right)} $$</p>
+		<p>也就是说，我们需要对这个集合幂级数做一次 $\exp$！</p>
+		<p>不过这并没有什么可怕的。还是和 <a href="lydsy5153%3Blg4221%3Buoj348%3Bloj2340.html" target="_blank">[WC2018]州区划分</a> 类似，先做一遍 <abbr title="Fast Möbius Transform, 快速 Möbius 变换">FMT</abbr>，然后对每个小多项式分别做 $O \left( n^2 \right)$ 的 $\exp$，最后答案就是 <abbr title="Inverse Fast Möbius Transform, 逆快速 Möbius 变换">IFMT</abbr> 的某一项，暴力计算即可。</p>
+		<hr />
+		<p>接下来考虑从不连通到连通时的做法。</p>
+		<p>其实这样一分析也不见得难了是吧。既然你连通 → 不连通是 $\exp$，那么不连通 → 连通当然就是 $\ln$ 一下就好喽~</p>
+		<p>于是和上面的过程基本一样，把 $\exp$ 换成 $\ln$ 就可以了，$\ln$ 还是直接暴力 $O \left( n^2 \right)$ 就好。</p>
+		<p>时间复杂度和<a href="lydsy5153%3Blg4221%3Buoj348%3Bloj2340.html" target="_blank">那题</a>一样，$O \left( 2^n n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define popc __builtin_popcount
+#define ctz __builtin_ctz
+
+typedef long long ll;
+const int N = 21, N2 = 1054000, mod = 998244353;
+const int inv[N] = {1, 1, 499122177, 332748118, 748683265, 598946612, 166374059, 855638017, 873463809, 443664157, 299473306, 272248460, 582309206, 460728163, 926941185, 865145106, 935854081, 939524097, 720954255, 105078353, 149736653};
+typedef int vec[N2][N], (*pvec)[N];
+
+int V, E, ALL;
+int G[N], pw2[N * N], a[N];
+vec A;
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void sub(int &amp;x, const int y) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+void Add(int *a, int *b) {for (int i = 0; i &lt;= V; ++i) add(a[i], b[i]);}
+
+void FMT(pvec a) {
+	int i, j, k, len = 1;
+	for (i = 0; i &lt; V; ++i, len &lt;&lt;= 1)
+		for (j = 0; j &lt;= ALL; j += len &lt;&lt; 1)
+			for (k = j; k &lt; j + len; ++k)
+				Add(a[k + len], a[k]);
+}
+
+// b = ln a
+void Ln(int *a, int *b) {
+	int i, j, r; assert(*a == 1);
+	for (i = 1; i &lt;= V; ++i) {
+		for (r = (ll)i * a[i] % mod, j = 1; j &lt; i; ++j)
+			r = (r - (ll)b[j] * a[i - j]) % mod;
+		b[i] = r + (r &gt;&gt; 31 &amp; mod);
+	}
+	for (i = 1; i &lt;= V; ++i) b[i] = (ll)b[i] * inv[i] % mod;
+	
+}
+
+// Number of Connected Components
+int nCC(int A) {
+	int i, j, u, v, F, S, ans = 0; static int con[N];
+	for (i = A; i; i &amp;= i - 1) con[ctz(i)] = i &amp; -i;
+	for (i = A; i; i &amp;= i - 1)
+		for (u = ctz(i), j = G[u] &amp; i &amp; (i - 1); j; j &amp;= j - 1)
+			if (v = ctz(j), con[u] &gt;&gt; v &amp; 1) ++ans;
+			else for (S = F = con[u] | con[v]; S; S &amp;= S - 1) con[ctz(S)] = F;
+	return ans;
+}
+
+int main() {
+	int i, u, v; ll ans = 0;
+	for (*pw2 = i = 1; i &lt; N * N; ++i) pw2[i] = pw2[i - 1] * 2 % mod;
+	scanf("%d%d", &amp;V, &amp;E), ALL = ~(-1 &lt;&lt; V);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), G[--u] |= 1 &lt;&lt; --v, G[v] |= 1 &lt;&lt; u;
+	for (i = 0; i &lt;= ALL; ++i) A[i][popc(i)] = pw2[nCC(i)];
+	FMT(A);
+	for (i = 0; i &lt;= ALL; ++i) Ln(A[i], a), popc(i) &amp; 1 ? ans -= a[V] : ans += a[V];
+	ans = (V &amp; 1 ? -ans : ans) % mod;
+	printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意到 $\left| E \right| - \left| V \right| + conn \left( G \right)$ 恰好等于用并查集等连边时 "连边失败" 的次数，因此可以直接计算，不需要逐个计算 $\left| E \right|, \left| V \right|, conn \left( G \right)$。</p>
+		<p><strong>坑2：</strong>计算 $f = \ln g$ ($f' g = g'$) 时，可以把 $i \cdot f_i$ 看成一个整体计算，最后再乘以 $i^{-1}$。</p>
+	</body>
+</html>

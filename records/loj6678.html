@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6678]礼物</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>穷愁潦倒的小 B 正在树上漫步，突然接到了小 S 的电话，要他去点 $y$ 买一些礼物，然而他现在正处于 $x$ 点，并且他身上并没有钱。</p>
+		<p>小 L 告诉了他一个绝妙的方法。树上的每个点都有大佬的存在，其中一些大佬会购买或出售 (售价与收购价相同) bsoj 权限账号。而且各点 dalao 数量不同，价格也不同，这样的交易能使他赚上一笔差价。小 S 没有告诉他礼物的价钱，他只能赚尽量多的钱。由于小 S 在小 B 的身上装了追踪器，所以他只能走 $x$ 到 $y$ 的最短路，而且时间不足，因此这样的交易只能发生一次 (指买一次卖一次)。</p>
+		<p>小 B 这样的大神犇显然已经知道求解方法了，但他为了不被小 S 发现，让你来帮他解决这个问题。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 2.5 \times 10^5$)，表示树上的点数。</p>
+		<p>第二行包含 $n$ 个正整数 $w_1, w_2, \cdots, w_n$ ($w_i \leq 10^9$)，表示每个点上权限号的价格。</p>
+		<p>接下来 $n - 1$ 行，每行两个正整数 $x, y$ ($1 \leq x, y \leq n; x \neq y$)，表示点 $x$ 和点 $y$ 之间有一条边相连。</p>
+		<p>第 $n + 2$ 行包含一个正整数 $m$ ($m \leq 2.5 \times 10^5$)，表示接下来有 $m$ 个询问。</p>
+		<p>接下来的 $m$ 行，每行两个正整数 $x, y$ ($1 \leq x, y \leq n; x \neq y$)，表示小 B 从点 $x$ 出发要到点 $y$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 行，每行一个整数，表示对应询问的答案，即小 B 最多能赚到多少钱。</p>
+
+		<h3>题解</h3>
+		<p>根据题意容易发现，设小 $x$ 经过的点 (含端点) 分别为 $v_1 = x, v_2, v_3, \cdots, v_{k-1}, v_k = y$，则他最多能赚到的钱数应为 $$ \max \left\{ \max_{1 \leq i &lt; j \leq k} \left( v_j - v_i \right), 0 \right\} $$</p>
+		<p>因此我们考虑如何维护这个东西。</p>
+		<p>如果这棵树是一条链，那么容易想到可以使用<strong>线段树</strong>来维护：</p>
+		<p>对每个节点，统计区间最大值、最小值以及答案。最大值和最小值不难更新，答案就之间将两个子树的答案和<em>右子树最大值减去左子树最小值</em>取个 $\max$ 就可以了。</p>
+		<p>那么对于树的情况也不难了，由于询问是一条链，因此直接使用<strong>树链剖分</strong> + 线段树即可维护。</p>
+		<p>不过需要注意链的方向，因此维护线段树节点时需要记录一正一反两个答案。</p>
+		<p>总时间复杂度 $O \left( n + m \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+
+const int N = 254000, M = N * 2, INF = 0x3f3f3f3f;
+
+int n, E = 0;
+int to[M], first[N], next[M];
+int w[N], p[N], dep[N], size[N];
+int cnt = 0, o[N], id[N], prf[N], top[N];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+namespace ST {
+	struct node {int min, max, pos, neg;} x[N * 4];
+
+	void update(node &amp;ret, const node &amp;l, const node &amp;r) {
+		ret.min = min(l.min, r.min), ret.max = max(l.max, r.max);
+		up(ret.pos = max(l.pos, r.pos), r.max - l.min);
+		up(ret.neg = max(l.neg, r.neg), l.max - r.min);
+	}
+
+	void build(int id, int L, int R) {
+		if (L == R) {x[id].min = x[id].max = w[o[L]], x[id].pos = x[id].neg = 0; return;}
+		segc; build(lc, L, M), build(rc, M + 1, R);
+		update(x[id], x[lc], x[rc]);
+	}
+
+	node range(int id, int L, int R, int ql, int qr) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id];
+		segc;
+		if (qr &lt;= M) return range(lc, L, M, ql, qr);
+		if (ql &gt; M) return range(rc, M + 1, R, ql, qr);
+		node ret, l = range(lc, L, M, ql, M), r = range(rc, M + 1, R, M + 1, qr);
+		return update(ret, l, r), ret;
+	}
+}
+
+void dfs_wt(int x) {
+	int i, y, &amp;z = prf[x]; size[x] = !next[first[x]];
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x]) {
+			p[y] = x, dep[y] = dep[x] + 1;
+			dfs_wt(y), size[x] += size[y];
+			size[y] &gt; size[z] ? z = y : 0;
+		}
+}
+
+void dfs_hld(int x, int r) {
+	int i, y; o[++cnt] = x, id[x] = cnt, top[x] = r;
+	if (!prf[x]) return;
+	dfs_hld(prf[x], r);
+	for (i = first[x]; i; i = next[i])
+		if (!top[y = to[i]]) dfs_hld(y, y);
+}
+
+int solve(int u, int v) {
+	using namespace ST;
+	int x = top[u], y = top[v]; node U = {INF, -INF, 0, 0}, V = U, t;
+	for (; x != y; )
+		if (dep[x] &lt; dep[y])
+			update(t, range(1, 1, n, id[y], id[v]), V), V = t, y = top[ v = p[y] ];
+		else
+			update(t, range(1, 1, n, id[x], id[u]), U), U = t, x = top[ u = p[x] ];
+	if (dep[u] &gt; dep[v]) {
+		std::swap(V.pos, V.neg), update(t, V, range(1, 1, n, id[v], id[u]));
+		return update(V, t, U), V.neg;
+	} else {
+		std::swap(U.pos, U.neg), update(t, U, range(1, 1, n, id[u], id[v]));
+		return update(U, t, V), U.pos;
+	}
+}
+
+int main() {
+	int i, u, v, q;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", w + i);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs_wt(1), dfs_hld(1, 1), ST::build(1, 1, n);
+	for (scanf("%d", &amp;q); q; --q) scanf("%d%d", &amp;u, &amp;v), printf("%d\n", solve(u, v));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>还是老问题，树链剖分时注意路径的方向。因此 <code>swap</code> 的时候不要弄反了。</p>
+		<p><strong>坑2：</strong>由于这个线段树不带修改，因此可以用 "<a href="http://immortalco.blog.uoj.ac/blog/2102" target="_blank">一种高效处理无修改区间或树上询问的数据结构</a>" 将其优化到 $O \left( n \log n + m \right)$，但这里不需要。</p>
+	</body>
+</html>

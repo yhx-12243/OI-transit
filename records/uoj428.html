@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj428][WMTC2018]普通的计数题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你有一个 $\texttt 0/\texttt 1$ 序列，初始时序列为空。你可以对序列进行两种操作：</p>
+		<ol>
+			<li><p>在序列末端插入一个 $0$。</p></li>
+			<li><p>在序列中删去一个子序列，并在序列末端插入一个 $1$。这里对子序列的选取有一定限制，设子序列中包含 $x$ 个 $0$，$y$ 个 $1$，则你选取的子序列必须满足：
+			<ul>
+				<li><p>子序列不可为空，即 $x + y &gt; 0$；</p></li>
+				<li><p>当 $y &gt; 0$ 时，$x \in A$，这里 $A$ 为给定集合；</p></li>
+				<li><p>当 $y = 0$ 时，$x \in B$，这里 $B$ 为给定集合。</p></li>
+			</ul></li>
+		</ol>
+		<p>现在，你需要对序列执行 $n$ 次操作。请你求出在所有不同的操作方案中，最终序列长度为 $1$ 的方案有多少种。两种操作方案被视为不同，当且仅当某一次操作的种类不同，或某个第二类操作中选取的子序列不同 (子序列不同指的是位置不同，与值无关)。</p>
+		<p>答案对 $998244353$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, \left| A \right|, \left| B \right|$ ($\left| A \right|, \left| B \right| \leq n \leq 1.2 \times 10^5$)，分别表示操作的次数，集合 $A$ 的大小，集合 $B$ 的大小。</p>
+		<p>第二行包含 $\left| A \right|$ 个非负整数 $a_1, a_2, \cdots, a_{\left| A \right|}$ ($0 \leq a_i &lt; n$，$a_i$ 互不相同)，描述集合 $A$ 的各个元素。</p>
+		<p>第三行包含 $\left| B \right|$ 个非负整数 $b_1, b_2, \cdots, b_{\left| B \right|}$ ($0 \leq b_i &lt; n$，$b_i$ 互不相同)，描述集合 $B$ 的各个元素。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一个整数，表示操作方案的个数。</p>
+
+		<h3>题解</h3>
+		<p>由于每次在序列末尾都会插入一个数，因此我们将每次插入的一个数看做一个节点。如果插入的是 $0$，则为白点，如果插入的是 $1$，则为黑点。</p>
+		<p>对于每次 2 操作，设插入的点是 $v$，被删除的数对应的点分别为 $c_1, c_2, \cdots, c_k$。则我们连边 $c_1 \to v, c_2 \to v, \cdots, c_k \to v$。</p>
+		<p>于是，每一时刻，只有出度为 $0$ 的点所对应的数是存在于序列的。</p>
+		<p>又因为最后序列的长度为 $1$ (只剩下一个点)，因此不难发现，这 $n$ 个点形成了一个树结构。</p>
+		<p>由于删除的序列不能为空，因此<strong>一个点是白点当且仅当它是叶节点</strong>。因此以下我们一律使用<strong>叶节点</strong>和<strong>非叶节点</strong>，撤销<strong>黑点</strong>与<strong>白点</strong>的说法。</p>
+		<p>至于 $A, B$ 的限制，可以看成：如果一个非叶节点的所有子节点均为叶节点，则子节点数量必须 $\in B$，否则 (说明存在非叶节点)，则<strong>为叶节点的</strong>子节点数量必须 $\in A$。</p>
+		<p>对于叶节点，它没有子节点，故它属于前者 (所有子节点均为叶节点)。因此为了方便，这里假设 $0 \in B$ (也就是令新的 $B' \gets B \cup \left\{ 0 \right\}$，答案不变)。</p>
+		<p>当然，还有一条限制是：对于一条边 $\left( v, p_v \right)$，必须有 $p_v &gt; v$ (因为子节点需要在父节点创建之间存在)。</p>
+		<p>接下来我们就需要统计这样的树的个数了。</p>
+		<p>我们用 $f_n$ 表示满足上述条件的 $n$ 阶树的个数了。</p>
+		<ol>
+			<li><p>首先，如果它的所有子节点均为叶节点 (包含没有子节点的情况)，则必有 $n - 1 \in B$。</p>
+			<p>于是，这部分的树的数量就等于 $\left[ n - 1 \in B \right]$。</p></li>
+			<li><p>其次，它存在至少一个非叶节点的子节点。</p>
+			<p>设它有 $K$ 个为叶节点的子节点，则首先必有 $K \in A$。考虑剩下的 $n - 1 - K$ 个节点，这些子树的大小 $s_1, s_2, \cdots, s_m$ 需要满足 $s_1 + s_2 + \cdots + s_m = n - 1 - K$，且 $s_i \geq 2$。</p>
+			<p>将这些点进行排列，方案数为多项式系数 $\dbinom {n - 1} {K \quad s_1 \quad s_2 \quad \cdots \quad s_m}$，由于这 $m$ 个子树之间互相不区分，因此还要乘以 $\dfrac 1 {m !}$。</p>
+			<p>于是，这一部分的树的数量等于 $$ \sum_{K \in A} \sum_{s_1 + s_2 + \cdots + s_m = n - 1 - K, s_i \geq 2} \frac 1 {m !} \binom {n - 1} {K \quad s_1 \quad s_2 \quad \cdots \quad s_m} f_{s_1} f_{s_2} \cdots f_{s_m} $$</p></li>
+		</ol>
+		<p>综上所述，$$ f_n = \left[ n - 1 \in B \right] + \sum_{K \in A} \sum_{s_1 + s_2 + \cdots + s_m = n - 1 - K, s_i \geq 2} \frac 1 {m !} \binom {n - 1} {K \quad s_1 \quad s_2 \quad \cdots \quad s_m} f_{s_1} f_{s_2} \cdots f_{s_m} \tag 1 \label 1 $$</p>
+		<p>将 $\eqref 1$ 式变形 (上下同乘 $\dfrac 1 {\left( n - 1 \right) !}$)，得 $$ \frac {f_n} {\left( n - 1 \right) !} = \frac {\left[ n - 1 \in B \right]} {\left( n - 1 \right) !} + \sum_{K \in A} \frac 1 {K !} \sum_{s_1 + s_2 + \cdots + s_m = n - 1 - K, s_i \geq 2} \frac 1 {m !} \cdot \frac {f_{s_1}} {s_1 !} \cdot \frac {f_{s_2}} {s_2 !} \cdots \frac {f_{s_m}} {s_m !} $$</p>
+		<p>设 $\displaystyle F \left( x \right) = \sum_{i \geq 0} f_i \cdot \frac {x^i} {i !}, A \left( x \right) = \sum_{i \geq 0} \left[ i \in A \right] \cdot \frac {x^i} {i !}, B \left( x \right) = \sum_{i \geq 0} \left[ i \in B \right] \cdot \frac {x^i} {i !}$，则有 $\left[ x^{n-1} \right] F' \left( x \right) = n \cdot \dfrac {f_n} {n !} = \dfrac {f_n} {\left( n - 1 \right) !}, \left[ x^{n-1} \right] B \left( x \right) = \dfrac {\left[ n - 1 \in B \right]} {\left( n - 1 \right) !}$。</p>
+		<p>由于 $f_0 = 0, f_1 = 1$，因此 $\displaystyle \sum_{i \geq 2} f_i \frac {x^i} {i !} = F \left( x \right) - x$，于是 $\displaystyle \sum_{s_1 + s_2 + \cdots + s_m = n - 1 - K, s_i \geq 2} \frac 1 {m !} \cdot \frac {f_{s_1}} {s_1 !} \cdot \frac {f_{s_2}} {s_2 !} \cdots \frac {f_{s_m}} {s_m !} = \left[ x^{n - 1 - K} \right] \mathrm e^{F \left( x \right) - x} - 1$，可以看出最外面还需要做一层与 $A \left( x \right)$ 的卷积，因此最终所得的 ($F \left( x \right)$ 满足的) 方程为 (考察两边 $x^{n-1}$ 项系数)</p>
+		<p>$$ F' \left( x \right) = B \left( x \right) + A \left( x \right) \cdot \left( \mathrm e^{F \left( x \right) - x} - 1 \right) \tag 2 \label 2 $$</p>
+		<p>通过化简 (设 $C \left( x \right) = A \left( x \right) \cdot \mathrm e^{-x}, D \left( x \right) = B \left( x \right) - A \left( x \right)$)，可以将 $\eqref 2$ 式改造成如下形式：</p>
+		<p>$$ F' \left( x \right) = C \left( x \right) \mathrm e^{F \left( x \right)} + D \left( x \right) $$</p>
+		<p>它是一个奇怪的微分方程，没有较优美的通解形式。因此我们需要采用 <a href="uoj50.html" target="_blank">[uoj50]链式反应</a> 的思想，使用 <strong>Newton 迭代</strong> 的方法来将其转变为<strong>一阶线性常微分方程</strong>。</p>
+		<p>类似地，设 $A \left( f \right) = C \cdot \mathrm e^f + D$，则有 \begin{align*}
+f'_{2 k} &amp;\equiv A \left( f_k \right) + \left( f_{2 k} - f_k \right) A' \left( f_k \right) \\
+&amp;= C \cdot \mathrm e^{f_k} + D + \left( f_{2 k} - f_k \right) \cdot C \cdot \mathrm e^{f_k} \pmod {x^{2 k}}
+\end{align*}</p>
+		<p>这样就可以将其化为 $f'_{2 k} + P \cdot f_{2 k} = Q$ 的形式 (其中 $P = - C \cdot \mathrm e^{f_k}, Q = C \cdot \mathrm e^{f_k} \left( 1 - f_k \right) + D$)，然后套用微分方程的通解公式 (或<a href="uoj50.html" target="_blank">那道题</a>的理论) 知 $$ f_{2k} = \exp \left( - \int P \mathrm dx \right) \left( C + \int Q \exp \left( \int P \mathrm dx \right) \mathrm dx \right) $$</p>
+		<p>由于 $\left[ x^0 \right] f \left( x \right) = 0$，因此常数项 $C = 0$。</p>
+		<p>于是，整个问题可以通过 Newton 迭代的方法在 $O \left( n \log n \right)$ 时间内解决。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef long long ll;
+const int N = 530000, mod = 998244353, half_mod = (mod + 1) / 2, root = 31;
+typedef int vec[N], *pvec;
+
+vec fact, inv, finv;
+
+inline int &amp; reduce(int &amp;x) {return x += (x &gt;&gt; 31 &amp; mod);}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3, B4, B5, B6, B7;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		DNTT(a, c), DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c), std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+
+	void Inv(int deg, pvec a, pvec b) {
+		int len, i; ll iv = half_mod;
+		*b = PowerMod(*a, mod - 2), b[1] = 0, *B1 = *a, B1[1] = a[1];
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
+			NTT_init(len + 2);
+			memset(b + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(b, B2);
+			memset(B1 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(B1, B3);
+			for (i = 0; i &lt; n; ++i) reduce(B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod);
+			DNTT(B2, B3), std::reverse(B3 + 1, B3 + n), iv = (iv &gt;&gt; 1) + half_mod;
+			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B3[i] * iv % mod;
+			memcpy(B1 + i, a + i, n &lt;&lt; 1);
+		}
+	}
+
+	void Diff(int deg, pvec a, pvec b) {for (int i = 1; i &lt;= deg; ++i) b[i - 1] = (ll)a[i] * i % mod;}
+
+	void Intg(int deg, pvec a, pvec b, int ct = 0) {for (int i = 1; i &lt;= deg; ++i) b[i] = (ll)a[i - 1] * inv[i] % mod; *b = ct;}
+
+	void Ln(int deg, pvec a, pvec b) {
+		if (!--deg) {*b = 0; return;}
+		int i, j = deg * 2 - 1; NTT_init(lg2(j) + 1);
+		Diff(deg, a, B4), Inv(deg, a, B5);
+		for (i = deg; i &lt; n; ++i) B4[i] = B5[i] = 0;
+		Mul(j, B4, B5, B6), Intg(deg, B6, b);
+	}
+
+	void Exp(int deg, pvec a, pvec b) {
+		int len, i, n = 2;
+		*b = 1, b[1] = 0;
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len, n &lt;&lt;= 1) {
+			Ln(n, b, B7), *B7 = 1;
+			for (i = 1; i &lt; n; ++i) reduce(B7[i] = a[i] - B7[i]);
+			memset(B7 + n, 0, n &lt;&lt; 2), memset(b + n, 0, n &lt;&lt; 2);
+			Mul((n &lt;&lt; 1) - 1, b, B7, B6), memcpy(b, B6, n &lt;&lt; 2);
+		}
+	}
+}
+
+int n;
+vec C, D, E, c;
+vec f, P, Q, C0, C1, C2;
+
+void DSolve(int deg) {
+	int len, i, n = 2;
+	*c = *C, c[1] = C[1];
+	for (len = 0; 1 &lt;&lt; len &lt; deg; ++len, n &lt;&lt;= 1) {
+		Poly::Exp(n, f, C0);
+		memset(C0 + n, 0, n &lt;&lt; 2);
+		Poly::Mul(n * 2 - 1, c, C0, P);
+		for (i = 0; i &lt; n; ++i) neg(P[i]);
+		memset(P + n, 0, n &lt;&lt; 2);
+		*f = mod - 1, Poly::Mul(n * 2 - 1, P, f, Q), *f = 0;
+		for (i = 0; i &lt; n; ++i) reduce(Q[i] += D[i] - mod);
+		memset(Q + n, 0, n &lt;&lt; 2);
+		// f' + P f = Q
+		Poly::Intg(n, P, C0); // I(P)
+		Poly::Exp(n, C0, C1); // e^I(P)
+		memset(C1 + n, 0, n &lt;&lt; 2);
+		Poly::Mul(n * 2 - 1, Q, C1, C0); // Q e^I(P)
+		Poly::Intg(n, C0, C2); // I(Q e^I(P))
+		memset(C2 + n, 0, n &lt;&lt; 2);
+		Poly::Inv(n, C1, C0); // e^-I(P)
+		Poly::Mul(n * 2 - 1, C0, C2, f); // e^-I(P) I(Q e^I(P))
+		memset(f + n, 0, n &lt;&lt; 2);
+		memcpy(c + n, C + n, n &lt;&lt; 2);
+	}
+}
+
+int main() {
+	int i, $1, $2; init();
+	scanf("%d%d%d", &amp;n, &amp;$1, &amp;$2);
+	for (; $1; --$1) scanf("%d", &amp;i), C0[i] = finv[i], D[i] = -finv[i];
+	for (; $2; --$2) if (scanf("%d", &amp;i), i) D[i] += finv[i];
+	for (++*D, i = 0; i &lt; n; ++i) reduce(D[i]), E[i] = (i &amp; 1 ? mod - finv[i] : finv[i]);
+	Poly::Mul(2 * n, C0, E, C);
+	memset(C0, 0, (n + 1) &lt;&lt; 2), memset(C + (n + 1), 0, n &lt;&lt; 2);
+	DSolve(n + 1);
+	printf("%lld\n", (ll)f[n] * fact[n] % mod);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意多项式各种操作中的时间复杂度以及常数。<del>据说分治 NTT 跑得超快<span style="color: transparent">，可惜我不会~</span></del></p>
+		<p><strong>坑2：	</strong>不要忘记一开始要将 $0$ 加入到 $B$ 集合中。当然，如果 $0$ 已经在 $B$ 中就不要再重复加入了。</p>
+	</body>
+</html>

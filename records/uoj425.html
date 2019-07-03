@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj425][WMTC2018]strings</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 p 参加政治考试，总共有 $n$ 道判断题。一些题目小 p 可以靠自己的能力蒙一个答案，然而对于一些他完全不会的题，他会通过某种方式得到标准答案然后填上去。</p>
+		<p>小 p 具有时间倒流的能力，因此可以参加 $q$ 次同样的考试，不过每次考试他的策略未必相同。众所周知，只有 AK 才能满足小 p 的欲望，而每道题的答案是未知的，小 p 想知道有多少种标准答案使得他在至少一次考试中能 AK。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($n \leq 30; q \leq 100$)。</p>
+		<p>接下来 $q$ 行，每行一个长度为 $n$ 的字符串，包含 <code>0</code>、<code>1</code>、<code>?</code> 这三种字符，数字意味着答案是小 p 蒙的 (可以匹配这种字符)，$?$ 表示这道题他得到了标准答案 (可以匹配任意字符)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示有多少长为 $n$ 的 $\texttt 0/\texttt 1$ 串 $s$，使得 $s$ 满足 $q$ 个串中至少一个串的形式。</p>
+
+		<h3>题解</h3>
+		<p>如果暴力枚举所有的串并检验，则是 $O \left( 2^n \cdot q \right)$ 的。</p>
+		<p>那该如何优化这个算法呢？对于这样一个数据规模，我们不妨考虑使用折半搜索 (meet in the middle)。</p>
+		<p>枚举前一半的 $\texttt 0/\texttt 1$ 串，用一个 <code>std::bitset</code>/<code>__int128</code> 记录它能通过哪些考试 (模板串)，同理，对后一半的每个 $\texttt 0/\texttt 1$ 串也类似记录一下。</p>
+		<p>这部分的时间复杂度是 $O \left( 2^{n/2} \cdot q \right)$ 的。</p>
+		<p>最后只需枚举两边的串，看看它们对应的 <code>std::bitset</code> 是否有交即可，如果有交，说明这个方案是合法的。</p>
+		<p>这样复杂度就变成 $O \left( 2^n \right)$ 了。</p>
+		<p>然而这很有(yi)可(ding)能会被卡常，因此我们需要<del>像<a href="lydsy5464%3Blg4604%3Bloj2286.html" target="_blank">这题</a>一样 (你懂的)</del> <strong>循环展开</strong>！</p>
+		<p>于是就可以 $O \left( 2^n \right)$ 过 $n = 30$ 了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef unsigned __int128 u128;
+const int N = 34, N2 = 32800;
+
+int n, m, L, R;
+char s[N], *t;
+u128 l[N2], r[N2];
+
+int main() {
+	int i, j, S, L0, L1, LALL, R0, R1, RALL;
+	scanf("%d%d", &amp;n, &amp;m), L = n / 2, R = n - L, t = s + L;
+	LALL = ~(-1 &lt;&lt; L), RALL = ~(-1 &lt;&lt; R);
+	for (i = 0; i &lt; m; ++i) {
+		scanf("%s", s);
+		for (L0 = L1 = j = 0; j &lt; L; ++j) L0 |= (s[j] == 48) &lt;&lt; j, L1 |= (s[j] == 49) &lt;&lt; j;
+		for (R0 = R1 = j = 0; j &lt; R; ++j) R0 |= (t[j] == 48) &lt;&lt; j, R1 |= (t[j] == 49) &lt;&lt; j;
+		for (j = 0; j &lt;= LALL; ++j) l[j] |= (u128)!((L0 &amp; j) || (L1 &amp; ~j)) &lt;&lt; i;
+		for (j = 0; j &lt;= RALL; ++j) r[j] |= (u128)!((R0 &amp; j) || (R1 &amp; ~j)) &lt;&lt; i;
+	}
+	if (n &lt;= 4)
+		for (S = i = 0; i &lt;= LALL; ++i)
+			for (j = 0; j &lt;= RALL; ++j)
+				S += (bool)(l[i] &amp; r[j]);
+	else {
+		int j0, j1, j2, j3, j4, j5, j6, j7, S0 = 0, S1 = 0, S2 = 0, S3 = 0, S4 = 0, S5 = 0, S6 = 0, S7 = 0;
+		for (i = 0; i &lt;= LALL; ++i) {
+			j0 = 0, j1 = 1, j2 = 2, j3 = 3, j4 = 4, j5 = 5, j6 = 6, j7 = 7;
+			for (; j7 &lt;= RALL; ) {
+				if (l[i] &amp; r[j0]) ++S0; j0 += 8;
+				if (l[i] &amp; r[j1]) ++S1; j1 += 8;
+				if (l[i] &amp; r[j2]) ++S2; j2 += 8;
+				if (l[i] &amp; r[j3]) ++S3; j3 += 8;
+				if (l[i] &amp; r[j4]) ++S4; j4 += 8;
+				if (l[i] &amp; r[j5]) ++S5; j5 += 8;
+				if (l[i] &amp; r[j6]) ++S6; j6 += 8;
+				if (l[i] &amp; r[j7]) ++S7; j7 += 8;
+			}
+		}
+		S = S0 + S1 + S2 + S3 + S4 + S5 + S6 + S7;		
+	}
+	printf("%d\n", S);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>循环展开的时候注意姿势正确。还有这道题中 <code>if</code> 比强转 <code>bool</code> 效果好，因为这里计算的过程是对分支预测友好的。</p>
+		<p><strong>坑2：</strong>在类似 <code>1 &lt;&lt; i</code> 的过程中记得先把 $1$ 转成 128 位整数。</p>
+	</body>
+</html>

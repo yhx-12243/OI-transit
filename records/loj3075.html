@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj3075][互测2019]组合数求和</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义 $\displaystyle f \left( j \right) = \left( \sum_{i=0}^{n-1} \binom {i \cdot d} j \right) \bmod M$，其中 $n, d, M$ 为给定值。</p>
+		<p>现在给定 $m$，输出 $f \left( 0 \right) \oplus f \left( 1 \right) \oplus f \left( 2 \right) \oplus \cdots \oplus f \left( m - 1 \right)$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含四个正整数 $n, m, d, M$ ($1 \leq d \leq 100; 1 \leq m \cdot d \leq 3 \times 10^6; 1 \leq n \cdot d \leq 10^9; 10^8 \leq M \leq 10^9$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $f \left( 0 \right) \oplus f \left( 1 \right) \oplus \cdots \oplus f \left( m - 1 \right)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>考虑使用二项式定理，将 $f \left( j \right)$ 写成 "生成函数" 的形式：</p>
+		<p>$$ f \left( j \right) = \sum_{i=0}^{n-1} \left[ x^j \right] \left( 1 + x \right)^{i d} = \left[ x^j \right] \sum_{i=0}^{n-1} \left( 1 + x \right)^{i d} $$</p>
+		<p>考察多项式 $\displaystyle F \left( x \right) = \sum_{i=0}^{n-1} \left( 1 + x \right)^{i d} = \frac {\left( 1 + x \right)^{n d} - 1} {\left( 1 + x \right)^d - 1}$，显然分子分母的常数项均为 $0$，因此先将它们都除以 $x$。</p>
+		<p>令 $\displaystyle A \left( x \right) = \frac {\left( 1 + x \right)^{n d} - 1} x = \sum_{i=1}^{n d} \binom {n d} i x^{i-1}, B \left( x \right) = \frac {\left( 1 + x \right)^d - 1} x = \sum_{i=1}^d \binom di x^{i-1}$，于是我们只需要求 $F \left( x \right) \bmod x^m$ 在模 $M$ 意义下的表达式，然后输出即可。</p>
+		<p>由于 $F \left( x \right) \cdot B \left( x \right) = A \left( x \right)$，两边取 $x^j$ 项系数，得 $\dbinom d1 f \left( j \right) + \dbinom d2 f \left( j - 1 \right) + \cdots + \dbinom dd f \left( j - d + 1 \right) = \dbinom {n d} j$。</p>
+		<p>如果 $\gcd \left( \dbinom d1 = d, M \right) = 1$，则可以通过<strong>逆元</strong>的方法直接 $O \left( d \right)$ 递推求得 $f \left( j \right)$。</p>
+		<p>那如果 $\gcd \left( d, M \right) &gt; 1$ 怎么办呢？以及如果快速计算 $\dbinom {n d} j$ 呢？</p>
+		<p>先考虑后者。由于 $\dbinom nj$ 的上指标 $n$ 特别大，模数也没有一般性质，因此看起来不是很好处理。一个唯一有用点的方法就是<strong>将模数 $M$ 表示成若干个素数幂的乘积，然后使用孙子定理 (中国剩余定理) 合并</strong>。</p>
+		<p>而固定 $n$ 时，计算不同的 $\dbinom nj \bmod p^\alpha$ 是比较容易的 —— 只需要将所有因子拆成 $p$ 部分与 $p$ 互素的部分，前者单独计算指数，后者直接计算乘积，注意利用 $\dbinom nj = \dfrac {n - j + 1} j \dbinom n {j - 1}$。</p>
+		<p>现在考虑求 $f \left( j \right) \bmod p^\alpha$。</p>
+		<p>如果 $\left( d, p \right) = 1$，则还是可以通过求逆元的方法。</p>
+		<p>如果 $d = p^\beta$，则将上式移项，则有 $f \left( j \right) = \dbinom {n d} {j + d - 1} - \dbinom d {d - 1} f \left( j + 1 \right) - \dbinom d {d - 2} f \left( j + 2 \right) - \cdots - \dbinom d 1 f \left( j + d - 1 \right)$</p>
+		<p>由 Lucas 定理，上式右边的 $d - 1$ 个二项式系数 $\dbinom d i = \dbinom {p^\beta} i$ ($1 \leq i \leq p^\beta - 1$) <strong>均为 $p$ 的倍数</strong>。</p>
+		<p>然后代入 $j' \gets j + 1, j + 2, \cdots, j + d - 1$ 继续迭代，迭代 $\alpha$ 次后所有的系数均为 $p^\alpha$ 的倍数，从而在模 $p^\alpha$ 意义下等于 $0$，因此此时迭代可以终止。于是，我们可以得到一个关于 $f \left( j \right)$ 和已知量的表达式。</p>
+		<p>然而，当 $p \mid d$ 且 $d$ 不为 $p$ 的整数次幂后，这个性质就不再成立了：</p>
+		<p>如 $p = 2, d = 6$，此时 $$ 6 f \left( j \right) + 10 f \left( j - 1 \right) + 15 f \left( j - 2 \right) + 10 f \left( j - 3 \right) + 6 f \left( j - 4 \right) + f \left( j - 5 \right) = \dbinom {4 n} j $$</p>
+		<p>移项后有 $$ f \left( j \right) = \dbinom {4 n} {j + 5} - 6 f \left( j + 1 \right) - 10 f \left( j + 2 \right) - 15 f \left( j + 3 \right) - 10 f \left( j + 4 \right) - 6 f \left( j + 5 \right) $$</p>
+		<p>会发现项 "$\color {red} {15 f \left( j + 3 \right)}$" 的系数并不是 $2$ 的倍数，于是这样迭代就会失败。</p>
+		<p>不过这并没有关系，我们考察形如 $\color {blue} {\dbinom dt f \left( j - t \right)}$ 的项中，最小的使得系数 $\dbinom dt$ 非 $p$ 的倍数 $t$，将它看成主元。如上面的例子，应该看成 $$ 15 f \left( j \right) = \dbinom {4 n} {j + 2} - f \left( j - 3 \right) - 6 f \left( j - 2 \right) - 10 f \left( j - 1 \right) - 10 f \left( j + 1 \right) - 6 f \left( j + 2 \right) \tag 1 \label 1 $$</p>
+		<p>此时可以保证，所有形如 $f \left( j + k \right)$ ($k &gt; 0$) 的项的系数均为 $p$ 的倍数。</p>
+		<p>此时，将 $\eqref 1$ 式代入 $j' \gets j + 1, j + 2, \cdots$，继续迭代，即可让所有形如 $f \left( j + k \right)$ ($k &gt; 0$) 的项的系数均为 $p^2$ 的倍数，……，以此类推，做 $\alpha$ 次后即可停止。</p>
+		<p>分析一下时间复杂度：最终递推式的长度可以达到 $O \left( \alpha \cdot d \right)$，计算递推式子的复杂度为 $O \left( \alpha^2 \cdot d^2 \right)$，通过递推式计算 $f \left( j \right)$ 的时间复杂度为 $O \left( \alpha \cdot d \cdot m \right)$。</p>
+		<p>所以最终的时间复杂度为 $O \left( \sum \left( m \log n + m \cdot \alpha \cdot d + \alpha^2 d^2 \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ctz __builtin_ctz
+
+typedef long long ll;
+const int M = 3333333, DM = 108;
+
+int mod;
+int n, m, D;
+int C[DM];
+int res[M], ans[M];
+int cnt = 0, pr[12], al[12], prn[34];
+int _fy_[2][6666], *coeA = _fy_[0] + 3333, *coeC = _fy_[1] + 3333;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+inline int Power(int a, int n, int c = 1) {for (; n; n &gt;&gt;= 1, a *= a) if (n &amp; 1) c *= a; return c;}
+ll PowerMod(ll a, int n, ll mod, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+int exgcd(int a, int b, int &amp;x, int &amp;y) {
+	if (b) {int d = exgcd(b, a % b, y, x); return y -= a / b * x, d;}
+	else return x = 1, y = 0, a;
+}
+
+namespace Binomial {
+	int C[M];
+	
+	void compute(int n, int m, int p, int a) {
+		int i, x, deg = 0, cur = 1;
+		if (!a) return (void)memset(C, 0, (m + 1) &lt;&lt; 2);
+		for (*C = i = 1; i &lt;= m &amp;&amp; i &lt;= n; ++i) {
+			for (x = n - i + 1; !(x % p); x /= p, ++deg);
+			cur = (ll)cur * x % prn[a];
+			for (x = i; !(x % p); x /= p, --deg);
+			cur = PowerMod(x, prn[a - 1] * (p - 1) - 1, prn[a], cur);
+			C[i] = (ll)prn[min(deg, a)] * cur % prn[a];
+		}
+	}
+}
+
+void factor(int n) {
+	int i, j;
+	if (!(n &amp; 1)) pr[cnt] = 2, al[cnt] = ctz(n), n &gt;&gt;= al[cnt++];
+	for (i = 3; i * i &lt;= n; i += 2)
+		if (!(n % i)) {for (j = 0; !(n % i); n /= i, ++j); pr[cnt] = i, al[cnt++] = j;}
+	if (n &gt; 1) pr[cnt] = n, al[cnt++] = 1;
+}
+
+void solve(int p, int a, int *ret) {
+	int i, j, deg, pos, cur, expand, pa; ll iD, iY;
+	for (*prn = i = 1; i &lt;= a; ++i) prn[i] = prn[i - 1] * p; pa = prn[a];
+	Binomial::compute(n * D, min(m + 3333, n * D), p, a);
+	for (pos = 1; pos &lt;= D &amp;&amp; !(C[pos] % p); ++pos);
+	assert(pos &lt;= D), memset(_fy_, 0, sizeof _fy_);
+	iD = PowerMod(C[pos], prn[a - 1] * (p - 1) - 1, pa);
+	coeA[expand = pos - 1] = pa - 1;
+	for (i = 1; i &lt;= D; ++i) coeC[pos - i] = C[i] % pa;
+	for (deg = 1; deg &lt; a; ++deg)
+		for (i = expand; i &gt; 0; --i)
+			if ((cur = coeC[i] % prn[deg + 1])) {
+				cur = -(ll)cur * iD % pa;
+				coeA[i + pos - 1] = (coeA[i + pos - 1] - cur) % pa;
+				for (j = 1; j &lt;= D; ++j)
+					coeC[i + pos - j] = (coeC[i + pos - j] + (ll)C[j] * cur) % pa;
+				up(expand, i + pos - 1);
+			}
+	assert(*coeC % p), iY = PowerMod(-*coeC, prn[a - 1] * (p - 1) - 1, pa);
+	for (j = pos - D; j &lt; 0; ++j) coeC[j] = coeC[j] * iY % mod;
+	for (j = pos - 1; j &lt;= expand; ++j) coeA[j] = coeA[j] * iY % mod;
+	for (i = 0; i &lt; m; ++i) {
+		cur = 0;
+		for (j = max(-i, pos - D); j &lt; 0; ++j) cur = (cur + (ll)coeC[j] * ret[i + j]) % pa;
+		for (j = pos - 1; j &lt;= expand; ++j) cur = (cur + (ll)coeA[j] * Binomial::C[i + j + 1]) % pa;
+		ret[i] = cur + (cur &gt;&gt; 31 &amp; pa);
+	}
+}
+
+int main() {
+	int i, j, pa, cur = 1, nxt = 1, U1, U2;
+	scanf("%d%d%d%d", &amp;n, &amp;m, &amp;D, &amp;mod), factor(mod);
+	for (*C = i = 1; i &lt;= D; ++i) for (j = i; j; --j) add(C[j], C[j - 1]);
+	for (i = 0; i &lt; cnt; ++i) {
+		exgcd(pa = Power(pr[i], al[i]), cur, U1, U2);
+		U1 *= pa, U2 *= cur, nxt = pa * cur;
+		solve(pr[i], al[i], res);
+		for (j = 0; j &lt; m; ++j) ans[j] = ((ll)U1 * ans[j] + (ll)U2 * res[j]) % nxt;
+		cur = nxt;
+	}
+	assert(cur == mod);
+	for (i = 0; i &lt; m; ++i) ans[i] += ans[i] &gt;&gt; 31 &amp; mod;
+	printf("%d\n", std::accumulate(ans, ans + m, 0, std::bit_xor &lt;int&gt; ()));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>递推式长度是 $O \left( \alpha \cdot d \right)$ 级别的，记得数组开大，且二项式系数 $\dbinom {n d} j$ 需要多算若干项。有必要时可以滋磁一下<strong>负下标</strong>。</p>
+		<p><strong>坑2：</strong>在用快速幂求 $\hspace{-0.444em} \pmod {p^\alpha}$ 逆元的时候注意是 $\left( p - 1 \right) p^{\alpha-1} - 1$ 次方。</p>
+	</body>
+</html>

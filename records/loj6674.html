@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6674]赛道修建</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 &#9827; 是 OI 国马拉松协会的会长。有一天，他打算举办全国青少年马拉松奥林匹克联赛 (National Olympiad in Marathon in Provinces, NOMP)，于是准备在 OI 国中修建一条赛道。</p>
+		<p>OI 国有 $n$ 个城市，一共有 $n - 1$ 条道路将它们连通。也就是说，OI 国的结构是一棵树。</p>
+		<p>小 &#9827; 会选择一个城市作为起点，再选择一个城市作为终点，这样赛道的长度就等于起点到终点路径上的边数。由于 OI 国的群众非常懒，所以赛道长为 $0$ 也是允许的。</p>
+		<p>由于一些特殊原因，赛道的终点只能是一些特定的城市，而赛道的起点可以是任意一个城市。</p>
+		<p>现在小 &#9827; 想知道：对于每个城市，如果选择它作为起点，那么赛道的长度有几种可能的取值？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 50000$)，表示树的大小。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_1, a_2, \cdots, a_n$ ($a_i \in \left\{ 0, 1 \right\}$)，$a_i = 0$ 表示城市 $i$ 不能作为终点，$a_i = 1$ 表示城市 $i$ 可以作为终点。</p>
+		<p>接下来 $n - 1$ 行，每行两个整数 $u, v$ ($1 \leq u, v \leq n$)，表示有一条连接城市 $u$ 和城市 $v$ 的道路。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $n$ 行，每行一个整数，表示如果选择城市 $i$ 作为赛道的起点，赛道的长度有几种可能的取值。</p>
+
+		<h3>题解</h3>
+		<p>先考虑这个问题在链上的版本怎么做。</p>
+		<p>相当于给定数轴上一个点，询问每个点距离不同的<em>关键点</em>有多少个。</p>
+		<p>容易发现对于每个点，链上与其距离相等的点不超过 $2$ 个，因此可以使用 FFT (卷积) 来完成。</p>
+		<p><del>哦对，以上都是废话，请自行忽略。</del></p>
+		<p>考虑树上的情况，由于对于一个点 $v$ 和一个距离 $d$，与点 $v$ 距离为 $d$ 的点不止两个，因此 FFT 的方法就行不通了，那该怎么办呢？</p>
+		<p>似乎并没有什么办法，因此我们考虑暴力 —— $O \left( n^2 \right)$ 暴力。</p>
+		<p>最裸的暴力显然是过不去的，于是可以考虑在常数层面上的优化 —— 比如 <strong>bitset 优化</strong>。</p>
+		<p>考虑使用树形 DP，用 $f_i$ 表示 $i$ 到子树中的关键点的距离集合，记 $A + x = \left\{ a + x \mid a \in A \right\}$，则有 $$ f_i = \bigcup_{c \in child(i)} \left( f_j + 1 \right) $$</p>
+		<p>最后对于根节点 $r$，把它作为起点的答案就是 $f_r$ 的大小 $\left| f_r \right|$。</p>
+		<p>然而我们需要对每个点求一遍答案，因此需要以每个点为根做一遍树形 DP，从而时间复杂度会升到 $O \left( \dfrac {n^3} \omega \right)$，无法接受。</p>
+		<p>由于树形 DP 中我们做的仅仅是<strong>换根</strong>操作，因此我们考虑<strong>换根 DP</strong>。</p>
+		<p>考虑在换根 DP 中，对于一个点 $i$，求出 $V - subtree \left( i \right)$ 中所有关键点到 $i$ 的距离集合，记作 $g_i$。<em style="color: red">于是最终点 $i$ 的答案就等于 $\left| f_i \cup g_i \right|$</em>。</p>
+		<p>考虑如何求出 $g_i$。考虑从父节点 $p$ 转移过来。</p>
+		<p>$V - subtree \left( i \right)$ 可以分为三个部分：一个是 $V - subtree \left( p \right)$，一个是 $p$，还有一个是 $p$ 的其它 (非 $i$) 子节点所对应的子树。</p>
+		<p>第一部分非常好处理，就是 $g_{p_i} + 1$，第二部分也很简单，如果 $p$ 是关键点就是 $\left\{ 1 \right\}$，不是关键点则为 $\varnothing$，关键是第三部分。</p>
+		<p>对于第三部分，我们需要将 $p$ 的所有非 $i$ 节点对应的 $\color {red} f$ 对应的集合 (bitset) 并起来。由于集合并运算不具备消去律，因此不能算出所有集合的并再将一个集合去除。</p>
+		<p>不过根据套路，我们可以对于子节点序列 $c_1, c_2, \cdots, c_k$，计算每个<strong>前缀</strong>和<strong>后缀</strong>的集合并。由于 $child \left( i \right) \setminus \left\{ c_j \right\}$ 一定可以写成某个前缀和后缀的 (不交) 并，因此我们只需要将一个前缀并和一个后缀并再合并起来即可。</p>
+		<p>这样时间复杂度就是 $O \left( \dfrac {n^2} \omega \right)$ 了，可以通过此题。实现时注意空间常数，不要 MLE。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define popc64 __builtin_popcountll
+
+const int N = 50054, M = N * 2;
+
+struct bitset {
+	typedef unsigned long long u64;
+	u64 x[784];
+	inline void set(int id) {x[id &gt;&gt; 6] |= 1llu &lt;&lt; (id &amp; 63);}
+	inline void reset(int id) {x[id &gt;&gt; 6] &amp;= ~(1llu &lt;&lt; (id &amp; 63));}
+	inline void reset() {memset(x, 0, sizeof x);}
+	inline void set(int id, int v) {v ? set(id) : reset(id);}
+	inline int count() {
+		int i, ret = 0;
+		for (i = 0; i &lt; 784; i += 4) ret += popc64(x[i]) + popc64(x[i + 1]) + popc64(x[i + 2]) + popc64(x[i + 3]);
+		return ret;
+	}
+	bitset &amp; operator |= (const bitset &amp;B) {for (int i = 0; i &lt; 784; i += 4) x[i] |= B.x[i], x[i + 1] |= B.x[i + 1], x[i + 2] |= B.x[i + 2], x[i + 3] |= B.x[i + 3]; return *this;}
+	bitset &amp; shift() {for (int i = 783; i; --i) x[i] = x[i] &lt;&lt; 1 | x[i - 1] &gt;&gt; 63; return *x &lt;&lt;= 1, *this;}
+} f[N], g[N], L, R[N], buf;
+
+int n, E = 0;
+int to[M], first[N], next[M];
+int p[N], child[N], key[N];
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y; f[x].set(0, key[x]);
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x])
+			p[y] = x, dfs(y), f[x] |= (buf = f[y]).shift();
+}
+
+void dfs2(int x) {
+	int i, y, cnt = 0;
+	for (i = first[x]; i; i = next[i])
+		if (p[y = to[i]] == x) child[cnt++] = y;
+	for (R[cnt].reset(), i = cnt - 1; i &gt;= 0; R[i] = R[i + 1], R[i] |= (buf = f[child[i]]).shift(), --i);
+	g[x].set(0, key[x]), L = g[x];
+	for (i = 0; i &lt; cnt; ++i) g[child[i]] = R[i + 1], (g[child[i]] |= L).shift(), L |= (buf = f[child[i]]).shift();
+	for (i = first[x]; i; i = next[i]) if (p[y = to[i]] == x) dfs2(y);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", key + i);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1), dfs2(1);
+	for (i = 1; i &lt;= n; ++i) printf("%d\n", (f[i] |= g[i]).count());
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于 $50000 \times 50000$ 的 <code>bitset</code> 非常耗空间 (平均每个就要 $300 \,\mathrm{MB}$)，因此最多只能开三个。故在实现前缀后缀的时候，可以将后缀先预处理起来，前缀的一边算一遍更新子节点，这样就可以做到只用 $3$ 个数组了。</p>
+		<p>一个<del>比较奇怪的</del>现象是，<code>bitset</code> 在进行非赋值运算符时所产生的临时变量<em>不会销毁</em>，因此 <code>a = (b | c) &lt;&lt; 1</code> 貌似比 <code>a = b, (a |= c) &lt;&lt; 1</code> 更费空间。</p>
+		<p><strong>坑2：</strong>还是老问题，在换根 DP (的 dfs) 中注意变量作用域问题，比如在反向 dfs 中产生的 "<em>子节点序列</em>" 数组最好用完后再对子节点进行 dfs (或先 dfs 完再计算此数组)。当然偷懒也可以直接用一个 <code>std::vector</code> 存储。</p>
+	</body>
+</html>

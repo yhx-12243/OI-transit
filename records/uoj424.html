@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj424][WMTC2018]count</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>如果一个序列满足序列长度为 $n$，序列中的每个数都是 $1$ 到 $m$ 内的整数，且所有 $1$ 到 $m$ 内的整数都在序列中出现过，则称这是一个挺好序列。</p>
+		<p>对于一个序列 $A$，记 $f_A \left( l, r \right)$ 为 $A$ 的第 $l$ 个到第 $r​$ 个数中最大值的下标 (如果有多个最大值，取下标最小的)。</p>
+		<p>两个序列 $A$ 和 $B$ 同构，当且仅当 $A$ 和 $B$ 长度相等，且对于任意 $1 \leq i \leq j \leq n$，均有 $f_A \left( i, j \right) = f_B \left( i, j \right)$。</p>
+		<p>给出 $n, m$，求有多少种不同构的挺好序列。答案对 $998244353​$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, m$ ($n, m \leq 10^5$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示有多少种不同构的挺好序列。</p>
+
+		<h3>题解</h3>
+		<p>由题目中的定义及 Cartesian 树相关性质，我们对序列 $A, B$ 建出它们的 Cartesian 树 (同理，如果有多个最大值，取下标最小的为根) $T_A, T_B$，那么，<strong>$A, B$ 同构当且仅当 $T_A, T_B$ 同构</strong>。</p>
+		<p>因此我们只需要考虑不同构的 $n$ 阶 Cartesian 树，并检验哪些 Cartesian 树可以对应到一个合法的长度为 $n$ 的序列。</p>
+		<p>显然，当 $n &lt; m$ 时，答案为 $0$。</p>
+		<p>否则 ($m \leq n$)，如果一个序列中没有出现 $1 \sim m$ 的所有整数，则容易验证<strong>一定存在一个与之同构的 "挺好" 序列</strong>。于是，"都出现过" 这个条件就不需要了。</p>
+		<p>接下来考虑序列的合法性。首先，任意一个 $n$ 阶二叉树都可以对应到<strong>至少</strong>一个 $n$ 元<strong>排列</strong>。</p>
+		<p>那<strong>非排列</strong>的情况又该怎么处理呢？</p>
+		<p>考虑一棵 Cartesian 树，可以发现，我们每次向左子树迈进一步，对应节点的权值必然严格地下降。</p>
+		<p>因此，一个必要条件是：<strong style="color: green">对于任意点 $v$，根到 $v$ 的路径上至多 "向左走" $m - 1$ 次</strong>。</p>
+		<p>而且，可以验证这个条件也是充分的。这样一来，我们只需要求满足下列的条件的 $n$ 阶二叉树的个数：其中根到任何一个顶点的路径中，"向左走" 的次数不超过 $m - 1$。</p>
+		<p>将二叉树使用 "<strong>左儿子右兄弟</strong>" 的方式转化为一棵普通森林，于是森林中每棵树的深度不能超过 $m - 1$。</p>
+		<p>由于这个森林中点既不是无编号，也不是有编号，而是指定的 dfs 序编号。看到 dfs 序，我们不可以想到使用<strong>括号序列</strong>。</p>
+		<p>再转化一下，就是你需要寻找一个长度为 $2 n$ 合法括号序列，其中任意一个前缀的 <code>(</code> 数减去 <code>)</code> 数 $\leq m$。</p>
+		<p>如果我们把 <code>(</code> 看成向量 $\left( 1, 0 \right)$，把右括号 <code>)</code> 看成向量 $\left( 0, 1 \right)$，则我们就需要找一条从 $\left( 0, 0 \right)$ 到 $\left( n, n \right)$ 的路径，其中不能穿过直线 $y = x$ 和 $y = x - m$，答案就是满足条件的路径数量。</p>
+		<p>于是这题就转化为了 <a href="http://10.49.18.71/problem/45" target="_blank">[soj45]平行四边形</a>的弱化$^\infty$ 版，使用<del>简单的</del>组合计数/多项式技巧，即可在 $O \left( n \log n \right)$ 时间内完成计算。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">// copy from [soj45]平行四边形, so the code style is MESSY.
+#include &lt;bits/stdc++.h&gt;
+#define N 524300
+#define K 12
+#define X second
+#define Y first
+#define lg2(x) (31 - __builtin_clz(x))
+using namespace std;
+
+typedef long long ll, poly[N];
+const int mod = 998244353, half_mod = 499122177, root = 31;
+
+int l, n, iv;
+int rev[N];
+ll x[N], y[N], fact[N], finv[N];
+poly f, g, h, hl, hr, _, __;
+ll res[K][K], ans = 0;
+
+ll PowerMod(ll a, int n, ll c = 1) {for(; n; n &gt;&gt;= 1, (a *= a) %= mod) if(n &amp; 1) (c *= a) %= mod; return c;}
+
+ll C(int n, int r) {return fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+void initBinomial(){
+	int i;
+	for(*fact = i = 1; i &lt; N; ++i) fact[i] = fact[i - 1] * i % mod; --i;
+	finv[i] = PowerMod(fact[i], mod - 2);
+	for(; i; --i) finv[i - 1] = finv[i] * i % mod;
+}
+
+void NTT_init(int length){
+	n = 1 &lt;&lt; (l = length); iv = PowerMod(n, mod - 2);
+	ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+	x[0] = 1; rev[0] = 0;
+	for(int i = 1; i &lt; n; ++i){
+		x[i] = x[i - 1] * g % mod;
+		rev[i] = (i &amp; 1 ? rev[i - 1] | n &gt;&gt; 1 : rev[i &gt;&gt; 1] &gt;&gt; 1);
+	}
+}
+
+void DNTT(ll *d, ll *t){
+	int i, len = 1, delta = n, R; ll *j, *k;
+	for(i = 0; i &lt; n; ++i) t[i] = d[rev[i]];
+	for(i = 0; i &lt; l; ++i){
+		delta &gt;&gt;= 1;
+		for(k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+		for(j = t; j &lt; t + n; j += len &lt;&lt; 1)
+			for(k = j; k &lt; j + len; ++k){
+				R = (ll)y[k - j] * k[len] % mod;
+				k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R);
+				*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			}
+		len &lt;&lt;= 1;
+	}
+}
+
+void PolyInv(int degree, ll *a, ll *b, ll *t1, ll *t2){
+	int len, i; ll inv = half_mod;
+	b[0] = PowerMod(a[0], mod - 2);
+	t1[0] = a[0]; t1[1] = a[1];
+	for(len = 0; 1 &lt;&lt; len &lt; degree; ++len){
+		NTT_init(len + 2);
+		DNTT(b, t2); memcpy(b, t2, n &lt;&lt; 3); DNTT(t1, t2);
+		for(i = 0; i &lt; n; ++i)
+			((b[i] *= 2 - t2[i] * b[i] % mod) %= mod) &lt; 0 ? b[i] += mod : 0;
+		DNTT(b, t2); reverse(t2 + 1, t2 + n);
+		inv = (inv &gt;&gt; 1) + (inv &amp; 1 ? half_mod : 0);
+		for(i = 0; i &lt; 1 &lt;&lt; (len + 1); ++i) b[i] = t2[i] * inv % mod;
+		for(; i &lt; n; ++i) {b[i] = 0; t1[i] = a[i];}
+	}
+}
+
+void initPoly(ll *f, int n){
+	int i, j;
+	for(i = 0, j = n; i &lt;= j; ++i, --j)
+		(f[i] = C(j, i)) &amp;&amp; (i &amp; 1) ? f[i] = mod - f[i] : 0;
+}
+
+ll solve(int y, int n){
+	int i;
+	for(i = 0; i &lt; ::n; ++i) f[i] = hl[i] * hr[i] % mod;
+	DNTT(f, h), reverse(h + 1, h + ::n);
+	ll ret = 0;
+	for(i = 0; i &lt;= n &amp;&amp; i &lt;= y; ++i) ret = (ret + h[i] * g[y - i]) % mod;
+	ret = ret * iv % mod;
+	return ret &lt; 0 ? ret + mod : ret % mod;
+}
+
+int main(){
+	int a, c;
+	initBinomial();
+	scanf("%d%d", &amp;c, &amp;a);
+	if (c &lt; a) return putchar(48), putchar(10), 0;
+	initPoly(f, a + 1), PolyInv(c + 1, f, g, _, __);
+	NTT_init(lg2(a) + 1);
+	memset(f, 0, ::n &lt;&lt; 3), initPoly(f, 0), DNTT(f, hl);
+	memset(f, 0, ::n &lt;&lt; 3), initPoly(f, a), DNTT(f, hr);
+	printf("%lld\n", solve(c, a));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意特判 $n &lt; m$ 的情况，此时应该输出 $0$ (如果没有 "<strong>都出现过</strong>" 这个条件，则 $m &gt; n$ 的答案和 $n = m$ 的答案是一样的，均为 $C_n$。</p>
+		<p><strong>坑2：</strong>多项式运算时注意上下界，不要 RE 了。</p>
+		<p class="text-muted">(ps: 关于最后的格路计数，还有一个基于容斥的 $O \left( n \right)$ 做法，不过略有点神仙，这里就不提了)</p>
+	</body>
+</html>
