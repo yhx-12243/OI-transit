@@ -40,6 +40,7 @@ const
 			'lych_cys' : 'https://blog.csdn.net/lych_cys/',
 			'lyx_cjz' : '',
 			'Memory_of_winter' : 'https://www.cnblogs.com/Memory-of-winter/',
+			'memset0c' : 'https://memset0.cn/',
 			'miaom' : 'https://mioam.github.io/',
 			'mrsrz' : 'https://mrsrz.cnblogs.com/',
 			'nbdhhzh' : '',
