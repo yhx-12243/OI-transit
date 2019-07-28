@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6680]henry_y 的函数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义函数 $g : \mathbb N^* \to \mathbb Z$，满足下列性质：</p>
+		<ol>
+			<li>$g \left( 1 \right) = 1$。</li>
+			<li>$g \left( p^c \right) = p \oplus c$，$p$ 是素数。</li>
+			<li>$g \left( a b \right) = g \left( a \right) g \left( b \right)$，$\gcd \left( a, b \right) = 1$。</li>
+		</ol>
+		<p>定义 $$ f \left( n \right) = \left( \sum_{i=1}^n \left \lfloor \frac ni \right \rfloor^2 g \left( i \right) \right) \bmod 998244353 $$</p>
+		<p>给定 $n$，你需要求出 $f \left( 1 \right) \oplus f \left( 2 \right) \oplus \cdots \oplus f \left( n \right)$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 10^7$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $f \left( 1 \right) \oplus f \left( 2 \right) \oplus \cdots \oplus f \left( n \right)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>由于 $n$ 不大，且 "异或" 操作在数论函数之间也难以转化，因此考虑对于 $\forall 1 \leq i \leq n$，求出每个 $f \left( i \right)$。</p>
+		<p>但是按照定义求 $f \left( i \right)$ 的复杂度是 $O \left( n \log n \right)$ 的，无法接受，我们需要寻找更快的方法。</p>
+		<p>注意到 $g$ 是积性函数，因此可以使用线性筛在 $O \left( n \right)$ 时间内求得所有 $n$ 个点值。然而 $f$ 不是积性函数，因此直接线性筛可能不太靠谱。</p>
+		<p>不过，由于 $f$ 的定义式里有 $\left \lfloor \dfrac ni \right \rfloor$，于是根据 <a href="cf915G.html" target="_blank">[Codeforces915G]Coprime Arrays</a> 的经验，我们尝试计算 $f$ 的<strong>差分</strong>：</p>
+		<p>$$ \Delta f \left( n \right) = f \left( n \right) - f \left( n - 1 \right) = \sum_i \left \lfloor \frac ni \right \rfloor^2 g \left( i \right) - \sum_i \left \lfloor \frac {n - 1} i \right \rfloor^2 g \left( i \right) = \sum_i \left( \left \lfloor \frac ni \right \rfloor^2 - \left \lfloor \frac {n - 1} i \right \rfloor^2 \right) g \left( i \right) $$</p>
+		<p>和那道题类似，$\left \lfloor \dfrac ni \right \rfloor \neq \left \lfloor \dfrac {n - 1} i \right \rfloor$ 当且仅当 $i \mid n$，因此 $$ \Delta f \left( n \right) = \sum_{d \mid n} \left( \left( \frac nd \right)^2 - \left( \frac nd - 1 \right)^2 \right) g \left( d \right) = \sum_{d \mid n} g \left( d \right) \left( \frac {2 n} d - 1 \right) = 2 \sum_{d \mid n} g \left( d \right) \cdot \frac nd - \sum_{d \mid n} g \left( d \right) $$</p>
+		<p>由熟知结论，<strong>积性函数的 Dirichlet 卷积仍是积性函数</strong>，因此 $\displaystyle R_1 \left( n \right) = \sum_{d \mid n} g \left( d \right) \cdot \frac nd, R_2 \left( n \right) = \sum_{d \mid n} g \left( d \right)$ 均为积性函数，直接线性筛即可。</p>
+		<p>于是 $\Delta f \left( n \right) = 2 R_1 \left( n \right) - R_2 \left( n \right)$ 可以在 $O \left( n \right)$ 时间内得到，对其做一遍部分和即得 $f \left( n \right)$。</p>
+		<p>总时间复杂度 $O \left( n \right)$，<del class="text-muted">注意常数。</del></p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 10000054, mod = 998244353;
+
+inline int &amp; add(int &amp;x, const int y) {return x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; sub(int &amp;x, const int y) {return x -= y, x += x &gt;&gt; 31 &amp; mod;}
+
+int n;
+int pn = 0, c[N], p[666666];
+int fy[N], deg[N], g1[N], g2[N], f[N];
+
+void sieve(int n) {
+	int i, j, v; g1[1] = g2[1] = 1;
+	memset(c, -1, sizeof c);
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i])
+			p[pn] = i, c[i] = pn++, fy[i] = deg[i] = 1,
+			g1[i] = i + (i ^ 1), g2[i] = 1 + (i ^ 1);
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt; c[i]; ++j)
+			c[v] = j, fy[v] = i, deg[v] = 1,
+			g1[v] = (ll)g1[i] * g1[p[j]] % mod, g2[v] = (ll)g2[i] * g2[p[j]] % mod;
+		if (v &lt;= n) {
+			c[v] = j, fy[v] = fy[i], deg[v] = deg[i] + 1;
+			g1[v] = (ll)(p[j] * g1[i] + (ll)(p[j] ^ deg[v]) * g1[fy[v]]) % mod;
+			g2[v] = (g2[i] + (ll)(p[j] ^ deg[v]) * g2[fy[v]]) % mod;
+		}
+	}
+}
+
+int main() {
+	int i, ans = 0;
+	scanf("%d", &amp;n), sieve(n);
+	for (i = 1; i &lt;= n; ++i) ans ^= sub(add(add(f[i] = f[i - 1], g1[i]), g1[i]), g2[i]);
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意是先取模在异或，不要搞反了。</p>
+		<p><strong>坑2：</strong>线性筛的时候可以对每个 $p^\alpha \cdot \beta$ ($p$ 为其最小素因子) 预处理出 $\alpha, \beta$，避免不必要的 $\log$。</p>
+	</body>
+</html>

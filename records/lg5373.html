@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg5373]多项式复合函数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个 $n$ 次多项式 $F \left( x \right)$ 和一个 $m$ 次多项式 $G \left( x \right)$，你需要求一个 $n$ 次多项式 $H \left( x \right)$，满足 $$ H \left( x \right) \equiv \left( F \circ G \right) \left( x \right) = F \left( G \left( x \right) \right) \pmod {x^{n + 1}} $$</p>
+		<p>换种说法，多项式 $H \left( x \right)$ 应满足 $$ H \left( x \right) \equiv \sum_{i=0}^n \left[ x^i \right] F \left( x \right) \cdot G^i \left( x \right) \pmod {x^{n + 1}}$$</p>
+		<p>将结果的各项系数对 $998244353$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($1 \leq m \leq n \leq 20000$)，分别表示 $F \left( x \right)$ 和 $G \left( x \right)$ 的次数。</p>
+		<p>第二行包含 $n + 1$ 个非负整数 $f_i$ ($0 \leq f_i &lt; 998244353$)，从低到高表示 $F \left( x \right)$ 的各项系数。</p>
+		<p>第三行包含 $m + 1$ 个非负整数 $g_i$ ($0 \leq g_i &lt; 998244353$)，从低到高表示 $G \left( x \right)$ 的各项系数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n + 1$ 个整数，从低到高表示 $H \left( x \right)$ 的各项系数模 $998244353$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>看起来经典的多项式理论不太好使了，我们考虑暴力求解这个式子。</p>
+		<p>如果暴力用 NTT 一层一层卷，则总的时间复杂度是 $O \left( n^2 \log n \right)$，算上 NTT 的常数，是无法通过的。</p>
+		<p>考虑使用 "优雅" 的暴力，即<strong>分块</strong>来处理。</p>
+		<p>和<del>光速幂</del>以及 BSGS 类似，令 $B = \left \lfloor \sqrt n \right \rfloor$，先处理出 $G, G^2, G^3, \cdots, G^B, G^{2 B}, G^{3 B}, \cdots$ 等 $2 \sqrt n + O \left( 1 \right)$ 个多项式，于是，对于 $\forall k = q B + r$ ($0 \leq r &lt; B$)，$G^k$ 都能表示成 $G^{q B} \cdot G^r$ 的形式，于是就变成了一个普通的卷积啦。</p>
+		<p>因此，在 $H \left( x \right)$ 的<em>和式</em>中，我们也考虑将这些 $i$ 分块计算，比如计算满足 $q B \leq i &lt; \left( q + 1 \right) B$ 的所有 $i$ 对答案 $H \left( x \right)$ 的贡献。</p>
+		<p>设 $F \left( x \right) = f_0 + f_1 x + f_2 x^2 + \cdots$。于是 $$ \sum_{q B \leq i &lt; \left( q + 1 \right) B} f_i \cdot G^i = \sum_{j=0}^{B - 1} f_{q B + j} \cdot G^{q B} \cdot G^j = G^{q B} \cdot \sum_{j=0}^{B - 1} f_{q B + j} \cdot G^j $$</p>
+		<p>注意到 $G^0, G^1, G^2, \cdots, G^{B - 1}$ 均为已处理的多项式，因此计算右边的和式只需要 $O \left( n B \right)$ 的时间。</p>
+		<p>于是，计算 $B$ 个多项式的和需要 $O \left( n \log n + n B \right)$ 的时间，一共有 $\dfrac nB$ 段，因此总时间复杂度就是 $O \left( \dfrac nB \cdot \left( n \log n + n B \right) \right) = O \left( n \sqrt n \log n + n^2 \right)$。</p>
+		<p>由于 $O \left( n^2 \right)$ 部分常数非常小，因此跑过 $20000$ 还是没有问题滴 (参见 <a href="loj6389.html" target="_blank">[THUPC2018]好图计数</a>)，具体的方法就是尽可能地减少<strong>取模</strong>的次数 (比如使用 <code>__int128</code> 等)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef long long ll;
+typedef __int128 s128;
+const int N = 65600, SN = 160, mod = 998244353, half_mod = (mod + 1) / 2, root = 31;
+typedef int vec[N], *pvec;
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void in(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) scanf("%d", f + i);}
+
+	void out(int deg, pvec f, const char *_name) {
+		printf("%s(x) =", _name);
+		for (int i = 0; i &lt;= deg; ++i) printf(" %+d x^%d", (int)(f[i] - (mod &amp; -(f[I] &gt;= half_mod))), i);
+		putchar(10);
+	}
+
+	void series(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) printf("%d%c", f[i], i == deg ? 10 : 32);}
+
+	#define fy_out(deg, f) Poly::out(deg, f, #f)
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2;
+	
+}
+
+int n, F, G, B;
+vec f, g, h, tg, th;
+vec g_ntt, Bl_ntt, part, ans;
+vec all[SN];
+s128 temp[N];
+
+int main() {
+	int i, j, k, d; ll iv, de; pvec t;
+	scanf("%d%d", &amp;F, &amp;G), Poly::in(F, f), Poly::in(G, g);
+	B = sqrt(n = F + 1);
+	Poly::NTT_init(lg2(F) + 2), iv = mod - (mod - 1) / Poly::n;
+	Poly::DNTT(g, g_ntt), **all = *h = 1;
+
+	for (j = 1; j &lt;= B; ++j) {
+		Poly::DNTT(all[j - 1], tg), t = all[j];
+		for (i = 0; i &lt; Poly::n; ++i) tg[i] = tg[i] * (ll)g_ntt[i] % mod;
+		Poly::DNTT(tg, t), std::reverse(t + 1, t + Poly::n);
+		for (i = 0; i &lt; n; ++i) t[i] = t[i] * iv % mod;
+		memset(t + n, 0, n &lt;&lt; 2);
+	}
+	Poly::DNTT(all[B], Bl_ntt);
+
+	for (d = j = 0; j &lt; n; j += B) {
+		for (k = 0; k &lt; B &amp;&amp; d &lt; n; ++k, ++d) {
+			t = all[k], de = f[d];
+			for (i = 0; i &lt; n; ++i) temp[i] += de * t[i];
+		}
+		for (i = 0; i &lt; n; ++i) part[i] = temp[i] % mod, temp[i] = 0;
+		Poly::DNTT(h, tg), Poly::DNTT(part, th);
+		for (i = 0; i &lt; Poly::n; ++i) th[i] = th[i] * (ll)tg[i] % mod;
+		Poly::DNTT(th, part), std::reverse(part + 1, part + Poly::n);
+		for (i = 0; i &lt; n; ++i) ans[i] = (ans[i] + part[i] * iv) % mod;
+		memset(part + n, 0, n &lt;&lt; 2);
+
+		for (i = 0; i &lt; Poly::n; ++i) tg[i] = tg[i] * (ll)Bl_ntt[i] % mod;
+		Poly::DNTT(tg, h), std::reverse(h + 1, h + Poly::n);
+		for (i = 0; i &lt; n; ++i) h[i] = h[i] * iv % mod;
+		memset(h + n, 0, n &lt;&lt; 2);
+	}
+	for (i = 0; i &lt;= F; ++i) printf("%d%c", ans[i], i == F ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于运行时间的瓶颈在于 $O \left( n \sqrt n \log n \right)$ 这部分，因此在分块的过程中可以维护某些序列 NTT 后的结果来减少常数 (NTT 次数)。</p>
+	</body>
+</html>

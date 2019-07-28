@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj575]不等关系</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个字符串 $s_1, s_2, \cdots, s_n$，仅包含 <code>&lt;</code> 和 <code>&gt;</code> 两种字符。</p>
+		<p>你需要计算「使得 $p_i &lt; p_{i + 1}$ <strong>当且仅当</strong> $s_i$ 为 <code>&lt;</code> 的排列 $p_1, p_2, \ldots, p_{n + 1}$」的数量。</p>
+		<p>可以发现，答案可能很大，因此你只要输出它对 $998244353$ 取模的结果。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个由 <code>&lt;</code> 和 <code>&gt;</code> 组成的长度不超过 $10^5$ 的字符串 $s$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足要求的排列数量对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>发现既有 $&lt;$ 又有 $&gt;$ 不太好处理，那怎么办呢？</p>
+		<p>首先，如果所有的限制都是 $p_i &lt; p_{i + 1}$，那是容易计算的 (答案就是 $1$)。如果某些位置是不限制 (既允许 $p_i &lt; p_{i + 1}$ 也允许 $p_i &gt; p_{i + 1}$)，则这个也是比较容易计算的，就是一个多项式系数 $\dbinom n {l_1, l_2, \cdots, l_k}$ 而已。</p>
+		<p>于是，仿照 <a href="lg5405%3Bloj3124.html" target="_blank">[CTS2019]氪金手游</a> 的经验，我们采用<strong>容斥原理</strong>。</p>
+		<p>即我们枚举有哪些 $&gt;$ 被变成了 $&lt;$，剩下的就是 "不限制"，然后算出对应的组合数乘积后乘以 $\left( -1 \right)^K$ (其中 $K$ 为 $&gt;$ 变 $&lt;$ 的个数)，将所有项相加即得答案。</p>
+		<p>不过这样做的时间复杂度是 $O \left( 2^{&gt; \text{ 的个数}} \right)$ 的，不太优秀，于是需要将其改成 <strong>DP 容斥系数</strong>的形式。</p>
+		<p>用 $f_i$ 表示前 $i$ 个数进行排列所得到的合法方案数乘上 $\dfrac 1 {i !}$ (即满足 "第 $i$ 个数后是一个断点" 的阶乘逆的乘积的和)，那么初始状态是 $f_0 = 1$，答案就是 $\left( n + 1 \right) ! \cdot f_{n + 1}$。</p>
+		<p>考虑转移，设上一个断点是 $j$，则 $s_j = \texttt&gt;$，然后这一段的长度贡献为 $\dfrac 1 {\left( i - j \right) !}$。由于每 "忽略" 一个 $&gt;$ (即将该 $&gt;$ 看成 $&lt;$)，容斥系数都会乘以 $-1$，因此还需要乘以区间 $\left( j, i \right)$ 中 $&gt;$ 的个数。</p>
+		<p>综上，转移方程就是 $$ f_i = \sum_{j = 0 \vee s_j = \texttt&gt;} \left( -1 \right)^{cnt_{j + 1, i - 1}} \cdot \frac {f_j} {\left( i - j \right) !} $$</p>
+		<p>令 $A_i = f_i \cdot \left( -1 \right)^{cnt_{1, i}}$，则 $\displaystyle A_i = \sum_{j = 0 \vee s_j = \texttt&gt;} - A_j \cdot \dfrac 1 {\left( i - j \right) !}$，很明显，它可以通过<a href="../index.html?tag=%E5%88%86%E6%B2%BB%E5%A4%9A%E9%A1%B9%E5%BC%8F%E6%8A%80%E5%B7%A7" target="_blank"><strong>分治多项式技巧</strong></a>进行优化。</p>
+		<p>因此总时间复杂度 $O \left( n \log^2 n \right)$，就可以通过了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef long long ll;
+const int N = 265000, mod = 998244353, root = 31;
+typedef int vec[N], *pvec;
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i) x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3;
+	void Mul(int degA, int degB, pvec a, pvec b, pvec c) { 
+		if (!degA &amp;&amp; degB == 1) {*c = (ll)*a * *b % mod, c[1] = (ll)*a * b[1] % mod; return;}
+		if (degA == 1 &amp;&amp; !degB) {*c = (ll)*a * *b % mod, c[1] = (ll)a[1] * *b % mod; return;}
+		NTT_init(lg2(degA + degB) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		memcpy(B1, a, (degA + 1) &lt;&lt; 2), memset(B1 + (degA + 1), 0, (n - degA - 1) &lt;&lt; 2);
+		memcpy(B2, b, (degB + 1) &lt;&lt; 2), memset(B2 + (degB + 1), 0, (n - degB - 1) &lt;&lt; 2);
+		DNTT(B1, B3), DNTT(B2, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * B3[i] % mod;
+		DNTT(B1, B3), std::reverse(B3 + 1, B3 + n);
+		for (i = 0; i &lt;= degA + degB; ++i) c[i] = B3[i] * iv % mod;
+	}
+}
+
+int n;
+char s[N];
+vec fact, finv, f, C0, C1;
+
+void init(int n) {
+	int i;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+void solve(int L, int R) {
+	int i, M = (L + R) / 2;
+	if (L + 1 == R) {L || (*f = 1), s[L] &amp;&amp; neg(C0[L] = f[L]); return;}
+	solve(L, M);
+	Poly::Mul(M - L - 1, R - L - 1, C0 + L, finv, C1);
+	for (i = M; i &lt; R; ++i) add(f[i], C1[i - L]);
+	solve(M, R);
+}
+
+int main() {
+	int i, ans; bool o = true;
+	scanf("%s", s + 1), n = strlen(s + 1) + 1;
+	for (*s = i = 1; i &lt; n; ++i) o ^= s[i] = s[i] &gt;&gt; 1 &amp; 1;
+	init(n), solve(0, n + 1);
+	ans = (ll)f[n] * (o ? mod - fact[n] : fact[n]) % mod;
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意最后答案是 $f_{n + 1} \cdot A_{n + 1} \cdot \left( -1 \right)^{cnt_{1, n}}$，不要忘记乘上这个系数。</p>
+		<p><strong>坑2：</strong>在进行分治多项式的过程中，注意保持高次项为 $0$，避免卷积结果错误。</p>
+	</body>
+</html>

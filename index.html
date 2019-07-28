@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-cn">
 	<head>
-		<!-- version 4.0 -->
+		<!-- version 5.0 -->
 		<meta charset="utf-8">
 		<link type="text/css" rel="stylesheet" href="additional_files/fonts.css">
 		<link type="text/css" rel="stylesheet" href="additional_files/sh_typical.min.css">
@@ -10,14 +10,14 @@
 		<script src="additional_files/jquery.min.js"></script>
 		<script src="additional_files/basic.min.js"></script>
 		<script src="additional_files/file.min.js"></script>
+		<script src="additional_files/tag_redirector.min.js"></script>
 		<script src="additional_files/sort.min.js"></script>
 		<script>
-			// document loaded
-			$(document).ready(function () {
-				updTime(); setInterval(updTime, 250);
+			jQuery(document).ready($ => {
+				updTime(), setInterval(updTime, 250);
 				if (getStorage('marquee') === 'on') $("#intro").show().get(0).start();
 
-				var params = parseStr(location.search), strLocation, curTag, curSearch;
+				let params = parseStr(location.search), strLocation, curTag, curSearch, rdTag;
 				curLocation = params['curLoc'] || '';
 				curROrder = getStorage('srtRec') || 'n';
 				curPage = parseInt(params['page'] || '1');
@@ -26,14 +26,20 @@
 				if (!curTag.match(/^[^\x00-\x1f;]+$/)) curTag = '';
 				if (!curSearch.match(/^[^\x00-\x1f]+$/)) curSearch = '';
 
+				if (rdTag = redirect(curTag)) {
+					params['tag'] = rdTag;
+					params['from'] = curTag;
+					location.replace(getUri(params));
+				}
+
 				strLocation = '当前位置: <a href="' + getUri({}) + '">根</a>';
 
 				if (curLocation) {
-					strLocation += ' &gt; <a href="' + getUri({curLoc : curLocation}) + '">' + getDisplay(curLocation) + '</a>';
+					strLocation += ' &gt; <a href="' + getUri({curLoc : curLocation}) + '">' + htmlspecialchars(getDisplay(curLocation)) + '</a>';
 				}
 
 				if (curTag) {
-					strLocation += ' &gt; <a href="' + getUri({curLoc : curLocation, tag : curTag}) + '">' + curTag + '</a>';
+					strLocation += ' &gt; <a href="' + getUri({curLoc : curLocation, tag : curTag}) + '">' + htmlspecialchars(curTag) + '</a>';
 					setFileConfig('tag', curTag);
 				}
 
@@ -41,26 +47,26 @@
 					setFileConfig('search', curSearch);
 				}
 
+				if (params['from']) {
+					strLocation += '<br /><small style="color: #090; padding-left: 8em">(重定向自 <strong style="color: #09f">' + htmlspecialchars(params['from']) +'</strong>)</small>';
+				}
+
 				$('#pLocation').html(strLocation);
 				$('#search').val(curSearch);
 				$.get('records/tot.cfg', parseRecords);
 
-				$('#btnMarquee').click(function () {
-					var $mar = $('#intro');
-					if ($mar.is(':hidden')) {$mar.show().get(0).start(); setStorage('marquee', 'on');}
-					else {$mar.hide(); setStorage('marquee', 'off');}
+				$('#ctrl-marquee').click(function () {
+					let $mar = $('#intro');
+					setStorage('marquee', $mar.is(':hidden') ? ($mar.show().get(0).start(), 'on') : ($mar.hide(), 'off'));
 				});
 
 				$('#locations > button').click(function () {
-					params['curLoc'] = $(this).data('location');
-					params['tag'] = '';
-					params['page'] = '';
-					params['search'] = '';
+					params = {'curLoc' : $(this).data('location')};
 					location.href = getUri(params);
 				});
 
 				$('.sortlink').click(function () {
-					var t = $(this.parentNode).index(), s;
+					let t = $(this.parentNode).index(), s;
 					if (t !== 2) {
 						s = getSortChar(t);
 						$('#recTable > tbody').empty();
@@ -75,16 +81,9 @@
 				$('#search').keypress(function (e) {
 					if (e.keyCode === 13 || e.which === 13) {
 						params['page'] = '';
+						params['from'] = '';
 						e.shiftKey ? params['tag'] = this.value : (params['search'] = this.value);
 						location.href = getUri(params);
-					}
-				}).keydown(function (e) {
-					if (e.keyCode === 16 || e.which === 16) {
-						this.placeholder = '搜索算法标签';
-					}
-				}).keyup(function (e) {
-					if (e.keyCode === 16 || e.which === 16) {
-						this.placeholder = '搜索';
 					}
 				});
 
@@ -103,7 +102,9 @@
 			</div>
 		</div>
 		<div class="dmarquee" style="height: 25px">
-			<button class="button" id="btnMarquee" style="float: left">开启/关闭字幕</button>
+			<div id="ctrl-marquee" style="float: left">
+				<p class="hint">开启/关闭字幕</p>
+			</div>
 			<div style="overflow: hidden">
 				<marquee id="intro" scrollamount="1000" style="color: #999; display: none;">bestFy is the cutest !</marquee>
 			</div>
@@ -118,7 +119,7 @@
 					<div class="buffer-1" id="locations"><button data-location="">全部</button><button data-location="Lydsy" >Lydsy</button><button data-location="Luogu">洛谷</button><button data-location="Vijos">Vijos</button><button data-location="HDU">HDU</button><button data-location="POJ">POJ</button><button data-location="UOJ">UOJ</button><button data-location="LibreOJ">LibreOJ</button><button data-location="SOJ">SimpleOJ/StupidOJ</button><button data-location="Codeforces">Codeforces</button><button data-location="Codechef">Codechef</button><button data-location="SPOJ">SPOJ</button><button data-location="Local">本地</button><button data-location="Unknown">其它 OJ</button></div>
 					<div class="buffer-1 row">
 						<div class="col-1-2" id="pLocation">当前位置: </div>
-						<div class="col-1-4 col-push-1-4 ri"><input type="text" id="search" placeholder="搜索" style="margin-left: -12px; width: 100%" /></div>
+						<div class="col-1-4 col-push-1-4 ri"><input type="text" id="search" placeholder="搜索 (如需搜索标签请按 Shift + Enter)" style="margin-left: -12px; width: 100%" /></div>
 					</div>
 					<table class="cen main-table" id="recTable" style="width: 100%">
 						<thead>

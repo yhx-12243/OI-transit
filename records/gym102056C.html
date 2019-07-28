@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[CodeforcesGym102056C][EC Final 2018]Heretical … Möbius</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>$s$ 是一个长度为 $10^9$ 的字符串，其中第 $i$ 个字符为 $\left| \mu \left( i \right) \right|$ ($0$ 或 $1$)，其中 $\mu$ 表示 Möbius 函数。</p>
+		<p>给定一个长度为 $200$ 的字符串 $t$，你需要判断 $t$ 是否是 $s$ 的子串。如果是，并求出它在 $s$ 中第一次出现的位置。</p>
+
+		<h3>输入格式</h3>
+		<p>共十行，每行一个长度为 $20$ 的 $\texttt 0/\texttt 1$ 串 $t_i$ ($1 \leq i \leq 10$)，其中 $t$ 是这 $10$ 个串顺次连接所得到的结果，即 $t = t_1 t_2 \cdots t_{10}$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，如果 $t$ 是 $s$ 的子串，则输出 $t$ 在 $s$ 中第一次出现的位置 $p$ (从 $1$ 标号，即满足 $t$ 的第 $i$ 个字符为 $\left| \mu \left( p + i - 1 \right) \right|, i = 1, 2, \cdots, 200$)。若 $t$ 不是 $s$ 的子串，则输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>考察 Möbius 函数的性质。不难发现，若 $x$ 非平方松 (square-free)，则对于 $x$ 的所有倍数 $k x$，$k x$ 都不会是平方松的，从而 $\mu \left( k x \right) = 0$。</p>
+		<p>因此，如果 $\mu \left( x \right) = 0$，在 "Möbius 串" 中。应该会存在某个位置，以它为起点每向前/后走 $x$ 步所得到的结果一定是 $0$。</p>
+		<p>比如取 $x = 4$，则存在某个位置，将这个串每 $4$ 个字符 (每隔 $3$ 个字符) 拉出来，所得到的串一定是全零串。</p>
+		<p>从而，如果 $t_1, t_5, t_9, \cdots, t_{197}$ 非全零，则可以断定 $p \not\equiv 0 \pmod 4$。</p>
+		<p>同理，如果 $t_2, t_6, t_{10}, \cdots, t_{198}$ 非全零，则可以断定 $p \not\equiv 3 \pmod 4$。</p>
+		<p>以此类推，就可以得到如果 $t$ 是 $s$ 的子串，则 $p \bmod 4$ 的<strong>所有可能值</strong> (候选值)。</p>
+		<p>为了得到更多<strong>独立的</strong>信息，我们可以取 $x = q^2$，其中 $q = 2, 3, 5, 7, 11, 13$。一方面，这样可以保证 $x = q^2 \leq 200$，从而排除掉一些数据；另一方面，防止它们的乘积过大，从而对计算带来不便。</p>
+		<p>于是我们就得到了 $p \bmod 2^2, p \bmod 3^2, \cdots, p \bmod 13^2$ 的值，使用孙子定理 (中国剩余定理)，我们就能得到 $p \bmod \left( 2 \cdot 3 \cdot 5 \cdot 7 \cdot 11 \cdot 13 \right)^2 = 901800900$ 的值。这个模数刚好也是 $10^9$ 的数量级，可以接受。</p>
+		<p>剩下的事情就是将通过孙子定理合并所得到的所有候选的 $p$ 拉出来并逐一检验。</p>
+		<p>检验的时候由于只需要知道连续 $200$ 个整数的 Möbius 值，直接使用区间筛即可。</p>
+		<hr />
+		<p>其实这样有一个严重的问题：如果 $p$ 有解，那么还好；如果 $p$ 无解，甚至这个 $t$ 可能是<strong>全 $\texttt 0$ 串</strong>，这样候选的 $p$ 就会达到 $10^9$ 的数量级！如果全 $\texttt 0$ 串有解的话，这个算法可能就会 "废掉"！</p>
+		<p>首先可以声明的是，在 $10^9$ 的范围内，全 $\texttt 0$ 串是无解的。</p>
+		<p>这是因为，由熟知结论，在 $\mathbb N^*$ 中任取一个正整数，它是平方松的概率是 $\dfrac 6 {\pi^2}$，因此取连续 $200$ 个整数，所得到的 "Möbius 串" 中 $\texttt 1$ 的个数的<strong>期望</strong>应该是 $200 \cdot \dfrac 6 {\pi^2} \approx 122$。</p>
+		<p>事实上，经过暴力程序检验，在 $10^9$ 范围内，所有连续 $200$ 个整数中所得到的 "Möbius 串" 中，$\texttt 1$ 的个数都不会小于 $100$ <span style="color: red">(ps: 这个范围是不可缺少的！已经有人证明，当 $n \to \infty$ 时，存在任意长度的全 $\texttt 0$ 子串)</span>。</p>
+		<p>因此，如果输入给定的串的 $\texttt 1$ 的个数 $&lt; 100$，直接输出 $-1$ 就行啦。</p>
+		<p>否则，$\texttt 0$ 的个数至多是 $100$。此时，对于每个 $q^2$，可行的候选数量就不超过 $\left \lfloor \dfrac {q^2} 2 \right \rfloor$，因此，总的候选数量就不超过 $\left \lfloor \dfrac {2^2} 2 \right \rfloor \cdot \left \lfloor \dfrac {3^2} 2 \right \rfloor \cdot \left \lfloor \dfrac {5^2} 2 \right \rfloor \cdot \left \lfloor \dfrac {7^2} 2 \right \rfloor \cdot \left \lfloor \dfrac {11^2} 2 \right \rfloor \cdot \left \lfloor \dfrac {13^2} 2 \right \rfloor = 11612160$，当然这只是一个非常松的上限，因为当某个素数取等号的时候另一个素数就不可能取到等号。实际上只要 $\texttt 0$ 的个数不超过 $100$，候选的个数是<strong>不会超过 $10^5$ 的</strong>。</p>
+		<p>这样一来，时间复杂度就有了保证。总时间复杂度就是 $O \left( 200 \sqrt R \cdot S \right)$，其中 $R$ 为权值范围 ($10^9$)，$S$ 为候选个数。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define rol(a, b) for (i = 0; i &lt; a; ++i) if (ok(a, i)) b.EB(i ? a - i : 0);
+#define rep(a, b) for (int a : b)
+#define EB emplace_back
+
+typedef std::vector &lt;int&gt; vector;
+typedef long long ll;
+const int N = 100054, T = 200, mod = 901800900;
+const ll coe_a = 225450225, coe_b = 701400700, coe_c = 577152576, coe_d = 147232800, coe_e = 104340600, coe_f = 48024900;
+
+char s[T + 1];
+int pn = 0, c[N], p[9600];
+int cnt = 0, potential[N];
+vector A, B, C, D, E, F;
+
+void sieve(int n) {
+	int i, j, v;
+	memset(c, -1, sizeof c);
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i]) p[pn] = i, c[i] = pn++;
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt;= c[i]; ++j) c[v] = j;
+	}
+}
+
+inline bool ok(int per, int pos) {
+	for (int i = pos; i &lt; T; i += per) if (s[i] &amp; 1) return false; return true;
+}
+
+inline bool final(int L) {
+	int i, t, x, R = L + 200; char buf[T + 1];
+	memset(buf, 49, sizeof buf);
+	for (i = 0; i &lt; pn &amp;&amp; p[i] * p[i] &lt; R; ++i) {
+		t = p[i] * p[i];
+		for (x = (L + t - 1) / t * t; x &lt; R; x += t) buf[x - L] = 48;
+	}
+	return !memcmp(buf, s, 200);
+}
+
+int main() {
+	int i, n; sieve(N - 1);
+	for (i = 0; i &lt; T; i += 20) scanf("%s", s + i);
+	if (std::count(s, s + T, 49) &lt;= 100) return puts("-1"), 0;
+	rol(4, A) rol(9, B) rol(25, C) rol(49, D) rol(121, E) rol(169, F)
+	rep(a, A) rep(b, B) rep( c, C) rep( d, D) rep(  e, E) rep(  f, F)
+		for (n = (coe_a * a + coe_b * b + coe_c * c + coe_d * d + coe_e * e + coe_f * f) % mod;
+			n &lt;= 999999801; n += mod) potential[cnt++] = n;
+//	fprintf(stderr, "%d participants\n", cnt);
+	std::sort(potential, potential + cnt);
+	for (i = 0; i &lt; cnt; ++i) if (final(potential[i])) return printf("%d\n", potential[i]), 0;
+	return puts("-1"), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $p$ 的上界，由于 $\left| s \right| = 10^9, \left| t \right| = 200$，因此 $p$ 的最大值是 $\color {red} {999999801}$，数据专门对此进行了 Hack。</p>
+		<p><strong>坑2：</strong>由于 <abbr title="Chinese Remainder Theorem, 孙子定理">CRT</abbr> 中的模数是确定的，因此可以预先处理出每个模数对应的系数，从而加快计算。</p>
+	</body>
+</html>

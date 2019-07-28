@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6675]下棋</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给出一个有 $n$ 条水平线与 $m$ 条竖直线构成的棋盘 (并不一定是传统围棋棋盘的 $19$ 条线)，然后他们有 $k$ 枚棋子可以摆放到棋盘上的网格的交叉点上。</p>
+		<p>我们定义一个方案的「赢面」为棋盘上「四边与棋盘上的直线重合」且「四个角上都有棋子」的矩形个数。</p>
+		<p>你需要找到「赢面」最大的方案，并输出它的「赢面」值。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含三个正整数 $n, m, k$ ($n, m \leq 30000; k \leq n \times m$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示能得到的最大「赢面」。</p>
+
+		<h3>题解</h3>
+		<p>设第 $i$ 行有 $a_i$ 枚棋子，共有 $r$ 行。</p>
+		<p>不妨重新调整行和列，使得前一行的棋子数不小于后一行 ($a_i \geq a_{i+1}$)，则整个棋盘的「赢面」应<strong>不超过</strong> $$ \sum_{1 \leq i &lt; j \leq r} \binom {\min \left\{ a_i, a_j \right\}} 2 = \sum_{i=1}^r \left( i - 1 \right) \cdot \binom {a_i} 2 \tag 1 \label 1 $$ 其中可以取等当且仅当对于任意两行，它们有棋子的列互为子集关系。</p>
+		<p>考虑在<strong>固定 $r$</strong> (当然也要固定 $\sum a_i$) 的情况下最大化 $\eqref 1$ 式。</p>
+		<p>通过作差法可以发现，(在不考虑棋盘边界的情况下) 当 $a_1 - a_r \leq 1$，或 $a_1 = a_2 = \cdots = a_{r-1} \geq a_r$ 时，这个式子会取到极大值。</p>
+		<p>而这两种情况都对应到这些棋子摆成一个矩形然后在其中某一排缺少几枚棋子的情况。</p>
+		<p>于是只需枚举这个矩形的一边长 $a$，然后计算按照 $a$ 个 $a$ 个摆放，所能得到的最大「赢面」。</p>
+		<hr />
+		<p>那现在有边界限制了，其实差别也不大。</p>
+		<p>参考 <a href="uoj133.html" target="_blank">[uoj133]电路手动分析</a> 时的技巧，我们枚举矩形<strong>完整部分</strong>的一边长 $a$，算出完整部分的另一边长 $b$ 和最后一排剩下的棋子数 ($0 \leq rem &lt; a$)。若 $rem = 0$，则检验 $a \times b$ 的矩形能否放入 $n \times m$ 的矩形中，如果 $rem &gt; 0$，则需要检验 $a \times \left( b + 1 \right)$ 的矩形能否放入 $n \times m$ 的矩形中。</p>
+		<p>总时间复杂度就是枚举 $a$ 的复杂度，$O \left( n + m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+
+int r, c, n;
+
+inline void up(ll &amp;x, const ll y) {x &lt;y ? x = y : 0;}
+
+int main() {
+	int w, h, rem; ll t, ans = 0;
+	scanf("%d%d%d", &amp;r, &amp;c, &amp;n);
+	for (w = 1; (w &lt;= r || w &lt;= c) &amp;&amp; w &lt;= n; ++w) {
+		if (h = n / w, !( (w &lt;= r &amp;&amp; h &lt;= c) || (w &lt;= c &amp;&amp; h &lt;= r)) ) continue;
+		t = w * (w - 1ll) * h * (h - 1ll) / 4;
+		if (rem = n - w * h, rem) {
+			if (w &lt;= r &amp;&amp; h &lt;= c) {
+				if (rem &lt;= w &amp;&amp; h &lt; c) up(ans, t + rem * (rem - 1ll) / 2 * h);
+				if (rem &lt;= h &amp;&amp; w &lt; r) up(ans, t + rem * (rem - 1ll) / 2 * w);
+			}
+			if (w &lt;= c &amp;&amp; h &lt;= r) {
+				if (rem &lt;= w &amp;&amp; h &lt; r) up(ans, t + rem * (rem - 1ll) / 2 * h);
+				if (rem &lt;= h &amp;&amp; w &lt; c) up(ans, t + rem * (rem - 1ll) / 2 * w);
+			}
+		} else up(ans, t);
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $rem = 0$ 时检验的是 $a \times b$ 的矩形而不需要 $+ 1$，否则可能会出现无解现象 (比如当 $k = n \times m$ 时)。</p>
+	</body>
+</html>

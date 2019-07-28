@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6632][CodeforcesGym102056C][EC Final 2018]Mysterious … Host</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一个 $n$ 元排列 $p_1, p_2, \cdots, p_n$，称 $\left[ L, R \right]$ 是一个连续段当且仅当 $\max \left\{ p_L, p_{L + 1}, \cdots, p_R \right\} - \min \left \{ p_L, p_{L + 1}, \cdots, p_R \right\} = R - L$。</p>
+		<p>称两个排列 $p, q$ <dfn>等价</dfn>，当且仅当对于任意区间 $1 \leq L \leq R \leq n$，$\left[ L, R \right]$ 是 $p$ 的连续段 $\Leftrightarrow \left[ L, R \right]$ 是 $q$ 的连续段。</p>
+		<p>求最多能选出多少个 $n$ 元排列，使得它们两两不等价。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $N, P$ ($N \leq 5000; 1 \leq P &lt; 2^{30}$，保证 $P = 1$ 或 $P$ 为素数)，分别表示排列大小的最大值和模数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $N$ 行，每行一个整数，第 $n$ 行的数表示不等价的 $n$ 元排列数量模 $P$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>由析合树的定义知，两个排列等价当且仅当它们的析合树同构。</p>
+		<p>于是我们只需要数有多少个叶节点个数为 $n$ 的析合树。</p>
+		<p>我们用 $f_i$ 表示叶节点个数为 $n$ 的析合树的个数，那么边界是 $f_1 = 1$。</p>
+		<p>我们分两种情况讨论：根节点是<strong>合点</strong> (conjunct)，以及根节点是<strong>析点</strong> (disjunct)。</p>
+		<p style="color: fuchsia">(ps: 为了方便起见，我们用 $f_{n, k}$ 表示 $n$ 个节点分成 $k$ 个析合树的方案数，即 $f_{n, k} = \left[ x^n \right] \left( f_1 x + f_2 x^2 + f_3 x^3 + \cdots \right)^k$)</p>
+		<p>若根节点是合点，则它的子树个数必然 $\geq 2$，于是这种析合树的个数就应该是 $\displaystyle \sum_{k \geq 2} f_{n, k}$。</p>
+		<p>若根节点是析点，则它的子树个数必然 $\geq 4$，于是这样的析合树个数就应该是 $\displaystyle \sum_{k \geq 4} f_{n, k}$。</p>
+		<p>因此，有 $$ f_n = \sum_{k \geq 2} f_{n, k} + \sum_{k \geq 4} f_{n, k} = f_{n, 2} + f_{n, 3} + 2 \sum_{k \geq 4} f_{n, k} $$</p>
+		<p>接下来考虑如何求 $f_{n, k}$。</p>
+		<p>容易由定义得到一个 $O \left( n^3 \right)$ 的求法：扩展定义 $f_{n, 1} = f_n$，则 $\displaystyle f_{n, k} = \sum_{i=1}^{n - 1} f_{i, k - 1} f_{n - i}$。</p>
+		<p>但是这样会 TLE。实际上，注意到对于 $k \geq 4$ 的情况，我们只需要求它们的和，而不需要知道它们的具体值。因此，我们将 $k \geq 4$ 的情况也当成 $k = 4$ 的情况来处理就可以了。(即令 $g_{n, k} = \begin{cases} f_{n, k} &amp; k &lt; 4 \\ \displaystyle \sum_{i=4}^n f_{n, i} &amp; k = 4 \end{cases}$)</p>
+		<p>这样总时间复杂度就是 $O \left( N^2 \right)$ 的了，可以通过此题。</p>
+		<p style="color: red">(ps: 当然，由递推式的性质，可以通过分治多项式技巧将其优化到 $O \left( N \log^2 N \right)$，也可以通过 Newton 迭代解方程的方法优化到 $O \left( N \log N \right)$，但这里没必要)</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 5400;
+
+int n, mod;
+int f[N], two[N], three[N], more[N];
+
+inline void fma(int &amp;x, const int y, const int z) {x = (x + (long long)y * z) % mod;}
+
+int main() {
+	int i, j;
+	scanf("%d%d", &amp;n, &amp;mod), f[1] = 1;
+	for (i = 2; i &lt;= n; ++i) {
+		for (j = 1; j &lt; i; ++j)
+			fma(two[i], f[j], f[i - j]), fma(three[i], two[j], f[i - j]), fma(more[i], three[j] + more[j], f[i - j]);
+		f[i] = (2ll * more[i] + three[i] + two[i]) % mod;
+	}
+	for (i = 1; i &lt;= n; ++i) printf("%d\n", f[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>DP 时注意顺序，$k$ 要从小到大进行更新。</p>
+	</body>
+</html>

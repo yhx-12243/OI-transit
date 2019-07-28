@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj573]单枪匹马</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你需要维护一个序列，初始时，它有 $N$ 个元素 $a_1, a_2, \cdots, a_N$，有两种操作：</p>
+		<ol>
+			<li><p>在序列尾部加入一个元素 $x$，它的标号为当前元素的个数 $+ 1$。</p></li>
+			<li><p>给定 $l, r$，你需要求出 $f \left( a_l, a_{l + 1}, \cdots, a_r \right)$ 的值。</p></li>
+		</ol>
+		<p>其中 $f$ 的定义是：$f \left( x \right) = x, f \left( a_0, a_1, a_2, \cdots, a_n \right) = a_0 + \dfrac 1 {f \left( a_1, a_2, \cdots, a_n \right)}$ ($n \geq 1$)。</p>
+		<p>显然，对于操作 $2$，$f \left( a_l, a_{l + 1}, \cdots, a_r \right)$ 一定可以唯一地写为<strong>最简分数</strong> $\dfrac xy$ 的形式，你需要求出 $x$ 和 $y$ 分别对 $998244353$ 取模的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $N, M, Type$ ($1 \leq N, M \leq 5 \times 10^5; Type \in \left\{ 0, 1 \right\}$，分别表示初始时元素的种类数，操作的个数，以及强制在线参数。</p>
+		<p>第二行包含 $N$ 个正整数 $a_i$ ($1 \leq a_i \leq 998244352$)，描述初始序列中的元素。</p>
+		<p>接下来 $M$ 行，每行第一个整数 $opt$ ($opt \in \left\{ 1, 2 \right\}$ 表示当前操作类型。</p>
+		<p>对于 $opt = 1$ 的操作，接下来输入一个正整数 $x$ ($1 \leq x \leq 998244352$)，表示新发现的元素的魔法强度。</p>
+		<p>对于 $opt = 2$ 的操作，接下来输入两个整数 $l, r$ ($1 \leq l \leq r \leq Max$，其中 $Max$ 为询问时的元素个数)，表示计算 $f \left( a_l, a_{l + 1}, \cdots, a_r \right)$。</p>
+		<p>特别地，对于 $Type = 1$ 的数据，令上一次 $opt = 2$ 的操作的答案为 $Ans_x, Ans_y$ (初始时均为 $0$)，所有除 $opt$ 以外的输入数据均需要异或上 $Ans_x \oplus Ans_y$，其中 $\oplus$ 表示二进制下按位异或。同时，数据规模只保证<strong>正确解密后的 $x, l, r$ 在给定范围内</strong>。</p>
+
+		<h3>输出格式</h3>
+		<p>对于所有 $opt = 2$ 的操作，输出一行两个整数 $Ans_x,Ans_y$，分别表示 $f \left( a_l, a_{l + 1}, \cdots, a_r \right)$ <strong>最简分数</strong>的分子和分母对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>首先，这个<strong>最简分数</strong>其实就是来吓唬人的，因为，仍按按照定义式计算 $f$ 函数的值，是不需要进行任何约分操作的。</p>
+		<p>因为一开始 $f \left( x \right) = \dfrac x1$，后来设 $\left( a, b \right) = 1$，则在前面添加一个元素 $t$后，新的 $f$ 值等于 $t + \dfrac b a = \dfrac {a t + b} a$，而 $\left( a t + b, a \right) = \left( b, a \right) = 1$。</p>
+		<p>因此直接按照定义式递推过去就是答案。</p>
+		<p>不过这个递推使人不太舒服：它是向前递推的，而不是向后递推的。</p>
+		<p>如果是向后递推的，那么整个操作就会容易很多：</p>
+		<p>我们考虑用矩阵优化递推，设当前的分子和分母为 $a, b$，如果递推式是 "向后" 的，则添加一个元素 $t$ 后，分子分母就会变成 $a t + b, a$，相当于左乘了一个矩阵 $\begin{bmatrix} t &amp; 1 \\ 1 &amp; 0 \end{bmatrix}$：</p>
+		<p>$$ \begin{bmatrix} a t + b \\ a \end{bmatrix} = \begin{bmatrix} t &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \cdot \begin{bmatrix} a \\ b \end{bmatrix} $$</p>
+		<p>令元素 $t$ 对应的矩阵为 $\mathbf M_t = \begin{bmatrix} t &amp; 1 \\ 1 &amp; 0 \end{bmatrix}$，于是最终的答案矩阵就等于初始矩阵 $\begin{bmatrix} 1 \\ 0 \end{bmatrix}$ 依次乘以这段区间的所有矩阵，最后矩阵上的两个元素分别就是分子和分母啦。</p>
+		<p>由于矩阵 $\mathbf M_t$ 是可逆的，因此我们可以进行前缀和优化 —— 预处理出这些矩阵的<strong>前缀积</strong>和<strong>前缀积的逆</strong> (即逆的前缀积，不过要反着乘)，然后单次查询就能做到 $O \left( 1 \right)$ 啦。</p>
+		<hr />
+		<p>不过，这里的递推式向前的，不是向后的，又该怎么办呢？</p>
+		<p>我们盯住 $f$ 函数 (连分数) 的某一部分 (比如分子)，记 $f \left( a_0, a_1, \cdots, a_n \right)$ 的分子为 $K \left( a_0, a_1, \cdots, a_n \right)$，分母为 $K' \left( a_0, a_1, \cdots, a_n \right)$。</p>
+		<p>由定义，$K \left( \right) = 1, K \left( x \right) = x, K \left( a_0, a_1, a_2, \cdots, a_n \right) = a_0 \cdot K \left( a_1, a_2, \cdots, a_n \right) + K' \left( a_1, a_2, \cdots, a_n \right) = a_0 \cdot K \left( a_1, a_2, \cdots, a_n \right) + K \left( a_2, a_3, \cdots, a_n \right)$。</p>
+		<p>观察 $K \left( x \right)$ 的递推式，可以发现，它其实就是 $a_0, a_1, \cdots, a_n$ 的<a href="https://en.wikipedia.org/wiki/Continuant_(mathematics)" target="_blank"><big><strong>连项式</strong></big></a> (continuant)！</p>
+		<p>具体的有关连项式的只是这里不再赘述，可以参考《具体数学》6.7 节 (252 ~ 259 页) 的内容。</p>
+		<p>由连项式的<strong>对称性</strong>：$K \left( a_0, a_1, \cdots, a_{n-1}, a_n \right) = K \left( a_n, a_{n-1}, \cdots, a_1, a_0 \right)$，因此它必定服从一个向后的递推式：</p>
+		<p>$$ K \left( a_0, \cdots, a_{n-2}, a_{n-1}, a_n \right) = a_n \cdot K \left( a_0, \cdots, a_{n-2}, a_{n-1} \right) + K \left( a_0, \cdots, a_{n-3}, a_{n-2} \right) $$</p>
+		<p>于是我们就成功得到一个向后的递推式啦！从而就可以向上面所述的方法求出整个 $f$ 的<strong>分子</strong>了.</p>
+		<p>那么剩下的一半也不难搞了，容易发现，$f \left( a_0, a_1, \cdots, a_n \right)$ 的分母其实就是 $K \left( a_1, a_2, \cdots, a_n \right)$。</p>
+		<p>于是，分母也可以表示成一段矩阵相乘的形式。更简单地，\begin{align*}
+\begin{bmatrix} K \left( a_1, a_2, \cdots, a_n \right) \\ K \left( a_1, a_2, \cdots, a_{n-1} \right) \end{bmatrix} &amp;= \begin{bmatrix} a_n &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \cdot \begin{bmatrix} a_{n-1} &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \cdot \cdots \cdot \begin{bmatrix} a_2 &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \cdot \begin{bmatrix} a_1 &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \cdot \begin{bmatrix} 1 \\ 0 \end{bmatrix} \\
+&amp;= \begin{bmatrix} a_n &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \cdot \begin{bmatrix} a_{n-1} &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \cdot \cdots \cdot \begin{bmatrix} a_2 &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \cdot \begin{bmatrix} a_1 &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \cdot \begin{bmatrix} a_0 &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \cdot \begin{bmatrix} 0 \\ 1 \end{bmatrix}
+\end{align*}</p>
+		<p>于是只需要计算一次矩阵乘积即可，分子在对应的 $A_{11}$ 位置，分母在 $A_{12}$ 位置。</p>
+		<p style="color: red">(ps: 其实这是一个关于<em>连项式矩阵表示</em>的一个恒等式 (出现在 wikipedia 上)：$$ \begin{bmatrix} K \left( x_1, \cdots, x_n \right) &amp; K \left( x_1, \cdots, x_{n-1} \right) \\ K \left( x_2, \cdots, x_n \right) &amp; K \left( x_2, \cdots, x_{n-1} \right) \end{bmatrix} = \begin{bmatrix} x_1 &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \times \begin{bmatrix} x_2 &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \times \cdots \times \begin{bmatrix} x_{n-1} &amp; 1 \\ 1 &amp; 0 \end{bmatrix} \times \begin{bmatrix} x_n &amp; 1 \\ 1 &amp; 0 \end{bmatrix} $$)</p>
+		<p>单次修改/询问时间复杂度均为 $O \left( 1 \right)$，于是总时间复杂度 $O \left( N + M \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef int mat[2][2], (*pmat)[2];
+const int N = 1000054, mod = 998244353;
+
+int n, type;
+int ans = 0;
+mat pre[N], pinv[N];
+
+void matmul(pmat a, pmat b, pmat ret) {
+	ret[0][0] = ((ll)a[0][0] * b[0][0] + (ll)a[0][1] * b[1][0]) % mod;
+	ret[0][1] = ((ll)a[0][0] * b[0][1] + (ll)a[0][1] * b[1][1]) % mod;
+	ret[1][0] = ((ll)a[1][0] * b[0][0] + (ll)a[1][1] * b[1][0]) % mod;
+	ret[1][1] = ((ll)a[1][0] * b[0][1] + (ll)a[1][1] * b[1][1]) % mod;
+}
+
+int main() {
+	int i, x, y, l, r, op, q; mat t = {{0, 1}, {1, 0}}, u = {{0, 1}, {1, 0}}, F;
+	scanf("%d%d%d", &amp;n, &amp;q, &amp;type), type = -type;
+	pre[0][0][0] = pre[0][1][1] = 1;
+	pinv[0][0][0] = pinv[0][1][1] = 1;
+	for (i = 1; i &lt;= n; ++i) {
+		scanf("%d", &amp;x), t[0][0] = x, u[1][1] = mod - x;
+		matmul(t, pre[i - 1], pre[i]), matmul(pinv[i - 1], u, pinv[i]);
+	}
+	for (; q; --q)
+		if (scanf("%d", &amp;op), op == 1) {
+			scanf("%d", &amp;x), t[0][0] = x ^= ans &amp; type, u[1][1] = mod - x;
+			matmul(t, pre[n], pre[n + 1]), matmul(pinv[n], u, pinv[n + 1]);
+			++n;
+		} else {
+			scanf("%d%d", &amp;l, &amp;r), l ^= ans &amp; type, r ^= ans &amp; type;
+			matmul(pre[r], pinv[l - 1], F), x = F[0][0], y = F[0][1];
+			printf("%d %d\n", x, y), ans = x ^ y;
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意矩阵 $\begin{bmatrix} t &amp; 1 \\ 1 &amp; 0 \end{bmatrix}$ 的逆是 $\begin{bmatrix} 0 &amp; 1 \\ 1 & -t \end{bmatrix}$，不要搞反了。</p>
+		<p><strong>坑2：</strong>矩阵乘法时注意不要覆盖原来矩阵的空间。</p>
+	</body>
+</html>

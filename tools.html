@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-cn">
 	<head>
-		<!-- version 4.0 -->
+		<!-- version 5.0 -->
 		<meta charset="utf-8">
 		<link type="text/css" rel="stylesheet" href="additional_files/fonts.css">
 		<link type="text/css" rel="stylesheet" href="additional_files/sh_typical.min.css">
@@ -13,57 +13,130 @@
 		<script src="additional_files/file.min.js"></script>
 		<script src="additional_files/sort.min.js"></script>
 		<script>
-			// document loaded
-			$(document).ready(function (){
-				updTime(); setInterval(updTime, 250);
-				if(getStorage('marquee') === 'on') $("#intro").show().get(0).start();
+			jQuery(document).ready($ => {
+				updTime(), setInterval(updTime, 250);
+				if (getStorage('marquee') === 'on') $("#intro").show().get(0).start();
 
-				$('#btnMarquee').click(function () {
-					var $mar = $('#intro');
-					if ($mar.is(':hidden')) {$mar.show().get(0).start(); setStorage('marquee', 'on');}
-					else {$mar.hide(); setStorage('marquee', 'off');}
+				$('#ctrl-marquee').click(function () {
+					let $mar = $('#intro');
+					setStorage('marquee', $mar.is(':hidden') ? ($mar.show().get(0).start(), 'on') : ($mar.hide(), 'off'));
 				});
 
-				function MulMod(a, b, m) {
-					var ah = a >> 16, al = a & 0xffff, bh = b >> 16, bl = b & 0xffff;
-					var H = ah * bh % m, M = (ah * bl + al * bh) % m, L = al * bl % m;
-					return ((H * 0x10000 % m + M) * 0x10000 % m + L) % m;
-				}
+				if (window.BigInt) { // bigint is available
+					let B = window.BigInt;
 
-				function PowerMod(a, n, m) {
-					var c = 1;
-					for (a %= m; n; n >>= 1, a = MulMod(a, a, m))
-						if (n & 1) c = MulMod(c, a, m);
-					return c % m;
-				}
+					function PowerMod(a, n, m) {
+						let c = B(1);
+						for (a %= m; n; n >>= B(1), a = a * a % m)
+							if (n & B(1)) c = c * a % m;
+						return c % m;
+					}
 
-				function valPowerMod(a, n, m) {
-					if (!$.isNumeric(a)) return "a is not a valid integer";
-					if (a = parseFloat(a), Math.floor(a) !== a) return "a is not a valid integer";
-					if (a < 0 || a > 0x7fffffff) return "a is not in range [0, 2^31)";
-					if (!$.isNumeric(n)) return "n is not a valid integer";
-					if (n = parseFloat(n), Math.floor(n) !== n) return "n is not a valid integer";
-					if (n < 0 || n > 0x7fffffff) return "n is not in range [0, 2^31)";
-					if (!$.isNumeric(m)) return "m is not a valid integer";
-					if (m = parseFloat(m), Math.floor(m) !== m) return "n is not a valid integer";
-					if (m < 1 || m > 0x7fffffff) return "m is not in range [1, 2^31)";
-					return PowerMod(a, n, m).toString();
+					function tr(s, name) {
+						if (s === '') return name + ' is not a valid integer';
+						try {
+							return B(s);
+						} catch (e) {
+							return name + ' is not a valid integer';
+						}
+					}
+
+					window.pow = function(a, n, m) {
+						if (a = tr(a, 'a'), typeof a !== 'bigint') return a;
+						if (n = tr(n, 'n'), typeof n !== 'bigint') return n;
+						if (n < 0) return 'n is negative';
+						if (m = tr(m, 'm'), typeof m !== 'bigint') return m;
+						if (m <= 0) return 'm is not positive';
+						return PowerMod(a % m + m, n, m);
+					}
+
+					function Miller_Rabin(n) {
+						let c = B(0), j, s = n - B(1), u, v;
+						for (; !(s & B(1)); ++c, s >>= B(1));
+						for (let p of [2, 3, 5, 7, 11, 13, 82, 373].map(B)) {
+							if (!(n % p)) return false;
+							u = PowerMod(p, s, n);
+							for (j = B(0); j < c; ++j, u = v)
+								if (v = u * u % n, u != 1 && u !== n - B(1) && v == 1) return false;
+							if (u != 1) return false;
+						}
+						return true;
+					}
+
+					window.isp = function(n) {
+						if (n = tr(n, 'n'), typeof n !== 'bigint') return n;
+						if (n < 2 || n >= B(1) << B(64)) return "n is not in range [2, 2^64)";
+						return n < 32 || n == 41 || n == 373 ? !(B(1601558355) >> n & B(1)) : Miller_Rabin(n);
+					}
+
+					$('#status-power-mod').html('您的浏览器<strong style="color: #09f">滋磁</strong> <code>BigInt</code>，可以完成任意精度的计算。');
+					$('#status-primality-test').html('您的浏览器<strong style="color: #09f">滋磁</strong> <code>BigInt</code>，可以完成 2<sup>64</sup> 内素数的判定。');
+				} else {
+					function MulMod(a, b, m) {
+						let ah = a >> 16, al = a & 0xffff, bh = b >> 16, bl = b & 0xffff;
+						let H = ah * bh % m, M = (ah * bl + al * bh) % m, L = al * bl % m;
+						return ((H * 0x10000 % m + M) * 0x10000 % m + L) % m;
+					}
+	
+					function PowerMod(a, n, m) {
+						let c = 1;
+						for (a %= m; n; n >>= 1, a = MulMod(a, a, m))
+							if (n & 1) c = MulMod(c, a, m);
+						return c % m;
+					}
+
+					window.pow = function(a, n, m) {
+						if (!$.isNumeric(a)) return 'a is not a valid integer';
+						if (a = parseFloat(a), Math.floor(a) !== a) return 'a is not a valid integer';
+						if (a < 0 || a > 0x7fffffff) return 'a is not in range [0, 2^31)';
+						if (!$.isNumeric(n)) return 'n is not a valid integer';
+						if (n = parseFloat(n), Math.floor(n) !== n) return 'n is not a valid integer';
+						if (n < 0 || n > 0x7fffffff) return 'n is not in range [0, 2^31)';
+						if (!$.isNumeric(m)) return 'm is not a valid integer';
+						if (m = parseFloat(m), Math.floor(m) !== m) return 'n is not a valid integer';
+						if (m < 1 || m > 0x7fffffff) return 'm is not in range [1, 2^31)';
+						return PowerMod(a, n, m);
+					}
+
+					function Miller_Rabin(n) {
+						let c = 0, j, s = n - 1, u, v;
+						for (; !(s & 1); ++c, s >>= 1);
+						for (let p of [2, 7, 61]) {
+							if (!(n % p)) return false;
+							u = PowerMod(p, s, n);
+							for (j = 0; j < c; ++j, u = v)
+								if (v = MulMod(u, u, n), u !== 1 && u !== n - 1 && v === 1) return false;
+							if (u !== 1) return false;
+						}
+						return true;
+					}
+
+					window.isp = function(n) {
+						if (!$.isNumeric(n)) return 'n is not a valid integer';
+						if (n = parseFloat(n), Math.floor(n) !== n) return 'n is not a valid integer';
+						if (n < 2 || n > 0x7fffffff) return 'n is not in range [2, 2^31)';
+						return n < 32 || n === 61 ? !(1601558355 >> n & 1) : Miller_Rabin(n);
+					}
+
+					$('#status-power-mod').html('您的浏览器<strong style="color: #630">不滋磁</strong> <code>BigInt</code>，只能完成 2<sup>31</sup> 内整数的计算。');
+					$('#status-primality-test').html('您的浏览器<strong style="color: #630">不滋磁</strong> <code>BigInt</code>，只能完成 2<sup>31</sup> 内素数的判定。');
 				}
 
 				$('#calc-power-mod').click(function () {
-					var a = $('#div-power-mod > input[name="a"]').val();
-					var n = $('#div-power-mod > input[name="n"]').val();
-					var m = $('#div-power-mod > input[name="m"]').val();
-					var result = valPowerMod(a, n, m);
-					$('#div-power-mod input[name="result"]').val(result);
+					let a = $('#div-power-mod > input[name="a"]').val();
+					let n = $('#div-power-mod > input[name="n"]').val();
+					let m = $('#div-power-mod > input[name="m"]').val();
+					$('#div-power-mod input[name="result"]').val(pow(a, n, m).toString());
+				});
+
+				$('#calc-primality-test').click(function () {
+					let n = $('#div-primality-test > input[name="n"]').val();
+					$('#div-primality-test input[name="result"]').val(isp(n).toString());
 				});
 
 				$('.sortlink').click(function () {
-					var t = $(this.parentNode).index(), s = 'R' + getSortChar2(t);
-					$('#rankTable > tbody').empty();
-					console.log(s);
-					sortTable(s);
-					$('#rankTable').append(Rows);
+					sortTable('R' + getSortChar2($(this.parentNode).index()));
+					$('#rankTable > tbody').empty().append(Rows);
 				});
 
 				$.ajax('https://codeforces.com/api/user.info?handles=' + persons.join(';'), {
@@ -72,7 +145,15 @@
 					dataType: 'jsonp',
 					jsonp: 'jsonp',
 					success: parseRanklist,
-					error: function () {$('#rankTable > tbody > tr > td').html('Network failed. Please refresh this page.');}
+					error: () =>
+						$.ajax('https://codeforc.es/api/user.info?handles=' + persons.join(';'), {
+							type: 'GET',
+							crossDomain: true,
+							dataType: 'jsonp',
+							jsonp: 'jsonp',
+							success: parseRanklist,
+							error: () => $('#rankTable > tbody > tr > td').html('Network failed. Please check your network or refresh this page.')
+						})
 				});
 
 				$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
@@ -85,12 +166,14 @@
 				<div style="width: 100%">
 					<h2 class="cen">OI 中转站 - 小工具</h2>
 					<p class="cen" id="dispTime">当前时间: 2018-7-31 12:00:00</p>
-					<p class="ri" id="motto" style="opacity: 0; margin-top: -20px">dissolving, dissolving, until clear and transparent.</p>
+					<p class="ri" id="motto" style="opacity: 0; margin-top: -20px">slowly step into the fast-paced life.</p>
 				</div>
 			</div>
 		</div>
 		<div class="dmarquee" style="height: 25px">
-			<button class="button" id="btnMarquee" style="float: left">开启/关闭字幕</button>
+			<div id="ctrl-marquee" style="float: left">
+				<p class="hint">开启/关闭字幕</p>
+			</div>
 			<div style="overflow: hidden">
 				<marquee id="intro" scrollamount="1000" style="color: #999; display: none;">bestFy is the cutest !</marquee>
 			</div>
@@ -109,9 +192,22 @@
 						<label><em>m</em>: </label><input name="m" placeholder="m" class="cen text-input" />
 						<button class="big-button" id="calc-power-mod">计算</button>
 						<p>结果: <input name="result" placeholder="result" readonly="readonly" class="cen text-input" style="width: 250px" /></p>
+						<hr />
+						<div style="font-size: smaller">
+							<p id="status-power-mod" style="color: #090"></p>
+							<p>注：可以在 JS 控制台中使用 <code>pow</code> 函数来进行快速幂。</p>
+						</div>
 					</div>
 					<div class="border-tool padding-1" id="div-primality-test">
 						<p>质数判定</p>
+						<label><em>n</em>: </label><input name="n" placeholder="n" class="cen text-input" style="width: 200px" />
+						<button class="big-button" id="calc-primality-test">判定</button>
+						<p>结果：<input name="result" placeholder="result" readonly="readonly" class="cen text-input" style="width: 250px" /></p>
+						<hr />
+						<div style="font-size: smaller">
+							<p id="status-primality-test" style="color: #090"></p>
+							<p>注：可以在 JS 控制台中使用 <code>isp</code> 函数来进行质数判定。</p>
+						</div>
 					</div>
 					<div class="border-tool padding-1" id="div-ranklist">
 						<p>Rating 排行榜 (Codeforces, Links)</p>

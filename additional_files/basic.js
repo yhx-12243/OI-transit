@@ -1,6 +1,6 @@
 var
 	curLocation, curPage, totPage, curROrder,
-	Rows, tmpArr, titleArr, persons;
+	Rows, tmpArr, titleT, persons;
 
 const
 	RECORDS_PER_PAGE = 50,
@@ -10,23 +10,23 @@ const
 
 	'use strict';
 
-	var
+	const
 		DisplayDict = {'Luogu' : '洛谷', 'SPOJ' : 'Sphere OJ', 'SOJ' : 'Simple OJ/Stupid OJ', 'Local' : '本地', 'Unknown' : '一些看似不是很知名的 OJ，快去问一问大佬们吧'},
 		NormDict = {'lydsy' : 'Lydsy', 'lg' : 'Luogu', 'vijos' : 'Vijos', 'hdu' : 'HDU', 'poj' : 'POJ', 'uoj' : 'UOJ', 'loj' : 'LibreOJ', 'simpleoj' : 'SOJ', 'soj' : 'SOJ', 'cf' : 'Codeforces', 'gym' : 'Codeforces', 'cc' : 'Codechef', 'spoj' : 'SPOJ'},
 		SiteDict = {
-			'lydsy' : [[/\d+/], 'https://www.lydsy.com/JudgeOnline/problem.php?id=@0'],
-			'lg' : [[/[TU]?\d+/], 'https://www.luogu.org/problemnew/show/@0'],
-			'vijos' : [[/^\d+/], 'https://vijos.org/p/@0'],
-			'hdu' : [[/\d+/], 'http://acm.hdu.edu.cn/showproblem.php?pid=@0'],
-			'poj' : [[/\d+/], 'http://poj.org/problem?id=@0'],
-			'uoj' : [[/\d+/], 'http://uoj.ac/problem/@0'],
-			'loj' : [[/\d+/], 'https://loj.ac/problem/@0'],
-			'simpleoj' : [[/\d+/], 'http://10.49.27.23/problem?id=@0'],
-			'soj' : [[/\d+/], 'http://10.49.18.71/problem/@0'],
-			'cf' : [[/\d+/, /[A-Z]\d*/], 'https://codeforces.com/contest/@0/problem/@1'],
-			'gym' : [[/\d+/, /[A-Z]\d*/], 'https://codeforces.com/gym/@0/problem/@1'],
-			'cc' : [[/\w+/], 'https://www.codechef.com/problems/@0/'],
-			'spoj' : [[/\w+/], 'http://www.spoj.com/problems/@0/']
+			'lydsy' : [/^(\d+)$/, x => `https://www.lydsy.com/JudgeOnline/problem.php?id=${x}`],
+			'lg' : [/^([TU]?)(\d+)$/, (x, y) => `https://www.luogu.org/problem/${x||'P'}${y}`],
+			'vijos' : [/^(\d+)$/, x => `https://vijos.org/p/${x}`],
+			'hdu' : [/^(\d+)$/, x => `http://acm.hdu.edu.cn/showproblem.php?pid=${x}`],
+			'poj' : [/^(\d+)$/, x => `http://poj.org/problem?id=${x}`],
+			'uoj' : [/^(\d+)$/, x => `http://uoj.ac/problem/${x}`],
+			'loj' : [/^(\d+)$/, x => `https://loj.ac/problem/${x}`],
+			'simpleoj' : [/^(\d+)$/, x => `http://10.49.27.23/problem?id=${x}`],
+			'soj' : [/^(\d+)$/, x => `http://10.49.18.71/problem/${x}`],
+			'cf' : [/^(\d+)([A-Z]\d*)$/, (x, y) => `https://codeforces.com/contest/${x}/problem/${y}`],
+			'gym' : [/^(\d+)([A-Z]\d*)$/, (x, y) => `https://codeforces.com/gym/${x}/problem/${y}`],
+			'cc' : [/^(\w+)$/, x => `https://www.codechef.com/problems/${x}/`],
+			'spoj' : [/^(\w+)$/, x => `http://www.spoj.com/problems/${x}/`]
 		},
 		FLDict = {
 			'Always' : '',
@@ -59,13 +59,8 @@ const
 	win.setStorage = localStorage.setItem.bind(localStorage);
 
 	win.dateFormat = function(date) {
-		var year = date.getFullYear(),
-			month = date.getMonth() + 1,
-			day = date.getDate(),
-			hour = date.getHours(),
-			minute = date.getMinutes(),
-			second = date.getSeconds();
-		return year + '-' + month + '-' + day + ' ' + hour + ':' + (minute < 10 ? '0' : '') + minute + ':' + (second < 10 ? '0' : '') + second;
+		let m = date.getMinutes(), s = date.getSeconds();
+		return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
 	}
 
 	win.updTime = function () {$('#dispTime').html('当前时间: ' + dateFormat(new Date()));}
@@ -78,44 +73,32 @@ const
 
 	win.html2Text = function (s) {return htmlspecialcharsDecode(stripTags(s));}
 
-	win.htmlBalance = function (s, ch = '\x01') {
-		return s.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g, x => ch.repeat(x.length));
-	}
+	win.htmlBalance = function (s, ch = '\x01') {return s.replace(/<([^"]*?"[^"]*?")*?[^"]*?>/g, x => ch.repeat(x.length));}
 
 	win.parseStr = function (s) {
-		var ret = {}, i, a, b;
-		if (s.startsWith('?')) s = s.substr(1);
-		a = s.split('&');
-		for (i in a)
-			if (b = a[i].split('='), b[1])
-				ret[decodeURIComponent(b[0])] = decodeURIComponent(b[1]);
+		let ret = {}, t, r;
+		for (t of (s.startsWith('?') ? s.substr(1) : s).split('&'))
+			if (r = t.split('='), r[1])
+				ret[decodeURIComponent(r[0])] = decodeURIComponent(r[1]);
 		return ret;
 	}
 
-	win.queryStringEncode = function (params) {
-		var ret = [];
-		Object.keys(params).sort().forEach(function (item) {
-			if (params[item])
-				ret.push(encodeURIComponent(item) + '=' + encodeURIComponent(params[item]));
-		});
-		return ret.join('&');
-	}
+	win.queryStringEncode = function (params) {return Object.keys(params).sort().filter(r => params[r]).map(r => encodeURIComponent(r) + '=' + encodeURIComponent(params[r])).join('&');}
 
 	win.getUri = function (params) {
-		var ps = queryStringEncode(params);
+		let ps = queryStringEncode(params);
 		return location.href.replace(/\?.*/, '') + (ps ? '?' + ps : '');
 	}
 
 	win.getPageUri = function (p) {
-		var params = parseStr(location.search);
+		let params = parseStr(location.search);
 		params['page'] = (p === 1 ? '' : p.toString());
 		return getUri(params);
 	}
 
 	win.getTagUri = function (p) {
-		var params = parseStr(location.search);
-		params['tag'] = p;
-		params['page'] = '';
+		let params = parseStr(location.search);
+		params['tag'] = p, params['page'] = '', params['from'] = '';
 		return getUri(params);
 	}
 
@@ -128,144 +111,125 @@ const
 	win.getFL = function (s) {return FLDict.hasOwnProperty(s) ? FLDict[s] : null;}
 
 	win.pagination = function () {
-		if (!(totPage > 1)) return;
-
-		var $pag = $('#pagination'), $sel, i;
-		if (curPage > 1) {
-			$pag.append($('<li />')
-				.html('<a href="' + getPageUri(1) + '">&laquo;</a>')
-			).append($('<li />')
-				.html('<a href="' + getPageUri(curPage - 1) + '">&lt;</a>')
-			);
-		} else {
-			$pag.append($('<li class="disabled">')
-				.html('<a>&laquo;</a>')
-			).append($('<li class="disabled">')
-				.html('<a>&lt;</a>')
-			);
-		}
-
-		for (i = Math.max(curPage - 4, 1); i <= Math.min(curPage + 4, totPage); ++i) {
-			if (i === curPage) {
+		if (totPage > 1) {
+			let $pag = $('#pagination'), $sel, i;
+			if (curPage > 1) {
 				$pag.append($('<li />')
-					.append(
-						$sel = $('<input type="number" id="selPage" class="cen" min="1" max="' + totPage.toString()+ '" value="' + curPage.toString() + '" />')
-					)
+					.html('<a href="' + getPageUri(1) + '">&laquo;</a>')
+				).append($('<li />')
+					.html('<a href="' + getPageUri(curPage - 1) + '">&lt;</a>')
 				);
 			} else {
-				$pag.append($('<li />')
-					.html('<a href="' + getPageUri(i) + '">' + i + '</a>')
+				$pag.append($('<li class="disabled">')
+					.html('<a>&laquo;</a>')
+				).append($('<li class="disabled">')
+					.html('<a>&lt;</a>')
 				);
 			}
-		}
-
-		if (curPage < totPage) {
-			$pag.append($('<li />')
-				.html('<a href="' + getPageUri(curPage + 1) + '">&gt;</a>')
-			).append($('<li />')
-				.html('<a href="' + getPageUri(totPage) + '">&raquo;</a>')
-			);
-		} else {
-			$pag.append($('<li class="disabled">')
-				.html('<a>&gt;</a>')
-			).append($('<li class="disabled">')
-				.html('<a>&raquo;</a>')
-			);
-		}
-
-		if (!$sel) return;
-
-		$sel.keypress(function (e) {
-			if (e.which === 13 || e.keyCode === 13) {
-				var p = parseInt(this.value);
-				if (p < 1 || p > totPage) alert('你都输入的些什么呀，认真点！');
-				else location.href = getPageUri(p);
+	
+			for (i = Math.max(curPage - 4, 1); i <= Math.min(curPage + 4, totPage); ++i) {
+				if (i === curPage) {
+					$pag.append($('<li />')
+						.append(
+							$sel = $('<input type="number" id="selPage" class="cen" min="1" max="' + totPage.toString()+ '" value="' + curPage.toString() + '" />')
+						)
+					);
+				} else {
+					$pag.append($('<li />')
+						.html('<a href="' + getPageUri(i) + '">' + i + '</a>')
+					);
+				}
 			}
-		}).blur(function () {
-			var p = parseInt(this.value);
-			if (p < 1 || p > totPage) this.value = curPage.toString();
-			else if (p !== curPage) location.href = getPageUri(p);
-		});
-
-		$(document).keyup(function (e) {
-			if (e.target.nodeName.toLowerCase() === 'input') return;
-			if (e.which === 37 || e.keyCode === 37) {
-				if (curPage > 1) location.href = getPageUri(curPage - 1);
-			} else if (e.which === 39 || e.keyCode === 39) {
-				if (curPage < totPage) location.href = getPageUri(curPage + 1);
+	
+			if (curPage < totPage) {
+				$pag.append($('<li />')
+					.html('<a href="' + getPageUri(curPage + 1) + '">&gt;</a>')
+				).append($('<li />')
+					.html('<a href="' + getPageUri(totPage) + '">&raquo;</a>')
+				);
+			} else {
+				$pag.append($('<li class="disabled">')
+					.html('<a>&gt;</a>')
+				).append($('<li class="disabled">')
+					.html('<a>&raquo;</a>')
+				);
 			}
-		});
+	
+			if (!$sel) return;
+	
+			$sel.keypress(function (e) {
+				if (e.which === 13 || e.keyCode === 13) {
+					let p = parseInt(this.value);
+					if (1 <= p && p <= totPage) location.href = getPageUri(p);
+					else alert('你都输入的些什么呀，认真点！');
+				}
+			}).blur(function () {
+				let p = parseInt(this.value);
+				if (p === curPage) ;
+				else if (1 <= p && p <= totPage) location.href = getPageUri(p);
+				else this.value = curPage.toString();
+			});
+	
+			$(document).keyup(function (e) {
+				if (e.target.nodeName.toUpperCase() === 'INPUT') return;
+				if (e.which === 37 || e.keyCode === 37) {
+					if (curPage > 1) location.href = getPageUri(curPage - 1);
+				} else if (e.which === 39 || e.keyCode === 39) {
+					if (curPage < totPage) location.href = getPageUri(curPage + 1);
+				}
+			});
+		}
 	}
 
 	function OJMatch(s, pos) {
-		var sOJ, sID, siteMethod, regSite, strSite, regResult, failed;
-		sOJ = s.substr(0, pos); sID = s.substr(pos);
-		if (siteMethod = getSite(sOJ)) {
-			regSite = siteMethod[0]; 
-			strSite = siteMethod[1];
-			failed = false;
-			for (var i in regSite) {
-				regResult = sID.match(regSite[i]);
-				if (regResult) strSite = strSite.replace("@" + i, regResult[0]);
-				else return '';
-			}
-			return strSite;
-		} else return '';		
+		let site = getSite(s.substr(0, pos)), result;
+		return site && (result = s.substr(pos).match(site[0])) ? site[1].apply(null, result.slice(1)) : '';
 	}
 
 	win.recordMatch = function (info, location, config) {
-		var i, j, l = 0, searchCount = 0, raw, OJ, srch = config['search'];
-		var tmp, ret = [], html = [], link = [], _html = [], _link = [];
+		let i, j, l = 0, searchCount = 0, srch = config['search'], ret = [], html = [], link = [], _html = [], _link = [];
 		// 1. check location
 		if (location) {
-			tmp = info[0].split(';');
-			for (i in tmp)
-				if (~(j = tmp[i].search(/[^a-z]/))) {
-					OJ = tmp[i].substr(0, j);
-					if (location === 'Unknown') j && !getNorm(OJ) && ret.push(tmp[i]);
-					else if (location === 'Local') j || ret.push(tmp[i]);
-					else getNorm(OJ) === location && ret.push(tmp[i]);
+			for (i of info[0].split(';'))
+				if (~(j = i.search(/[^a-z]/))) {
+					let OJ = i.substr(0, j);
+					if (location === 'Unknown') j && !getNorm(OJ) && ret.push(i);
+					else if (location === 'Local') j || ret.push(i);
+					else getNorm(OJ) === location && ret.push(i);
 				}
-		} else
+		} else 
 			ret = info[0].split(';');
 		if (!ret.length) return [];
 		// 2. check tag
 		if (config['tag'] && !(';' + html2Text(info[4]) + ';').includes(';' + config['tag'] + ';')) return [];
 		// 3. check search
 		if (srch) l = config['search'].length;
-		for (i in ret) {
-			if (srch && ~(j = ret[i].toUpperCase().indexOf(srch.toUpperCase()))) {
-				++searchCount;
+		for (i of ret) {
+			if (srch && ~(j = i.toUpperCase().indexOf(srch.toUpperCase())))
+				++searchCount,
 				html.push(
-					ret[i].substr(0, j) + '<strong>' + ret[i].substr(j, l) + '</strong>' + ret[i].substr(j + l)
+					i.substr(0, j) + '<strong>' + i.substr(j, l) + '</strong>' + i.substr(j + l)
 				);
-			} else
-				html.push(ret[i]);
-			j = ret[i].search(/[^a-z]/);
-			link.push(~j ? OJMatch(ret[i], j) : '');
+			else
+				html.push(i);
+			j = i.search(/[^a-z]/);
+			link.push(~j ? OJMatch(i, j) : '');
 		}
-		tmp = info[4].split(';');
-		for (i in tmp) {
-			raw = html2Text(tmp[i]);
-			if (srch && ~(j = htmlBalance(tmp[i], '\x01').toUpperCase().indexOf(srch.toUpperCase()))) {
-				++searchCount;
+		for (i of info[4].split(';')) {
+			let raw = html2Text(i);
+			if (srch && ~(j = htmlBalance(i).toUpperCase().indexOf(srch.toUpperCase())))
+				++searchCount,
 				_html.push(
-					tmp[i].substr(0, j) + '<strong>' + tmp[i].substr(j, l) + '</strong>' + tmp[i].substr(j + l)
+					i.substr(0, j) + '<strong>' + i.substr(j, l) + '</strong>' + i.substr(j + l)
 				);
-			} else _html.push(tmp[i]);
+			else _html.push(i);
 			_link.push(getTagUri(raw));
 		}
 		ret = [srch && srch === info[5] ? (++searchCount, '<strong>' + info[5] + '</strong>') : info[5]];
 		if (srch && !searchCount) return [];
 		// 4. totalize (joining)
-		tmp = [];
-		for (i in html)
-			tmp.push(link[i] ? '<a href="' + link[i] + '" target="_blank">' + html[i] + '</a>' : html[i]);
-		ret.push(tmp.join(';'));
-		tmp = [];
-		for (i in _html)
-			tmp.push('<a href="' + _link[i] + '">' + _html[i] + '</a>');
-		ret.push(tmp.join(';'));
+		ret.push(html.map((x, i) => link[i] ? '<a href="' + link[i] + '" target="_blank">' + x + '</a>' : x).join(';'));
+		ret.push(_html.map((x, i) => '<a href="' + _link[i] + '">' + x + '</a>').join(';'));
 		return ret;
 	}
 

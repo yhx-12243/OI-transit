@@ -2,11 +2,11 @@
 
 	'use strict';
 
-	var
-		recArr, memArr, okay, config = {};
+	let
+		okay, config = {};
 
 	const
-		failed = '今天运气不怎么好，码个动态仙人掌再试试吧';
+		cfColor = {0 : 'gray', 1200 : 'green', 1400 : 'cyan', 1600 : 'blue', 1900 : 'violet', 2100 : 'orange', 2400 : 'red', 3000 : 'legendary'};
 
 	// ---------------- Configuration ---------------- //
 	win.setFileConfig = function (key, val) {
@@ -15,126 +15,108 @@
 
 	// ---------------- Records ---------------- //
 	win.parseRecords = function (strBack) {
-		var i, n = 0, count = 0, info, result;
-		var $R, $C, $A, recs = strBack.split('\n').map(x => x.replace(/[\f\r\v]/g, '').split('|')).filter(x => x.length === 5);
+		let i, count = 0, info, result, recs = strBack.split('\n').map(x => x.replace(/[\f\r\v]/g, '').split('|')).filter(x => x.length === 5);
 		Rows = [];
 		for (i = 0; i < recs.length; ++i) {
 			info = recs[i].concat((recs.length - i).toString());
 			result = recordMatch(info, curLocation, config);
-			if (!result.length) continue;
-			$R = $('<tr />');
-			$R.append($C = $('<td />').html(result[0]))
-			  .append($C = $('<td />').html(result[1]))
-			  .append($C = $('<td />')
-					.append(
-						$A = $('<a href="records/' + encodeURIComponent(info[0]) + '.html" target="_blank">链接</a>')
-					)
-				)
-			  .append($C = $('<td />').html(info[1]))
-			  .append($C = $('<td />').html(info[2]))
-			  .append($C = $('<td />').html(info[3]))
-			  .append($C = $('<td />').html(result[2]));
-			Rows.push($R.get(0));
-			++count;
+			if (result.length)
+				Rows.push(
+					$('<tr />')
+						.append($('<td />').html(result[0]))
+						.append($('<td />').html(result[1]))
+						.append($('<td />')
+							.append(
+								$('<a href="records/' + encodeURIComponent(info[0]) + '.html" target="_blank">链接</a>')
+							)
+						)
+						.append($('<td />').html(info[1]))
+						.append($('<td />').html(info[2]))
+						.append($('<td />').html(info[3]))
+						.append($('<td />').html(result[2]))
+						.get(0)
+				), ++count;
 		}
 		sortTable(curROrder);
 		totPage = Math.ceil(count / RECORDS_PER_PAGE);
-		if (!(curPage >= 1)) curPage = 1;
-		else if (curPage > totPage) curPage = totPage;
+		curPage = (curPage >= 1 ? Math.min(curPage, totPage) : 1);
 		$('#recTable').append(Rows.slice((curPage - 1) * RECORDS_PER_PAGE, curPage * RECORDS_PER_PAGE));
-		$('#recTotal').html('统计：' + (count ? (curLocation || config['tag'] || config['search'] ? '当前位置' : '') + '共有 ' + count + ' 条记录' : '怎么一道题都还没有啊，快点做题了！'));
+		$('#recTotal').html('统计：' + (count ? (curLocation || config['tag'] || config['search'] ? '当前位置' : '') + '共有 ' + count + ' 条记录' : '怎么一道题都还没有啊，是你瞎编的算法么？'));
 		pagination();
 	}
 
 	// ---------------- Templates ----------------- //
 	win.getTemplates = function (strBack) {
-		tmpArr = strBack.split('\n'); titleArr = []; okay = [];
-		var i, t;
-		for (i in tmpArr) {
-			t = tmpArr[i] = tmpArr[i].replace(/[\f\n\r\v]/g, '');
-			if (!t.length) return;
-			$.ajax('templates/' + t + '.xml', {
-				type: 'GET',
-				dataType: 'xml',
-				id: parseInt(i),
-				success: parseTemplate
-			});
-		}
+		tmpArr = strBack.split('\n').map(x => x.replace(/[\f\n\r\v]/g, '')).filter(Boolean), titleT = {}, okay = [];
+		tmpArr.forEach((v, i) =>
+			$.ajax('templates/' + v + '.xml', {
+				type : 'GET',
+				dataType : 'xml',
+				id : i,
+				success : parseTemplate
+			})
+		);
 	}
 
 	function parseTemplate(data) {
-		var i = this.id, j, inner, $header, $text;
-		titleArr[i] = $('title', data).text();
-		$header = $('<h3 />').attr('id', tmpArr[i]).html(titleArr[i] + ' [#' + tmpArr[i] + ']:')
-		inner = $('pre', data).prop('outerHTML');
-		$text = $('<div />').html(inner).attr('data-id', i);
-		for (j = i - 1; j >= 0; --j)
-			if (okay[j]) break;
+		let i = this.id, j, $header, $text;
+		titleT[tmpArr[i]] = $('title', data).text();
+		$header = $('<h3 />').attr('id', tmpArr[i]).html(titleT[tmpArr[i]] + ' [#' + tmpArr[i] + ']:');
+		$text = $('<div />').html($('pre', data).prop('outerHTML')).attr('data-id', i);
+		j = okay.slice(0, i).lastIndexOf(true);
 		$('#templates>div' + (~j ? '[data-id=' + j + ']' : '.cen')).after($text).after($header);
 		okay[i] = true;
 	}
 
 	// ---------------- Memos ---------------- //
 	win.parseMemos = function (strBack) {
-		var i, j, nm, info, count = 0;
-		var $R, $C, $A;
-		Rows = []; memArr = strBack.split('\n');
-		for (i = 0; i < memArr.length; ++i)
-			if (memArr[i]) {
-				info = memArr[i].replace(/[\f\n\r\v]/g, '').split('|');
-				if(info.length !== 4) continue; // invalid memo
-				nm = info[0];
-				$R = $('<tr />');
-				$R.append($C = $('<td />').data('id', i));
-				$R.append($C = $('<td />').html(info[0]));
-				$R.append($C = $('<td />'));
-				$R.append($C = $('<td />').html(info[1]));
-				$R.append($C = $('<td />').html(info[2]));
-				$R.data('priority', parseInt(info[3]));
-				Rows.push($R.get(0));
-				++count;
-			}
-		for(i = 0; i < Rows.length; ++i){
-			$C = $(Rows[i].cells[0]);
-			$C.html(j = count - $C.data('id')).removeData();
-			$C = $(Rows[i].cells[2]);
-			$A = $('<a href="memos/' + j + '.html" target="_blank">链接</a>');
-			$C.append($A);
-		}
-		Rows.sort(function(a, b) {return $(b).data('priority') - $(a).data('priority') || (+b.cells[0].innerText) - (+a.cells[0].innerText);});
-		for(i = 0; i < Rows.length; ++i) $(Rows[i]).removeData();
-		totPage = Math.ceil(count / RECORDS_PER_PAGE);
-		if (!(curPage >= 1)) curPage = 1;
-		else if (curPage > totPage) curPage = totPage;
+		let info, mems = strBack.split('\n').map(x => x.replace(/[\f\r\v]/g, '').split('|')).filter(x => x.length === 4);
+		Rows = mems.map((x, i, all) => {
+			info = x.concat((all.length - i).toString());
+			return $('<tr />')
+				.append($('<td />').html(info[4]))
+				.append($('<td />').html(info[0]))
+				.append($('<td />')
+					.append(
+						$('<a href="memos/' + info[4] + '.html" target="_blank">链接</a>')
+					)
+				)
+				.append($('<td />').html(info[1]))
+				.append($('<td />').html(info[2]))
+				.data('priority', parseInt(info[3]))
+				.get(0);
+		}).sort(function(a, b) {return $(b).data('priority') - $(a).data('priority') || (+b.cells[0].innerText) - (+a.cells[0].innerText);});
+		totPage = Math.ceil(mems.length / RECORDS_PER_PAGE);
+		curPage = (curPage >= 1 ? Math.min(curPage, totPage) : 1);
 		$('#memTable').append(Rows.slice((curPage - 1) * MEMOS_PER_PAGE, curPage * MEMOS_PER_PAGE));
-		$('#memTotal').html('统计: 共 ' + count + ' 份便笺');
+		$('#memTotal').html('统计: 共 ' + mems.length + ' 份便笺');
 		pagination();
 	}
 
 	// ---------------- Ranklist ---------------- //
 	win.parseRanklist = function (data) {
-		var i, j, $R, $C, $A;
-		if (data.status === 'OK') {
-			data = data.result; Rows = [];
-			for (i in data) {
-				$R = $('<tr />');
-				j = data[i].rating;
-				$A = $('<a class="user ' +
-					(j >= 3000 ? 'legendary' : j >= 2400 ? 'red' : j >= 2100 ? 'orange' : j >= 1900 ? 'violet' : j >= 1600 ? 'blue' : j >= 1400 ? 'cyan' : j >= 1200 ? 'green' : 'gray')
-					+ '" href="http://codeforces.com/profile/' + data[i].handle + '" target="_blank">' + data[i].handle + '</a>');
-				$R.append($C = $('<td />').append($A));
-				$R.append($C = $('<td />').html(data[i].firstName));
-				$R.append($C = $('<td />').html(data[i].lastName));
-				$R.append($C = $('<td />').html(data[i].rating));
-				$R.append($C = $('<td />').html(data[i].maxRating));
-				j = new Date(data[i].lastOnlineTimeSeconds * 1e3);
-				$R.append($C = $('<td />').html(dateFormat(j)));
-				$A = ((j = getFL(data[i].handle)) ? $('<a href="' + j + '" target="_blank">' + j + '</a>') : null);
-				$R.append($C = $('<td />').append($A));
-				Rows.push($R.get(0));
-			}
-			$('#rankTable > tbody').empty().append(Rows);
-		}
+		let L;
+		if (data.status === 'OK')
+			Rows = data.result.map(p =>
+				$('<tr />')
+					.append($('<td />')
+						.append(
+							$('<a class="user ' + cfColor[Object.keys(cfColor).sort().filter(x => x <= p.rating).pop()] + '" href="http://codeforces.com/profile/' + p.handle + '" target="_blank">' + p.handle + '</a>')
+						)
+					)
+					.append($('<td />').html(p.firstName))
+					.append($('<td />').html(p.lastName))
+					.append($('<td />').html(p.rating))
+					.append($('<td />').html(p.maxRating))
+					.append($('<td />').html(dateFormat(new Date(p.lastOnlineTimeSeconds * 1e3))))
+					.append(
+						$('<td />').append(
+							(L = getFL(p.handle)) ? $('<a href="' + L + '" target="_blank">' + L + '</a>') : null
+						)
+					)
+					.get(0)
+			),
+			$('#rankTable>tbody').empty().append(Rows);
 	}
 
 })(window ? window : this);
