@@ -35,7 +35,7 @@ const
 			'daklqw' : 'https://daklqw.cnblogs.com/',
 			'ddfsb' : '',
 			'ddpag' : 'https://blog.zhangzisu.cn/#/',
-			'des3ns1tized_' : 'https://www.karriganasta.xyz/',
+			'des3ns1tized_' : '',
 			'lbn187' : '',
 			'lych_cys' : 'https://blog.csdn.net/lych_cys/',
 			'lyx_cjz' : '',
@@ -44,6 +44,7 @@ const
 			'miaom' : 'https://mioam.github.io/',
 			'mrsrz' : 'https://mrsrz.cnblogs.com/',
 			'nbdhhzh' : '',
+			'ouuan' : 'https://ouuan.github.io/',
 			'qiqi20021026' : 'https://bomb-chicken.github.io/',
 			'remember' : '',
 			'shaochengxi' : 'https://scx117.cnblogs.com/',
@@ -201,7 +202,7 @@ const
 			ret = info[0].split(';');
 		if (!ret.length) return [];
 		// 2. check tag
-		if (config['tag'] && !(';' + html2Text(info[4]) + ';').includes(';' + config['tag'] + ';')) return [];
+		if (config['tag'] && !~(';' + html2Text(info[4]) + ';').indexOf(';' + config['tag'] + ';')) return [];
 		// 3. check search
 		if (srch) l = config['search'].length;
 		for (i of ret) {

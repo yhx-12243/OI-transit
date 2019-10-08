@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6685]迷宫</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>设 $f \left( n \right)$ 为将 $n$ 拆分成若干 $2$ 的幂次，且满足每种数出现次数不超过 $2$ 的方案数。特别地，$f \left( 0 \right) = 1$，</p>
+		<p>给定正整数 $n, p, q$，你需要求出 $f \left( n \right)$ 并找到一个 $n'$，使得 $\dfrac {f \left( n' \right)} {f \left( n' - 1 \right)} = \dfrac pq$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10^4$)，代表数据组数。</p>
+		<p>对于每组数据，共一行，包含三个正整数 $n, p, q$ ($n, p, q \leq 10^{18}$)，不保证 $p, q$ 互质，意义见题目描述。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出两行，第一行表示 $f \left( n \right)$ <span style="color: red">模 $10^9 + 7$</span> 的值。</p>
+		<p>第二行输出形如 <code>(<em>x</em><sub>1</sub>,<em>x</em><sub>2</sub>,<em>x</em><sub>3</sub>,<span style="color: blue">...</span>,<em>x<sub>k</sub></em>)</code> 的一串数，表示答案的二进制从高位到低位依次有 $x_1$ 个 $1$，$x_2$ 个 $0$，$x_3$ 个 $1$，……，$x_{2 i}$ 个 $0$，$x_{2 i + 1}$ 个 $1$，……，$x_k$ 个 $\left( k \mathbin{\&amp;} 1 \right)$。</p>
+
+		<h3>题解</h3>
+		<p>考虑递推 (DP) 求出 $f \left( n \right)$。</p>
+		<p>若 $n$ 为奇数，由于 $2$ 的幂次只有 $1$ 是奇数，因此简单奇偶分析知 $1$ 必出现，且恰好出现一次，因此有 $f \left( 2 k + 1 \right) = f \left( 2 k \right)$。</p>
+		<p>若 $n$ 为偶数 $2 k$，考虑 $1$ 是否出现：</p>
+		<ol>
+			<li><p>若 $1$ 不出现，则将所有数除以 $2$，就相当于一个 $k$ 的拆分方案，故此类型一共有 $f \left( k \right)$ 种方案。</p></li>
+			<li><p>若 $1$ 出现，则其必出现 $2$ 次，因此剩下部分相当于一个 $k - 1$ 的拆分方案，故贡献为 $f \left( k - 1 \right)$。</p></li>
+		</ol>
+		<p>综上，有 $f \left( 2 k \right) = f \left( k \right) + f \left( k - 1 \right)$。</p>
+		<p>于是，$f \left( n \right)$ 满足如下递推式：$$ f \left( n \right) = \begin{cases} f \left( \dfrac {n - 1} 2 \right) &amp; 2 \nmid n \\ f \left( \dfrac n2 \right) + f \left( \dfrac n2 - 1 \right) &amp; 2 \mid n \end{cases} $$</p>
+		<p>作函数 $g \left( n \right) = \begin {cases} 0 &amp; n = 0 \\ f \left( n - 1 \right) &amp; n \geq 1 \end{cases}$，则 $g \left( n \right)$ 满足 $$ g \left( n \right) = \begin{cases} g \left( \dfrac n2 \right) &amp; 2 \mid n \\ g \left( \dfrac {n - 1} 2 \right) + g \left( \dfrac {n + 1} 2 \right) &amp; 2 \nmid n \end{cases} $$ <del>(一看这个式子就美观多了)</del></p>
+		<p>因此，如果知道了 $g \left( k \right)$ 和 $g \left( k + 1 \right)$，就可以轻松地得到 $g \left( 2 k \right), g \left( 2 k + 1 \right)$ 以及 $g \left( 2 k + 2 \right)$，因此直接写一个 $O \left( \log n \right)$ 的递推式就可以啦。</p>
+		<hr />
+		<p>接下来考虑第二个问题。为方便起见，我们记<strong>列向量</strong> $\mathbf v_n = \begin{bmatrix} g \left( n + 1 \right) \\ g \left( n \right) \end{bmatrix}$，我们就是要找到一个列向量 $\mathbf v_n'$，使得两维分量之比等于给定有理数 $\dfrac pq$。</p>
+		<p><del>由于题目中充满了二进制的氛围</del>，因此尝试着去考察 $\mathbf v_{2 n}, \mathbf v_{2 n + 1}$ 和 $\mathbf v_n$ 的关系。</p>
+		<p>由定义，$$ \mathbf v_{2 n} = \begin{bmatrix} g \left( 2 n + 1 \right) \\ g \left( 2 n \right) \end{bmatrix} = \begin{bmatrix} g \left( n \right) + g \left( n + 1 \right) \\ g \left( n \right) \end{bmatrix} = \begin{bmatrix} 1 &amp; 1 \\ 0 &amp; 1 \end{bmatrix} \cdot \begin{bmatrix} g \left( n + 1 \right) \\ g \left( n \right) \end{bmatrix} $$</p>
+		<p>$$ \mathbf v_{2 n + 1} = \begin{bmatrix} g \left( 2 n + 2 \right) \\ g \left( 2 n + 1 \right) \end{bmatrix} = \begin{bmatrix} g \left( n + 1 \right) \\ g \left( n \right) + g \left( n + 1 \right) \end{bmatrix} = \begin{bmatrix} 1 &amp; 0 \\ 1 &amp; 1 \end{bmatrix} \cdot \begin{bmatrix} g \left( n + 1 \right) \\ g \left( n \right) \end{bmatrix} $$</p>
+		<p>可以看出，$\mathbf v_n$ 的值，就是通过将 $n$ 的二进制位所对应的矩阵 ($0$ 为 $\begin{bmatrix} 1 &amp; 1 \\ 0 &amp; 1 \end{bmatrix}$，$1$ 为 $\begin{bmatrix} 1 &amp; 0 \\ 1 &amp; 1 \end{bmatrix}$) 与初始向量 $\mathbf v_1 = \begin{bmatrix} 1 \\ 1 \end{bmatrix}$ 连续左乘所得到的。</p>
+		<p>因此，容易证明，这里边<strong>每个向量的的两个分量的值是互素的</strong>。</p>
+		<p>不妨设 $\left( p, q \right) = 1$，注意到这两个 $2 \times 2$ 矩阵恰好就是 "初等矩阵"，因此考虑使用 "初等变换" 将行向量变成初始状态 $\begin{bmatrix} 1 \\ 1 \end{bmatrix}$。</p>
+		<p>这个过程，恰恰就是 <strong>Euclid 辗转相除法</strong>的过程，因此，通过 Euclid 辗转相处法，即可得知每一步中，使用了多少个 $\begin{bmatrix} 1 &amp; 1 \\ 0 &amp; 1 \end{bmatrix}$ ($0$) 和多少个 $\begin{bmatrix} 1 &amp; 0 \\ 1 &amp; 1 \end{bmatrix}$ ($1$)。</p>
+		<p>结合此过程和数学归纳法，可以证明，对于给定的有理数 $\dfrac pq$，满足条件的 $n'$ 是存在去且<strong>唯一</strong>的。</p>
+		<p>于是，单组询问的时间复杂度为 $O \left( \log n + \log \max \left\{ p, q \right\} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 108;
+
+ll ans[N];
+
+inline void compute(ll n, ll &amp;u, ll &amp;v) {n ? (compute(n / 2, u, v), n &amp; 1 ? u += v : v += u) : (u = 0, v = 1);}
+
+void work() {
+	ll n, p, q; int cnt = 0;
+	scanf("%lld", &amp;n), compute(++n, p, q), printf("%lld\n", p % 1000000007);
+	scanf("%lld%lld", &amp;p, &amp;q);
+	for (; p &amp;&amp; q; p &lt;= q ? (ans[++cnt] = q / p, q %= p) : (ans[++cnt] = p / q, p %= q));
+	if (q) --ans[cnt], ans[++cnt] = 1;
+	for (putchar(40); cnt; --cnt) printf("%lld%c", ans[cnt], cnt == 1 ? 41 : 44); putchar(10);
+}
+
+int main() {
+	int T;
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p style="color: red"><strong>坑1：</strong>虽然 $f \left( n \right)$ 不会超出 <code>long long</code> 的范围，但还是要对 $10^9 + 7$ 取模！<del>(毒瘤)</del></p>
+	</body>
+</html>

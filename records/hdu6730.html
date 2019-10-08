@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[hdu6730]APSP on Cactus</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>一个图为仙人掌当且仅当每条边在至多一个简单环内且连通。给你一个仙人掌，每条边带权，你需要对于每个点，求出这个点到其他所有点的最短路的和。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 7$)，表示数据组数。对于每组数据，格式如下：</p>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 2 \times 10^5; m \leq 4 \times 10^6$)，表示点数与边数。</p>
+		<p>接下来 $m$ 行，每行三个正整数 $u, v, w$ ($1 \leq u, v \leq n; u \neq v; w \leq 10^6$)，描述一条连接 $u, v$ 的边权为 $w$ 的边，保证图中没有重边。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示 $\sum_{u=1}^n \left( p_u \oplus u \right) \cdot 233^u$ 对 $10^9 + 7$ 取模的值，其中 $p_u$ 表示 $u$ 点的答案。</p>
+
+		<h3>题解</h3>
+		<p>关于仙人掌上的最短路问题，单组或互相独立的询问的版本已经在 <a href="lydsy2125.html" target="_blank">[lydsy2125]最短路</a> 中有所提及，主要的思路就是通过对仙人掌进行点双缩点 (即建立圆方树)，然后将仙人掌上的路径问题转化为树上的路径问题来处理。最后再讨论一下两点的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 是环点的情形。</p>
+		<p>但是再这道题中，我们要求的是<strong>每个点</strong>到其它点的<strong>距离之和</strong>，这包含 $\dbinom n2$ 组询问。因此，对每组询问处理的时间复杂度就已经无法接受了。</p>
+		<p>考察再树上我们是如何处理这个问题的。首先，可以通过简单的 $O \left( n \right)$ 预处理得到一个点的答案 —— 比如根节点到其它所有点的距离之和。但是，对于其它点，就不能在这样暴力了。</p>
+		<p>我们参考换根 DP 的思想，考虑通过一个节点的答案推出它的子节点的答案。</p>
+		<p>由于树上路径唯一，因此从一个节点 $u$ 转化到它的子节点 $v$ 中，它到一个点的距离要么增加 $\operatorname{dist} \left( u, v \right)$，要么减少 $\operatorname{dist} \left( u, v \right)$。因此，我们只需要统计出有多少个点距离减少即可。</p>
+		<p>容易发现，距离减少的点的个数就是以 $v$ 为根的子树大小，剩下的点的距离都是增加的。因此，我们可以通过预处理 <code>size[]</code> 来方便地转移，从而在 $O \left( n \right)$ 时间内通过根节点的答案推算出所有节点的答案。</p>
+		<hr />
+		<p>回到我们的仙人掌，注意到仙人掌上的两点距离<em>基本上</em>就等于点双缩点所得到的树 (圆方树) 上的点的距离，除非 —— <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 是一个环点。</p>
+		<p>我们考虑套用刚才的算法，但是需要有这么一些改进：</p>
+		<p>首先，我们只要求每个点到<strong>原仙人掌</strong>中所有点的距离，而不需要求它们到环点 (方点) 的距离，因此在计算根节点的答案和 <code>size[]</code> 数组的时候，只需要考虑普通节点 (圆点) 的贡献即可。</p>
+		<p>其次，我们需要在 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 是环点的时候进行调整。</p>
+		<p>考虑在换根 DP 中，当前 dfs 到了一个环点 (方点)，我们需要通过它去推算它对应的环中其它点的答案。</p>
+		<p>首先，由于环点到父节点的边是零权的，而它到子节点的边是有权的。因此，我们在推 $C \to v$ 的过程中，首先需要把这部分的权值 "清理" 掉，然后加上 $\left( n - size_v \right) \cdot \operatorname{dist} \left( C, v \right)$。</p>
+		<p>然后，我们需要对于 $C$ 的每一个固定的子节点，譬如 $v$，求出它到其它子节点的这段路的贡献之和，即 $$ \sum_{\substack{u \in child \left( c \right) \\ u \neq v}} size_u \cdot \operatorname{dist} \left( C, u \right) $$</p>
+		<p>这个式子如果直接枚举 $u$ 是不行的，复杂度会退化到 $O \left( len^2 \right)$，其中 $len$ 是环的长度。因此我们需要利用仙人掌的性质，或者说<strong>圈</strong>的性质。</p>
+		<p>考虑在<a href="lydsy1023.html" target="_blank">求仙人掌直径</a>的过程，我们用单调队列维护了环内的最短路信息。在这里，也是类似地：</p>
+		<p>对于固定的 $v$，它到环中的其它点可以分为两段：一段是 $v$ 顺时针走过去的，另一段是 $v$ 逆时针走过去的。这两段的分解径一端是 $v$，一端的 $v$ 所 "对" 的顶点。这个所 "对" 是和环上的具体边权有关的。</p>
+		<p>而且当 $v$ 逆时针枚举的时候，这个 $v$ 所 "对" 的顶点也会单调的逆时针的移动。确切地说，这个所 "对" 的顶点就是满足 $v$ 到它的某一个方向的距离 $\leq$ 环总长的一半的极远点。</p>
+		<p>因此我们可以使用双指针来维护，又因为我们点双缩点后将环 "破环为链" 了，因此环上还有固定的断点 ($C$ 在圆方树中的父节点)，因此，一共会将整个环分为 $3$ 段。</p>
+		<p>于是我们可以定义一个零势点 $v_0$，然后算出每个点到 $v_0$ 的定向距离 (或者说维护出定向距离的部分和数组)。然后，对于每一段，由于它们的 $\operatorname{dist}$ 的计算方式基本相同，因此可以通过部分和数组来快速求得，从而这部分的复杂度降为了 $O \left( len \right)$，就可以接受了。</p>
+		<p>总时间复杂度为 $O \left( n + m \right)$，可以通过此题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 800054, mod = 1000000007;
+
+struct edge {
+	int u, v; ll w;
+	edge (int u0 = 0, int v0 = 0, ll w0 = 0) : u(u0), v(v0), w(w0) {}
+};
+
+int n, m;
+int cyc_cnt, cyc[N];
+ll len[N], dis[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace Tree {
+	edge e[N];
+	int V, E;
+	int first[N], next[N];
+	int p[N], size[N];
+	ll dep[N], f[N];
+
+	void init(int _V) {
+		V = _V, E = 0, memset(first, 0, (V + 1) &lt;&lt; 2);
+		f[1] = dep[1] = p[1] = 0;
+	}
+
+	inline void addedge(int u, int v, ll w) {e[++E] = edge(u, v, w), next[E] = first[u], first[u] = E;}
+
+	void dfs(int x) {
+		int i, y;
+		if (size[x] = (x &lt;= n)) f[1] += dep[x];
+		for (i = first[x]; i; i = next[i])
+			p[y = e[i].v] = x, dep[y] = dep[x] + e[i].w, dfs(y), size[x] += size[y];
+	}
+
+	int Cyc[N];
+	ll S1[N], S2[N], we[N];
+
+	inline ll summing(int l, int r, ll coe1, ll coe2) {return coe1 * (S1[r] - S1[l - 1]) + coe2 * (S2[r] - S2[l - 1]);}
+
+	void trans(int x) {
+		int i, l, r, y, L = 0; ll mend = 0, clen;
+		if (x &lt;= n)
+			for (i = first[x]; i; i = next[i])
+				y = e[i].v, f[y] = f[x] + e[i].w * (n - 2 * size[y]), trans(y);
+		else {
+			clen = len[x - n];
+			for (i = first[x]; i; i = next[i], ++L)
+				Cyc[L] = e[i].v, we[L] = e[i].w, mend += we[L] * size[Cyc[L]];
+			std::reverse(Cyc, Cyc + L), std::reverse(we, we + L);
+			for (i = 0; i &lt; L; ++i)
+				S1[i + 1] = S1[i] + size[Cyc[i]],
+				S2[i + 1] = S2[i] + dis[Cyc[i]] * size[Cyc[i]];
+			l = 0, r = 1;
+			for (i = 1; i &lt;= L; ++i) {
+				y = Cyc[i - 1], f[y] = f[x] - mend + we[i - 1] * (n - size[x]);
+				for (; !l || (l &lt; i &amp;&amp; dis[y] - dis[Cyc[l - 1]] &gt; clen / 2); ++l); --l;
+				for (; r &lt;= L &amp;&amp; dis[Cyc[r - 1]] - dis[y] &lt;= clen / 2; ++r); --r;
+				// 1 ~ l
+				f[y] += summing(1, l, clen - dis[y], 1);
+				// l + 1 ~ i - 1
+				f[y] += summing(l + 1, i - 1, dis[y], -1);
+				// i + 1 ~ r
+				f[y] += summing(i + 1, r, -dis[y], 1);
+				// r + 1 ~ L
+				f[y] += summing(r + 1, L, clen + dis[y], -1);
+			}
+			for (i = first[x]; i; i = next[i]) trans(e[i].v);
+		}
+	}
+}
+
+namespace Cactus {
+	edge e[N];
+	int V, E;
+	int first[N], next[N];
+	int cnt, id[N], low[N];
+	int p[N], dep[N];
+
+	void init(int _V) {
+		V = _V, E = 0, memset(first, 0, (V + 1) &lt;&lt; 2);
+		cyc_cnt = cnt = 0, memset(id, 0, (V + 1) &lt;&lt; 2);
+	}
+
+	inline void addedge(int u, int v, int w) {
+		e[++E] = edge(u, v, w), next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u, w), next[E] = first[v]; first[v] = E;
+	}
+
+	void dfs(int x) {
+		int i, y, c; ll cur;
+		id[x] = low[x] = ++cnt;
+		for (i = first[x]; i; i = next[i])
+			if (!id[y = e[i].v]) {
+				p[y] = i; dep[y] = dep[x] + 1;
+				dfs(y); down(low[x], low[y]);
+				if (id[x] &lt; low[y]) Tree::addedge(x, y, e[i].w);
+			} else if ((p[x] - 1) ^ (i - 1) ^ 1)
+				down(low[x], id[y]);
+		for (i = first[x]; i; i = next[i])
+			if (p[y = e[i].v] != i &amp;&amp; id[x] &lt; id[y]) {
+				Tree::addedge(x, ++cyc_cnt + V, 0); cur = e[i].w;
+				for (c = y; c != x; c = e[p[c]].u)
+					cyc[c] = cyc_cnt, dis[c] = cur, cur += e[p[c]].w;
+				len[cyc_cnt] = cur; cur = e[i].w;
+				for (c = y; c != x; c = e[p[c]].u)
+					Tree::addedge(cyc_cnt + V, c, std::min(cur, len[cyc_cnt] - cur)), cur += e[p[c]].w;
+			}
+	}
+}
+
+void work() {
+	int i, u, v, w, ans = 0;
+	scanf("%d%d", &amp;n, &amp;m), Cactus::init(n), Tree::init(m + 1);
+	for (i = 0; i &lt; m; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), Cactus::addedge(u, v, w);
+	Cactus::dfs(1), Tree::dfs(1), Tree::trans(1);
+	for (i = n; i; --i) ans = ((ll)ans + (Tree::f[i] ^ i) % mod) * 233 % mod;
+	printf("%d\n", ans);
+}
+
+int main() {
+	int T;
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意圆方树中边的边权可能很大，因此需要 <code>long long</code> 来存储。</p>
+		<p><strong>坑2：</strong>(比较经典的问题) 在换根 DP 的过程中，用到全局数组时不能递归下去，在这里需要用完了再进行递归。</p>
+		<p><strong>坑3：</strong>单个点的答案 $p_u$ 可以是非常大的 ($O \left( n^2 w \right)$ 级别)，因此在最后统计的时候记得及时取模。</p>
+	</body>
+</html>

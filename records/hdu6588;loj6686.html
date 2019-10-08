@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[hdu6588]Function/[loj6686]Stupid GCD</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定正整数 $n$，请你求出如下式子的值：</p>
+		<p>$$ \sum_{i=1}^n \gcd \left( \left \lfloor \sqrt[3] i \right \rfloor, i \right) $$</p>
+		<p>答案对 $998244353$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p style="color: red">这里给出 [loj6686]Stupid GCD 的输入格式，另一道题是该题的弱化版，可以看 OJ 上的输入格式。</p>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 10^{30}$)。</p>
+
+		<h3>输出格式</h3>
+		<p style="color: red">这里给出 [loj6686]Stupid GCD 的输出格式，另一道题是该题的弱化版，可以看 OJ 上的输出格式。</p>
+		<p>输出一行一个整数，表示上述式子对 $998244353$ 取模的值。</p>
+
+		<h3>题解</h3>
+		<p>考虑枚举 $\left \lfloor \sqrt[3] i \right \rfloor$。不过这显然是会超时的，不过我们可以发现，设 $C = \left \lfloor \sqrt[3] n \right \rfloor$，则对于 $1 \leq c &lt; C$，$\left \lfloor \sqrt[3] i \right \rfloor = c$ 的所有 $i$ 会产生 "完整的周期"，而对于 $\left \lfloor \sqrt[3] i \right \rfloor = C$ 的 $i$，则是不完整的 "部分周期"。将这两段分开来计算最后求和。</p>
+		<p>先考虑后一部分，即 $\left \lfloor \sqrt[3] i \right \rfloor = C$ 的所有 $i$。容易得到所有可行 $i$ 的范围为 $C^3 \leq i \leq n$。由于 $\gcd \left( x, y \right) = gcd \left( x, k x + y \right)$，因此可以将它看成 $0 \leq i' \leq n - C^3$。因此，我们就需要求一个类似下式的 $\gcd$ 函数的部分和：$$ \sum_{i=1}^n \gcd \left( C, i \right) $$</p>
+		<p>使用 Möbius 反转公式，有 $\displaystyle n = \sum_{d \mid n} \phi \left( d \right)$，于是 \begin{align*}
+\sum_{i=1}^n \gcd \left( C, i \right) &amp;= \sum_{i=1}^n \sum_{d \mid C, d \mid i} \phi \left( d \right) \\
+&amp;= \sum_{d \mid C} \left( \phi \left( d \right) \cdot \left( \sum_{d \mid i} 1 \right) \right) \\
+&amp;= \sum_{d \mid C} \phi \left( d \right) \cdot \left \lfloor \frac nd \right \rfloor
+\end{align*}</p>
+		<p>因此只需要将 $C$ 分解后枚举 $C$ 的因数进行计算即可，$\phi$ 函数可以由它的积性在 dfs 时直接得到。</p>
+		<hr />
+		<p>考虑后一部分，可以发现，对每一个确定的 $\left \lfloor \sqrt[3] i \right \rfloor$ (不妨设它为 $t$)，则 $i$ 的取值范围为 $t^3 \leq i &lt; \left( t + 1 \right)^3$。由 $\gcd$ 的性质，可以看成 $3 \left( t + 1 \right)$ 个完整周期和一个 $t$。</p>
+		<p>对于一个完整周期，贡献和为 $$ \sum_{i=0}^{t-1} \gcd \left( t, i \right) = \sum_{d \mid t} \phi \left( d \right) \left \lfloor \frac td \right \rfloor $$，于是，$3 \left( t + 1 \right)$ 个完整周期的贡献和就等于 $\displaystyle 3 \left( t + 1 \right) \sum_{d \mid t} \phi \left( d \right) \left \lfloor \frac td \right \rfloor$，对 $t = 1 \cdots C - 1$ 求和，得到</p>
+		<p>\begin{align*}
+&amp; \sum_{t=1}^{C-1} \left( 3 \left( t + 1 \right) \sum_{d \mid t} \phi \left( d \right) \left \lfloor \frac td \right \rfloor + t \right) \\
+=&amp; \frac {t \left( t - 1 \right)} 2 + \sum_{d=1}^{C-1} 3 \cdot \phi \left( d \right) \sum_{d \mid t} \left( t + 1 \right) \cdot \frac td \\
+=&amp; \frac {t \left( t - 1 \right)} 2 + \sum_{d=1}^{C-1} 3 \cdot \phi \left( d \right) \sum_{e=1}^{\left \lfloor \left( C - 1 \right) / d \right \rfloor} e \left( d \cdot e + 1 \right) \\
+=&amp; \frac {t \left( t - 1 \right)} 2 + 3 \sum_{d=1}^{C-1} \left( d \cdot \phi \left( d \right) \sum_{e=1}^{\left \lfloor \left( C - 1 \right) / d \right \rfloor} e^2 + \phi \left( d \right) \sum_{e=1}^{\left \lfloor \left( C - 1 \right) / d \right \rfloor} e \right) \\
+=&amp; \frac {t \left( t - 1 \right)} 2 + 3 \sum_{d=1}^{C-1} \left( d \cdot \phi \left( d \right) \cdot S_2 \left( \left \lfloor \frac {C - 1} d \right \rfloor \right) + \phi \left( d \right) \cdot S_1 \left( \left \lfloor \frac {C - 1} d \right \rfloor \right) \right)
+\end{align*}</p>
+		<p>可以发现，右端可以根据 $\left \lfloor \dfrac {C - 1} d \right \rfloor$ 来进行整除分块，不过前提是需要求出 $\phi \left( n \right)$ 和 $\left( n \cdot \phi \left( n \right) \right)$ 的前缀和，可以通过杜氏求和法 (杜教筛) 来完成。</p>
+		<p>总时间复杂度就是在 $C$ 范围内杜教筛的复杂度，即 $O \left( n^{2/9} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ISD isdigit(c = getchar())
+
+typedef long long ll;
+typedef __int128 s128;
+const int mod = 998244353, iv3 = (mod + 1) / 3;
+
+s128 n, Ri;
+ll C;
+int ans = 0;
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; add(int &amp;x, const int y) {return x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+void getint(s128 &amp;x) {int c; for (; !ISD; ) if (!~c) return; for (x = c &amp; 15; ISD; x = x * 10 + (c &amp; 15));}
+ll icbrt(s128 x) {ll y = cbrtl(x); for (y += 3; (s128)y * y * y &gt; x; --y); return y;}
+
+namespace NT {
+	const int N = 1300054, PN = 100054, G = 200054;
+
+	int pn = 0, c[N], p[PN];
+	int phi[N], sphi[N], sphin[N];
+	int fcnt = 0, al[54];
+	ll pr[54];
+
+	inline ll S1(int n) {return n * (n + 1ll) / 2 % mod;}
+	inline ll S2(int n) {return S1(n) * (2ll * n + 1ll) % mod * iv3 % mod;}
+
+	void sieve(int n) {
+		int i, j, v; sphin[1] = sphi[1] = phi[1] = 1;
+		memset(c, -1, sizeof c);
+		for (i = 2; i &lt;= n; ++i) {
+			if (!~c[i]) p[pn] = i, c[i] = pn++, phi[i] = i - 1;
+			for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt; c[i]; ++j) c[v] = j, phi[v] = phi[i] * (p[j] - 1);
+			if (v &lt;= n) c[v] = j, phi[v] = phi[i] * p[j];
+			add(sphi[i] = sphi[i - 1], phi[i]), sphin[i] = (sphin[i - 1] + (ll)i * phi[i]) % mod;
+		}
+	}
+
+	inline void push(ll prime, int alpha) {pr[fcnt] = prime, al[fcnt++] = alpha;}
+
+	void factor(ll n) {
+		int i, j; fcnt = 0;
+		for (i = 0; n &gt; 1; ) {
+			if (n &gt;= N) {
+				for (; (ll)p[i] * p[i] &lt;= n &amp;&amp; n % p[i]; ++i);
+				if (n % p[i]) return push(n, 1);
+			} else i = c[n];
+			for (j = 0; !(n % p[i]); n /= p[i], ++j); push(p[i], j);
+		}
+	}
+
+	ll n, v[G];
+	int cnt, srn;
+	int dphi[G], dphin[G];
+
+	inline int ID(ll x) {return x &lt;= srn ? x : cnt + 1 - n / x;}
+
+	void block(ll _n) {
+		srn = sqrt(n = _n), cnt = srn * 2 - (srn * (srn + 1ll) &gt; n);
+		for (int i = 1; i &lt;= srn; ++i) v[i] = i, v[cnt - i + 1] = n / i;
+	}
+
+	void Dsum() {
+		int i, j, z, sq; ll k, l, n;
+		for (i = 1; i &lt;= cnt &amp;&amp; v[i] &lt; N; ++i) dphi[i] = sphi[v[i]], dphin[i] = sphin[v[i]];
+		for (; i &lt;= cnt; ++i) {
+			int &amp;p = dphi[i], &amp;pn = dphin[i];
+			n = v[i], sq = sqrt(n), p = S1(n % mod), pn = S2(n % mod), l = n / (sq + 1);
+			for (j = sq; j; --j) {
+				k = n / j;
+				reduce(p = (p - (k - l) % mod * sphi[j]) % mod);
+				reduce(pn = (pn - (S1(k % mod) - S1(l % mod)) * sphin[j]) % mod);
+				l = k;
+				if (j != 1 &amp;&amp; k &gt; sq)
+					z = ID(k), reduce(p -= dphi[z]), reduce(pn = (pn - (ll)j * dphin[z]) % mod);
+			}
+		}
+	}
+
+	void init() {sieve(N - 1);}
+}
+
+void dfs(int d, ll v, ll phi) {
+	if (d &gt;= NT::fcnt) ans = (ans + (ll)((Ri / v + 1) % mod) * phi) % mod;
+	else
+		for (int i = 0; i &lt;= NT::al[d]; v *= NT::pr[d], phi *= NT::pr[d] - !i++)
+			dfs(d + 1, v, phi);
+}
+
+int solve(ll n) {
+	int i, j, ret = 0;
+	NT::block(n), NT::Dsum();
+	for (i = 1, j = NT::cnt; j; ++i, --j)
+		ret = (ret + (NT::dphi[i] - NT::dphi[i - 1]) * (3ll * NT::S1(NT::v[j] % mod) + NT::v[j])) % mod,
+		ret = (ret + (NT::dphin[i] - NT::dphin[i - 1]) * (3ll * NT::S2(NT::v[j] % mod))) % mod;
+	return reduce(ret);
+}
+
+int main() {
+	NT::init();
+	getint(n), C = icbrt(n + 1);
+	ans = solve(C - 1), NT::factor(C);
+	if (Ri = n - (s128)C * C * C, ~Ri) dfs(0, 1, 1);
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在进行筛法及求和的过程中注意开 <code>long long</code> 和及时取模，不要溢出。</p>
+		<p><strong>坑2：</strong>由于 $n$ 比较大，因此在一开始开立方的过程在 <code>cbrtl</code> (或 <code>powl</code>) 完后记得 "微调" 一下。</p>
+	</body>
+</html>

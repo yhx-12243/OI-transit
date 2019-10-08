@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6696]复读机 加强版</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>将 $k$ 种不同颜色的球放在一个长度为 $n$ 的序列上，每种球的个数都要是 $d$ 的倍数，问总共有多少种不同的方案。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含三个正整数 $n, k, d$ ($n \leq 10^9; k \leq 2000; \color {red} {d \in \left\{ 4, 6 \right\}}$)，意义如题目描述所述。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示方案数对 $19491001$ 取模的值。</p>
+
+		<h3>题解</h3>
+		<p>由<a href="uoj450.html" target="_blank">原题</a>的结论，可知答案等于 $n ! \left[ x^n \right] \dfrac 1 {d^k} \left( \mathrm e^x + \mathrm e^{\omega x} + \mathrm e^{\omega^2 x} + \cdots + \mathrm e^{\omega^{d-1} x} \right)^k$，其中 $\omega = \exp \dfrac {2 \pi \mathrm i} d$ 为单位根。</p>
+		<p>显然直接算不好算，因此考虑展开后求每一项的贡献。展开后的每一项形如 $A_c \mathrm e^{c x}$，其中 $c \in \mathbb C$，这一部分对答案的贡献显然是 $\dfrac {A_c \cdot c^n} {d^k}$。</p>
+		<p>$d^k$ 是常数可以先扔掉不管，因此我们就需要求形如 $\mathrm e^{c x}$ 的项前面的系数是多少。</p>
+		<p>由于在这个模数下 $2, 3, 4, 6$ 次的单位根都是存在的，因此设 $y = \mathrm e^x$ 后，可以转化为一个多项式的乘方问题。可惜这个多项式的次数非常大，达到了 $O \left( mod \right)$ 级别，因此是不可接受的。</p>
+		<p>那该怎么办呢？我们来举一个例子分析：</p>
+		<p>不妨假设现在 $d = 4$，于是需要展开 $\left( \mathrm e^x + \mathrm e^{\mathrm i x} + \mathrm e^{-x} + \mathrm e^{- \mathrm i x} \right)^k$。</p>
+		<p>设 $y = \mathrm e^x$，原式化为 $\left( y + y^{\mathrm i} + y^{-1} + y^{- \mathrm i} \right)^k$，显然 $y^{\mathrm i}$ 还是不好搞，我们再将其换元为 $z$ (即令 $z = y^{\mathrm i}$)。</p>
+		<p>这样式子就变成了 $\left( y + z + y^{-1} + z^{-1} \right)^k$，已经没有奇奇怪怪的幂指数了，于是可以尝试进行普通的多项式乘方了。</p>
+		<p>不过看到负的指数开始不太舒服，因此稍微转化一下，变成 $\dfrac 1 {y^k z^k} \left( y + z + y^2 z + y z^2 \right)^k$，因此现在就需要计算一个<strong>二元多项式 $f \left( y, z \right)$</strong> 的 $k$ 次幂。</p>
+		<p>如果这个多项式的 $k$ 次幂可以在一个可观的时间内求得，那么整道题 (的 $d = 4$ 部分) 就获得了解决 (因为上面已经讲过如何计算一项的贡献了)。</p>
+		<p>最朴素的快速幂需要花费 $O \left( k^2 \log k \right)$ 的时间内，<del>被出题人安排了</del> 不太像是能过得去的样子。由于模数<em>减一</em>中 $2$ 的指数不大，因此使用 FFT/FNTT 方法既不方便也不快速，我们尝试寻找一个稍微优秀点的做法。</p>
+		<p>还是从简单开始，考虑<strong>一元多项式</strong>的情形：</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">问题</div>
+			<div class="panel-body">
+				<p>给定一个 $K$ 次多项式，求它的 $n$ 次幂模 $x^m$ 的结果 ($K &lt; m$)。</p>
+			</div>
+		</div>
+		<div class="panel panel-info">
+			<div class="panel-heading">解答</div>
+			<div class="panel-body">
+				<p>首先，如果能 FFT 的话，那么复杂度显然是 $O \left( m \log m \right)$ 的。当然，并不是所有情况下你都是能 FFT 上的，因此你还需要考虑对 FFT 不友好的情况。</p>
+				<p>如果使用暴力卷积 + 快速幂，那么复杂度是 $O \left( m^2 \log n \right)$，表现也不是很好。下面将介绍一个<del>简单易懂又好写</del> 的 $O \left( K \cdot m \right)$ 做法。</p>
+				<p>设给定的多项式为 $f \left( x \right)$，你需要求的多项式为 $g \left( x \right) = f^k \left( x \right)$，两边求导，得 $g' \left( x \right) = k f^{k-1} \left( x \right) f' \left( x \right)$，此即 $g' \left( x \right) = k \cdot \dfrac {g \left( x \right)} {f \left( x \right)} \cdot f' \left( x \right)$，整理得 $f \left( x \right) g' \left( x \right) = k \cdot f' \left( x \right) g \left( x \right)$。</p>
+				<p>和往常一样，两边取 $x^{n-1}$ 项系数 (此处不妨假设 $f \left( x \right)$ 的常数项不为 $0$，否则简单平移一下即可)，就可以得到一个关于 $a_n$ 的长度不超过 $K$ 的递推式，因此求 $g \left( x \right)$ 的一项系数可以在不超过 $O \left( K \right)$ 时间完成，因此总时间复杂度就自然是 $O \left( K \cdot m \right)$ 啦。</p>
+			</div>
+		</div>
+		<p>那么，对于多元多项式的求幂，也可以用类似的方法。只需要将一个元看成主元 $x$，并对其求偏导 $\dfrac {\partial f} {\partial x}$，就可以对它进行递推了。通过类似的分析可知，总的时间复杂度正比于原多项式的非零元个数以及最终求得的多项式的系数个数。</p>
+		<p>而在上面的例子中，原多项式 ($y + z + y^2 z + y z^2$) 只有常数项，因此总的复杂度就是最终多项式的大小，即 $O \left( k^2 \right)$。</p>
+		<p>于是这种情况的总时间复杂度就是 $O \left( k^2 \log n \right)$。</p>
+		<hr />
+		<p>对于 $d = 6$ 的情形，区别也不是很大。</p>
+		<p>首先，设 $6$ 次单位根 $\mathrm e^{\pi \mathrm i / 3} = \zeta$，我们需要展开的多项式变成了 $\left( \mathrm e^x + \mathrm e^{\zeta x} + \mathrm e^{\zeta^2 x} + \mathrm e^{\zeta^3 x} + \mathrm e^{\zeta^4 x} + \mathrm e^{\zeta^5 x} \right)^k$。</p>
+		<p>如果直接转主元，呢么就会变成六元多项式，就不好搞了，不过我们可以注意到 $6$ 次单位根之间的关系：$\zeta^2 - \zeta + 1 = 0$。因此设三次单位根 $\omega = \zeta^2 = \mathrm e^{2 \pi \mathrm i / 3}$，于是我们所求的式子就变成了 $$ \left( \mathrm e^x + \mathrm e^{\left( \omega + 1 \right) x} + \mathrm e^{\omega x} + \mathrm e^{-x} + \mathrm e^{\left( - \omega - 1 \right) x} + \mathrm e^{- \omega x} \right)^k \tag 1 \label 1 $$
+		<p>此时，令 $y = \mathrm e^x, z = \mathrm e^{\omega x}$，则 $\eqref 1$ 式化为 $\left( y + y z + z + y^{-1} + y^{-1} z^{-1} + z^{-1} \right)^k = \dfrac 1 {y^k z^k} \left( 1 + y + z + y^2 z + y z^2 + y^2 z^2 \right)^k$，化为熟悉的二元多项式求幂的问题。</p>
+		<p>因此时间复杂度仍为 $O \left( k^2 \log n \right)$。</p>
+		<hr />
+		<p>小拓展：除了 $4$ 和 $6$ 以及原题的 $1, 2, 3$，还有哪些 $d$ 可以通过这种方法进行处理？</p>
+		<p>其实<del>短期内</del>用这种方法在 $O \left( k^2 \right)$ 以内的 $d$ 就这么些。</p>
+		<p>考察上述算法的共同点，都是将不易处理的虚指数幂通过换元的方法转化为实指数幂 (允许负数)，将问题转化为多元多项式的求幂问题。而时间复杂度的表达式 $O \left( k^\theta \right)$ 中，$\theta$ 就是最终化出来的多项式的变元个数。</p>
+		<p>我们要使其尽可能的小，因此我们就需要把一些 "线性相关" 的变元替换掉，比如 $\omega_6$ 就可以使用 $\omega_3 + 1$ 进行替换。</p>
+		<p>这样不停替换直到所有剩下的变元在有理系数下线性无关，最终剩下的数的个数就是我们的多项式的变元个数 $\theta$。</p>
+		<p>考虑在进行替换的过程中，一个线性相关的表达式，一定是一个关于单位根 $\mathrm e^{2 \pi \mathrm i / k}$ 的代数方程形式，即 $f \left( \mathrm e^{2 \pi \mathrm i / d} \right) = 0$。</p>
+		<p>而由<a href="file:///media/yhx-12243/D%20%E5%8D%B7/OI-transit/memos/17.html#co-4-1" target="_blank">分圆多项式的性质</a>，这样的多项式的最小次数就是分圆多项式 $\Phi_d \left( x \right)$ 的次数，即 $\phi \left( d \right)$；另一方面，使用分圆多项式，容易将所有 $d$ 个单位根用<strong>前 $\phi \left( d \right)$ 个单位根</strong>线性表示，这表明 $\min \theta = \phi \left( d \right)$。
+		<p>因此，如果在 $O \left( k^2 \right)$ 的时间复杂度内要能解决，则必有 $\phi \left( d \right) \leq 2 \Rightarrow d \in \left\{ 1, 2, 3, 4, 6 \right\}$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define push(x, y) (gf[cnt++] = pr(x, y))
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 4054, mod = 19491001;
+
+int n, K, d;
+int fact[N], inv[N], finv[N];
+int cnt = 0, offset_x = 0, offset_y = 0;
+int result[N][N];
+pr gf[6];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(int n) {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt;= n; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+inline ll C(int n, int r) {return (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+void poly_power_main() {
+	int i, j, k, ri, rj, zi, zj, Wx = 0, Wy = 0, cyt = 0, cy[5], tmp;
+	for (i = 0; i &lt; cnt; ++i) down(offset_x, gf[i].first), down(offset_y, gf[i].second);
+	for (i = 0; i &lt; cnt; ++i) up(Wx, gf[i].first -= offset_x), up(Wy, gf[i].second -= offset_y);
+	for (i = 0; i &lt; cnt; ++i) if (!gf[i].first) cy[cyt++] = gf[i].second;
+	std::sort(cy, cy + cyt);
+	// initial
+	if (cyt == 1) result[0][*cy * K] = 1;
+	else if (cyt == 2) for (i = 0, j = *cy * K; i &lt;= K; ++i, j += cy[1] - *cy) result[0][j] = C(K, i);
+	else throw "not supported.";
+	// inverse
+	for (i = 0; i &lt; cnt; ++i) if (!gf[i].first &amp;&amp; gf[i].second == *cy) {std::iter_swap(gf, gf + i); break;}
+	assert(i != cnt);
+	// running
+	for (i = 1, ri = 0; i &lt;= Wx * K; ++i, ++ri) {
+		for (j = 0, rj = *cy; j &lt;= Wy * K; ++j, ++rj) {
+			// compute the coefficient of term [x^ri y^rj]
+			tmp = 0;
+			for (k = 1; k &lt; cnt; ++k) if (gf[k].first &lt;= ri &amp;&amp; gf[k].second &lt;= rj) {
+				zi = ri - gf[k].first + 1, zj = rj - gf[k].second;
+				tmp = (tmp - (ll)zi * result[zi][zj]) % mod;
+			}
+			for (k = 0; k &lt; cnt; ++k) if (gf[k].first &amp;&amp; gf[k].first &lt;= ri + 1 &amp;&amp; gf[k].second &lt;= rj) {
+				zi = ri - gf[k].first + 1, zj = rj - gf[k].second;
+				tmp = (tmp + (ll)K * gf[k].first * result[zi][zj]) % mod;
+			}
+			tmp = (ll)tmp * inv[i] % mod;
+			result[i][j] = tmp + (tmp &gt;&gt; 31 &amp; mod);
+		}
+	}
+	offset_x *= K, offset_y *= K;
+}
+
+int main() {
+	int i, j, w; ll ans = 0;
+	scanf("%d%d%d", &amp;n, &amp;K, &amp;d), init(2 * K);
+	switch (d) {
+//		case 1: push(1, 0), w = 1; break;
+//		case 2: push(1, 0), push(-1, 0), w = 1; break;
+//		case 3: push(1, 0), push(0, 1), push(-1, -1), w = 663067; break;
+		case 4: push(1, 0), push(-1, 0), push(0, 1), push(0, -1), w = 5731711; break;
+		case 6: push(1, 0), push(1, 1), push(0, 1), push(-1, 0), push(-1, -1), push(0, -1), w = 663067; break;
+		default: throw "phi(d) is greater than 2 !";
+	}
+	poly_power_main();
+	for (i = 0; i &lt;= 2 * K; ++i)
+		for (j = 0; j &lt;= 2 * K; ++j) if (result[i][j])
+			ans += PowerMod((i + offset_x + (ll)(j + offset_y) * w) % mod, n, result[i][j]);
+	ans = PowerMod(d, mod - 1 - K, ans % mod);
+	printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意多元多项式在递推时，如果要求最终结果的 $\left[ x^i y^j \right]$ 项系数，则需要考虑求导 (这里假设对 $x$ 求偏导) 后的恒等式中 $\left[ x^{i-1} y^{j+r} \right]$ 项系数，其中 $r$ 为当 $x = 0$ 时 $y$ 的最低次项的<strong>次数</strong>。</p>
+		<p><strong>坑2：</strong>在递推过程以及最终计算 (快速幂) 的过程中，可以适当剪枝 (比如不计算 $0$ 系数) 来减少常数。</p>
+	</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj440]求和</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小凯手中有两种面值的金币，两种面值均为正整数且彼此互素。每种金币小凯都有无数个。在不找零的情况下，仅凭这两种金币，有些物品他是无法准确支付的。现在小凯想知道在无法准确支付的物品中，所有物品价值的 $k$ 次方和是多少？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个非负整数 $T$ ($T \leq 10^5$)，表示数组的组数。</p>
+		<p>接下来 $T$ 行，每行包含三个正整数 $a, b, k$ ($1 \leq a, b \leq 10^{18}; 0 \leq k \leq 10^5; \sum k \leq 10^6$)，表示小凯手中金币的面值和需要求幂的参数。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示小凯用手中的金币不能准确支付的物品的价值的 $k$ 次方和模 $998244353$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>嗯，又是 $k$ 次方和这个讨厌的家伙。</p>
+		<p>和自然数幂和类似，我们考虑使用生成函数的方法来重新审视一遍这个问题。</p>
+		<p>假设我们已经求出了一个生成函数 $F \left( x \right) = \sum\limits_i f_i \cdot x^i$，我们需要求 $\sum\limits_i f_i \cdot i^k$。</p>
+		<p>比如在本题中，设小凯不能支付的物品价值的集合为 $S$，我们取 $S$ 的特征函数 $C \left( x \right) = \sum\limits_i \left[ i \in S \right] x^i$，那么 $S$ 中所有元素的 $i$ 次方和就是特征函数的对应系数与 $i^k$ 乘积之和 (即上面一行的内容)。</p>
+		<p>因此继续考虑上面这个模型。由于我们要求的是 $i^k$ 而不是 $x^i$，因此直接往 $F \left( x \right)$ 里面代入点什么看起来不那么靠谱。</p>
+		<p>不过，注意到指数函数 $\mathrm e^x$ 的性质，我们尝试着往里面带入 $\mathrm e^x$，即计算 $F \left( \mathrm e^x \right)$ ——</p>
+		<p>那么其中的一项就会变成 $\displaystyle f_i \cdot \left( \mathrm e^x \right)^i = f_i \cdot \mathrm e^{i x} = \sum_{k \geq 0} f_i \cdot \frac {i^k \cdot x^k} {k !}$，那么，将这个式子对 $i$ 求和后，取 $\left[ x^k \right]$ 系数，它就等于 $\displaystyle \frac 1 {k !} \sum_{i \geq 0} f_i \cdot i^k$，恰恰就是我们所想要的。</p>
+		<p>(其实推导自然数幂和的 <a href="https://en.wikipedia.org/wiki/Faulhaber's_formula" target="_blank">Faulhaber 公式</a> [带 Bernoulli 数形式的公式] 也是用这种指数生成函数的方法)</p>
+		<hr />
+		<p>因此，完成了前面的过程后，我们现在的任务就是求这个这个集合 $S$ 的特征函数 $C \left( x \right)$ 了。</p>
+		<p>由于 $\left( a, b \right) = 1$，因此 $S$ 显然是一个有限集 (更精确地，$2 \left| S \right| = \max S + 1 = \left( a - 1 \right) \left( b - 1 \right)$)。</p>
+		<p>记 $\Phi \left( n \right)$ 表示将 $n$ 表示成 $a x + b y$ ($n, x, y \in \mathbb N$) 的方案数，则由定义容易证明递推式 $\Phi \left( n \right) = \Phi \left( n - a \right) + \left[ b \mid n \right]$ ($n \geq a$)，以及 $\Phi \left( n \right) = \Phi \left( n - b \right) + \left[ a \mid n \right]$ ($n \geq b$)。</p>
+		<p>因此，当 $n \geq a + b$ 时，有 $\Phi \left( n \right) - \Phi \left( n - a \right) - \Phi \left( n - b \right) + \Phi \left( n - a - b \right) = \left[ b \mid n \right] - \left[ b \mid n - b \right] = 0$。</p>
+		<p>于是，对 $\forall n \in \mathbb N$，有 $\Phi \left( n + a + b \right) - \Phi \left( n + a \right) - \Phi \left( n + b \right) + \Phi \left( n \right) = 0$。</p>
+		<p>其次，对于 $0 \leq n &lt; a b$，有 $0 \leq \Phi \left( n \right) \leq 1$，因此，对于 $0 \leq n &lt; a b$，有 $\color {red} {\Phi \left( n \right) = 1 - \left[ n \in S \right]}$。</p>
+		<p>考虑 $S$ 的性质，注意到 $\max S = a b - a - b$，因此，当 $n_0 = a b - a - b$ 时，$\left[ n_0 + a + b \in S \right] - \left[ n_0 + a \in S \right] - \left[ n_0 + b \in S \right] + \left[ n_0 \in S \right] = 0 - 0 - 0 + 1 = 1$。</p>
+		<p>当 $0 \leq n &lt; a b - a - b$ 时，$n + a + b &lt; a b$，于是 $\left[ n \in S \right] = 1 - \Phi \left( n \right)$，从而 \begin{align*}
+&amp; \left[ n + a + b \in S \right] - \left[ n + a \in S \right] - \left[ n + b \in S \right] + \left[ n \in S \right] \\
+=&amp; \left( 1 - \Phi \left( n + a + b \right) \right) - \left( 1 - \Phi \left( n + a \right) \right) - \left( 1 - \Phi \left( n + b \right) \right) + \left( 1 - \Phi \left( n \right) \right) \\
+=&amp; \Phi \left( n + a + b \right) - \Phi \left( n + a \right) - \Phi \left( n + b \right) + \Phi \left( n \right) \\
+=&amp; 0
+\end{align*}</p>
+		<p>于是，由生成函数定义知 $\color {fuchsia} {\left( 1 - x^a - x^b + x^{a + b} \right) \cdot C \left( x \right) = x^{a b} + R \left( x \right)}$，其中 $\deg R &lt; a + b$。</p>
+		<p>上式两端模 $x^{a + b}$ 知，$\left( 1 - x^a \right) \cdot \left( 1 - x^b \right) \cdot C \left( x \right) \equiv R \left( x \right) \pmod {x^{a + b}}$。</p>
+		<p>而当 $n &lt; a + b$ 时，$n \in S \Leftrightarrow a \nmid n \vee b \nmid n$，于是 $$ C \left( x \right) \equiv \left( x + x^2 + x^3 + \cdots \right) - \left( x^a + x^{2 a} + x^{3 a} \cdots \right) - \left( x^b + x^{2 b} + x^{3 b} \cdots \right) = \frac x {1 - x} - \frac {x^a} {1 - x^a} - \frac {x^b} {1 - x^b} = \frac {x - x^a - x^b + 2 x^{a + b} + x^{a + b + 1}} {\left( 1 - x \right) \left( 1 - x^a \right) \left( 1 - x^b \right)} \pmod {x^{a + b}} $$</p>
+		<p>故 $R \left( x \right) \equiv \left( 1 - x^a \right) \cdot \left( 1 - x^b \right) \cdot C \left( x \right) = \dfrac {x - x^a - x^b + 2 x^{a + b} - x^{a + b + 1}} {1 - x} \equiv \dfrac {x - x^a - x^b + x^{a + b}} {1 - x} \pmod {x^{a + b}}$。</p>
+		<p>而上式最后一项本身就是一个次数不超过 $a + b - 1$ 的多项式 (分子分母可以除尽)，因此 $R \left( x \right) = \dfrac {x - x^a - x^b + x^{a + b}} {1 - x}$。</p>
+		<p>最后，知 $C \left( x \right) = \dfrac {x^{a b} + R \left( x \right)} {\left( 1 - x^a \right) \left( 1 - x^b \right)} = \dfrac{ x - x^a - x^b + x^{a b} + x^{a + b} - x^{1 + a b}} {\left( 1 - x \right) \left( 1 - x^a \right) \left( 1 - x^b \right)} = \dfrac 1 {1 - x} - \dfrac {1 - x^{a b}} {\left( 1 - x^a \right) \left( 1 - x^b \right)}$。</p>
+		<hr />
+		<p>现在我们已经获得了 $C \left( x \right)$ 的生成函数，根据上面的经验，我们需要往里面代入 $\mathrm e^x$。</p>
+		<p>代入后，容易得到 $C \left( \mathrm e^x \right) = \dfrac 1 {1 - \mathrm e^x} - \dfrac {1 - \mathrm e^{a b x}} {\left( 1 - \mathrm e^{a x} \right) \left( 1 - \mathrm e^{b x} \right)}$。</p>
+		<p>设 $G \left( t \right) = \dfrac {\mathrm e^t - 1} t, H \left( t \right) = G^{-1} \left( t \right) = \dfrac t {\mathrm e^t - 1}$，则 $$ C \left( \mathrm e^x \right) = \frac 1x \left( H \left( a x \right) H \left( b x \right) G \left( a b x \right) - H \left( x \right) \right) $$</p>
+		<p>于是，我们只需要求多项式 $H \left( a x \right) H \left( b x \right) G \left( a b x \right) - H \left( x \right)$ 的 $x^{k + 1}$ 项系数，它的 $k !$ 倍就是我们所要的答案。</p>
+		<p>然而事实上，$G \left( t \right)$ 可以直接计算得到，$H \left( t \right)$ 可以通过对 $G$ 多项式求逆得到；待计算的式子中的三项，每一项都是可以直接计算的 (因为只是在 $x$ 前面带一个系数)，其次由于我们只需要算一项系数，因此可以 NTT 求一个卷积后，剩下两个直接枚举一遍即可。</p>
+		<p>单组数据时间复杂度 $O \left( k \log k \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 530000, mod = 998244353, half_mod = (mod + 1) / 2, root = 31;
+typedef int vec[N], *pvec;
+
+vec fact, inv, finv;
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		DNTT(a, c), DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c), std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+
+	void Inv(int deg, pvec a, pvec b) {
+		int len, i; ll iv = half_mod;
+		*b = PowerMod(*a, mod - 2), b[1] = 0, *B1 = *a, B1[1] = a[1];
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
+			NTT_init(len + 2);
+			memset(b + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(b, B2);
+			memset(B1 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(B1, B3);
+			for (i = 0; i &lt; n; ++i) reduce(B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod);
+			DNTT(B2, B3), std::reverse(B3 + 1, B3 + n), iv = (iv &gt;&gt; 1) + half_mod;
+			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B3[i] * iv % mod;
+			memcpy(B1 + i, a + i, n &lt;&lt; 1);
+		}
+	}
+}
+
+const int n = 100000;
+int K;
+ll p, q;
+vec Ber, P0, Q0, M0, Ft;
+
+void work() {
+	int i, ans; ll pn = 1, qn = 1;
+	cin &gt;&gt; p &gt;&gt; q &gt;&gt; K, p %= mod, q %= mod, ans = -Ber[++K];
+	for (i = 0; i &lt;= K; ++i, pn = pn * p % mod, qn = qn * q % mod)
+		P0[i] = Ber[i] * pn % mod, Q0[i] = Ber[i] * qn % mod,
+		M0[i] = pn * qn % mod * finv[i + 1] % mod;
+	Poly::Mul(2 * K, P0, Q0, Ft);
+	memset(P0, 0, (K + 1) &lt;&lt; 2), memset(Q0, 0, (K + 1) &lt;&lt; 2);
+	for (i = 0; i &lt;= K; ++i) ans = (ans + (ll)Ft[i] * M0[K - i]) % mod;
+	ans = (ll)ans * fact[--K] % mod;
+	printf("%d\n", ans + (ans &gt;&gt; 31 &amp; mod));
+}
+
+int main() {
+	int T; init();
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	Poly::Inv(1 &lt;&lt; 17, finv + 1, Ber);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>读入时可以将 $a$ 和 $b$ 对 $k$ 取模，且本题 IO 量较大，可以写 IO 优化。</p>
+		<p><strong>坑2：</strong>注意到 $H \left( t \right) + \dfrac 12 t$ 是偶函数，因此可以通过压缩存储多项式的方式来减小常数 (不过这里没必要)。</p>
+	</body>
+</html>

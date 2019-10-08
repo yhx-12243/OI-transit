@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6626][lgT78245]幼儿园唱歌题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个由小写字母构成的字符串 $S$，有 $q$ 组询问，每次询问给出 $l_1, r_1, l_2, r_2$，你需要求出一个<strong>尽可能长</strong>的回文串 $t$，使得 $t \sqsubset S \left[ l_1 .. r_1 \right] \wedge S \left[ l_2 .. r_2 \right] \sqsupset t$，并输出 $t$ 的长度的<strong>相反数</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($n, q \leq 2 \times 10^5$)，表示字符串 $S$ 的长度和询问数。</p>
+		<P>第二行包含一个长度为 $n$ 的仅包含小写字母的字符串 $S$。</p>
+		<p>接下来 $q$ 行，每行四个正整数 $l_1, r_1, l_2, r_2$ ($1 \leq l_1 \leq r_1 \leq n; 1 \leq l_2 \leq r_2 \leq n$)，描述一组询问。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示满足要求的回文子串长度的最大值的相反数。</p>
+
+		<h3>题解</h3>
+		<p>由于这是一个回文串的问题，因此考虑构造回文自动机相关的方法。</p>
+		<p>注意到我们需要寻找<strong>回文子串</strong>，因此不妨可以将 $S$ 翻转得到 $S^R$，然后相当于询问 $S^R \left[ n - r_1 + 1 .. n - l_1 + 1 \right]$ 和 $S \left[ l_2 .. r_2 \right]$ 的一个<strong>回文公共后缀</strong>。</p>
+		<p>对于两个串的回文公共后缀的问题，可以考虑建立它们的广义 (回文) 自动机 (或者更暴力地，将两个串用两个字符集外的字符，如 <code>!@</code>，拼接起来，直接建立回文自动机)。</p>
+		<p>这样以来，对两个子串，先在回文自动机上定位到对应节点，由回文自动机 (后缀自动机) 的性质，根到它的链中所表示的串的关系<strong>互为后缀</strong>，因此我们在回文自动机上找到两个对应点的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>。</p>
+		<p>最后，由于我们需要寻找子串，因此需要使用 (和后缀自动机类似的) <code>jump_until</code> (倍增) 的方法来精确定位到可行节点 (即控制子串长度)。</p>
+		<p>定位完成后，直接输出对应串所表示的回文串长度即可。时间复杂度 $O \left( n + q \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 400054, LN = 19;
+
+int n, q;
+char s[N], *ptr;
+int pos[N];
+
+namespace PAM {
+	int p, last, cnt;
+	int d[N][28], fail[N], val[N];
+	int P[LN][N], dep[N];
+
+	void init() {val[1] = -1, p = 0, *fail = cnt = 1;}	
+
+	int get_fail(int x) {for (; ptr[~val[x]] != *ptr; x = fail[x]); return x;}
+
+	int extend(int x) {
+		int &amp;q = d[p = get_fail(p)][x];
+		if (!q) fail[++cnt] = d[get_fail(fail[p])][x], val[q = cnt] = val[p] + 2;
+		return p = q;
+	}
+
+	void initDouble() {
+		int i, j; memcpy(*P, fail, (cnt + 1) &lt;&lt; 2);
+		for (j = 0; j &lt; LN - 1; ++j) for (i = 0; i &lt;= cnt; ++i) P[j + 1][i] = P[j][P[j][i]];
+		for (*dep = 1, i = 2; i &lt;= cnt; ++i) dep[i] = dep[fail[i]] + 1;
+	}
+
+	int jump_until(int x, int v) {for (int i = LN - 1; i &gt;= 0; --i) val[P[i][x]] &gt;= v &amp;&amp; (x = P[i][x]); return x;}
+	int jump_until_d(int x, int d) {for (int i = LN - 1; i &gt;= 0; --i) dep[x] - (1 &lt;&lt; i) &gt;= d &amp;&amp; (x = P[i][x]); return x;}
+
+	int LCA(int x, int y) {
+		if (dep[x] &lt; dep[y]) std::swap(x, y);
+		if (x = jump_until_d(x, dep[y]), x == y) return x;
+		for (int i = LN - 1; i &gt;= 0; --i)
+			if (P[i][x] != P[i][y]) x = P[i][x], y = P[i][y];
+		return fail[x];
+	}
+}
+
+int main() {
+	int i = 0, d, t, l1, l2, r1, r2;
+	scanf("%d%d%s", &amp;n, &amp;q, s + 1), s[n + 1] = 123, s[n + 2] = 124;
+	std::reverse_copy(s + 1, s + (n + 1), s + (n + 3));
+	PAM::init();
+	for (ptr = s + 1; *ptr; ++ptr) pos[++i] = PAM::extend(*ptr - 97);
+	PAM::initDouble();
+	for (; q; --q) {
+		scanf("%d%d%d%d", &amp;r1, &amp;l1, &amp;l2, &amp;r2), l1 = 2 * n + 3 - l1, r1 = 2 * n + 3 - r1;
+		d = std::min(r1 - l1, r2 - l2) + 1, t = PAM::LCA(pos[r1], pos[r2]);
+		printf("%d\n", -PAM::val[PAM::val[t] &gt; d ? PAM::fail[PAM::jump_until(t, d + 1)] : t]);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>处理询问时务必翻转的是 $l_1, r_1$，因为我们要将原问题转化为<strong>最长回文公共后缀</strong>的问题。</p>
+		<p><strong>坑2：</strong>两个过程 (求 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 和后续的子串定位) 倍增所需的数组是不一样的，一个是深度数组，一个是串长数组。注意回文自动机定位时，所找的为 <code>val[] <= len</code> 的最深的点 (这点和后缀自动机有少许区别)。</p>
+	</body>
+</html>

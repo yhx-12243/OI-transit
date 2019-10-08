@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lg2791]幼儿园篮球题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定常数 $L$，有 $S$ 次询问，每次给定 $n, m$，设离散型随机变量 $X$ 服从超几何分布 $H \left( n, m, k \right)$，求 $X^L$ 的期望 $E \left( X^L \right)$。
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个正整数 $n_0, m_0, S, L$ ($1 \leq m_0 \leq n_0 \leq 2 \times 10^7; S \leq 200; L \leq 2 \times 10^5$)，分别表示 $n$ 的<strong>上限</strong>、$m$ 的<strong>上限</strong>，询问组数以及给定的常数。</p>
+		<p>接下来的 $S$ 行，每行三个正整数 $n, m, k$ ($1 \leq n \leq n_0; 1 \leq m \leq m_0; 1 \leq m, k \leq n$)，描述一个超几何分布变量的参数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $S$ 行，每行一个整数，表示对应随机变量的期望在模 $998244353$ 意义下的结果。</p>
+
+		<h3>题解</h3>
+		<p>由超几何分布的定义，$p \left( X = i \right) = \dfrac {\dbinom mi \dbinom {n - m} {k - i}} {\dbinom nk}$，由期望的定义，$\displaystyle E \left( X^L \right) = \sum_{i=0}^k p \left( X = i \right) \cdot i^L$，代入后得 $$ E \left( X^L \right) = \sum_{i=0}^k p \left( X = i \right) \cdot i^L = \dfrac 1 {\dbinom nk} \cdot \sum_{i=0}^k \binom mi \binom {n - m} {k - i} i^L $$</p>
+		<p>由于 $i^L$ 十分不爽，<del>妨碍了我们做 Vandermonde 卷积</del>，因此我们尝试着将它 "变个身"。</p>
+		<p>按照 <a href="lydsy4734%3Buoj269.html" target="_blank">[清华集训2016]如何优雅地求和</a> 一题的思想，我们尝试着考虑将右边的 $i^L$ 换成<strong>下降幂</strong> $i^\underline \alpha$，然后尝试进行<del>吸收</del>恒等变形，于是有 \begin{align*}
+&amp; \sum_{i=0}^K \binom mi \binom {n - m} {k - i} i^\underline \alpha \\
+=&amp; \sum_{i=0}^K \frac {m !} {i ! \left( m - i \right) !} \cdot \frac {i !} {\left( i - \alpha \right) !} \cdot \binom {n - m} {k - i} \\
+=&amp; \sum_{i=0}^K \frac {m !} {\left( m - i \right) ! \left( i - \alpha \right) !} \cdot \binom {n - m} {k - i} \\
+=&amp; \frac {m !} {\left( m - \alpha \right) !} \cdot \sum_{i=0}^K \frac {\left( m - \alpha \right) !} {\left( m - i \right) ! \left( i - \alpha \right) !} \cdot \binom {n - m} {k - i} \\
+=&amp; m^\underline \alpha \cdot \sum_{i=0} \binom {m - \alpha} {i - \alpha} \binom {n - m} {k - i} \\
+=&amp; m^\underline \alpha \cdot \binom {n - \alpha} {k - \alpha} \qquad \color {magenta} {\textrm{(Vandermonde's identity)}}
+\end{align*}</p>
+		<p>无独有偶，当后面的项变成下降幂时，结果依然是如此简洁美观。因此，由期望的线性性质，我们仍然希望将 $i^L$ 表示成若干个下降幂的和。</p>
+		<p>不过，在那道题中，我们需要将一个任意多项式转化成下降幂多项式。在这里就变得简单了 —— 我们只需要求 "单项式" $x^L$ 的下降幂表达式。</p>
+		<p>由熟知结论，有 $\displaystyle x^n = \sum_{i=0}^n {n \brace i} x^\underline i$，因此，最终的 $E \left( X^L \right)$ 就等于：\begin{align*}
+E \left( X^L \right) &amp;= \sum_{\alpha = 0}^L {L \brace \alpha} E \left( X^\underline d \right) \\
+&amp;= \frac 1 {\dbinom nk} \cdot \sum_{\alpha = 0}^L \left( {L \brace \alpha} \cdot \sum_{i=0}^K \binom mi \binom {n - m} {k - i} i^\underline \alpha \right) \\
+&amp;= \frac 1 {\dbinom nk} \cdot \sum_{\alpha = 0}^L {L \brace \alpha} \cdot m^\underline \alpha \cdot \binom {n - \alpha} {k - \alpha} \\
+&amp;= \frac {m ! \cdot k !} {n !} \cdot \sum_{\alpha = 0}^L {L \brace \alpha} \cdot \frac {\left( n - a \right) !} {\left( m - \alpha \right) ! \cdot \left( k - \alpha \right) !}
+\end{align*}
+		<p>因此，如果能快速求出所有的 $\displaystyle {L \brace \alpha}$ ($0 \leq \alpha \leq L$)，每次询问就可以在 $O \left( L \right)$ 的时间内完成回答 (忽略计算阶乘的时间)。</p>
+		<p>然而 $L$ 是在所有询问前统一给定的，这意味着我们可以<strong>预处理所有的第二类 Stirling 数 $\displaystyle {L \brace \alpha}$</strong>！</p>
+		<p>而第二类 Stirling 数的预处理是可以在 $O \left( L \log L \right)$ 时间内完成的，具体方法参见 <a href="gym102222M.html" target="_blank">[CodeforcesGym102222M]Acyclic Orientation</a>。</p>
+		<p>于是，整个问题顺利解决，时间复杂度 $O \left( n_0 + L \log L + S \cdot L \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2(x) (31 - __builtin_clz(x))
+
+typedef long long ll;
+const int N = 530000, M = 20000054, mod = 998244353, root = 31;
+typedef int vec[N], *pvec;
+
+int D;
+int fact[M], finv[M];
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(int n) {
+	int i;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, r, E, S2;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		DNTT(a, c), DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c), std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+
+	void main(int n) {
+		for (int i = 0; i &lt;= n; ++i) E[i] = (i &amp; 1 ? mod - finv[i] : finv[i]), r[i] = PowerMod(i, n, finv[i]);
+		Mul(n * 2, r, E, S2);
+	}
+}
+
+void work() {
+	int i, n, m, k, lim, ans = 0;
+	scanf("%d%d%d", &amp;n, &amp;m, &amp;k), lim = std::min(D, std::min(m, k));
+	for (i = 1; i &lt;= lim; ++i) ans = (ans + (ll)Poly::S2[i] * fact[n - i] % mod * finv[m - i] % mod * finv[k - i]) % mod;
+	printf("%lld\n", (ll)ans * finv[n] % mod * fact[m] % mod * fact[k] % mod);
+}
+
+int main() {
+	int n, T;
+	scanf("%d%*d%d%d", &amp;n, &amp;T, &amp;D), init(std::max(n, D) + 1);
+	for (Poly::main(D); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>阶乘数组要预处理到 $2 \times 10^7$，不要做少了。</p>
+		<p><strong>坑2：</strong>可以适当展开组合数来获得更高的效率。</p>
+	</body>
+</html>
