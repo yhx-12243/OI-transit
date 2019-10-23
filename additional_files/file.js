@@ -1,4 +1,4 @@
-(function (win, und) {
+(function (win, $, und) {
 
 	'use strict';
 
@@ -119,4 +119,4 @@
 			$('#rankTable>tbody').empty().append(Rows);
 	}
 
-})(window ? window : this);
+})(window ? window : this, jQuery);

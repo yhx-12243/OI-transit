@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[uoj486]在路上了</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个 $n$ 个点的完全图，每条边染红色或蓝色。</p>
+		<p>已知对所有 $1 \leq i &lt; k$，连接 $i$ 和 $i + 1$ 的连边为红色。</p>
+		<p>你需要找到一条由 $k + 1$ 个点 $k$ 条边组成的路径，满足所有边的颜色相同。</p>
+
+		<h3>任务</h3>
+		<p>你需要实现下面的过程：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">std::vector &lt;int&gt; find_longer_path(int n, int k)
+</code></pre>
+		<p>其中 $n$ 是完全图的节点数，$k$ 是输入的参数。在所有的数据中，保证 $k \leq \dfrac 23 n$，你需要返回一个长度为 $k + 1$ 的点的序列，表示你找到的满足条件的路径。</p>
+		<p>如果图中不存在这样的路径，你的函数的返回值应当是一个不包含元素的 <code>std::vector</code>。</p>
+		<p>你可以调用以下函数和交互库进行交互：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">bool query(int u, int v)
+</code></pre>
+		<p>表示询问点 $u$ 和点 $v$ 间的颜色，当函数返回值为 <samp>true</samp> 时表示该连边为红色，否则为蓝色。你需要保证 $1 \leq u, v \leq n$ 且 $u \neq v$。</p>
+
+		<h3>题解</h3>
+		<p>非(xiang)常(bu)奇(dao)怪的图论构造题……</p>
+		<p>由于过程过于奇特，那就直接照抄题解喽~</p>
+		<p style="color: red">番外：首先可以猜想，当 $k \leq \dfrac 23n$ 时，一定<strong>可以</strong>且<strong>存在多项式算法</strong>对同色链进行 "扩展" (延长)。如果没这个条件的话，连续调用 $n$ 次算法就可以寻找最长链，而这目前是一个 NPC 问题。</p>
+		<p>考虑这样的一个过程：</p>
+		<p>我们定义<strong>交错路</strong> $C$ 为图中的一条简单路径 (不含 $1, k$)，满足<strong>路径上所有边都是蓝色</strong>，且<strong>路径的两个端点不在原来的链中</strong>，且如果一个点在原来的链中，它的邻点不在原来的链中。定义它的长度 $\left| C \right|$ 为路径中<strong>点的数量</strong> (容易发现 $\left| C \right|$ 一定是奇数)。</p>
+		<p>我们考虑两条<strong>不相交的</strong>交错路 $A, B$，分为如下两种情况：</p>
+		<ol>
+			<li><p>$\left| A \right| + \left| B \right| \geq k - 2$。</p>
+			<p>此时，将这个点的两端通过 $1$ 和 $k$ 串联，可以得到一个长度 $\geq k$ 的圈。</p>
+			<p>如果这个圈中有红边，那么一定是 $\left( 1, v \right)$ 和 $\left( k, v \right)$ 型的，则容易找到一条点数为 $k + 1$ 的链。</p>
+			<p>如果这个圈中所有边都是蓝边，那么容易找到一条点数为 $\geq k$ 的蓝链。</p>
+			<p>如果 $\left| A \right| + \left| B \right| = k - 2$，那么这还是不够的。</p>
+			<p>考虑 $A \cup B$ 与 $\left\{ 2, 3, \cdots, k - 1 \right\}$ 交集的大小，由交错路的定义知它应该等于 $\dfrac {\left| A \right| + \left| B \right| - 2} 2 \leq \dfrac k2 - 2$。</p>
+			<p>于是中间的 $k - 2$ 个点中只有 $\dfrac {k - 2} 2 - 1$ 个点被使用，由抽屉原理知存在相邻两个点与 $A, B$ 均不交，设为 $r, s$。</p>
+			<p>任取蓝圈中一点 $v$，如果 $\left( r, v \right), \left( v, s \right)$ 中有蓝边，则可以找到一条长度为 $k + 1$ 的蓝链，否则可以找到一条长度为 $k + 1$ 的红链，如下图所示：</p>
+			<img class="center-block" src="uploads/149.png" alt="情形 1" />
+			<p>于是这种情况我们已经完成。</p></li>
+			<li><p>$\left| A \right| + \left| B \right| &lt; k - 2$。</p>
+			<p>此时，我们考虑不断将链进行 "扩展" (延长)，使它们的<strong>长度和</strong>不小于 $k - 2$。</p>
+			<p>设 $A$ 的端点为 $x$，$B$ 的端点为 $y$。和上面类似，有 $\left| \left( A \cup B \right) \cap \left\{ 2, 3, \cdots, k - 1 \right\} \right| = \dfrac {\left| A \right| + \left| B \right| - 2} 2$。</p>
+			<p>由容斥原理，知 $\left| A \cup B \cup \left\{ 2, 3, \cdots, k - 1 \right\} \right| = \left| A \cup B \right| + \left| \left\{ 2, 3, \cdots, k - 1 \right\} \right| - \left| \left( A \cup B \right) \cap \left\{ 2, 3, \cdots, k - 1 \right\} \right| = \left| A \right| + \left| B \right| + \left( k - 2 \right) - \dfrac {\left| A \right| + \left| B \right| - 2} 2 = \dfrac {\left| A \right| + \left| B \right| - 2} 2 + k &lt; \dfrac 32 k - 2$。</p>
+			<p>因此，$\left| A \cup B \cup \left\{ 1, 2, \cdots, k \right\} \right| = \dfrac {\left| A \right| + \left| B \right| + 2} 2 + k &lt; \dfrac 32 k$，于是集合 $V \left( G \right) \setminus \left( A \cup B \cup \left\{ 1, 2, \cdots, k \right\} \right)$ 中存在至少一个点 $z$。</p>
+			<p>同理，仿照 1 部分的分析，可知 $2 \sim k - 1$ 中存在相邻两个点与 $A, B$ 均不交，设为 $r, s$。</p>
+			<p>首先，$x, y, z$ 三点中，任意一点与 $r, s$ 两点中至少有一条边是蓝的，否则，可以得到一条长度为 $k + 1$ 的红链 (参考上图左上部分)。</p>
+			<p>考察 $\left( x, r \right), \left( y, r \right)$，如果它们都是蓝的，则可以将 $A$ 和 $B$ 通过 $r$ 串接起来，$z$ 作为新的交错路。</p>
+			<p>如果它们都是红的，则 $\left( x, s \right), \left( y, s \right)$ 均为蓝，转化为刚才的情形。</p>
+			<p>若既有红又有蓝，则说明 $r, s$ 中任一点都向 $x, y$ 连出一条蓝边。</p>
+			<p>考虑 $\left( z, s \right)$ 的颜色，如果 $\left( z, s \right)$ 为红，则 $\left( z, r \right)$ 为蓝，于是 $z$ 可通过蓝边连向 $r, s$ 中一点，再连向 $x, y$ 中的一点。</p>
+			<p>这四种情况如下图所示：</p>
+			<img class="center-block" src="uploads/150.png" alt="情形 2" />
+			<p>无论是哪一种情况，我们的都成功地将两条交错路的<strong>长度和</strong>增加了 $2$。</p>
+			<p>于是，不断重复这个过程，就可以转化为第 1 种情形，从而问题解决。</p>
+		</ol>
+		<p>最后来分析一下时间复杂度 (或者说调用次数吧)。</p>
+		<p>当 $\left| A \right| + \left| B \right| &lt; k - 2$ 时，每 "扩展" 一次，需要询问 $2 \sim 3$ 条边的颜色 (见上图左边部分)，总的扩展次数为 $\left \lceil \dfrac {k - 4} 2 \right \rceil$，扩展完毕后进入第一部分 ($\left| A \right| + \left| B \right| \geq k - 2$)，这部分至多询问两次。</p>
+		<p>因此，在假设 <strong style="color: red">$1 \sim k$ 外任意一点向链内 $r, s$ 相邻两点的边中，至少一条是蓝的</strong>成立的前提下，总询问次数不超过 $3 \left \lceil \dfrac {k - 4} 2 \right \rceil + 2 = 3 \left \lceil \dfrac k2 \right \rceil - 4$。</p>
+		<p>不过，我们需要时刻验证这个假设是否成立，因此，我们需要对最后的每条边的颜色进行检验：</p>
+		<p>如果有一条边被检验出来是红的，那么一定是当时我们假设某条红边的 "邻边" 是蓝边是错的。</p>
+		<p>因此，需要找到 "询问过的" 相邻红边，从而改成正确的红链。</p>
+		<p>这样的检验需要进行 $k$ 次。于是总询问次数为 $3 \left \lceil \dfrac k2 \right \rceil + k - 4$，貌似超了？<del>不过，每当我们询问 $3$ 次扩展出一条道路后，一定有一条边是不用检验的 —— 换句话说，这条边是已询问过的</del>。</p>
+		<p>为了方便实现，我们可以使用记忆化的思想，将询问过的边记录下来，这样下次询问同一条边的时候就不计询问次数了。</p>
+		<p>这个时候，再来分析上面这张图，每种 case 的右边除了原来的红链和交错路外，<strong>出现的新的边数均不超过 $4$</strong>，因此我们每扩展一条边，至多询问 $4$ 条<strong>新边</strong>的颜色。</p>
+		<p>于是，"扩展" 过程中，总的询问次数就不会超过 $4 \left \lceil \dfrac {k - 4} 2 \right \rceil = 4 \left \lceil \dfrac k2 \right \rceil - 8$。</p>
+		<p>进入第一部分后，先检验四个端点是否都是蓝边，需要 $4$ 次，最后当 $k$ 为偶数时还需要一部特殊处理，也要 $2$ 次。</p>
+		<p>于是总询问次数不超过 $4 \left \lceil \dfrac k2 \right \rceil - 8 + \left( 4 + 2 \right) = 4 \left \lceil \dfrac k2 \right \rceil - 2 \leq 4 \cdot \dfrac {k + 1} 2 - 2 = 2 k$，刚好可以通过 (不过这个分析并不是紧的)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "graph.h"
+#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+enum color {BLUE, RED};
+typedef std::vector &lt;int&gt; vector;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::map &lt;pr, color&gt; map;
+
+bool used[4054];
+map M;
+
+inline void join(vector &amp;A, const vector &amp;B) {A.insert(A.end(), B.begin(), B.end());}
+
+inline int available(int K) {
+	int i;
+	for (i = 2; i &lt; K - 1 &amp;&amp; (used[i] || used[i + 1]); ++i);
+	return assert(i != K - 1), i;
+}
+
+inline color safe_query(int u, int v) {
+	assert(u != v);
+	if (u &gt; v) std::swap(u, v);
+	map::iterator it = M.find(pr(u, v));
+	return it == M.end() ? M[pr(u, v)] = (query(u, v) ? RED : BLUE) : it-&gt;second;
+}
+
+inline bool check_known_red(int u, int v) {
+	assert(u != v);
+	if (u &gt; v) std::swap(u, v);
+	map::iterator it = M.find(pr(u, v));
+	return it != M.end() &amp;&amp; it-&gt;second == RED;
+}
+
+#define query safe_query
+vector find_longer_path(int n, int K) {
+	int i, j, x, y, z, stamp = K; color cx, cy;
+	vector A[2], *B = A + 1, simple(K); A-&gt;EB(++stamp), B-&gt;EB(++stamp);
+	for (; (int)(A-&gt;size() + B-&gt;size()) &lt; K - 2; ) {
+		i = available(K), z = ++stamp;
+		cx = query(x = A-&gt;back(), i), cy = query(y = B-&gt;back(), i);
+		if (cx == cy)
+			j = cx == RED,
+			used[i + j] = true, A-&gt;EB(i + j), std::reverse(B-&gt;begin(), B-&gt;end()), join(*A, *B), B-&gt;assign(1, z);
+		else
+			j = query(z, i + 1) == BLUE,
+			used[i + j] = true, A[(cx == RED) ^ j].EB(i + j), A[(cx == RED) ^ j].EB(z);
+	}
+	std::iota(simple.begin(), simple.end(), 1);
+	if (query(K, A-&gt;front()) == RED) return simple.EB(A-&gt;front()), simple;
+	if (query(K, B-&gt;back()) == RED) return simple.EB(B-&gt;back()), simple;
+	std::reverse(simple.begin(), simple.end());
+	if (query(1, A-&gt;back()) == RED) return simple.EB(A-&gt;back()), simple;
+	if (query(1, B-&gt;front()) == RED) return simple.EB(B-&gt;front()), simple;
+	std::reverse(simple.begin(), simple.end());
+	// check
+	assert(A-&gt;size() &amp; B-&gt;size() &amp; 1);
+	for (const vector &amp;V : {*A, *B})
+		for (i = 1; i &lt; V.size(); i += 2)
+			for (int _ : {V[i - 1], V[i + 1]})
+				if (z = -1, query(_, V[i]) == RED) {
+					if (check_known_red(_, V[i] - 1)) z = V[i] - 1;
+					if (check_known_red(_, V[i] + 1)) z = V[i];
+					assert(~z);
+					return simple.insert(simple.begin() + z, _), simple;
+				}
+	// join
+	A-&gt;EB(1), join(*A, *B), A-&gt;EB(K);
+	std::reverse(A-&gt;begin(), A-&gt;end());
+	if (A-&gt;size() == K + 1) return *A;
+	assert(A-&gt;size() == K);
+	i = available(K), cx = query(A-&gt;back(), i), cy = query(A-&gt;back(), i + 1);
+	return cx == RED &amp;&amp; cy == RED ? (simple.insert(simple.begin() + i, A-&gt;back()), simple) : (A-&gt;EB(i + (cx == RED)), *A);
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意操作时不要让数组越界。</p>
+		<p><strong>坑2：</strong>在最终检验出红边的时候，注意要向红边端点<strong>相邻</strong>的点所对应的边均检验一次，此时才能保证一定有一条已知红边 (<code>check_known_red</code>)，从而找到红链。</p>
+	</body>
+</html>

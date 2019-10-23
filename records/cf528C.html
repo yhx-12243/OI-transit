@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces528C]Data Center Drama</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 台计算机，它们之间通过 $m$ 条线缆连接，保证每两台计算机之间可以通过若干条线缆进行传输。</p>
+		<p>你现在需要将每条线缆变为单向传输，使得每台计算机恰能给偶数台计算机传输消息，且每台计算机恰好从偶数台计算机中得到消息。</p>
+		<p>由于可能无法完成目标，因此你可以增加若干条线缆。你需要使得增加的线缆数最少，并输出一组方案。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 10^5; m \leq 2 \times 10^5$)，表示计算机的台数和线缆的数量。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq n$)，表示 $a_i$ 号计算机和 $b_i$ 号计算机中通过一条<strong>无向</strong>线缆进行连接。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $p$ ($p \geq m$)，表示最终网络的线缆数，你需要使 $p$ 在可行条件下<strong>达到最小</strong>。</p>
+		<p>接下来 $p$ 行，每行两个正整数 $c_i, d_i$ ($1 \leq c_i, d_i \leq n$)，描述一条从 $c_i$ 传输到 $d_i$ 的<strong>有向</strong>线缆。</p>
+		<p>你需要保证输入中的线缆必须在输出中出现 (或反向出现)，若由多组解，任意输出一组均可。</p>
+
+		<h3>题解</h3>
+		<p>考虑可行的必要条件：容易得到，要使每个点的入度和出度均为偶数，那么在这张有向图的<strong>基图</strong> (即原无向图) 中，所有点的度数均为偶数。</p>
+		<p>又因为我们是在连通图上加边，因此最终得到的图一定是一个 Euler 图。</p>
+		<p>而将一个无向图通过加边变成 Euler 图的方案非常简单：</p>
+		<p>不断寻找度数为奇数的点，两两之间连边即可。由<a href="../memos/14.html#mjx-eqn-1" target="_blank">握手定理</a>，这样的点数一定是偶数。</p>
+		<p>而且也容易证明，这种方法就是使一张图变为 Euler 图所要添加的边数最小的方案。</p>
+		<p>不过，是 Euler 图只是一个必要条件，并不充分，比如三角形就不能完成这个任务。</p>
+		<p>由<a href="../memos/14.html#mjx-eqn-2" target="_blank">有向图的性质</a>，$\displaystyle \sum_{v \in V} d^+ \left( v \right) = \left| E \right|$，而图中每个点的出度均为偶数，这立即导出这张图的总边数 $\left| E \right|$ 为偶数。</p>
+		<p>于是，当 $\left| E \right|$ 为奇数时，我们还需要另外加一条边。这时候非常简单，加一个自环就可以了。</p>
+		<p>变为 Euler 图后，我们考虑如何将边定向，使之满足题目中的条件。</p>
+		<hr />
+		<p>先考虑最简单的 Euler 图 —— 圈。当然，这里的圈的大小应为一个偶数。经过<del>简单</del>尝试，容易得到，一个圈的方案是这样的：</p>
+		<img class="center-block" src="uploads/154.png" alt="一个圈" />
+		<p>如上图，只需要沿着圈交替正反定向，就可以使每个点的入度和出度均为偶数。</p>
+		<p>而对于任意一个 Euler 图，它一定存在着一个 Euler 回路。尽管它不是简单回路，但是只要这个回路的大小为偶数，就一定可以仿照上面的例子，一正一反定向，就可以完成了。</p>
+		<p>时间复杂度 $O \left( n + m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) ((x - 1 ^ 1) + 1)
+
+const int N = 100054, M = N * 5;
+
+int V, E, Es = 0;
+int to[M], first[N], next[M], deg[N];
+int cnt = 0, euler[M];
+bool used[M];
+
+inline void addedge(int u, int v) {
+	to[++Es] = v, next[Es] = first[u], first[u] = Es, ++deg[u];
+	to[++Es] = u, next[Es] = first[v], first[v] = Es, ++deg[v];
+}
+
+void dfs(int x) {
+	for (int &amp;i = first[x]; i; i = next[i])
+		if (!used[i])
+			used[ad(i)] = used[i] = true, dfs(to[i]);
+	euler[cnt++] = x;
+}
+
+int main() {
+	int i, u, v, la = 0;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	for (i = 1; i &lt;= V; ++i) if (deg[i] &amp; 1) la ? addedge(la, i), la = 0 : la = i;
+	assert(!la), dfs(1), --cnt;
+	assert(cnt * 2 == Es);
+	if (cnt &amp; 1) euler[cnt] = euler[cnt - 1], ++cnt;
+	euler[cnt] = u = *euler, v = euler[1];
+	printf("%d\n", cnt);
+	for (i = 1; i &lt;= cnt; ++i, (i &amp; 1 ? v : u) = euler[i])
+		printf("%d %d\n", u, v);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意构造 Euler 回路需要使用 "<strong>出栈序列</strong>"，且需要动态引用 <code>first</code> 数组，防止时间复杂度退化。</p>
+	</body>
+</html>

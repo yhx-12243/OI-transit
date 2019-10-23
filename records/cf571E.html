@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces571E]Geometric Progressions</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n$ 个等比数列，求最小的整数 $x$，使得它出现在所有等比数列中，或说明这样的整数不存在。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 100$)，表示等比数列的个数。</p>
+		<p>接下来 $n$ 行，每行两个正整数 $a, b$ ($a, b \leq 10^9$)，表示一个等比数列的首项和公比。</p>
+
+		<h3>输出格式</h3>
+		<p>如果不存在这样的整数 $x$ (即所有等比数列的交为空)，则输出 $-1$，否则输出最小的整数 $x$ 模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>我们考虑两个等比数列 $\left\{ a_1 q_1^n \right\}_{n \geq 0}, \left\{ a_2 q_2^n \right\}_{n \geq 0}$，如果它们有交，设 $a_1 q_1^\alpha = a_2 q_2^\beta$，由整数相等的性质知，对于任意一个素因子 $p$，两端 $p$ 的指数相等，即 $$ v_p \left( a_1 q_1^\alpha \right) = v_p \left( a_2 q_2^\beta \right) $$</p>
+		<p>又 $p-$指数的性质：$v_p \left( a b \right) = v_p \left( a \right) + v_p \left( b \right)$，知 $$ v_p \left( a_1 \right) + \alpha \cdot v_p \left( q_1 \right) = v_p \left( a_2 \right) + \beta \cdot v_p \left( q_2 \right) \tag 1 \label 1 $$</p>
+		<p>于是，如果我们将每个数用它的标准分解来表达，看成一个关于素数幂次的<em>高维向量</em>，这样就实现了化 "乘" 为 "加"。</p>
+		<p>此外，通过 $\eqref 1$ 式可以得到一个关键的性质：<strong>两个等比数列的交要么为空，要么仍然是一个等比数列</strong> (特别地，一个数可以看成公比为 $1$ 的等比数列)。</p>
+		<p>因此，我们尝试对这些等比数列两两求交，最后再通过快速幂即可求得原数 (模 $10^9 + 7$ 的值)。</p>
+		<p>考虑对这两个等比数列 $\left\{ a_1 q_1^n \right\}_{n \geq 0}, \left\{ a_2 q_2^n \right\}_{n \geq 0}$ 进行求交。不妨设交非空，则由上分析知，存在 $\alpha, \beta$，满足对每个素数 $p$ (即高维向量的每一维)，均有 $v_p \left( a_1 \right) + \alpha \cdot v_p \left( q_1 \right) = v_p \left( a_2 \right) + \beta \cdot v_p \left( q_2 \right)$。</p>
+		<p>而这个等式又可以改写为 $v_p \left( q_1 \right) \cdot \color {red} \alpha - v_p \left( q_2 \right) \cdot \color {red} \beta + \left( v_p \left( a_1 \right) - v_p \left( a_2 \right) \right) = 0$，由于 $v_p \left( a_1 \right), v_p \left( q_1 \right), v_p \left( a_2 \right), v_p \left( q_2 \right)$ 均为常数，于是对于每一个 $p$，都可以得到一个等式 $A \alpha + B \beta + C = 0$。</p>
+		<p>若 $A, B$ 不同时为 $0$，则上式表达的是 <strong>$\alpha - \beta$ 平面上的一条直线</strong>！</p>
+		<p>考虑将所有素数对应的直线作出来，可以发现我们所要求的 $\left( \alpha, \beta \right)$ 必须在所有的直线上 <span style="color: red">(当然，如果 $A = B = 0$，则等式要么是恒等式，要么是矛盾式。前者直接忽略，后者说明交为空)</span>。</p>
+		<p>我们就需要对所有直线进行求交了。这个并不难处理，因为如果所有直线重合，那么交为直线，否则它们的交<strong>至多</strong>是一个点。然后检验交的直线中是否包含整点 (此即二元一次不定方程是否有解，由 Bézout 定理容易判断) 或者交点是否是整点)。</p>
+		<p>另外，由 $\alpha, \beta$ 定义知 $\alpha, \beta \geq 0$，因此我们考虑的范畴<strong>并不是</strong>全平面，而只是平面的一部分 —— 第一象限 (以及 $x, y$ 正半轴)。</p>
+		<p>因此，需要额外地判断 $\alpha, \beta$ 是否非负。</p>
+		<p>首先，如果交是一个点，那很简单，直接判断交点是否在第一象限即可。</p>
+		<p>如果交是一条直线，需要寻找这条直线在第一象限中最 "左下方" 的一个点。</p>
+		<p>这可以通过使用 <abbr title="Chinese Remainder Theorem, 孙子定理">CRT</abbr> 找到一组解后，适当平移来找到 $\alpha$ 最小的解 (同时也是 $\beta$ 最小的解)。</p>
+		<p>这样，我们就完成了对两个等比数列求交的过程。</p>
+		<p>不断执行此过程 $n - 1$ 次，就可以得到这 $n - 1$ 个等比数列的交 (有可能是空集)，此时最终的等比数列的首项就是答案。</p>
+		<p>由于每个数至多有 $\omega \leq 9$ 个素因子，因此总维数不超过 $2 \omega \cdot n$，时间复杂度也自然是 $O \left( \omega \cdot n^2 \right)$ 的了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ctz __builtin_ctz
+
+typedef long long ll;
+typedef std::pair &lt;int, ll&gt; pr;
+typedef std::map &lt;int, ll&gt; map, fnum;
+const int N = 254, mod = 1000000007;
+
+int n;
+int ps[N];
+fnum A, Q;
+
+ll PowerMod(ll a, ll n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+ll exgcd(ll a, ll b, ll &amp;x, ll &amp;y) {
+	if (b) {ll d = exgcd(b, a % b, y, x); y -= a / b * x; return d;}
+	else {x = 1; y = 0; return a;}
+}
+
+map factor(int n) {
+	int i, j; map ret;
+	if (!(n &amp; 1)) n &gt;&gt;= ret[2] = ctz(n);
+	for (i = 3; i * i &lt;= n; i += 2)
+		if (!(n % i)) {for (j = 0; !(n % i); n /= i, ++j); ret[i] = j;}
+	return n &gt; 1 &amp;&amp; (ret[n] = 1), ret;
+}
+
+inline fnum get_factored_int() {int _; return scanf("%d", &amp;_), factor(_);}
+
+inline int value_of(const fnum &amp;n) {ll ret = 1; for (const pr &amp;p : n) ret = PowerMod(p.first, p.second, ret); return ret;}
+
+inline ll query_expo(const fnum &amp;n, int p) {map::const_iterator it = n.find(p); return it == n.end() ? 0 : it-&gt;second;}
+
+// find minimum x &gt;= max(a1, a2) s.t. exists u, v : x = a1 + d1 u = a2 + d2 v.
+bool linear_solve(ll a1, ll d1, ll a2, ll d2, ll &amp;ac, ll &amp;dc) {
+	if (!(d1 || d2)) return a1 == a2 &amp;&amp; (ac = a1, dc = 0, 1);
+	if (d1 &gt; d2) std::swap(d1, d2), std::swap(a1, a2);
+	ll C1, C2, d = exgcd(d1, d2, C1, C2), M = std::max(a1, a2);
+	if ((a1 - a2) % d) return false;
+	if (!d1) return (ac = a1) &gt;= M;
+	ac = (a1 - a2) / d % d1 * C2 % d1;
+	dc = d1 / d * d2;
+	ac = (ac * d2 + a2) % dc;
+	return ac = M + (ac &lt; M ? dc - 1 - (M - ac - 1) % dc : (ac - M) % dc), true;
+}
+
+// the structure line with general form A x + B y + C = 0.
+struct line {
+	ll A, B, C;
+	line (ll A0 = 0, ll B0 = 0, ll C0 = 0) : A(A0), B(B0), C(C0) {}
+	inline bool normalize() {
+		ll d = llabs(std::__gcd(A, B));
+		if (C % d) return false;
+		if (A &lt; 0 || (!A &amp;&amp; B &lt; 0)) A = -A, B = -B, C = -C;
+		return A /= d, B /= d, C /= d, true;
+	}
+	inline ll operator () (const ll x, const ll y) {return A * x + B * y + C;}
+	inline bool operator &lt; (const line &amp;B) const {return A &lt; B.A || (A == B.A &amp;&amp; B &lt; B.B);}
+} l[N];	
+
+// two-line intersection.
+inline bool LI(const line &amp;u, const line &amp;v, ll &amp;x, ll &amp;y) {
+	ll det = u.A * v.B - u.B * v.A;
+	lldiv_t _ = lldiv(u.B * v.C - u.C * v.B, det);
+	if (x = _.quot, _.rem) return false;
+	_ = lldiv(u.C * v.A - u.A * v.C, det);
+	return y = _.quot, !_.rem;
+}
+
+// compute the intersection of two geometric progressions.
+bool intersect(fnum &amp;A1, fnum &amp;Q1, const fnum &amp;A2, const fnum &amp;Q2) {
+	int i, P = 0, cnt = 0; ll a, d, a1, d1, a2, d2;
+	for (const pr &amp;p : A1) ps[P++] = p.first;
+	for (const pr &amp;p : Q1) ps[P++] = p.first;
+	for (const pr &amp;p : A2) ps[P++] = p.first;
+	for (const pr &amp;p : Q2) ps[P++] = p.first;
+	std::sort(ps, ps + P), P = std::unique(ps, ps + P) - ps;
+	for (i = 0; i &lt; P; ++i) {
+		a1 = query_expo(A1, ps[i]), d1 = query_expo(Q1, ps[i]);
+		a2 = query_expo(A2, ps[i]), d2 = query_expo(Q2, ps[i]);
+		if (!(d1 || d2)) {if (a1 != a2) return false; else continue;}
+		l[cnt] = line(d1, -d2, a1 - a2);
+		if (!l[cnt++].normalize()) return false;
+	}
+	std::sort(l, l + cnt);
+	if (!cnt) ;
+	else if (l-&gt;A == l[cnt - 1].A &amp;&amp; l-&gt;B == l[cnt - 1].B) { // all same
+		for (i = 1; i &lt; cnt &amp;&amp; l-&gt;C == l[i].C; ++i);
+		if (i != cnt) return false;
+		for (i = 0; i &lt; P; ++i) {
+			a1 = query_expo(A1, ps[i]), d1 = query_expo(Q1, ps[i]);
+			a2 = query_expo(A2, ps[i]), d2 = query_expo(Q2, ps[i]);
+			if (!linear_solve(a1, d1, a2, d2, a, d)) return false;
+			A1[ps[i]] = a, Q1[ps[i]] = d;
+		}
+	} else { // intersecting
+		ll x, y;
+		if (!LI(*l, l[cnt - 1], x, y) || x &lt; 0 || y &lt; 0) return false;
+		for (i = 1; i &lt; cnt &amp;&amp; !l[i](x, y); ++i);
+		if (i != cnt) return false;
+		for (i = 0; i &lt; P; ++i)
+			a1 = query_expo(A1, ps[i]), d1 = query_expo(Q1, ps[i]),
+			A1[ps[i]] = a1 + d1 * x, Q1[ps[i]] = 0;
+	}
+	return true;
+}
+
+int main() {
+	scanf("%d", &amp;n), A = get_factored_int(), Q = get_factored_int();
+	for (int i = 1; i &lt; n; ++i) {
+		fnum a = get_factored_int(), q = get_factored_int();
+		if (!intersect(A, Q, a, q)) return puts("-1"), 0;
+	}
+	printf("%d\n", value_of(A));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意不要忘记 $\alpha \geq 0, \beta \geq 0$ 这两个条件，以防出现增解。</p>
+		<p><strong>坑2：</strong>在使用孙子定理求解的过程中，由于这里的模数太大，因此一般的方法会爆 <code>long long</code>，可以通过一些特殊的技巧 (比如小模合并大模，具体见代码) 来避免使用 $128$ 位整数。</p>
+	</body>
+</html>

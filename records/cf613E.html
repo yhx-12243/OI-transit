@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces613E]Puzzle Lover</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>由一个 $2 \times n$ 的字符矩阵，每个位置上有一个小写字母，给定一个由小写字母构成的长度为 $k$ 的字符串 $w$。定义一个<dfn>解</dfn>是一个格子的序列 $c_1, c_2, \cdots, c_k$，满足：</p>
+		<ol>
+			<li><p>对于 $\forall 1 \leq i \leq k$，有 $c_i = w_i$。</p></li>
+			<li><p>所有的格子两两不相同。</p></li>
+			<li><p>对于 $\forall 1 \leq i &lt; k$，$c_i$ 和 $c_{i+1}$ 恰有一公共边。</p></li>
+		</ol>
+		<p>你需要求出，在这个矩阵中，一共由多少个互不相同的<dfn>解</dfn>。</p>
+		<p>由于答案可能很大，请模 $10^9 + 7$ 输出。</p>
+
+		<h3>输入格式</h3>
+		<p>前两行各包含一个由小写字母构成的长度为 $n$ 的字符串 ($1 \leq n \leq 2000$)，描述这个 $2 \times n$ 的字符矩阵。</p>
+		<p>第三行不包含任何输入。</p>
+		<p>第四行包含一个由小写字母构成的长度为 $k$ 的字符串 $w$ ($\left| w \right| = k; 1 \leq k \leq 2000$)，表示模式串。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示互不相同的<dfn>解</dfn>的数量模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>由 $2 \times n$ 矩阵的性质，$2 \times n$ 矩阵中的任何一条简单路径一定如下图所示：</p>
+		<img class="center-block" src="uploads/10.bmp" alt="2 × n 矩阵中的一条路径" />
+		<p>即<strong>左边一段 <samp>U</samp> 形</strong>、<strong>中间一段固定方向的路</strong>以及<strong>右边一段 <samp>U</samp> 形</strong>。</p>
+		<p>如果 $k \geq 3$，则路径中至少有一段是左右走的。我们规定一条路径的<strong>正方向</strong>就是中间部分 (<span style="color: olive">黄色</span>部分) 的方向。</p>
+		<p style="color: red">(当 $k \leq 2$ 时，直接特判即可，如果一条路径没有黄色部分，那么它一定是一个单纯的 <samp>U</samp> 形，是相对容易处理的)</p>
+		<p>因此，为了方便起见，我们<strong>只统计</strong>正方向是向右的路径。那么向左的怎么办？将整个串 $w$ <em>翻转</em>过来就再跑一遍就行了。</p>
+		<p>于是我们现在需要统计正方向是向右的路径 (条数)。不难发现，对于一个左 <samp>U</samp> 形，它一定对应着 $w$ 的一个<strong>前缀</strong>，对于右 <samp>U</samp> 形，它一定对应着 $w$ 的一个<strong>后缀</strong>。</p>
+		<p>于是我们先花 $O \left( n^2 \right)$ 时间判断，对于每个 <samp>U</samp> 形 (一共 $O \left( n^2 \right)$ 个)，它是否是合法的 (即是否是 $w$ 的<em>前缀</em> [左 <samp>U</samp> 形] 或<em>后缀</em> [右 <samp>U</samp> 形])。</p>
+		<p>这个的判断不难，首先 Hash 显然是可以滴，不过并不需要这么麻烦。</p>
+		<p>我们可以通过暴力在 $O \left( n k \right)$ 的时间内得到两个串 (矩阵上的串和模式串) 的任意一对后缀的 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr>，然后判断两个串是否相等只需要比较对应位置上的 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr> 是否不小于串长即可。</p>
+		<p>由于可以逆着走，因此矩阵上的串和模式串的<strong>反串</strong>也需要求一遍 (也就是说一共需要求 $4$ 遍：第一行和第二行、$w$ 和 $w^R$)。</p>
+		<p>于是，现在可以在 $O \left( 1 \right)$ 的时间内检验一个 <samp>U</samp> 形是否合法，接下来就是考虑中间部分 (<span style="color: olive">黄色</span>部分) 了。<p>
+		<hr />
+		<p>这可以通过一个<strong>双行 DP</strong> 来完成：用 $f_{i, j, k}$ 表示当前在矩阵的第 $i$ 行第 $j$ 列，以及匹配了 $w$ 的 $k$ 个字符的方案总数。</p>
+		<p>转移不难列出，就是枚举 "横向走一步" 还是 "横向走一步 + 纵向走一步"，就留做习题了。</p>
+		<p>接下来就是把两旁的 <samp>U</samp> 形加入进来。不妨设我们是从左往右 DP 的，那么先考虑左侧的 <samp>U</samp> 形。</p>
+		<p>这里我们首先需要规定 <samp>U</samp> 形的长度 (横跨的格子数) 要 $\geq 2$，否则会和 "纵向走一步" 算重。</p>
+		<p>然后，对于一个右端点为 $j - 1$，长度为 $d$ 的合法 <samp>U</samp> 形，我们将状态记录到 $f_{i, j, 2 d}$ 就可以了，$i$ 取决于这个 <samp>U</samp> 形是向下走的还是向上走的。</p>
+		<p>对于右侧的 <samp>U</samp> 形，就更简单了。当 DP 完一个 $j$ 时，我们考虑左端点为 $j + 1$ 的 <samp>U</samp> 形，设存在一个长度为 $d$ ($d \geq 2$) 的合法 <samp>U</samp> 形，就直接将答案加上 $f_{i, j, m - 2 d}$，同样 $i$ 取决于向下还是向上。</p>
+		<p>当然，右侧也可以不走 <samp>U</samp> 形，因此形如 $f_{i, j, m}$ 的 DP 状态也要计入答案。</p>
+		<p>从而，我们就完成了最主要的<strong>双行 DP</strong> 的过程，这一部分的时间复杂度是 $O \left( n^2 + n k \right)$ 的。</p>
+		<hr />
+		<p>最后还需要去掉重复计算的单纯的 <samp>U</samp> 形，这个很简单，由于 "单纯的 <samp>U</samp> 形" 只有 $O \left( n \right)$ 个，因此使用我们刚才的检验算法，并去除它就可以了。这部分的复杂度是 $O \left( n \right)$。</p>
+		<p>综上，总的时间复杂度就是 $O \left( n^2 + n k \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 2054, mod = 1000000007;
+
+int n, m, ans = 0;
+char map[4][N], *s = map[2], *S = map[3];
+int f[2][N][N]; // r, c, pos
+
+inline int &amp; add(int &amp;x, const int y) {return x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; sub(int &amp;x, const int y) {return x -= y, x += x &gt;&gt; 31 &amp; mod;}
+
+struct lcp_manager {
+	int lcp[N][N];
+
+	void assign(int n, char *s, int m, char *t) {
+		int i, j;
+		for (i = 0; i &lt;= n; ++i) lcp[i][m] = 0;
+		memset(lcp[n], 0, m &lt;&lt; 2);
+		for (i = n - 1; ~i; --i)
+			for (j = m - 1; ~j; --j)
+				lcp[i][j] = (s[i] == t[j] ? lcp[i + 1][j + 1] + 1 : 0);
+	}
+} _[4], *l = _, *L = _ + 2;
+
+#define fy(name, cond) inline bool name(int i, int j) {int d = abs(i - j) + 1; return d * 2 &lt;= m &amp;&amp; (cond);}
+fy(turnLD, L-&gt;lcp[j][m - d] &gt;= d &amp;&amp; l[1].lcp[j][d] &gt;= d)
+fy(turnLU, L[1].lcp[j][m - d] &gt;= d &amp;&amp; l-&gt;lcp[j][d] &gt;= d)
+fy(turnRD, l-&gt;lcp[i][m - 2 * d] &gt;= d &amp;&amp; L[1].lcp[i][0] &gt;= d)
+fy(turnRU, l[1].lcp[i][m - 2 * d] &gt;= d &amp;&amp; L-&gt;lcp[i][0] &gt;= d)
+#undef fy
+
+void DP() {
+	int i, j, D;
+	for (i = 0; i &lt;= n; ++i) memset(f[0][i], 0, (m + 1) &lt;&lt; 2), memset(f[1][i], 0, (m + 1) &lt;&lt; 2);
+	for (i = 0; i &lt; n; ++i) {
+		f[0][i][0] = f[1][i][0] = 1;
+		for (j = i - 2, D = 4; j &gt;= 0 &amp;&amp; D &lt;= m; --j, D += 2)
+			add(f[0][i][D], turnLU(i - 1, j)), add(f[1][i][D], turnLD(i - 1, j));
+		for (j = 0; j &lt; m; ++j) {
+			if (f[0][i][j] &amp;&amp; s[j] == map[0][i]) {
+				add(f[0][i + 1][j + 1], f[0][i][j]);
+				if (s[j + 1] == map[1][i]) add(f[1][i + 1][j + 2], f[0][i][j]);
+			}
+			if (f[1][i][j] &amp;&amp; s[j] == map[1][i]) {
+				add(f[1][i + 1][j + 1], f[1][i][j]);
+				if (s[j + 1] == map[0][i]) add(f[0][i + 1][j + 2], f[1][i][j]);
+			}
+		}
+		for (j = i + 1, D = 4; j &lt; n &amp;&amp; D &lt;= m; ++j, D += 2) {
+			if (turnRD(i, j)) add(ans, f[0][i][m - D]);
+			if (turnRU(i, j)) add(ans, f[1][i][m - D]);
+		}
+	}
+	for (i = 1; i &lt;= n; ++i) add(add(ans, f[0][i][m]), f[1][i][m]);
+	if (!(m &amp; 1) &amp;&amp; m &lt;= 2 * n) add(add(ans, turnLD(n - 1, n - m / 2)), turnLU(n - 1, n - m / 2));
+}
+
+int main() {
+	int i;
+	scanf("%s%s%s", *map, map[1], s), n = strlen(*map), m = strlen(s);
+	if (m == 1) ans = std::count(*map, *map + n, *s) + std::count(map[1], map[1] + n, *s);
+	else if (m == 2)
+		for (i = 0; i &lt; n; ++i)
+			ans += (*s == map[0][i] &amp;&amp; s[1] == map[1][i])
+				+  (*s == map[1][i] &amp;&amp; s[1] == map[0][i])
+				+  (*s == map[0][i] &amp;&amp; s[1] == map[0][i + 1])
+				+  (*s == map[1][i] &amp;&amp; s[1] == map[1][i + 1])
+				+  (*s == map[0][i + 1] &amp;&amp; s[1] == map[0][i])
+				+  (*s == map[1][i + 1] &amp;&amp; s[1] == map[1][i]);
+	else {
+		std::reverse_copy(s, s + m, S);
+		l-&gt;assign(n, *map, m, s), l[1].assign(n, map[1], m, s);
+		L-&gt;assign(n, *map, m, S), L[1].assign(n, map[1], m, S);
+		DP(), std::swap(s, S), std::swap(l, L);
+		DP(), std::swap(s, S), std::swap(l, L);
+		if (!(m &amp; 1)) {
+			for (i = m / 2 - 1; i &lt; n; ++i) sub(sub(ans, turnLD(i, i - m / 2 + 1)), turnLU(i, i - m / 2 + 1));
+			for (i = 0; i &lt;= n - m / 2; ++i) sub(sub(ans, turnRD(i, i + m / 2 - 1)), turnRU(i, i + m / 2 - 1));
+		}
+	}
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>两侧的串长是不同的 (一个是 $n$，一个是 $k$)，注意不要混淆 (比如循环的<em>上下界</em>)。</p>
+		<p><strong>坑2：</strong>最后去掉 "单纯的 <samp>U</samp> 形" 时，由于长度是固定的，因此只需要去除 $O \left( n \right)$ 个，并且同样需要防止数组越界。</p>
+	</body>
+</html>

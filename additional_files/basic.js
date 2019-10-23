@@ -6,7 +6,7 @@ const
 	RECORDS_PER_PAGE = 50,
 	MEMOS_PER_PAGE = 50;
 
-(function (win, und) {
+(function (win, $, und) {
 
 	'use strict';
 
@@ -84,7 +84,7 @@ const
 		return ret;
 	}
 
-	win.queryStringEncode = function (params) {return Object.keys(params).sort().filter(r => params[r]).map(r => encodeURIComponent(r) + '=' + encodeURIComponent(params[r])).join('&');}
+	win.queryStringEncode = function (params) {return Object.keys(params).sort().filter(x => params[x]).map(x => encodeURIComponent(x) + '=' + encodeURIComponent(params[x])).join('&');}
 
 	win.getUri = function (params) {
 		let ps = queryStringEncode(params);
@@ -182,6 +182,36 @@ const
 		}
 	}
 
+	win.initPage = function () {
+		updTime(), setInterval(updTime, 250);
+		if (getStorage('marquee') === 'on') {
+			$("#intro").show().get(0).start();
+			$('#ctrl-marquee>.hint').html('关闭字幕');
+		}
+		
+		$('#ctrl-marquee').click(function () {
+			let $mar = $('#intro'), $tip = $('#ctrl-marquee>.hint');
+			setStorage('marquee', $mar.is(':hidden') ? ($mar.show().get(0).start(), $tip.html('关闭字幕'), 'on') : ($mar.hide(), $tip.html('开启字幕'), 'off'));
+		});
+
+		$('#ctrl-export').click(function () {
+			if (!Rows) return alert('导出失败：本页面无表格');
+			let r, table, csv;
+			for (r of Rows)
+				if (r.parentNode) table = r.parentNode.parentNode;
+			if (!table) return alert('导出失败：无法找到表格行所对应的表格');
+			csv = [Array.prototype.map.call(table.tHead.children[0].children, x => '"' + x.innerText + '"').join(',') + '\n'];
+			for (r of Rows) {
+				csv.push(Array.prototype.map.call(r.children, x => x.innerText === '链接' ? '"' + x.children[0].href + '"' : $.isNumeric(x.innerText) ? x.innerText : '"' + x.innerText.trim() + '"').join(',') + '\n');
+			}
+			r = URL.createObjectURL(new Blob(csv, {type: 'text/csv, charset=utf-8'}));
+			$('<a href="' + r + '" download="export.csv"></a>').get(0).click();
+			URL.revokeObjectURL(r);
+		});
+
+		$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
+	}
+
 	function OJMatch(s, pos) {
 		let site = getSite(s.substr(0, pos)), result;
 		return site && (result = s.substr(pos).match(site[0])) ? site[1].apply(null, result.slice(1)) : '';
@@ -234,4 +264,4 @@ const
 		return ret;
 	}
 
-})(window ? window : this);
+})(window ? window : this, jQuery);

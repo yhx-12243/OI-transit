@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces611G]New Year and Cake</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个凸 $n$ 边形，对于它的一条对角线，定义它的<strong>价值</strong>为被这条对角线所分成的两个部分的<strong>面积差</strong>。求这个多边形的所有 $\dfrac {n \left( n - 3 \right)} 2$ 条对角线的<strong>价值之和</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($4 \leq n \leq 5 \times 10^5$)，表示凸多边形的点数。</p>
+		<p>接下来 $n$ 行，每行两个整数 $x_i, y_i$ ($-10^9 \leq x_i, y_i \leq 10^9$)，表示第 $i$ 个点的坐标。</p>
+		<p>保证给出的点的坐标两两不同，无三点共线，且点以<strong>顺时针</strong>方向给出。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有对角线的价值之和模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>设多边形的面积为 $S$。如果一条对角线将多边形分成面积为 $A$ 和 $S - A$ 的两部分，不妨设 $0 \leq A \leq \dfrac S2$。则两部分的面积差 $= \left( S - A \right) - A = S - 2 A$。</p>
+		<p>由和式的性质，我们只需要求得，对于每条对角线，$- 2 A$ 的值的和 (即 $A$ 的值的和的 $-2$ 倍)，再与 $\dfrac {n \left( n - 3 \right)} 2 \cdot S$ 相加就是答案了。</p>
+		<p>而 $A$ 的值之和，就是每条对角线所分成的两个多边形中的<strong>较小者</strong>之和。</p>
+		<p>先考虑简单的情况 —— 没有一条对角线<strong>平分</strong>原多边形的面积。</p>
+		<p>于是 $\sum A$ 就是所有由对角线分出来的多边形中，<strong>面积 $&lt; \dfrac S2$ 者的面积和</strong>。</p>
+		<p>考虑这样的多边形的一条对角线 $\left( i, j \right)$。我们固定 $i$，让 $j$ 从 $i$ 开始进行逆时针旋转，可以找到一个时刻，使得 $i \sim j$ 这一段的面积 $&lt; \dfrac S2$，$i \sim j + 1$ 这一段的面积 $&gt; \dfrac S2$。</p>
+		<p>而当 $i$ (沿着一个指定的正方向) 单调递增时，容易发现，这样的 $j$ 也是单调递增的。</p>
+		<p>于是我们可以使用<strong>双指针</strong>来求出每一个 $i$ 对应的 $j$。</p>
+		<p>剩下的事就是统计面积了 —— 当 $i$ 固定时，需要统计若干个多边形的面积。</p>
+		<p>考虑面积公式：$\displaystyle 2 \cdot \Delta = \sum_{i=1}^n \overrightarrow {OP_{i-1}} \times \overrightarrow {OP_i}$，可知我们要求的值等于 $$ \sum_{k=i+1}^j \Delta_{i, k} = \sum_{k=i+1}^j \left( \overrightarrow {OP_k} \times \overrightarrow {OP_i} + \sum_{p=i+1}^k \overrightarrow {OP_{p-1}} \times \overrightarrow {OP_p} \right) \tag 1 \label 1 $$</p>
+		<p>记 $x_p = \overrightarrow {OP_{p-1}} \times \overrightarrow {OP_p}$，则 $\eqref 1$ 式可以简化为</p>
+		<p>\begin{align*}
+&amp; \sum_{k=i+1}^j \left( \overrightarrow {OP_k} \times \overrightarrow {OP_i} + \sum_{p=i+1}^k x_p \right) \\
+=&amp; \sum_{k=i+1}^j \overrightarrow {OP_k} \times \overrightarrow {OP_i} + \sum_{k=i+1}^j \sum_{p=i+1}^k x_p \\
+=&amp; \left( \sum_{k=i+1}^j \overrightarrow {OP_k} \right) \times \overrightarrow {OP_i} + \sum_{p=i+1}^j \sum_{k=p}^j x_p \\
+=&amp; \left( \sum_{k=i+1}^j \overrightarrow {OP_k} \right) \times \overrightarrow {OP_i} + \sum_{p=i+1}^j \left( j + 1 - p \right) x_p
+\end{align*}</p>
+		<p>所以只需要维护 $x_p$ 的部分和、$p \cdot x_p$ 的部分和，以及这些向量 $\overrightarrow {OP_i}$ 的部分和，就可以 $O \left( 1 \right)$ 计算 $\eqref 1$ 式，从而得到答案。</p>
+		<hr />
+		<p>对于<strong>存在对角线平分</strong>原多边形的面积的情况，此时，如果将其考虑进去的话，两侧的 $i$ 都会将其统计进去，因此我们可以考虑折中，统计一半面积的贡献就可以啦。</p>
+		<p>或者也可以像代码中的实现一样，统计<strong>未平分面积的对角线条数</strong> (变量 <code>di</code>)，这样就能避免求逆元的麻烦。</p>
+		<p>总时间复杂度 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+
+typedef long long ll;
+const int N = 1000054, mod = 1000000007;
+
+struct vec2 {
+	int x, y;
+	vec2 (int x0 = 0, int y0 = 0) : x(x0), y(y0) {}
+	vec2 * read() {scanf("%d%d", &amp;x, &amp;y); return this;}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline ll operator ^ (const vec2 &amp;B) const {return (ll)x * B.y - (ll)y * B.x;}
+};
+
+int n, ans = 0;
+vec2 p[N], P[N];
+ll S;
+int X[N], Xs[N];
+
+int main() {
+	int i, j, x; ll cur = 0, di;
+	scanf("%d", &amp;n), di = n * (n - 3ll);
+	for (i = n - 1; i &gt;= 0; --i) p[i].read();
+	std::copy(p, p + n, p + n), p[2 * n] = *p;
+	for (i = 0; i &lt; n; ++i) S += p[i] ^ p[i + 1];
+	assert(S &gt; 0);
+	for (i = 1; i &lt;= 2 * n; ++i) {
+		x = (p[i - 1] ^ p[i]) % mod;
+		X[i] = (X[i - 1] + x) % mod;
+		Xs[i] = (Xs[i - 1] + (ll)x * i) % mod;
+		P[i] = P[i - 1] + p[i], P[i].x %= mod, P[i].y %= mod;
+	}
+	for (j = i = 0; i &lt; n; ++i) {
+		for (; j &lt; 2 * n &amp;&amp; cur * 2ull &lt; S; ++j) cur += cross(p[i], p[j], p[j + 1]);
+		--j, di -= cur * 2ull == S;
+		ans = (ans + (X[j] - X[i]) * (j + 1ll) - (Xs[j] - Xs[i]) + ((P[j] - P[i]) ^ p[i])) % mod;
+		assert(j &gt; i), cur -= cross(p[i], p[i + 1], p[++j]);
+	}
+	assert(!(di &amp; 1));
+	ans = ((S % mod) * (di / 2 % mod) - 2 * ans) % mod;
+	printf("%d\n", ans + (ans &gt;&gt; 31 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $2$ 倍面积可以到达 $8 \times 10^{18}$ 的数量级，因此乘以 $2$ 就爆 <code>long long</code> 了，因此可以考虑使用 <code>unsigned long long</code>。</p>
+	</body>
+</html>

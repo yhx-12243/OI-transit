@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-cn">
 	<head>
-		<!-- version 5.0 -->
+		<!-- version 5.1 -->
 		<meta charset="utf-8">
 		<link type="text/css" rel="stylesheet" href="additional_files/fonts.css">
 		<link type="text/css" rel="stylesheet" href="additional_files/sh_typical.min.css">
@@ -14,13 +14,7 @@
 		<script src="additional_files/sort.min.js"></script>
 		<script>
 			jQuery(document).ready($ => {
-				updTime(), setInterval(updTime, 250);
-				if (getStorage('marquee') === 'on') $("#intro").show().get(0).start();
-
-				$('#ctrl-marquee').click(function () {
-					let $mar = $('#intro');
-					setStorage('marquee', $mar.is(':hidden') ? ($mar.show().get(0).start(), 'on') : ($mar.hide(), 'off'));
-				});
+				initPage();
 
 				if (window.BigInt) { // bigint is available
 					let B = window.BigInt;
@@ -123,20 +117,20 @@
 				}
 
 				$('#calc-power-mod').click(function () {
-					let a = $('#div-power-mod > input[name="a"]').val();
-					let n = $('#div-power-mod > input[name="n"]').val();
-					let m = $('#div-power-mod > input[name="m"]').val();
+					let a = $('#div-power-mod input[name="a"]').val();
+					let n = $('#div-power-mod input[name="n"]').val();
+					let m = $('#div-power-mod input[name="m"]').val();
 					$('#div-power-mod input[name="result"]').val(pow(a, n, m).toString());
 				});
 
 				$('#calc-primality-test').click(function () {
-					let n = $('#div-primality-test > input[name="n"]').val();
+					let n = $('#div-primality-test input[name="n"]').val();
 					$('#div-primality-test input[name="result"]').val(isp(n).toString());
 				});
 
 				$('.sortlink').click(function () {
 					sortTable('R' + getSortChar2($(this.parentNode).index()));
-					$('#rankTable > tbody').empty().append(Rows);
+					$('#rankTable>tbody').empty().append(Rows);
 				});
 
 				$.ajax('https://codeforces.com/api/user.info?handles=' + persons.join(';'), {
@@ -152,11 +146,45 @@
 							dataType: 'jsonp',
 							jsonp: 'jsonp',
 							success: parseRanklist,
-							error: () => $('#rankTable > tbody > tr > td').html('Network failed. Please check your network or refresh this page.')
+							error: () => $('#rankTable>tbody>tr>td').html('Network failed. Please check your network or refresh this page.')
 						})
 				});
 
-				$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
+				if (getStorage('marquee') === 'on') {
+					$('#status-marquee').html('on').css('color', '#090');
+					$('#toggle-marquee').html('关闭');
+				}
+
+				if (getStorage('speed') === 'on') {
+					$('#status-speed').html('on').css('color', '#090');
+					$('#toggle-speed').html('关闭');
+				}
+
+				$('#ctrl-marquee').click(function () {
+					if ($('#intro').is(':hidden')) {
+						$('#status-marquee').html('off').css('color', '#09f');
+						$('#toggle-marquee').html('开启');
+					} else {
+						$('#status-marquee').html('on').css('color', '#090');
+						$('#toggle-marquee').html('关闭');
+					}
+				});
+
+				$('#toggle-marquee').click(function () {
+					$('#ctrl-marquee').click();
+				});
+
+				$('#toggle-speed').click(function () {
+					if (getStorage('speed') === 'on') {
+						$('#status-speed').html('off').css('color', '#09f');
+						$('#toggle-speed').html('开启');
+						setStorage('speed', 'off');
+					} else {
+						$('#status-speed').html('on').css('color', '#090');
+						$('#toggle-speed').html('关闭');
+						setStorage('speed', 'on');
+					}
+				});
 			});
 		</script>
 	</head>
@@ -171,8 +199,11 @@
 			</div>
 		</div>
 		<div class="dmarquee" style="height: 25px">
-			<div id="ctrl-marquee" style="float: left">
-				<p class="hint">开启/关闭字幕</p>
+			<div class="button-transparent" id="ctrl-marquee" style="float: left">
+				<p class="hint">开启字幕</p>
+			</div>
+			<div class="button-transparent" id="ctrl-export" style="float: right">
+				<p class="hint">导出表格</p>
 			</div>
 			<div style="overflow: hidden">
 				<marquee id="intro" scrollamount="1000" style="color: #999; display: none">bestFy is the cutest !</marquee>
@@ -187,10 +218,7 @@
 					<legend>小工具</legend>
 					<div class="border-tool padding-1" id="div-power-mod">
 						<p>快速幂 (幂模运算，计算 <em>a<sup>n</sup></em> mod <em>m</em>):</p>
-						<label><em>a</em>: </label><input name="a" placeholder="a" class="cen text-input" />
-						<label><em>n</em>: </label><input name="n" placeholder="n" class="cen text-input" />
-						<label><em>m</em>: </label><input name="m" placeholder="m" class="cen text-input" />
-						<button class="big-button" id="calc-power-mod">计算</button>
+						<p><label><em>a</em>: </label><input name="a" placeholder="a" class="cen text-input" /> <label><em>n</em>: </label><input name="n" placeholder="n" class="cen text-input" /> <label><em>m</em>: </label><input name="m" placeholder="m" class="cen text-input" /> <button class="big-button" id="calc-power-mod">计算</button></p>
 						<p>结果: <input name="result" placeholder="result" readonly="readonly" class="cen text-input" style="width: 250px" /></p>
 						<hr />
 						<div style="font-size: smaller">
@@ -200,8 +228,7 @@
 					</div>
 					<div class="border-tool padding-1" id="div-primality-test">
 						<p>质数判定</p>
-						<label><em>n</em>: </label><input name="n" placeholder="n" class="cen text-input" style="width: 200px" />
-						<button class="big-button" id="calc-primality-test">判定</button>
+						<p><label><em>n</em>: </label><input name="n" placeholder="n" class="cen text-input" style="width: 200px" /> <button class="big-button" id="calc-primality-test">判定</button></p>
 						<p>结果：<input name="result" placeholder="result" readonly="readonly" class="cen text-input" style="width: 250px" /></p>
 						<hr />
 						<div style="font-size: smaller">
@@ -231,6 +258,11 @@
 						</table>
 						<p>ps: 要申请者请提供在 <strong>Codeforces</strong> 上的 ID (即 handle) 以及个人博客链接 (可选)，联系<a href="mailto:yhx0706@163.com">此处</a>。<span style="color: transparent">(Q<sup>2</sup> = 0x1af97fbd)</span></p>
 						<p>或者也可以来 <a href="https://github.com/yhx-12243/OI-transit" target="_blank">GitHub</a> 提交 Issue/Pull Request。</p>
+					</div>
+					<div class="border-tool padding-1" id="div-settings">
+						<p>更多设置 <span style="color: transparent">(将鼠标移到标题栏下方空白处的两端有惊喜哦！)</span></p>
+						<p><label>当前字幕状态：<strong id="status-marquee" style="color: #09f">off</strong></label> <button class="big-button" id="toggle-marquee">开启</button></p>
+						<p><label>极速浏览模式 (敬请期待)：<strong id="status-speed" style="color: #09f">off</strong></label> <button class="big-button" id="toggle-speed">开启</button></p>
 					</div>
 				</fieldset>
 			</div>

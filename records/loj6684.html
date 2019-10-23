@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6684]有根无标号「奇树」计数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义一棵有根树为「奇树」，当且仅当其所有叶子深度都为奇数 (根节点深度为 $1$)。</p>
+		<p>小 P 对奇树十分感兴趣，他想知道有多少棵 <strong>$n$ 个奇点</strong> (不是 $n$ 个点) 的有根无标号奇树 (奇点深度为奇数。由上述定义根也是奇点) $\bmod 998244353$。
+		<p>你需要对于每个 $n$ 输出答案。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 10^5$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $n$ 行，每行一个整数，第 $i$ 行的整数表示 $i$ 个奇点的奇树个数。</p>
+
+		<h3>题解</h3>
+		<p>由于是无标号的类似 "树计数" 的题目，<del>根据套路</del>，考虑使用无标号计数的技巧 —— Euler 变换。</p>
+		<p style="color: red">关于 Euler 变换的讲解，可以看<a href="../memos/23.html" target="_blank">这篇 blog</a>。</p>
+		<p>设有 $n$ 个奇点的 "有根无标号奇树" 共有 $o_n$ 棵，它的一般生成函数为 $\displaystyle O \left( x \right) = \sum_{i \geq 1} o_i x^i$。</p>
+		<p>考虑根节点的若干棵子树，可以发现，每棵子树是一个 "偶树" (即所有叶子深度均为偶数的树)。设记录偶数个数的生成函数为 $E \left( x \right)$。</p>
+		<p>由 Euler 变换的定义，再算上根节点，有 $O \left( x \right) = x \cdot \mathcal E \left[ E \left( x \right) \right]$。</p>
+		<p>同理，类似地，由 $1 + E \left( x \right) = \mathcal E \left[ O \left( x \right) \right]$。</p>
+		<p>结合上述二式可得，$$ \color {blue} {O \left( x \right) = x \cdot \mathcal E \left[ \mathcal E \left[ O \left( x \right) \right] - 1 \right]} \tag 1 \label 1 $$</p>
+		<p>这就是奇树个数 $O \left( x \right)$ 的生成函数表达式。</p>
+		<hr />
+		<p>考虑通过 $\eqref 1$ 式求解 $O \left( x \right)$。</p>
+		<p>众所周知，对于有标号的计数，我们通常会使用到 $\exp$，而进行具体求解的时候，通常会使用两种方式：分治多项式技巧或 <ins style="color: fuchsia">Newton 迭代</ins>。对于无标号，$\exp$ 就对应到了 Euler 变换，我们仍然尝试使用 <ins style="color: fuchsia">Newton 迭代</ins>来解决 (当然，分治多项式技巧在本题中仍然可以使用)。</p>
+		<p>使用 <a href="../memos/23.html" target="_blank">Euler 变换的另一种形式</a>，有 $$ \mathcal E \left[ A \left( x \right) \right] = \exp \sum_{i \geq 1} \frac {A \left( x^i \right)} i = \exp \left( A \left( x \right) + \frac {A \left( x^2 \right)} 2 + \frac {A \left( x^3 \right)} 3 + \cdots \right) \tag 2 \label 2 $$</p>
+		<p>对于这种式子，Newton 迭代就显得很有希望了。</p>
+		<p>根据 <a href="loj6538.html" target="_blank">[loj6538]烷基计数 加强版 加强版</a> 的经验，我们欲从 $O \left( x \right) \bmod x^k$ 得到 $O \left( x \right) \bmod x^{2 k}$，而 $O \left( x^2 \right), O \left( x^3 \right), \cdots \bmod x^{2 k}$ 的值其实是已知的。</p>
+		<p>而由简单的调和级数关系，$O \left( x \right), O \left( x^2 \right), O \left( x^3 \right), \cdots, O \left( x^k \right), \cdots$ 在 $\hspace{-0.444em} \pmod {x^n}$ 意义下 (即小于 $n$ 次的项中) 只有 $O \left( n \log n \right)$ 个非零项，因此暴力更新时间复杂度是正确的。</p>
+		<p>考虑将 $\eqref 2$ 式代入 $\eqref 1$ 式中，有 \begin{align*}
+O \left( x \right) &amp;= x \cdot \mathcal E \left[ E \left( x \right) \right] \\
+&amp;= x \cdot \exp \left( E \left( x \right) + \frac {E \left( x^2 \right)} 2 + \frac {E \left( x^3 \right)} 3 + \cdots \right) \\
+&amp;= x \cdot \exp E \left( x \right) \cdot \exp \left( \frac {E \left( x^2 \right)} 2 + \frac {E \left( x^3 \right)} 3 + \cdots \right) \\
+&amp;= x \cdot \exp \left( \frac {E \left( x^2 \right)} 2 + \frac {E \left( x^3 \right)} 3 + \cdots \right) \cdot \mathrm e^{E \left( x \right)}
+\end{align*}</p>
+		<p>在迭代之前，多项式 $x \cdot \exp \left( \dfrac {E \left( x^2 \right)} 2 + \dfrac {E \left( x^3 \right)} 3 + \cdots \right)$ 是 $\hspace{-0.444em} \pmod {x^{2 k}}$ 已知的，下面记为 $\Gamma$。</p>
+		<p>于是，$O \left( x \right) = \Gamma \cdot \mathrm e^{E \left( x \right)}$。</p>
+		<p>继续代入 $\eqref 2$ 式，有 \begin{align*}
+O \left( x \right) &amp;= \Gamma \cdot \mathrm e^{E \left( x \right)} \\
+&amp;= \Gamma \cdot \exp \left( \mathcal E \left[ O \left( x \right) \right] - 1 \right) \\
+&amp;= \Gamma \cdot \exp \left( \exp \left( O \left( x \right) + \frac {O \left( x^2 \right)} 2 + \frac {O \left( x^3 \right)} 3 + \cdots \right) - 1 \right) \\
+&amp;= \Gamma \cdot \exp \left( \mathrm e^{O \left( x \right)} \cdot \exp \left( \frac {O \left( x^2 \right)} 2 + \frac {O \left( x^3 \right)} 3 + \cdots \right) - 1 \right)
+\end{align*}</p>
+		<p>同样，可以设 $\Delta = \dfrac {O \left( x^2 \right)} 2 + \dfrac {O \left( x^3 \right)} 3 + \cdots$，有 $$ \color {fuchsia} {O \left( x \right) = \Gamma \cdot \exp \left( \mathrm e^{O \left( x \right)} \cdot \mathrm e^\Delta - 1 \right)} $$</p>
+		<p>终于可以 Newton 迭代啦！设 $A \left( f \right) = \Gamma \cdot \exp \left( \mathrm e^f \cdot \mathrm e^\Delta - 1 \right) - f$，则 $A' \left( f \right) = \Gamma \cdot \exp \left( \mathrm e^f \cdot \mathrm e^\Delta + f + \Delta - 1 \right) - 1$，则 \begin{align*}
+O_{2 k} &amp;= O_k - \frac {A \left( O_k \right)} {A' \left( O_k \right)} \\
+&amp; = O_k - \frac {\Gamma \cdot \exp \left( \mathrm e^{O_k} \cdot \mathrm e^\Delta - 1 \right) - O_k} {\Gamma \cdot \exp \left( \mathrm e^{O_k} \cdot \mathrm e^\Delta + O_k + \Delta - 1 \right) - 1} \\
+&amp; = O_k - \frac {\Gamma \cdot \exp \left( \mathrm e^\color {red} {O_k + \Delta} - 1 \right) - O_k} {\Gamma \cdot \exp \left( \mathrm e^\color {red} {O_k + \Delta} + \color {red} {O_k + \Delta} - 1 \right) - 1} \\
+&amp; = O_k - \frac {\Gamma \cdot \exp \left( \color {red} {E_{t1}} - 1 \right) - O_k} {\Gamma \cdot \exp \left( \color {red} {E_{t1}} - 1 \right) \cdot \color {red} {E_{t1}} - 1} \\
+&amp; = O_k - \frac {\Gamma \cdot \mathrm e^\color {red} {E_t} - O_k} {\Gamma \cdot \mathrm e^\color {red} {E_t} \cdot \left( \color {red} {E_t} + 1 \right) - 1} \\
+&amp; = O_k + \frac {\color {blue} {\Gamma \cdot \mathrm e^{E_t}} - O_k} {1 - \color {blue} {\Gamma \cdot \mathrm e^{E_t}} \cdot \left( E_t + 1 \right)} \tag 3 \label 3
+\end{align*}</p>
+		<p>也就是说，令 $\displaystyle E_{t1} = \mathcal E \left[ O_k \right] = \exp \sum_{i \geq 1} \frac {O \left( x^i \right)} i, E_t = E_{t1} - 1$，那么最终的迭代形式就形如 $\eqref 3$ 式 ($O_{2 k} = O_k + \dfrac {x \cdot \mathcal E \left[ E_t \right] - O_k} {1 - x \cdot \mathcal E \left[ E_t \right] \cdot \mathcal E \left[ O_k \right]}$)，<del>非常简结快速，只需要 $2$ 次多项式 $\exp$，$1$ 次求逆和 $2$ 次卷积</del>。</p>
+		<p>于是，我们又通过 Newton 迭代解决了整个问题，时间复杂度自然是妥妥的 $O \left( n \log n \right)$ 啦 <del>(反正跑不过 $O \left( n \log^2 n \right)$ 的分治多项式技巧)</del>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+
+typedef long long ll;
+const int N = 530000, mod = 998244353, half_mod = (mod + 1) / 2, root = 31;
+typedef int vec[N], *pvec;
+
+vec fact, inv, finv;
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
+inline void fma(int &amp;x, const int y, const int z) {x = (x + (ll)y * z) % mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	inline void IDNTT(int *d, int *t) {
+		ll iv = mod - (mod - 1) / n;
+		DNTT(d, t), std::reverse(t + 1, t + n);
+		for (int i = 0; i &lt; n; ++i) t[i] = t[i] * iv % mod;
+	}
+
+	vec B1, B2, B3, B4, B5, B6, B7;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		DNTT(a, c), DNTT(b, B1);
+		for (int i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		IDNTT(B1, c);
+	}
+
+	void Inv(int deg, pvec a, pvec b) {
+		int len, i; ll iv = half_mod;
+		*b = PowerMod(*a, mod - 2), b[1] = 0, *B1 = *a, B1[1] = a[1];
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
+			NTT_init(len + 2);
+			memset(b + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(b, B2);
+			memset(B1 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(B1, B3);
+			for (i = 0; i &lt; n; ++i) reduce(B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod);
+			DNTT(B2, B3), std::reverse(B3 + 1, B3 + n), iv = (iv &gt;&gt; 1) + half_mod;
+			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B3[i] * iv % mod;
+			memcpy(B1 + i, a + i, n &lt;&lt; 1);
+		}
+	}
+
+	void Diff(int deg, pvec a, pvec b) {for (int i = 1; i &lt;= deg; ++i) b[i - 1] = (ll)a[i] * i % mod;}
+
+	void Intg(int deg, pvec a, pvec b, int ct = 0) {for (int i = 1; i &lt;= deg; ++i) b[i] = (ll)a[i - 1] * inv[i] % mod; *b = ct;}
+
+	void Ln(int deg, pvec a, pvec b) {
+		if (!--deg) {*b = 0; return;}
+		int i, j = deg * 2 - 1; NTT_init(lg2(j) + 1);
+		Diff(deg, a, B4), Inv(deg, a, B5);
+		for (i = deg; i &lt; n; ++i) B4[i] = B5[i] = 0;
+		Mul(j, B4, B5, B6), Intg(deg, B6, b);
+	}
+
+	void Exp(int deg, pvec a, pvec b) {
+		int len, i, n = 2;
+		*b = 1, b[1] = 0;
+		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len, n &lt;&lt;= 1) {
+			Ln(n, b, B7), *B7 = 1;
+			for (i = 1; i &lt; n; ++i) reduce(B7[i] = a[i] - B7[i]);
+			memset(B7 + n, 0, n &lt;&lt; 2), memset(b + n, 0, n &lt;&lt; 2);
+			Mul((n &lt;&lt; 1) - 1, b, B7, B6), memcpy(b, B6, n &lt;&lt; 2);
+		}
+	}
+}
+
+int D;
+vec f, g, df, dg, exp_dg;
+vec I, C0, C1;
+/*
+	df = sum_i f(x^i) / i
+	g = e^df - 1
+	dg = x sum_i g(x^i) / i
+
+		e^dg (1 - e^df f) x         e^dg x - f
+=&gt;	f = ------------------- = f + ---------------
+		  1 - e^df e^dg x         1 - e^df e^dg x
+*/
+int main() {
+	int i, j, lim, len, n = 8; init(), std::fill(I, I + N, 1);
+	scanf("%d", &amp;D);
+	f[1] = f[2] = 1, f[3] = 3, df[1] = dg[1] = 1;
+	for (len = 2; 1 &lt;&lt; len &lt;= D; ++len, n &lt;&lt;= 1) {
+		for (i = 2; i &lt; n; ++i)
+			for (lim = (n - 1) / i, j = I[i]; j &lt;= lim; ++j)
+				fma(df[j * i], f[j], inv[i]);
+		for (i = n &gt;&gt; 2; i &lt; n &gt;&gt; 1; ++i) reduce(df[i] += f[i] - mod);
+		Poly::NTT_init(len + 2);
+		Poly::Exp(n, df, g);
+		for (i = 2; i &lt; n; ++i)
+			for (lim = (n - 1) / i; I[i] &lt;= lim; ++I[i])
+				fma(dg[I[i] * i], g[I[i]], inv[i]);
+		for (i = n &gt;&gt; 2; i &lt; n; ++i) reduce(dg[i] += g[i] - mod);
+		Poly::Exp(n, dg, exp_dg);
+		for (i = n &gt;&gt; 1; i &lt; n; ++i) reduce(dg[i] -= g[i]);
+		Poly::Mul(n * 2 - 1, g, exp_dg, C0 + 1), *C0 = 1;
+		for (i = 1; i &lt; n; ++i) neg(C0[i]);
+		memset(C0 + n, 0, (n + 1) &lt;&lt; 2);
+		Poly::Inv(n &gt;&gt; 1, C0, C1);
+		Poly::Mul(n - 1, C1, exp_dg + (n &gt;&gt; 1) - 1, f + (n &gt;&gt; 1));
+	}
+	for (i = 1; i &lt;= D; ++i) printf("%d\n", f[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在推式子的过程中尽可能地保持简洁，尽可能地去减少多项式运算次数 (尤其是像 $\exp$ 这种大块头)。</p>
+		<p><strong>坑2：</strong>在本例给的式子 ($\eqref 3$ 式) 中，右边的分子是 $x^k$ 的倍数，因此在求逆的时候只需要求 $k$ 项，因为最后乘回来的时候只需要知道 $k$ 项 (填充到 $x^k \sim x^{2 k -1}$ 上)。</p>
+	</body>
+</html>
