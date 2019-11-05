@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[loj6181]某个套路求和题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义 $$ f(n) = \prod_{d \mid n} \mu(d) $$</p>
+		<p>求 $$ \left( \sum_{i=1}^n f(i) \right) \bmod 998244353 $$</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 10^{10}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示题目中式子的值。</p>
+
+		<h3>题解</h3>
+		<p>考虑 $f \left( n \right)$，容易知道对于 $n \in \mathbb N^*$，有 $f \left( n \right) \in \left\{ -1, 0, 1 \right\}$。</p>
+		<p>若 $n$ 非平方松，则 $\mu \left( n \right) = 0$，于是 $\displaystyle f \left( n \right) = \mu \left( n \right) \cdot \prod_{d \mid n, d \neq n} \mu \left( d \right) = 0$。</p>
+		<p>若 $n = 1$，则 $f \left( 1 \right) = \mu \left( 1 \right) = 1$。</p>
+		<p>否则，$n$ 的 $2^{\omega \left( n \right)}$ 个因子可以两两配对，配成 $2^{\omega \left( n \right) - 1}$ 对，由 $\mu$ 的积性，每对的两个元素的乘积为 $\mu \left( n \right)$。</p>
+		<p>于是，$f \left( n \right) = \left( \mu \left( n \right) \right)^{2^{\omega \left( n \right) - 1}} = \begin{cases} -1 &amp; n \text{ is prime} \\ 1 &amp; \text{otherwise} \end{cases}$。</p>
+		<p>上式是 $n$ 平方松时的 $f \left( n \right)$ 的表达式。综合一下，可得 $$ f \left( n \right) = \mu^2 \left( n \right) - 2 \left[ n \in \mathbb P \right] $$ (其中 $\mathbb P$ 为所有素数组成的集合)</p>
+		<p>因此，$\displaystyle \sum_{i=1}^n f \left( i \right) = \sum_{i=1}^n \left( \mu^2 \left( i \right) - 2 \left[ i \in \mathbb P \right] \right) = \sum_{i=1}^n \mu^2 \left( i \right) - 2 \pi \left( n \right)$。</p>
+		<p>对于左边，这是一个经典问题，有 $\displaystyle \sum_{i=1}^n \mu^2 \left( i \right) = \sum_{i=1}^{\left \lfloor \sqrt n \right \rfloor} \mu \left( i \right) \cdot \left \lfloor \frac n {i^2} \right \rfloor$，可以在不超过 $O \left( \sqrt n \right)$ 时间内解决 (线性筛 + 整除分块)，具体参见 <a href="../index.html?redirect=413#sum_of_mu2" target="_blank">[loj509]动态几何问题</a>。</p>
+		<p>对于右边，求 $n$ 以内的素数个数也是一个经典问题，可以使用洲阁筛/min-25 筛解决 <del>(当然你用 Meissel-Lehmer 等其它算法我也不反对)</del>。</p>
+		<p>总时间复杂度 $O \left( \dfrac {n^{3/4}} {\log n} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 200054, mod = 998244353;
+
+ll n;
+int cnt, srn;
+int pn = 0, c[N], p[9654], mu[N];
+ll v[N], g[N];
+
+inline int ID(ll x) {return x &lt;= srn ? x : cnt + 1 - n / x;}
+
+void sieve(int n) {
+	int i, j, v; mu[1] = 1;
+	memset(c, -1, sizeof c);
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i]) p[pn] = i, c[i] = pn++, mu[i] = -1;
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt; c[i]; ++j) c[v] = j, mu[v] = -mu[i];
+		if (v &lt;= n) c[v] = j;
+	}
+}
+
+void sieve_g() {
+	int i, j, p; ll J, K;
+	for (j = 1; j &lt;= cnt; ++j) g[j] = v[j];
+	for (i = 0; p = ::p[i], i &lt; pn; ++i)
+		for (j = cnt; j; --j) {
+			if (J = v[j], (K = J / p) &lt; p) break;
+			g[j] -= g[ID(K)] - g[p - 1];
+		}
+}
+
+int main() {
+	int i; ll ans = 0;
+	scanf("%lld", &amp;n), sieve(srn = sqrtl(n));
+	for (i = 1; i &lt;= srn; ++i) if (mu[i]) ans += n / ((ll)i * i) * mu[i];
+	cnt = srn * 2 - (srn * (srn + 1ll) &gt; n);
+	for (i = 1; i &lt;= srn; ++i) v[i] = i, v[cnt - i + 1] = n / i;
+	sieve_g(), ans = (ans - 2 * g[cnt] + 2) % mod;
+	printf("%lld\n", ans + (ans &gt;&gt; 63 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>洲阁筛结束后不要忘记把 $1$ 的贡献给减掉。</p>
+	</body>
+</html>

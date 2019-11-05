@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces538G]Berserk Robot</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在坐标平面上，有一个机器人在 $\left( 0, 0 \right)$ 处，机器人每秒会进行一次移动，每次移动用四个字符 $\texttt U, \texttt L, \texttt D, \texttt R$ 之一来表示。</p>
+		<p>当某一个时刻时，机器人位于 $\left( x, y \right)$，则指令 $\texttt U, \texttt L, \texttt D, \texttt R$ 分别会将机器人移动到 $\left( x, y + 1 \right), \left( x - 1, y \right), \left( x, y - 1 \right), \left( x + 1, y \right)$。机器人的运动从 $0 \,\mathrm s$ 开始，并以 $l \,\mathrm s$ 为一个周期。</p>
+		<p>现在机器人走丢了，我们也无法得到机器人的移动程序。我们仅有 $n$ 条如下格式的信息："在第 $t_i$ 时刻，机器人在位置 $\left( x_i, y_i \right)$"，你需要确定一个满足所有信息的 (以 $l$ 为周期的) 程序，使得机器人的运动符合这 $n$ 条信息，或者断定不存在这样的程序 (即测量出现了错误)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, l$ ($n \leq 2 \times 10^5; l \leq 2 \times 10^6$)。</p>
+		<p>接下来 $n$ 行，每行三个整数 $t_i, x_i, y_i$ ($1 \leq t_i \leq 10^{18}; -10^{18} \leq x_i, y_i \leq 10^{18}$)，保证 $t_i$ 单调递增 (即 $t_i &lt; t_{i + 1}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>如果存在满足条件的程序，输出一行，包含一个长度为 $l$ 的 (仅包含 $\texttt U, \texttt L, \texttt D, \texttt R$ 的) 字符串，表示程序的一个周期；如果不存在，输出 <code>NO</code>。</p>
+
+		<h3>题解</h3>
+		<p>由于 $\texttt U, \texttt L, \texttt D, \texttt R$ 这四个方向并不是独立的，因此我们考虑<strong>旋转坐标系</strong>，将它们分别看成 $\left( -1, 1 \right), \left( -1, -1 \right), \left( 1, -1 \right), \left( 1, 1 \right)$，于是可以发现无论是哪种运动，在两维 ($x$ 和 $y$) 的分量的增量均为 $\pm 1$，因此于是可以将问题分解成一维的情形。</p>
+		<p>当然，在转化之前需要先判定一下 $t_i + x_i + y_i \equiv 0 \pmod 2$ 是否成立，如果不成立，那么显然是无解的。</p>
+		<p>转化完成后，我们还可以通过将 $-1$ 调整成 $0$，于是原问题转化为了下列问题：</p>
+		<blockquote>
+			<p>有一个周期为 $T$ 的 $\texttt 0/\texttt 1$ 序列，已知这个数列的前 $t_i$ 项和为 $S_i$，问是否存在这样的数列，并给出构造。</p>
+		</blockquote>
+		<p>设序列中任意连续 $T$ 项的和为 $s_0$ (显然 $s_0$ 是一个定值)。</p>
+		<p>一旦我们知道了 $s_0$，那么问题其实就不难了：因为对任一个条件 $\left( t_i, S_i \right)$，我们可以将 $t_i$ 调整到区间 $\left[ 0, T \right)$ 上，记为 $t'_i = t_i + k \cdot T$ ($k \in \mathbb Z$)，然后令对应的 $S'_i = S_i + k \cdot s_0$，于是我们将所有的条件都 "<strong>等价</strong>" 到了 $\left[ 0, T \right)$ 上的限制 —— 即周期数列这个条件已经用完啦。</p>
+		<p>不过，为了利用 "任意连续 $T$ 项的和为 $s_0$" 这个条件，我们还需要<strong>在序列末尾加一个形如 $\left( t, s_0 \right)$ 的条件</strong>。</p>
+		<p>由于周期数列的条件已经用完，于是这道题已经转化为了一个有限序列的问题，而这是不难的：我们将所有的 $t_i$ 按照模 $T$ 的值从小到大排序，然后对于相邻的 $t_i, t_{i+1}$ ($t_i &lt; t_{i+1}$)，只需检验是否有 $0 \leq S_{i+1} - S_i \leq t_{i+1} - t_i$ 即可，而构造也是容易的。</p>
+		<p>那么接下来的问题是，如何确定 $s_0$ 呢？</p>
+		<p>首先显然我们不能暴力枚举 $s_0$，否则肯定会 TLE，而且满足条件的 $s_0$ 也可能并不是很多。</p>
+		<p>于是我们就需要利用<strong>不在 $\left[ 0, T \right)$ 中的 $t'_i$</strong> 了。</p>
+		<p>具体地，仍然按照 $t_i \bmod T$ 的值排序。考虑相邻的 $t_i, t_{i+1}$，如果 $t_i \equiv t_{i+1} \pmod T$，那么根据这个条件容易得到 $s_0$ ($s_0 = \dfrac {T \left( S_{i+1} - S_i \right)} {t_{i+1} - t_i}$)，于是转化为已知的问题。</p>
+		<p>否则 ($t_i \bmod T &lt; t_{i+1} \bmod T$)，我们可以得到<strong>一个 $s_0$ 的范围</strong>：</p>
+		<p>设 $t_{i+1} \bmod T = \left( t_i \bmod T \right) + \Delta t$，并不妨假设 $t_i &lt; t_{i+1}$ ($t_i &gt; t_{i+1}$ 是对称的)。我们考虑 $t_i \sim t_i + \Delta t$ 这一段的数，考虑它的极端情况 —— 即<strong>全 $0$</strong> 或<strong>全 $1$</strong>。</p>
+		<p>对于全 $0$ 的情形，我们此时可以得到一个关于 $s_0$ 的<strong>上界</strong>：$s_0 \leq \dfrac {T \left( S_{i+1} - S_i \right)} {t_{i+1} - \left( t_i + \Delta t \right)}$，可以对其<strong>下取整</strong>；同理，对于全 $1$ 的情形，可以得到一个关于 $s_0$ 的<strong>下界</strong>：$s_0 \leq \dfrac {T \left( S_{i+1} - S_i - \Delta t \right)} {t_{i+1} - \left( t_i + \Delta t \right)}$，当然可以对其<strong>上取整</strong>。</p>
+		<p>总之，对于某个相邻的 $t_i, t_{i+1}$，我们都可以得到对应 $t_i$ 的一个<strong>必要区间</strong>。</p>
+		<p>最后，将所有的<em>必要区间</em>求一个交集，我们就可以得到可行的 $s_0$ 的范围了。当然，如果交集为空，则为无解。</p>
+		<p>容易证明，在最终范围中的任意一个 $s_0$，都是可行的，也就是说，你在这个范围中任取一个数，作为 $s_0$ 的值，仿照一开始的算法，进行调整，一定有 $0 \leq S'_{i+1} - S'_i \leq t'_{i+1} - t'_i$，从而容易完成这个 $\texttt 0/\texttt 1$ 数列的一个构造。</p>
+		<p>总时间复杂度 $O \left( n \log n + l \right)$ (其中 $O \left( n \log n \right)$ 为排序复杂度，$O \left( l \right)$ 为输出构造方案的复杂度)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 200054, MAXL = 2000054;
+const char mask[4] = {76, 85, 68, 82};
+
+int n, T;
+int ansX[MAXL], ansY[MAXL];
+ll buf[MAXL];
+
+struct node {
+	ll period, pos; int phase;
+	node (ll _t = 0, ll _pos = 0) : period(_t / T), pos(_pos), phase(_t % T) {}
+	inline bool operator &lt; (const node &amp;B) const {return phase &lt; B.phase || (phase == B.phase &amp;&amp; period &lt; B.period);}	
+} gX[N], gY[N];
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+
+inline ll fd(ll x, ll y) {auto r = lldiv(x, y); return r.quot + (r.rem &gt;&gt; 63);}
+inline ll cd(ll x, ll y) {auto r = lldiv(x, y); return r.quot + (r.rem &gt; 0);}
+
+bool solve(node *g, int *ans) {
+	int i, la = 0, cur; ll dT, dt, ds, inf = 0, sup = T, incr;
+	g[n].period = -1, g[n].phase = T, g[n].pos = 0;
+	std::sort(g, g + (n + 1));
+	for (i = 1; i &lt;= n &amp;&amp; inf &lt;= sup; ++i) {
+		dT = g[i].period - g[i - 1].period;
+		dt = g[i].phase - g[i - 1].phase;
+		ds = g[i].pos - g[i - 1].pos;
+		if (!dT) {
+			if (ds &lt; 0 || ds &gt; dt) return false;
+		} else if (dT &gt; 0) {
+			if (ds &lt; 0) return false;
+			up(inf, cd(ds - dt, dT)), down(sup, fd(ds, dT));
+		} else {
+			if (ds &gt; 0) return false;
+			up(inf, cd(-ds, -dT)), down(sup, fd(-ds + dt, -dT));
+		}
+	}
+	if (inf &gt; sup) return false;
+	incr = (inf + sup) &gt;&gt; 1, *buf = 0;
+	for (i = 0; i &lt;= n; ++i, la = cur) {
+		cur = g[i].phase;
+		buf[cur] = g[i].pos - incr * g[i].period;
+		assert(0 &lt;= buf[cur] - buf[la] &amp;&amp; buf[cur] - buf[la] &lt;= cur - la);
+		auto mid = buf + cur - int(buf[cur] - buf[la]);
+		std::fill(buf + la, mid, buf[la]);
+		std::iota(mid, buf + cur, buf[la]);
+	}
+	return std::adjacent_difference(buf + 1, buf + (T + 1), ans), true;
+}
+
+int main() {
+	int i; ll t, x, y;
+	scanf("%d%d", &amp;n, &amp;T), ++n;
+	for (i = 1; i &lt; n; ++i) {
+		scanf("%lld%lld%lld", &amp;t, &amp;x, &amp;y);
+		if ((t ^ x ^ y) &amp; 1) return puts("NO"), 0;
+		gX[i] = node(t, (t + x + y) / 2);
+		gY[i] = node(t, (t + x - y) / 2);
+	}
+	if (!(solve(gX, ansX) &amp;&amp; solve(gY, ansY))) return puts("NO"), 0;
+	for (i = 0; i &lt; T; ++i) putchar(mask[ansX[i] | ansY[i] &lt;&lt; 1]);
+	return putchar(10), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>不要忘记最后加一个 $\left( t, s_0 \right)$ 的条件 (当然，由于不知道 $s_0$，可以写成形如 $\left( -0, 0 \right)$ 的这种条件)，以免漏判最后一段。</p>
+		<p><strong>坑2：</strong>注意除法下取整和上取整的姿势，尤其是在有负数的情况。</p>
+	</body>
+</html>

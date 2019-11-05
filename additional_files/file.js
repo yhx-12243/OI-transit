@@ -45,6 +45,18 @@
 		pagination();
 	}
 
+	win.fastRedirect = function (strBack) {
+		let i, name, recs;
+		if ($.isNumeric(this.id) && (i = parseInt(this.id)).toString() === this.id) {
+			recs = strBack.split('\n').map(x => x.replace(/[\f\r\v]/g, '').split('|')).filter(x => x.length === 5);
+			if (0 < i && i <= recs.length) {
+				name = recs[recs.length - i][0];
+				return location.replace('records/' + encodeURIComponent(name) + '.html' + location.hash);
+			}
+		}
+		location.replace(getUri({}));
+	}
+
 	// ---------------- Templates ----------------- //
 	win.getTemplates = function (strBack) {
 		tmpArr = strBack.split('\n').map(x => x.replace(/[\f\n\r\v]/g, '')).filter(Boolean), titleT = {}, okay = [];

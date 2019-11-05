@@ -138,7 +138,7 @@
 		return s.trim().toUpperCase().replace(/\s{2,}/g, ' ').replace(/\s([\u4e00-\u9fa5])/g, '$1').replace(/([\u4e00-\u9fa5])\s/g, '$1');
 	}
 
-	win.redirect = function(tag) {
+	win.redirectTag = function(tag) {
 		if (!tag) return '';
 		let n_tag = normalize(tag), t;
 		for (t in aliases)

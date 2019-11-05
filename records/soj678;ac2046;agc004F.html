@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[soj678][AtCoder2046,Grand4F]Namori</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个 $n$ 个点，$m$ 条边的连通无向简单图，其中 $n - 1 \leq m \leq n$，每个点有一个可以为黑或白颜的色，初始时每个点都是白色的。每次可以选择一对<strong>具有相同颜色且相邻</strong>的顶点，然后将反转它们的颜色 (即如果一条边的两端是白色的，可以将其变为黑色)。</p>
+		<p>询问是否存在一种方案，将所有的点都变成黑色，如果能，输出最少的操作次数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($2 \leq n \leq 10^5; n - 1 \leq m \leq n$)。</p>
+		<p>接下来 $m$ 行，每行两个整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq n$)，描述图中的一条边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最少的操作次数。如果无法完成目标，输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>由于题目中要求一条边上的两个顶点颜色<strong>相同</strong>，然后它的颜色还会被反转，这一看就让人觉得极度不适。</p>
+		<p>因此我们可以做一个小小的转化：</p>
+		<p>考虑树的情形，容易发现树是一个<strong>二分图</strong>，我们可以将所有的点重新染色 —— 左部的点染成红色，右部的点染成蓝色。这样，初始状态下，所有边上的点的颜色都不相同。</p>
+		<p>然后考虑每次操作，将<strong>颜色相同的点反色</strong>，这就相当于新的染色方案中，找到一对<strong>两端点颜色不同的边</strong>，将它们的颜色交换。容易证明，在操作后，原先颜色相同的边对应到新的染色方案中，仍然是颜色不同的边。</p>
+		<p>于是，初始状态是左部红，右部蓝，我们需要将它变成左部蓝，右部红，问是否存在一种方案。</p>
+		<p>首先，在新的操作下，我们至少找到了一个不变量 —— 红点数量 (蓝点数量)。无论怎么操作，红点的数量永远是不变的。因此，如果初始状态下红点的数量不等于蓝点的数量 (即最终状态下红点的数量)，则直接输出 $-1$ 就好啦。</p>
+		<p>现在考虑红点蓝点数量相等的情况，我们相当于去 "移动" 这些红点，并将其移到 (原先) 蓝点的位置。</p>
+		<p>直接计算最少方案并不好做，我们考虑每条边的贡献：</p>
+		<p>设将这条边断掉后，左边的红点比蓝点多 $L$ 个，则这条边至少需要经过 $L$ 次，同时，它也不需要经过多于 $L$ 次，因为如果多于 $L$ 次，一定存在一个 "一来一去" 的方案，按照如下图的方式调整即可消除。</p>
+		<img class="center-block" src="uploads/47.png" alt="调整" />
+		<p>于是，只需要枚举每条边，统计出它一侧的红蓝点数量差 (两侧的红蓝点数量差是相等的，因为红蓝点的总数相等)，将它们的绝对值相加，就是树的答案，时间复杂度 $O \left( n \right)$。</p>
+		<hr />
+		<p>接下来考虑 $m = n$ (基环树) 的情形。</p>
+		<p>由于我们刚才用到了<strong>二分图的性质</strong>，因此自然能想到分<strong>奇圈</strong>和<strong>偶圈</strong>进行考虑。</p>
+		<p>先考虑<strong>奇圈</strong>的情形。</p>
+		<p>为了满足它是一个二分图，我们先把这个奇圈断掉。</p>
+		<p>于是在剩下的子图中操作，和之前的树上是一样的。</p>
+		<p>那对于断掉的边呢？由于这个圈是奇圈，因此它的两个端点在二分图中处在<strong>同一部</strong>。</p>
+		<p>于是，将它改变后，相当于这两个端点<strong>可以同时改变颜色</strong> —— 即同时把两个蓝点变成红点，或者同时把两个红点变成蓝点。</p>
+		<p>如果我们把红点看成棋子，蓝点看成空位，于是相当于有一个<strong>源</strong>/<strong>汇</strong>，可以源源不断地提供棋子或吞没棋子，而且是成对提供的。</p>
+		<p>于是，先判定原先的棋子数 (原图红点数) 和最终需要的棋子数 (原图蓝点数) 是否具有相同的奇偶性，如果不是，那就直接 bye-bye，否则算出那个<strong>源</strong>/<strong>汇</strong>需要提供多少次。</p>
+		<p>然后先对这个源/汇提供/吞没若干次后，使用刚才树的算法得出剩下的最小值，加起来就是答案。容易证明这个下界也是可以达到的，时间复杂度不变，仍为 $O \left( n \right)$。</p>
+		<hr />
+		<p>最后是<strong>偶圈</strong>的情形。</p>
+		<p>对于偶圈，可以发现，它仍然满足二分图的性质，于是，有解的充要条件不变 —— 红点数等于蓝点数。</p>
+		<p>此时，这个偶圈的作用就是提供一个枢纽，减少这个圈中绕的次数。</p>
+		<p>显然，圈外的边的经过次数不变，于是只需要考虑圈内边的经过次数。</p>
+		<p>可以发现，圈内边的经过次数是相互约束的 —— 圈内相邻两条边的经过次数 (带符号) 的差值是恒定的，和点有关。</p>
+		<p>这是一个非常经典的模型，可以参考 <a href="../index.html?redirect=143" target="_blank">[HAOI2008]糖果传递</a>，可以使用中位数解决。</p>
+		<p>于是我们讨论完了基环树的两种情形，从而整个问题获得解决，时间复杂度 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) ((x - 1 ^ 1) + 1)
+
+typedef long long ll;
+const int N = 100054, M = N * 2;
+
+int n, m, E = 0, L;
+int to[M], first[N], next[M];
+int p[N], dep[N], ssize[N]; // signed size
+int cnt = 0, buf[N];
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y; ssize[x] = -(dep[x] &amp; 1) | 1;
+	for (i = first[x]; i; i = next[i])
+		if (!~p[y = to[i]])
+			p[y] = x, dep[y] = dep[x] + 1, dfs(y), ssize[x] += ssize[y];
+		else if (dep[x] &lt; dep[y])
+			L = i;
+//	fprintf(stderr, "ssize[%d] = %d\n", x, ssize[x]);
+}
+
+int main() {
+	int i, u, v, incr; ll ans = 0;
+	scanf("%d%d", &amp;n, &amp;m);
+	for (i = 0; i &lt; m; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	memset(p, -1, sizeof p), p[1] = 0, dfs(1);
+	if (m == n - 1) {
+		if (ssize[1]) return puts("-1"), 0;
+		for (i = 1; i &lt;= n; ++i) ans += abs(ssize[i]);
+		return printf("%lld\n", ans), 0;
+	}
+	u = to[ad(L)], v = to[L];
+	assert(m == n &amp;&amp; dep[u] &lt; dep[v]);
+	if ((dep[u] ^ dep[v]) &amp; 1) {
+		if (ssize[1]) return puts("-1"), 0;
+		for (i = v; i != u; i = p[i]) buf[cnt++] = ssize[i];
+		++cnt, std::nth_element(buf, buf + cnt / 2, buf + cnt);
+		for (i = 0; i &lt; cnt; ++i) ans += abs(buf[i] - buf[cnt / 2]) - abs(buf[i]);
+	} else {
+		if (ssize[1] &amp; 1) return puts("-1"), 0;
+		incr = -ssize[1] / 2, ans = abs(incr);
+		for (i = v; i != u; i = p[i]) ssize[i] += incr;
+		for (; i; i = p[i]) ssize[i] += 2 * incr;
+	}
+	for (i = 1; i &lt;= n; ++i) ans += abs(ssize[i]);
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意统计中位数时需要加上一条非树边的暂时权值 ($0$)，而不要错加了圈中最浅的点和其父节点的连边。</p>
+		<p><strong>坑2：</strong>计算时总贡献时不要忘记带上绝对值 (<code>abs</code>)。</p>
+	</body>
+</html>

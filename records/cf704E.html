@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces704E]Iron Man</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在一棵 $n$ 个顶点的树上，有 $m$ 辆车，每辆车在 $t_i$ 时刻出现在点 $v_i$，以 $c_i$ 条边每秒的速度沿着简单路径向点 $u_i$ 移动，然后在到达点 $u_i$ 时刻立即消失。</p>
+		<p>车的移动的连续的 (比如在 $\dfrac 1 {2 c_i} \,\mathrm s$ 的奇数倍时车会在一条边的中点处)。特别地，若 $v_i = u_i$，则车会在 $t_i$ 时刻在点 $v_i$ 处 "闪现"，然后立即消失。</p>
+		<p>如果同一时刻有两辆车在同一个点，则它们会发生碰撞，然后发生车祸。</p>
+		<p>你的任务就是找出，最早的车祸会在什么时候发生，或者说明不会发生车祸。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 10^5$)，表示树的点数和车的辆数。</p>
+		<p>接下来 $n - 1$ 行，每行两个正整数 $a_i, b_i$，描述一条树边。</p>
+		<p>接下来的 $m$ 行，每行包含四个非负整数 $t_i, c_i, v_i, u_i$ ($0 \leq t_i \leq 10000; 1 \leq c_i \leq 10000; 1 \leq v_i, u_i \leq n$)，描述一辆在 $t_i$ 时刻出现在点 $v_i$，并以 $c_i$ 条边每秒沿着简单路径向 $u_i$ 移动，并在 $u_i$ 消失的车。</p>
+
+		<h3>输出格式</h3>
+		<p>如果自始至终都不会发生车祸，输出一行一个整数 $-1$。</p>
+		<p>否则，输出一行一个实数，表示最早发生车祸的时刻。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-6}$。</p>
+
+		<h3>题解</h3>
+		<p>考虑链上的问题，相当于一辆车在 $t_0$ 时刻出现在坐标 $x_1$，然后以 $c \,\mathrm s^{-1}$ 的速度移动到 $x_2$，并在 $x_2$ 处消失。</p>
+		<p>我们画出这辆车移动的 $x-t$ 图像，可以发现它是一条线段，具有表达式 $x = c \left( t - t_0 \right) + x_1 \; \left( t_0 \leq t \leq t_0 + \dfrac {x_2 - x_1} c \right)$ (不妨设 $x_1 &lt; x_2$)。</p>
+		<p>而两辆车发生车祸，当且仅当它们的 $x-t$ 图像上的线段<strong>相交</strong>了 (端点相交也算相交)。</p>
+		<p>于是我们只需要判断 $x-t$ 平面上的若干条线段是否相交，这是个简单的问题，可以通过扫描线 + 平衡树来维护，具体可以参考<a href="../index.html?redirect=489" target="_blank">这里</a>或者<a href="../index.html?redirect=491" target="_blank">这里</a>，时间复杂度 $O \left( m \log m \right)$。</p>
+		<hr />
+		<p>现在考虑树上的情况，此时一辆车的运动轨迹就复杂了，可以东绕西绕拐一万个弯了。</p>
+		<p>那怎么将其转化为简单的<em>链上情况</em>呢？想必大家都猜到了，<strong>树链剖分</strong>。</p>
+		<p>我们将整棵树剖成若干条重链，则树上的任意一条简单路径都可以对应拆成 $O \left( \log n \right)$ 条 (dfs 序连续的) 链，即重链的子链。</p>
+		<p>因此，对于每条链，将其拆分成 $P = O \left( \log n \right)$ 条子链后，将其看成 $P$ 辆不同的车，在 $P$ 个不同的城市 (如果把每条链看成一个城市) 中跑。</p>
+		<p>于是，我们只需要在 $P$ 个城市中分别独立地解决该问题，最后取一个 $\min$ 就完成啦。</p>
+		<p>总时间复杂度 $O \left( n + m \log n \log m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::vector;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 100054, M = N * 2;
+
+struct event {
+	double x1, y1, x2, y2;
+	event (double x1_ = 0., double y1_ = 0., double x2_ = 0., double y2_ = 0.) : x1(x1_), y1(y1_), x2(x2_), y2(y2_) {}
+};
+
+int n, q, E = 0;
+int to[M], first[N], next[M];
+int p[N], dep[N], size[N];
+int cnt = 0, id[N], prf[N], top[N];
+int qTime[N], qVelo[N], qOrig[N], qDest[N];
+vector &lt;event&gt; es[N];
+
+inline bool down(double &amp;x, const double y) {return x &gt; y ? x = y, 1 : 0;}
+inline bool down(long double &amp;x, const long double y) {return x &gt; y ? x = y, 1 : 0;}
+inline int dmin(const int x, const int y) {return dep[x] &lt; dep[y] ? x : y;}
+inline int dmax(const int x, const int y) {return dep[x] &lt; dep[y] ? y : x;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs_wt(int x) {
+	int i, y, &amp;z = prf[x]; size[x] = !next[first[x]];
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x]) {
+			p[y] = x, dep[y] = dep[x] + 1;
+			dfs_wt(y), size[x] += size[y];
+			size[y] &gt; size[z] ? z = y : 0;
+		}
+}
+
+void dfs_hld(int x, int r) {
+	int i, y; id[x] = ++cnt, top[x] = r;
+	if (!prf[x]) return;
+	dfs_hld(prf[x], r);
+	for (i = first[x]; i; i = next[i])
+		if (!top[y = to[i]]) dfs_hld(y, y);
+}
+
+void decomposition(int u, int v, int time, int velo) {
+	static pr buf[N], rev[N];
+	int x = top[u], y = top[v], z, c = 0, d = 0, i, next_time; time *= velo;
+	for (; x != y; dep[x] &gt; dep[y] ? (buf[c++] = pr(u, p[x]), u = p[x], x = top[u]) : (rev[d++] = pr(p[y], v), v = p[y], y = top[v]));
+	buf[c++] = pr(u, v);
+	c = std::reverse_copy(rev, rev + d, buf + c) - buf;
+	for (i = 0; i &lt; c; ++i) {
+		std::tie(x, y) = buf[i], z = dmax(top[x], top[y]);
+		next_time = time + abs(dep[x] - dep[y]);
+		es[z].EB((double)time / velo, dep[x] - dep[z], (double)next_time / velo, dep[y] - dep[z]);
+		time = next_time;
+ 	}
+}
+
+namespace G {	
+	typedef bool (*cmpFn)(const int &amp;, const int &amp;);
+
+	struct sweepLine {
+		double x; int id;
+		sweepLine (double x_ = 0., int id_ = 0) : x(x_), id(id_) {}
+		inline bool operator &lt; (const sweepLine &amp;B) const {return x &lt; B.x || (x == B.x &amp;&amp; id &gt; B.id);}
+	} sl[2003731 * 2]; 
+
+	int E, cnt;
+	double X;
+	event e[2003731];
+
+	inline double getY(int id, double x0) {
+		if (id == -1) return INFINITY;
+		if (id == -2) return -INFINITY;
+		if (e[id].x1 == e[id].x2) return e[id].y1;
+		return (e[id].x1 * e[id].y2 - e[id].x2 * e[id].y1 + x0 * (e[id].y1 - e[id].y2)) / (e[id].x1 - e[id].x2);
+	}
+
+	inline double interX(const event &amp;p, const event &amp;q) {
+		double a = p.x1 - p.x2, b = q.x1 - q.x2, D = a * (q.y1 - q.y2) - b * (p.y1 - p.y2), N = b * (p.x1 * p.y2 - p.x2 * p.y1) - a * (q.x1 * q.y2 - q.x2 * q.y1);
+		return fabs(D) &lt; 7e-14 ? (fabs(N) &lt; 1e-19 ? std::max(p.x1, q.x1) : INFINITY) : N / D;
+	}
+	
+	inline bool slCmp(const int &amp;x, const int &amp;y) {return getY(x, X) &lt; getY(y, X);}
+
+	std::set &lt;int, cmpFn&gt; s(slCmp);
+
+	double main(int heavy_chain) {
+		int i, j;
+		double xi, time_limit = INFINITY;
+		E = std::copy(es[heavy_chain].begin(), es[heavy_chain].end(), e) - e;
+		for (cnt = i = 0; i &lt; E; ++i) sl[cnt++] = sweepLine(e[i].x1, i), sl[cnt++] = sweepLine(e[i].x2, ~i);
+		std::sort(sl, sl + cnt);
+		s.emplace(-2), s.emplace(-1);
+		for (j = 0; j &lt; cnt; ++j) {
+			X = sl[j].x, i = sl[j].id;
+			if (X &gt; time_limit - 1e-8) break;
+			if (i &gt;&gt; 31) s.erase(~i);
+			else {
+				auto it = s.lower_bound(i);
+				if (~*it &gt;&gt; 31) {
+					xi = interX(e[i], e[*it]);
+					if (X - 1e-8 &lt; xi &amp;&amp; xi &lt; std::min(e[i].x2, e[*it].x2) + 1e-8 &amp;&amp; fabs(getY(i, xi) - getY(*it, xi)) &lt; 1e-8)
+						down(time_limit, xi);
+				}
+				if (it != s.begin() &amp;&amp; ~*--it &gt;&gt; 31) {
+					xi = interX(e[i], e[*it]);
+					if (X - 1e-8 &lt; xi &amp;&amp; xi &lt; std::min(e[i].x2, e[*it].x2) + 1e-8 &amp;&amp; fabs(getY(i, xi) - getY(*it, xi)) &lt; 1e-8)
+						down(time_limit, xi);
+				}
+				s.emplace_hint(it, i);
+			}
+		}
+		return s.clear(), time_limit;
+	}
+}
+
+int main() {
+	int i, u, v; double ans = INFINITY;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs_wt(1), dfs_hld(1, 1);
+	for (i = 0; i &lt; q; ++i) scanf("%d%d%d%d", qTime + i, qVelo + i, qOrig + i, qDest + i), decomposition(qOrig[i], qDest[i], qTime[i], qVelo[i]);
+	for (i = 1; i &lt;= n; ++i) if (top[i] == i) down(ans, G::main(i));
+	printf("%.12lg\n", std::isfinite(ans) ? ans : -1.);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意求线段 (直线) 交点时分母为 $0$ 的情况，此时又分为两种情况：</p>
+		<ol>
+			<li>两条线段长度均不为 $0$，此时它们平行或重合，简单讨论一下即可。</li>
+			<li>两条线段中有至少一条长度为 $0$，此时需要麻烦的特判。为了简化问题我们可以在求出交点后<strong>反代</strong>进去检验是否是交点即可。</li>
+		</ol>
+		<p><strong>坑2：</strong>在扫描线的时候和那两题类似，可以使用按位取反的技巧来区分两种不同的事件。</p>
+		<p><strong>坑3：</strong>注意树链剖分的时候要覆盖每条边，因此在分解一条链的时候不要忘记考虑链顶的点和它的父节点的这一段边。</p>
+	</body>
+</html>

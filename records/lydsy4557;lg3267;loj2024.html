@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[lydsy4557][lg3267][loj2024][JLOI/SHOI2016]侦查守卫</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 R 和 B 神正在玩一款游戏。这款游戏的地图由 $n$ 个点和 $n - 1$ 条无向边组成，每条无向边连接两个点，且地图是连通的。换句话说，游戏的地图是一棵有 $n$ 个节点的树。</p>
+		<p>游戏中有一种道具叫做侦查守卫，当一名玩家在一个点上放置侦查守卫后，它可以监视这个点以及与这个点的距离在 $d$ 以内的所有点。这里两个点之间的距离定义为它们在树上的距离，也就是两个点之间唯一的简单路径上所经过边的条数。</p>
+		<p>在一个点上放置侦查守卫需要付出一定的代价，在不同点放置守卫的代价可能不同。现在小 R 知道了所有 B 神可能出现的位置，请你计算监视所有这些位置的最小代价。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, d$ ($n \leq 5 \times 10^5; d \leq 20$)，分别表示地图上的点数和侦查守卫的视野范围。约定地图上的点用 $1$ 到 $n$ 的正整数编号。</p>
+		<p>第二行包含 $n$ 个正整数 $w_i$ ($w_i \leq 1000$)，第 $i$ 个正整数表示在编号为 $i$ 的点放置侦查守卫的代价。</p>
+		<p>第三行包含一个正整数 $m$ ($m \leq n$)，表示 B 神可能出现的点的数量。</p>
+		<p>第四行包含 $m$ 个正整数，分别表示每个 B 神可能出现的点的编号，从小到大不重复地给出。</p>
+		<p>接下来 $n - 1$ 行，每行包含两个整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，表示在编号为 $u$ 的点和编号为 $v$ 的点之间有一条无向边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示监视所有 B 神可能出现的点所需要的最小代价。</p>
+
+		<h3>题解</h3>
+		<p>尝试使用树形 DP，那具体状态该怎么设计呢？</p>
+		<p>由于一个点可以覆盖它的祖先，而且 $d$ 也不是很大，因此可以用 $f_{i, r}$ 表示以 $i$ 为根的子树处理完毕后，所有的守卫还能覆盖以 $i$ 为中心的 "半径" 为 $r$ 的区域中的所有点 (i.e. 对子树外的每个点，只要它到 $i$ 的距离不超过 $r$，则它就能被 $i$ 中的点覆盖) 的最小代价。</p>
+		<p>显然，有 $f_{i, r} \leq f_{i, r + 1}$，答案就是 $f_{1, 0}$ (如果 $1$ 为根)。</p>
+		<p>不过，并不是每个点都有它的祖先和子孙覆盖，有可能出现多个子树交叉覆盖的情况，因此为了表示这种情况，我们需要再定义一种状态：</p>
+		<p>用 $less_{i, r}$ 表示以 $i$ 为根的子树中，深度 $\geq dep_i + r$ 的所有点都被守卫覆盖了 (其它的点不管)，所需要的最小代价。</p>
+		<p>显然，有 $less_{i, r} \geq less_{i, r + 1}$。记别名 $more_{i, r} = f_{i, r}$，还有 $less_{i, 0} = more_{i, 0}$。</p>
+		<hr />
+		<p>现在考虑转移。考虑加入一棵新的子树 $c$，对于 $more_{i, r}$，考虑 $i$ 点以上 "半径" 为 $r$ 的区域是谁产生的，有两种情形：</p>
+		<ol>
+			<li>这个区域由原来的守卫产生。此时，代价为 $more_{i, r}$，那么，新的子树中，深度 $\leq dep_i + r$，即 $dep_x &lt; dep_c + r$ 的所有点其实都可以由原来的守卫覆盖掉，因此，新的子树只需要覆盖所有 $dep_x \geq dep_c + r$ 的点就可以了，因此有 $$ more'_{i, r} \downarrow more_{i, r} + less_{c, r} $$</li>
+			<li>这个区域由新的守卫产生。此时，由于新的子树的根 $c$ 的深度 $dep_c = dep_i + 1$，因此它需要覆盖 "半径" 为 $r + 1$ 的区域。同理，对于原来的子树，只需要覆盖深度 $&gt; dep_i + r$，即 $dep_x \geq dep_i + \left( r + 1 \right)$ 的所有点即可，于是 $$ more'_{i, r} \downarrow less_{i, r + 1} + more_{c, r + 1} $$</li>
+		</ol>
+		<p>最后别忘了维护一下 $more$ 的单调性，即 $$ more'_{i, r} \downarrow more'_{i, r + 1} $$</p>
+		<p>对 $less_{i, r}$ 的处理，就相对比较简单了 —— 首先由定义，知 $less_{i, 0} = more_{i, 0}$。然后，对于 $r \geq 1$，简单分析可知，在以 $i$ 为根的子树中，深度 $\geq dep_i + r$ 的点都被覆盖，当且仅当对于每棵子树 $c$，深度 $\geq dep_c + \left( r - 1 \right)$ 的点均已都覆盖，于是 $$ less_{i, r} = \sum_{c \in child \left( i \right)} less_{c, r - 1} \qquad \left( r \geq 1 \right) $$</p>
+		<p>也可以维护一下 $less$ 的单调性，不过这里没必要。</p>
+		<p>最后讨论一下边界情况：$less_{i, r}$ 在 $r \geq 1$ 时可以直接计算，不需要初始值。$less_{i, 0} = more_{i, 0}$，于是只需要处理 $more_{i, r}$。</p>
+		<p>对于 $more_{i, 0}$，只需考虑当前顶点是否可能出现 B 神，从而决定是 $w_i$ 还是 $0$；对于 $more_{i, r}$ ($r \leq d$)，初始情况均为 $w_i$。</p>
+		<p>时间复杂度 $O \left( n \cdot d \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 500054, M = N * 2, D = 22, INF = 0x3f3f3f3f;
+
+int n, d, E = 0;
+int to[M], first[N], next[M];
+int w[N], more[N][D], less[N][D];
+bool key[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x, int px = 0) {
+	int i, j, y;
+	*less[x] = *more[x] = (key[x] ? w[x] : 0);
+	std::fill(more[x] + 1, more[x] + (d + 1), w[x]);
+	more[x][d + 1] = INF;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px) {
+			dfs(y, x);
+			for (j = d; j &gt;= 0; --j)
+				down(more[x][j] = min(more[x][j] + less[y][j], less[x][j + 1] + more[y][j + 1]), more[x][j + 1]);
+			*less[x] = *more[x];
+			for (j = 0; j &lt;= d; ++j)
+				down(less[x][j + 1] += less[y][j], less[x][j]);
+		}
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d%d", &amp;n, &amp;d);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", w + i);
+	for (scanf("%d", &amp;u); u; --u) scanf("%d", &amp;v), key[v] = true;
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1), printf("%d\n", *more[1]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在计算完 $more$ 后不要忘记维护单调性，因为有可能 $less_{i, r}$ 随 $r$ 的增大降低得很快。</p>
+		<p><strong>坑2：</strong>注意转移顺序，不要用已更新的 $more$ (或 $less$) 去计算。</p>
+	</body>
+</html>

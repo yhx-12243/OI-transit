@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces611H]New Year and Forgotten Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Limak 有一棵 $n$ 个顶点的无根树，不过顶点的编号已经看不清了，只知道它在十进制表示下的长度。</p>
+		<p>现在只知道了这棵树的<strong>边集</strong> (i.e. 即 $n - 1$ 条边的序列)，其中每个顶点用对应长度的 <code>?</code> 表示，你需要帮她还原出这一棵树。</p>
+		<p>当然，Limak 有可能记错了信息而导致不存在满足条件的树，此时你只需要输出 $-1$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($2 \leq n \leq 2 \times 10^5$)，表示树的顶点的个数。</p>
+		<p>接下来 $n - 1$ 行，每行包含两个用空格分割的，由若干个 <code>?</code> 构成的字符串，表示对应顶点编号的长度。保证问号的个数不超过 $1 + \left \lfloor \lg n \right \rfloor$。</p>
+
+		<h3>输出格式</h3>
+		<p>如果不存在符合要求的树，输出一行 <samp>-1</samp>。</p>
+		<p>否则，输出 $n - 1$ 行表示你所还原的树，每行两个整数 $u, v$ 表示树上有一条连接 $u, v$ 的边。</p>
+
+		<h3>题解</h3>
+		<p>首先，我们容易统计出，对每一对 $i, j$，有多少条边连接 $i$ 位数和 $j$ 位数。</p>
+		<p>设一共有 $n_i$ 个 $i$ 位数，由 $e_i$ 条连接 $i$ 位数和 $i$ 位数的边 ($e_i &lt; n_i$)，则由等价性我们可以在 $n_i$ 个 $i$ 位数中任意挑 $e_i + 1$ 个将其连起来，看成一个整体，于是等价于只有 $n_i - e_i$ 个 $i$ 位数 (点)，且相同位数之间没有边。</p>
+		<p>将所有的 $i$ 位数视为整体，并将其缩成一个大点 $\mathbf v_i$。于是，现在就一共只有 $1 + \left \lfloor \lg n \right \rfloor$ 个 "点" (其中 $\mathbf v_i$ 是 $n_i$ 重点)，剩下 $\sum n_i - 1$ 条边，每条边连接两个不同的大点，问是否存在一种连边方案使之构成树。</p>
+		<p>考虑不妨其中假定一个点为根 (即变为有根树)，则剩下的 $\sum n_i - 1$ 个点和 $\sum n_i - 1$ 条边之间就存在一个一一对应关系 —— 每个点与它连向父节点的边对应。</p>
+		<p>于是我们将这 $n_i - 1$ 个点放到左边，$\sum n_i - 1$ 条边放到右边，每个边与它所关联的两个点之间连一条边，这样可以得到一个新的<strong>二分图</strong>。</p>
+		<p>因此，有解的一个<strong>必要条件</strong>是，这个二分图存在完美匹配。</p>
+		<p>但它是充分的吗？不一定。考虑有 $3$ 类点 (红、绿、蓝)，每类各 $2$ 个，不妨设最大的红点为根，其余 $5$ 个点和边的对应关系如下 (箭头表示父节点指向子节点)：</p>
+		<img class="center-block" src="uploads/155.png" alt="反例" />
+		<p>然而它并不是一棵树。</p>
+		<hr />
+		<p>不过，我们可以尝试着加强条件，刚才这棵树如果令红点为根存在完美匹配，而如果令绿点为根就不存在完美匹配了。</p>
+		<p>因此，这个必要条件可以加强为：<strong>任取一点为根，图都要存在完美匹配</strong>。</p>
+		<p>这么一来，它的确就是一个<strong>充要条件</strong>了。</p>
+		<p>因为，假设存在一个匹配，它无法构造出对应的树。那么一定会在若干个点处<em>成环</em> ($n$ 个点 $n - 1$ 条边的无向简单图，非树必有环)，则将环去掉后，剩下的点集连出去的边数小于点数，由 Hall 定理知，去掉环内任意一点后，图<strong>不存在</strong>完美匹配。</p>
+		<p>于是，我们就可以判别是否有解了。虽然这个条件比较强，但是利用了 Hall 定理后，判定还是相对容易的。</p>
+		<p>我们只需要枚举点集的每一个<strong>真子集</strong>，判断这个点集 (在二分图中) 的邻域是否不小于本身即可。</p>
+		<p>不过点数 ($\sum n_i - 1$) 有点大，不过没关系，由于当点的颜色 (类别) 集合确定后，它的邻域是固定的，因此由贪心的理论，我们要么就把一类点取完，要么就不取。因此只需要验证 $2^{1 + \left \lfloor \lg n \right \rfloor} - 2$ 个集合即可。</p>
+		<hr />
+		<p>判定完是否有解后，剩下的就是构造了。</p>
+		<p>由上面的证明知，如果满足前面的条件 (即任取一点为根，图都存在完美匹配)，则此图的<strong>任意一个完美匹配</strong>均满足要求。</p>
+		<p>于是我们只需要找到这张图的一个完美匹配即可。</p>
+		<p>网络流显然是可以滴，匈牙利么……得优化成 <a href="../index.html?tag=Hopcroft-Karp%20%E7%AE%97%E6%B3%95" target="_blank">Hopcroft-Karp 算法</a>才能过。</p>
+		<p>不过，由于这里点的类数 (类别个数) 比较小，这里有一个投机取巧的方法：即每次枚举匹配的一条边 (对应树上的一条边和一个新点)，检验剩下的图是否由完美匹配 —— 可以通过 Hall 定理在 $O \left( 2^{\lg n} \right) = O \left( n^{\lg 2} \right)$ 时间内完成。</p>
+		<p>不停添加，直到找到恰好 $n - 1$ 条边。最后只需要输出这些边就可以了，总时间复杂度 $O \left( n^{1 + \lg 2} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ctz __builtin_ctz
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 200054, pw10[6] = {1, 10, 100, 1000, 10000, 100000};
+
+int n, l, ALL;
+int count[6][6], mov[6];
+int weight[6], unlock = 1;
+
+namespace O {
+	int E = 0;
+	pr e[N];
+
+	inline void add(int x, int y) {e[E++] = std::minmax(x, y);}
+
+	inline bool ok() {return E == n - 1;}
+
+	int print() {
+		std::sort(e, e + E);
+		for (int i = 0; i &lt; E; ++i) printf("%d %d\n", e[i].first, e[i].second);
+		return 0;
+	}
+}
+
+inline int Log(const int x) {return std::upper_bound(pw10, pw10 + 6, x) - pw10 - 1;}
+
+inline bool Hall() {
+	int u, v, S, $S, $T;
+	for (S = 1; S &lt; ALL; ++S) {
+		$S = $T = 0;
+		for (u = S; u; u &amp;= u - 1) $S += weight[ctz(u)];
+		for (u = 0; u &lt; l; ++u)
+			for (v = u + 1; v &lt;= l; ++v)
+				if ((S &gt;&gt; u | S &gt;&gt; v) &amp; 1) $T += count[u][v];
+		if ($T &lt; $S) return false;
+	}
+	return true;
+}
+
+int ddl[6][6];
+
+int main() {
+	int i, j, u, v; char $1[8], $2[8];
+	scanf("%d", &amp;n), l = Log(n), ALL = ~(-2 &lt;&lt; l);
+	for (i = 1; i &lt; n; ++i)
+		scanf("%s%s", $1, $2), u = strlen($1) - 1, v = strlen($2) - 1,
+		++count[u][v], ++count[v][u];
+	memcpy(ddl, count, sizeof ddl);
+	for (i = 0; i &lt; l; ++i) weight[i] = pw10[i + 1] - pw10[i];
+	weight[i] = n - pw10[i] + 1;
+	for (i = 0; i &lt;= l; ++i) {
+		for (j = count[i][i] / 2; j; --j, --weight[i])
+			O::add(pw10[i] + weight[i] - 2, pw10[i] + weight[i] - 1);
+		if (count[i][i] = 0, weight[i] &lt;= 0) return puts("-1"), 0;
+	}
+	if (!Hall()) return puts("-1"), 0;
+	memcpy(mov, pw10, (l + 1) &lt;&lt; 2);
+	for (--*weight, ++*mov; !O::ok(); )
+		for (v = unlock; v; v &amp;= v - 1)
+			for (i = ctz(v), j = 0; j &lt;= l; ++j) if (count[i][j] &amp;&amp; weight[j]) {
+				--count[i][j], --count[j][i], --weight[j];
+				if (Hall()) {O::add(pw10[i], mov[j]++), unlock |= 1 &lt;&lt; j; continue;}
+				++count[i][j], ++count[j][i], ++weight[j];
+			}
+	return O::print(), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意充要条件是，<strong>任选一点为根</strong>，图都存在完美匹配，而不是规定某一点为根。因此，在使用 Hall 定理时，要使用<strong>每个</strong>子集，而不能去掉其中一个点 (当作根)，且这个子集<strong>不能是全集</strong> (因为不存在一个匹配饱和所有 $\sum n_i$ 个点)。</p>
+		<p><strong>坑2：</strong>在使用 Hall 定理时，枚举的子集务必是<strong>左部</strong>的点 (因为右部的点 —— 即代表原树的边，有 $O \left( \lg^2 n \right)$ 个)。此时在统计邻域的时候的条件应该是或 (<code>|</code>) 而不是与 (<code>&amp;</code>)。</p>
+	</body>
+</html>

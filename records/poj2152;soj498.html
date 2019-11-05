@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[poj2152][soj498]Fire</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Z 国有 $n$ 个城市，编号为从 $1$ 到 $n$。城市之间用高速公路连接，并且每两个城市之间都有唯一一条路径。</p>
+		<p>最近 Z 国经常发生火灾，所以政府决定在一些城市修建消防站。在城市 $K$ 建立消防站要花费 $W_K$。不同的城市花费不同。如果在城市 $K$ 没有消防站，则离他最近的消防站与他的距离不能超过 $D_K$，不同城市的 $D$ 可能不相同。</p>
+		<p>为了省钱，政府希望你能算出修建消防站最小的总花费。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含一个正整数 $n$ ($2 \leq n \leq 1000$)，表示城市的个数。</p>
+		<p>第二行包含 $n$ 个正整数 $W_i$ ($W_i \leq 10000$)，表示在城市 $i$ 建立消防站的代价。</p>
+		<p>第三行包含 $n$ 个非负整数 $D_i$ ($D_i \leq 10000$)，表示城市 $i$ 离最近消防站的距离。</p>
+		<p>接下来的 $n - 1$ 行，每行包含三个正整数 $u_i, v_i, l_i$ ($1 \leq u_i, v_i \leq n; 1 \leq l_i \leq 1000$)，表示 $u_i$ 到 $v_i$ 之间有一条长度为 $l$ 的公路。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示最小的总花费。</p>
+
+		<h3>题解</h3>
+		<p>首先，题目条件可以转化为，对于每个顶点 $i$，<strong>至少存在一个消防站，与之距离不超过 $D_i$</strong>，最小化所有的消防站的代价。</p>
+		<p>考虑对于一棵子树 $S$，即一棵子树中的所有点都有消防站与之对应的解。</p>
+		<p>可以证明，这个解中，<strong>至多只有一个消防站在 $S$ 外</strong>。</p>
+		<p>简单证明：若有多个在 $S$ 外，则 $S$ 外只取与 $S$ 最近者，则依然满足条件 (因为 $S$ 内每个顶点到 $S$ 外点的最短路必经过该子树的根)。</p>
+		<p>用 $f_{i, j}$ 表示，以 $i$ 为根的子树，每个点都有消防站与之对应，且 $i$ 被 $j$ "管辖" (即 $i$ 与 $j$ 对应) 的最小花费。再记 $F_i = \min\limits_j f_{i, j}$。显然答案就是 $F_1$ (如果 $1$ 为根)。</p>
+		<p>考虑转移，首先，必须有 $\operatorname{dist} \left( i, j \right) \leq D_i$，否则状态无效，令 $f_{i, j} = + \infty$。</p>
+		<p>对于一个满足 $\operatorname{dist} \left( i, j \right) \leq D_i$ 的 $\left( i, j \right)$，考虑它的每棵子树 $c$，都需要被管辖。</p>
+		<p>如果管辖 "<em>以 $c$ 为根的子树</em>" 的顶点集合完全在子树内且不含 $j$，则代价就是 $F_c$；</p>
+		<p>如果管辖 "<em>以 $c$ 为根的子树</em>" 的顶点除了 $j$ 外都在子树内，则代价就是 $f_{c, j} - W_j$ (因为 $j$ 已经被使用了)；</p>
+		<p>如果管辖 "<em>以 $c$ 为根的子树</em>" 的顶点除了子树内的点和 $j$ 外还有其它点，则它要么不是最优解 (子树外的点多于一个)，要么会被其它点更新到 (当枚举 $j$ 为子树外的节点时)，因此不需要考虑。</p>
+		<p>综上，转移方程为 $$ f_{i, j} = W_j + \sum_{c \in child \left( i \right)} \min \left\{ F_c, f_{c, j} - W_j \right\} \qquad \left( \operatorname{dist} \left( i, j \right) \leq D_i \right) $$</p>
+		<p>由于 $\operatorname{dist}$ 函数的计算可以较快速地完成，因此单组数据的时间复杂度为 $O \left( n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 1054, M = N * 2;
+typedef std::bitset &lt;N&gt; bitset;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int n, root, E = 0;
+int next[M], first[N];
+int cost[N], D[N];
+int f[N][N];
+bitset G[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+inline void addedge(int u, int v, int w) {
+	e[++E] = edge(u, v, w), next[E] = first[u], first[u] = E;
+	e[++E] = edge(v, u, w), next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x, int px = 0, int dist = 0) {
+	int i, y;
+	if (dist &lt;= D[root]) G[root].set(x);
+	else return;
+	for (i = first[x]; i; i = next[i])
+		if ((y = e[i].v) != px)
+			dfs(y, x, dist + e[i].w);
+}
+
+void dp(int x, int px = 0) {
+	int i, y, z;
+	for (i = first[x]; i; i = next[i])
+		if ((y = e[i].v) != px) dp(y, x);
+	for (z = G[x]._Find_first(); z != N; z = G[x]._Find_next(z))
+		for (f[x][z] = cost[z], i = first[x]; i; i = next[i])
+			if ((y = e[i].v) != px)
+				f[x][z] += min(f[y][z] - cost[z], *f[y]);
+	*f[x] = *std::min_element(f[x] + 1, f[x] + (n + 1));
+}
+
+void work() {
+	int i, u, v, w;
+	scanf("%d", &amp;n), E = 0;
+	memset(first, 0, (n + 1) &lt;&lt; 2);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", cost + i);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", D + i), G[i].reset();
+	for (i = 1; i &lt; n; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), addedge(u, v, w);
+	for (root = 1; root &lt;= n; ++root) dfs(root), memset(f[root], 63, (n + 1) &lt;&lt; 2);
+	dp(1), printf("%d\n", *f[1]);
+}
+
+int main() {
+	int T;
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于 $n$ 不是很大，因此 $\operatorname{dist}$ 函数可以通过 $n$ 遍 <code>dfs</code> 来暴力得到。</p>
+		<p><strong>坑2：</strong>多组数据记得清空，清空时不要忘记令所有的 $f_{i, j}$ 和 $F_i$ 为 $+ \infty$ (而不是 $0$)。</p>
+	</body>
+</html>

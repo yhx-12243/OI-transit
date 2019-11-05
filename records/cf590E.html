@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces590E]Birthday</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n$ 个字符串，你需要选择尽可能多的字符串，使得<strong>两两之间不是子串关系</strong>，最大化选的串的个数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 750$)，表示字符串的个数。</p>
+		<p>接下来 $n$ 行，每行包含一个只包含 $\texttt a$ 或 $\texttt b$ 构成的字符串 $s_i$ ($\displaystyle \sum_{i=1}^n \left| s_i \right| \leq 10^7$)，依次描述每个字符串。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数，表示选的串的个数的最大值 $M$。</p>
+		<p>第二行输出 $M$ 个整数，表示对应的串在输入中的位置，从 $1$ 开始编号。如果有多组解，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>容易看出，两个串之间的 <em>"子串关系"</em> 是一种<strong>偏序关系</strong>。</p>
+		<p>对于串 $s, t$，如果 $s$ 是 $t$ 的子串，我们在 $s$ 和 $t$ 之间连一条有向边，这样可以得到一张有向无环图。</p>
+		<p>于是我们需要求这张有向图 $G$ 的 <em>"最大独立集"</em> —— 这里的 "独立集" 指的是任意两点之间<strong>不可比较</strong>，即既不存在从 $u$ 到 $v$ 的路径，也不存在从 $v$ 到 $u$ 的路径，用专业的术语说就是求<strong>最大反链</strong>。</p>
+		<p>由 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> 上的 <a href="https://en.wikipedia.org/wiki/Dilworth%27s_theorem" target="_blank">Dilworth 定理</a>，一个 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> 的最大反链等于它的最小链覆盖 —— 即需要覆盖所有的顶点所需要的最小的链的个数。</p>
+		<p>于是我们只需要求这张图的最小链覆盖，并给出一组反链构造。不难发现，这一部分就是 <a href="../index.html?redirect=781" target="_blank">[CTSC2008]祭祀</a>，于是 Floyd 求出传递闭包后，直接上二分图最大匹配即可。</p>
+		<hr />
+		<p>所以现在的任务就是如何快速求出这张有向图 (即这个<strong>偏序关系</strong>)。</p>
+		<p>也就是说，我们需要对于每个串 $s$，求出 $s$ 包含了哪些串 (即哪些串是 $s$ 的子串)，以及哪些串包含了 $s$ ($s$ 是哪些串的子串)。</p>
+		<p>由于这两个关系是 (反) 对称的，因此求出一部分后另一部分自然就求出来了。因此我们考虑求较为简单的一部分。</p>
+		<p>根据套路，对于多个模式串，我们建立这些串的 <strong><abbr title="Aho-Corasick 自动机">AC 自动机</abbr></strong>，然后考虑对每个串进行匹配。</p>
+		<p>这么一来，我们已经知道了需要求的内容 —— 即对于每个串，它包含哪些串。</p>
+		<p>在 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>上，记录每个节点能匹配的串中 (如果存在) 最长的那个，不妨设为 <code>val[t]</code>。在匹配的过程中，只需要统计当前节点 <code>val[t]</code> 和它的 fail 节点 (<code>val[fail[t]]</code>) 即可，再往上走可以使用将来的<strong>传递闭包</strong>来解决，而且走了时间复杂度就不能保证了。</p>
+		<p>于是，我们现在也成功<strong>求出了这个偏序关系</strong>，从而整个问题可以在 $O \left( \sum \left| s_i \right| + n^3 \right)$ 时间内解决。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 754, LEN = 10000754;
+typedef std::bitset &lt;N&gt; bitset;
+
+int n;
+char buffer[LEN], *s[N];
+bitset G[N], used;
+int L[N], R[N];
+bool covL[N], covR[N];
+int cnt = 0, ans[N];
+
+namespace AC {
+	int cnt = 1, d[LEN][2], f[LEN], val[LEN], que[LEN];
+
+	int append(char *s, int tag_) {
+		char *p = s;
+		int t = 1, id;
+		for (; *p; ++p)
+			id = *p - 97, t = (d[t][id] ? d[t][id] : (d[t][id] = ++cnt));
+		return val[t] = tag_, p - s;
+	}
+
+	void build() {
+		int h, ta = 1, i, t, id;
+		*que = 1, f[1] = 0;	
+		for (h = 0; h &lt; ta; ++h)
+			for (i = que[h], id = 0; id &lt; 2; ++id) {
+				t = (f[i] ? d[f[i]][id] : 1);
+				int &amp;u = d[i][id];
+				if (!u) {u = t; continue;}
+				f[u] = t, que[ta++] = u, val[u] || (val[u] = val[t]);
+			}
+	}
+
+	bitset match(char *s) {
+		int t = 1, id; bitset ret;
+		for (; *s; ++s) {
+			id = *s - 97, t = (d[t][id] ? d[t][id] : 1);
+			if (val[t]) ret.set(val[t]);
+			if (val[f[t]]) ret.set(val[f[t]]);
+		}
+		return ret;
+	}
+}
+
+bool dfs(int x) {
+	for (int y = G[x]._Find_first(); y != N; y = G[x]._Find_next(y))
+		if (!used.test(y) &amp;&amp; (used.set(y), !L[y] || dfs(L[y])))
+			return L[y] = x, R[x] = y, true;
+	return false;
+}
+
+void konig(int x) {
+	for (int y = G[x]._Find_first(); y != N; y = G[x]._Find_next(y))
+		if (!covR[y]) covR[y] = true, konig(L[y]);
+}
+
+int main() {
+	int i, j, M = 0;
+	scanf("%d", &amp;n), *s = buffer;
+	for (i = 0; i &lt; n; ++i)
+		scanf("%s", s[i]), s[i + 1] = s[i] + 1 + AC::append(s[i], i + 1);
+	AC::build();
+	for (i = 1; i &lt;= n; ++i) (G[i] = AC::match(s[i - 1])).reset(i);
+	for (i = 1; i &lt;= n; ++i)
+		for (j = 1; j &lt;= n; ++j)
+			if (G[j].test(i)) G[j] |= G[i];
+	for (i = 1; i &lt;= n; ++i) used.reset(), M += dfs(i);
+	printf("%d\n", n - M);
+	for (i = 1; i &lt;= n; ++i) if (!R[i]) konig(i);
+	for (i = 1; i &lt;= n; ++i) if (R[i] &amp;&amp; !covR[R[i]]) covL[i] = true;
+	for (i = 1; i &lt;= n; ++i) if (!(covL[i] || covR[i])) ans[cnt++] = i;
+	for (i = 0; i &lt; cnt; ++i) printf("%d%c", ans[i], i == cnt - 1 ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在匹配的时候不要忘记检验 <code>fail[t]</code> 的值，不然无法找到一个串的后缀哦~</p>
+		<p><strong>坑2：</strong>注意一下输出格式，和那一题的不太一样。</p>
+	</body>
+</html>

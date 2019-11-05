@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces571D]Campus</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 座宿舍，$n$ 所大学和 $n$ 个政教处。初始时，第 $i$ 座宿舍属于第 $i$ 所大学，由第 $i$ 个政教处管理。</p>
+		<p>随着时间的推移，会接连不断地发生许多事件。这些事件共分为四种类型：</p>
+		<ol>
+			<li><p>大学 $a_j$ 兼并了大学 $b_j$。这之后，所有属于大学 $b_j$ 的宿舍均被分配到大学 $a_j$。</p></li>
+			<li><p>政教处 $c_j$ 兼并了政教处 $d_j$。这之后，所有由 $d_j$ 管理的宿舍均由 $c_j$ 管理。</p></li>
+			<li><p>大学 $x_j$ 的学生回宿舍<del>偷懒</del>。令 $k_{x_j}$ 表示此时属于大学 $x_j$ 的宿舍数，则属于大学 $x_j$ 的<strong>所有 $k_{x_j}$ 座宿舍</strong>的人数<strong>均增加 $k_{x_j}$</strong> (也就是说，一个大学所拥有的宿舍越多，一次<del>偷懒的</del>学生人数越多)。</p></li>
+			<li><p>政教处 $y_j$ 进行了一次 "宿舍搜查"，此时所有由政教处 $y_j$ 管理的宿舍中的<del>偷懒的</del>学生均会被抓到政教处<del>喝茶</del>。</p></li>
+		</ol>
+		<p>容易发现，每时每刻，一座宿舍<strong>恰属于一所大学和一个政教处</strong>，初始时，所有的宿舍中都没有学生。</p>
+		<p>你的任务就是处理这些询问，并回答若干个形如 "此时宿舍 $q_j$ 中共有多少学生？" 的问题。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 5 \times 10^5$)，分别表示宿舍的数量和询问的数量。</p>
+		<p>接下来 $m$ 行，每行描述一次操作，格式如下：</p>
+		<ol>
+			<li><code>U <em>a<sub>j</sub></em> <em>b<sub>j</sub></em></code> 表示大学 $a_j$ 兼并了大学 $b_i$。</li>
+			<li><code>M <em>c<sub>j</sub></em> <em>d<sub>j</sub></em></code> 表示政教处 $c_j$ 兼并了政教处 $d_i$。</li>
+			<li><code>A <em>x<sub>j</sub></em></code> 表示大学 $x_j$ 的学生会寝室偷懒。</li>
+			<li><code>Z <em>y<sub>j</sub></em></code> 表示政教处 $y_j$ 进行了一次 "宿舍搜查"。</li>
+			<li><code>Q <em>q<sub>j</sub></em></code> 表示询问当前宿舍 $q_j$ 中的学生数目。</li>
+		</ol>
+		<p>保证询问中出现的所有整数均为正整数且不超过 $n$，保证任意时刻操作合法 —— 即对应的<em>大学</em>或<em>政教处</em>存在。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每次 <samp>Q</samp> 操作，输出一行一个整数，表示对应时刻对应宿舍中的学生数目。</p>
+
+		<h3>题解</h3>
+		<p>先考虑没有政教处时怎么做 (即只有 <samp>U</samp>, <samp>A</samp>, <samp>Q</samp> 操作)。</p>
+		<p>可以看出，如果我们把大学之间的兼并通过 Kruskal 重构树表示出来，则每一次 "偷懒" 操作相当于一个 (查询子树大小后的) <strong>子树加</strong>。</p>
+		<p>这当然可以使用线段树来解决，不过没有必要这么复杂。我们考虑使用<strong>带权并查集</strong>这一数据结构。</p>
+		<p>众所周知，在带权并查集中，规定 (每个集合的) 根节点的权值为 $0$，其余节点的权值未它的实际权值减去它在并查集中的父节点的实际权值，这样在路径压缩后仍能保持这一结构，从而快速查询每个节点的权值。</p>
+		<p>因此，如果我们把 "子树加 $w$" 这一操作做一个树上顺差分 (链差分)，那么，一次修改相当于<strong>只把</strong>根节点的权值提升了 $w$。</p>
+		<p>不过，众所周知，并查集中根节点是不能有权值的 (否则每次查询 <code>ancestor</code> 权值都会累加)，因此我们可以设定一个 <code>global[]</code> 数组表示每个并查集的 "基准值" (即根节点的实际权值)。</p>
+		<p>然后，在合并的时候，将两个根的 "基准值" 转移到权值中，设定一个父节点，基准值为 $0$，就完成了合并。</p>
+		<p>当然，也可以偷懒，如果需要改变根节点的权值，可以给它单独放一个父节点，然后像普通节点一样更改权值，不过常数会稍稍大一点。</p>
+		<p>于是，我们使用了<strong>带权并查集</strong>这一数据结构，完成了子树加和单点查值的操作，从而解决了没有政教处时的问题。</p>
+		<hr />
+		<p>当加入政教处时，其实也没有那么麻烦。</p>
+		<p>我们考虑政教处的作用 —— 就是把一些节点的权值清零。注意到实际地将子树赋值为 $0$ 是比较麻烦的 (况且两棵树的形态还不一样)。不过，注意到 "清零" 操作的<em>幂等性</em> (多次清零等价于一次清零)，因此我们可以对每个询问 $q_0$，记录下它所表示的点 $i$ <strong>最后一次</strong>被清零的时间，不妨设为 $l_i$。</p>
+		<p>那么对于这个询问，我们只需要统计出，在询问的时刻 ($t_0$)，点 $i$ 的权值 (学生数目)，以及 $l_i$ 时刻，点 $i$ 的权值，两者相减，就是我们所要的答案 —— 自最后一次清零以来增加的学生数。</p>
+		<p>那怎么维护这个信息呢？其实和上面是完全类似的，对于 "时间" 这一关键字，兼并相当于构造 Kruskal 重构树，而每次 "清零" 相当于把 Kruskal 重构树中的<strong>一棵子树</strong>的　"最后清零时间" 赋值为 $t$，也可以理解为对当前的 $t$ 取 $\max$。</p>
+		<p>而 "对一个数取 $\max$" 的操作，仍然可以使用类似的<strong>带权并查集</strong>来完成，因此，这一部分也得到解决。</p>
+		<p>总时间复杂度就是只路径压缩的并查集的时间复杂度，$O \left( \left( n + m \right) \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef void (*func)(ll &amp;, const ll);
+const int N = 1000054;
+
+struct event {
+	int op, arg1, arg2;
+	event * read() {return scanf("%s%d", &amp;op, &amp;arg1), ((op &amp;= 255) &amp; 7) == 5 &amp;&amp; scanf("%d", &amp;arg2), this;}
+} e[N];
+
+struct sweepLine {
+	int v, c, t, id;
+	sweepLine (int node = 0, int coefficient = 0, int time = 0, int id_ = 0) : v(node), c(coefficient), t(time), id(id_) {}
+	inline bool operator &lt; (const sweepLine &amp;B) const {return t &lt; B.t;}
+} sl[N];
+
+int n, q, qn = 0;
+int cnt = 0;
+ll global[N], ans[N];
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+inline void add(ll &amp;x, const ll y) {x += y;}
+
+namespace DSU {
+	int tot;
+	int p[N], size[N], st[N];
+	ll w[N];
+	func f;
+
+	inline void init(int n, func oper) {
+		tot = n, f = oper, std::iota(p, p + (n + 1), 0), std::fill(size + 1, size + (n + 1), 1);;
+	}
+
+	int ancestor(int x) {
+		int i = 0;
+		for (; x != p[x]; st[++i] = x, x = p[x]);
+		for (st[i + 1] = x; i; p[st[i]] = x, --i) f(w[st[i]], w[st[i + 1]]);
+		return x;
+	}
+
+	inline ll get_w(int x) {return ancestor(x), w[x];}
+
+	inline void combine(int x, int y, bool additive = false) {
+		x = ancestor(x), y = ancestor(y), ++tot;
+		p[x] = p[y] = p[tot] = tot, size[tot] = size[x] + size[y];
+		if (additive) w[x] = global[x], w[y] = global[y], global[x] = global[y] = global[tot] = 0;
+	}
+}
+
+int main() {
+	int i, j, u, v; ll t;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 0; i &lt; q; ++i) e[i].read();
+	memset(DSU::w, -1, sizeof DSU::w), DSU::init(n, up);
+	for (i = 0; i &lt; q; ++i)
+		switch (e[i].op) {
+			case 77:
+				u = e[i].arg1, v = e[i].arg2, DSU::combine(u, v); break;
+			case 81:
+				v = e[i].arg1;
+				sl[cnt++] = sweepLine(v, 1, i, qn);
+				sl[cnt++] = sweepLine(v, -1, DSU::get_w(v), qn++);
+				break;
+			case 90:
+				v = e[i].arg1, DSU::w[ DSU::ancestor(v) ] = i;
+				break;
+		}
+	std::sort(sl, sl + cnt), sl[cnt].t = INT_MAX;
+	memset(DSU::w, 0, sizeof DSU::w), DSU::init(n, add);
+	for (j = 0; !~sl[j].t; ++j);
+	for (i = 0; i &lt; q; ++i) {
+		switch (e[i].op) {
+			case 65:
+				v = DSU::ancestor( e[i].arg1 ), global[v] += DSU::size[v];
+				break;
+			case 85:
+				u = e[i].arg1, v = e[i].arg2, DSU::combine(u, v, true); break;
+		}
+		for (; sl[j].t &lt;= i; ++j) {
+			v = sl[j].v, t = DSU::get_w(v), t += global[DSU::p[v]];
+			ans[sl[j].id] += sl[j].c * t;
+			
+		}
+	}
+	for (i = 0; i &lt; qn; ++i) printf("%lld\n", ans[i]);
+    return 0; 
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于并查集在合并的时候会建立新的节点，因此清零时需要扩大范围 (比如使用 <code>sizeof</code>)，或者也可以在新建节点的时候即时清空。</p>
+		<p><strong>坑2：</strong>注意答案可能很大，需要使用 <code>long long</code> 存储。</p>
+	</body>
+</html>

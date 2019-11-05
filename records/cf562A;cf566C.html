@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/sh_typical.min.css">
+		<title>[Codeforces562A/566C]Logistical Questions</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个顶点的树 $T$，点有点权，边有边权，你需要寻找一个顶点 $f$，使得 $\displaystyle \sum_{v \in V \left( T \right)} w_v \cdot \operatorname{dist} \left( v, f \right)^{3/2}$ 最小 (其中 $w_v$ 是顶点 $v$ 的点权，$\operatorname{dist} \left( u, v \right)$ 为 $u$ 到 $v$ 的带权路径)，并输出这个最小值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 2 \times 10^5$)，表示树的点数。</p>
+		<p>第二行包含 $n$ 个非负整数 $w_i$ ($0 \leq w_i \leq 10^8$)，表示每个点的点权。</p>
+		<p>接下来 $n - 1$ 行，每行三个正整数 $a_i, b_i, l_i$ ($1 \leq a_i, b_i \leq n; a_i \neq b_i; 1 \leq l_i \leq 1000$)，描述一条边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个整数 $f$ 和一个实数 $c$。表示使得 $\displaystyle \sum_{v \in V \left( T \right)} w_v \cdot \operatorname{dist} \left( v, f \right)^{3/2}$ 最小的 $f$ 以及它的值 $c$，如果有多个 $c$ 同时达到最小值，输出任意一个均可。</p>
+		<p>答案被认为正确当且仅当<em style="color: blue">你输出的 $c$ 值和答案的 $c$ 值</em>，<em style="color: fuchsia">你输出的 $c$ 值和你输出的 $f$ 计算所得的结果</em>的相对或绝对误差<strong>均不超过 $10^{-6}$</strong>。</p>
+
+		<h3>题解</h3>
+		<p>可以看出，题目是一个<strong>带权重心</strong>的问题。</p>
+		<p>先考虑链上的问题，容易发现设重心的<strong>坐标</strong>是 $x$，对于每个点 $i$，设它的权值为 $w_i$，位置为 $x_i$，它对总距离函数的贡献为 $f_i \left( x \right) = w_i \cdot \left| x - x_i \right|^{3/2}$，是一个<strong>严格 (下) 凸函数</strong>。</p>
+		<p>那么，所有点对总距离的贡献的<em>和函数</em>就应为 $F \left( x \right) = \sum\limits_i f_i \left( x \right) = \sum\limits_i w_i \cdot \left| x - x_i \right|^{3/2}$，由凸函数的性质，凸函数的和函数仍是凸函数。从而它 $F \left( x \right)$ 是严格凸函数，从而也是严格单峰的。</p>
+		<p>对于一般的严格单峰函数，我们通常采用<strong>三分</strong>的方法，而对于<strong>可导的严格单峰函数</strong>，我们可以采用<strong>对导数二分</strong>的方法 (因为零点唯一，所以可以利用<strong>介值定理</strong>进行二分)。</p>
+		<p>于是，我们只需要二分每个点，计算出在该点处 $F \left( x \right)$ 的导数 $F' \left( x \right)$ 从而决定取左边一半还是右边一半。</p>
+		<hr />
+		<p>对于树上的情况，也是类似的。</p>
+		<p>可以发现，对于树上的每个点，它对距离函数的贡献也是严格凸的 <span style="color: red">(ps: 定义域为树的 (严格) 凸函数的定义是：存在一个点 $r$，满足树以它为根时，每条边上的函数值关于深度具有统一的单调的导数)</span>。</p>
+		<p>于是，由凸函数的性质，若干凸函数的和函数，仍然是凸函数。于是，我们需要寻找一个树上凸函数的极值点。</p>
+		<p>刚才所分析的二分法，仍然是成立的。</p>
+		<p>考虑对于一个点 $v$，如果它已经是极值点，那么这个点在所有方向上的导数均应为 $0$。</p>
+		<p>否则，设极值点为 $r$，那么 $v$ 必然是树中间的一个节点。于是，它关联的边中，有且仅有一条是通向 $r$ 的，由树上凸函数的定义，这条边的 ($v \to r$ 方向) 的导数应该<strong>小于 $0$</strong>；而其它的边，都是通向更深的点的，由定义，这些边的导数均<strong>大于 $0$</strong>。</p>
+		<p>因此，我们就可以在树上进行二分了 —— 因为，在树上随便选一个点后，找到它连向的边中 (唯一一条) 导数为负的边，然后将其余的子树都删掉，直到只剩下一个点。</p>
+		<p>那怎样保证树上二分的复杂度呢？相信大家都猜到了，<big><strong>找重心</strong></big>！在<strong>点分治</strong>的过程中，通过重心进行分治，可以达到 $O \left( n \log n \right)$ 的复杂度，那么，如果在树上二分的过程中，也使用<strong>找重心</strong>的方法，这样就能保证递归的层数不超过 $O \left( \log n \right)$ 了。</p>
+		<p>而每次需要重新计算函数值及其导数，因此每一次的计算花费是 $O \left( n \right)$ 的，于是最终的时间复杂度为 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 200054, M = N * 2;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int n, E = 0;
+int first[N], next[M];
+int w[N], size[N];
+double diff[N];
+int ansC;
+double cur, ansW = INFINITY;
+bool fy[N];
+
+inline bool up(int &amp;x, const int y) {return x &lt; y ? x = y, 1 : 0;}
+inline bool up(double &amp;x, const double y) {return x &lt; y ? x = y, 1 : 0;}
+
+inline void addedge(int u, int v, int w) {
+	e[++E] = edge(u, v, w), next[E] = first[u], first[u] = E;
+	e[++E] = edge(v, u, w), next[E] = first[v], first[v] = E;
+}
+
+namespace Centroid {
+	int V, Gm, G, size[N];
+
+	void init(int _V) {V = _V, Gm = INT_MAX;}
+
+	int get(int x, int px = 0) {
+		int i, y, Max = 0; size[x] = 1;
+		for (i = first[x]; i; i = next[i])
+			if ((y = e[i].v) != px &amp;&amp; !fy[y])
+				get(y, x), up(Max, size[y]), size[x] += size[y];
+		up(Max, V - size[x]);
+		return Max &lt;= Gm ? (Gm = Max, G = x) : G;
+	}
+}
+
+#define get_centroid(x, y) (Centroid::init(y), Centroid::get(x))
+
+void dfs(int x, int px = 0) {
+	int i, y; size[x] = 1;
+	for (i = first[x]; i; i = next[i])
+		if ((y = e[i].v) != px &amp;&amp; !fy[y]) dfs(y, x), size[x] += size[y];
+}
+
+void compute(int x, int px, int dep) {
+	int i, y; cur += double((long long)w[x] * dep) * sqrt(dep);
+	for (i = first[x]; i; i = next[i])
+		if ((y = e[i].v) != px) compute(y, x, dep + e[i].w);
+}
+
+void compute_diff(int x, int px, int dep) {
+	int i, y; diff[x] = w[x] * sqrt(dep);
+	for (i = first[x]; i; i = next[i])
+		if ((y = e[i].v) != px) compute_diff(y, x, dep + e[i].w), diff[x] += diff[y];
+}
+
+void solve(int x) {
+	int i, y, z = 0, G; double max = -INFINITY;
+	cur = 0., fy[x] = true, dfs(x);
+	if (compute(x, 0, 0), cur &lt; ansW) ansC = x, ansW = cur;
+	for (i = first[x]; i; i = next[i])
+		if (!fy[y = e[i].v])
+			if (compute_diff(y, x, e[i].w), up(max, diff[y])) z = y;
+	if (z) G = get_centroid(z, size[z]), solve(G);
+}
+
+int main() {
+	int i, G, $1, $2, $3;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", w + i);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d%d", &amp;$1, &amp;$2, &amp;$3), addedge($1, $2, $3);
+	G = get_centroid(1, n), solve(G);
+	printf("%d %.12lg\n", ansC, ansW);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意题目中要求的是<strong>顶点</strong>的最小值，而不允许取边中的顶点，因此只需要二分所有的顶点就可以了。(由凸函数的性质，取顶点极值的顶点一定是取全局极值的位置所在边的两个端点之一)</p>
+		<p><strong>坑2：</strong>在计算导数的时候，要利用绝对值的性质 —— 相当于所有点的贡献减去<strong>对应方向子树的贡献</strong>的两倍，因此只需要找到<strong>对应方向子树的贡献</strong>最大者就可以了，避免每次都搜整棵树 (而且这样复杂度也是错的)。</p>
+	</body>
+</html>
