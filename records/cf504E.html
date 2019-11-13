@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces504E]Misha and LCP on Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个顶点的树，每个点上有一个小写英文字母。有 $m$ 组询问，每组询问会给出树上的两条 (有向) 路径，你需要计算：这两条路径沿途经过的字符，拼接而成的字符串的最长公共前缀 (<abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr>)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 3 \times 10^5$)，表示树的点数。</p>
+		<p>第二行包含一个长度为 $n$ 的，由小写英文字母构成的字符串 $s$，其中第 $i$ 个字符表示树中点 $i$ 上的字符。</p>
+		<p>接下来的 $n - 1$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，描述树上的一条边。</p>
+		<p>第 $n + 2$ 行包含一个正整数 $m$ ($m \leq 10^6$)，表示询问的个数。</p>
+		<p>接下来 $m$ 行，每行四个正整数 $a, b, c, d$ ($1 \leq a, b, c, d \leq n$)，表示询问路径 $a \leadsto b$ 和路径 $c \leadsto d$ 所对应的字符串的最长公共前缀。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示对应的两个字符串的最长公共前缀。</p>
+
+		<h3>题解</h3>
+		<p>对于链上的情况，那就是一个普通的 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr> 问题，可以使用<em>字符串 Hash + 二分</em> 或 <em><abbr title="Suffix Array, 后缀数组">SA</abbr> + <abbr title="Range Minimum/Maximum Query, 区间最值查询">RMQ</abbr></em> 或 <em><abbr title="Suffix Automaton, 后缀自动机">SAM</abbr> + <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr></em> 等多种方法来解决。</p>
+		<p>当然，题目并没有说明链一定是 "从左到右" 的，因此可能出现反向的链，这时也很简单，我们只需要将原串<strong>翻转</strong>后接到尾部即可，即对 $s \cdot \texttt # \cdot s^R$ 运行后缀数据结构。<span style="color: red">(ps: 这里 $\texttt #$ 指代一个字符集外的字符，当然使用 Hash 只需要反向求一遍 Hash 值就可以了)</span></p>
+		<p>这样做法的时间复杂度是 $O \left( n \log n + m \right)$ 的 (当然<strong>理论最优</strong>是 $O \left( n + m \right)$)。</p>
+		<hr />
+		<p>对于树上的情况，由于是<strong>树链</strong>的问题，于是尝试一下<strong>树链剖分</strong>。</p>
+		<p>这显然是没有问题的，因为树上的任何一条链可以对应到 $O \left( \log n \right)$ 的连续区间。于是，我们可以将每个串拆分成 $O \left( \log n \right)$ 段，然后依次求 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr> 就可以了。</p>
+		<p>注意两个串的段可能会有交叉，因此需要一些讨论 (比如在求完 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr> 时需要对两个段的长度的<em>较小值</em>取 $\min$)。</p>
+		<p>总时间复杂度 $O \left( \left( n + m \right) \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 300054, M = N * 2, LN = 54;
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+struct LCP {
+	int n, *sa, *rnk, *st[LN];
+	LCP () : n(0), sa(NULL), rnk(NULL) {memset(st, 0, sizeof st);}
+	~LCP () {
+		if (sa) delete [] sa;
+		if (rnk) delete [] rnk;
+		for (int i = 0; i &lt; LN; ++i) if (st[i]) delete [] st[i];
+	}
+	void construct(const char *s) {
+		int i, j, k, m = 256, p, limit; n = strlen(s);
+		int *x = new int[n + 1], *y = new int[n + 1], *buf = new int[max(n, m)], *f, *g = new int[n + 1];
+		auto cmp = [this] (const int *a, const int u, const int v, const int l) {return a[u] == a[v] &amp;&amp; (u + l &gt;= n ? 0 : a[u + l]) == (v + l &gt;= n ? 0 : a[v + l]);};
+		if (sa) delete [] sa; sa = new int[n];
+		if (rnk) delete [] rnk;
+		for (i = 0; i &lt; LN; ++i) if (st[i]) delete [] st[i], st[i] = 0;
+		for (i = 0; i &lt; n; ++i) sa[i] = i, x[i] = (unsigned char)s[i];
+		std::sort(sa, sa + n, [s] (const int u, const int v) {return (unsigned char)s[u] &lt; (unsigned char)s[v];});
+		for (j = 1; j &lt; n; j &lt;&lt;= 1, m = ++p) {
+			std::iota(y, y + j, n - j), p = j;
+			for (i = 0; i &lt; n; ++i) if (sa[i] &gt;= j) y[p++] = sa[i] - j;
+			memset(buf, 0, m &lt;&lt; 2);
+			for (i = 0; i &lt; n; ++i) ++buf[ x[y[i]] ];
+			for (i = 1; i &lt; m; ++i) buf[i] += buf[i - 1];
+			for (i = n - 1; i &gt;= 0; --i) sa[ --buf[ x[y[i]] ] ] = y[i];
+			std::swap(x, y);
+			x[*sa] = p = 1, x[n] = 0;
+			for (i = 1; i &lt; n; ++i) x[sa[i]] = (cmp(y, sa[i - 1], sa[i], j) ? p : ++p);
+			if (p &gt;= n) break;
+		}
+		if (rnk = x, n == 1) *x = 0;
+		else for (i = 0; i &lt; n; ++i) --x[i];
+		delete [] buf, delete [] y;
+		for (p = i = 0; i &lt; n; g[ x[i++] - 1 ] = p) {
+			if (p &amp;&amp; --p, !x[i]) continue;
+			for (j = sa[x[i] - 1], limit = n - max(i, j); p &lt; limit &amp;&amp; s[i + p] == s[j + p]; ++p);
+		}
+		*st = g, k = n - 1;
+		for (j = 0; 1 &lt;&lt; (j + 1) &lt; n; ++j) {
+			k -= 1 &lt;&lt; j, f = g, g = st[j + 1] = new int[k + 1];
+			for (i = 0; i &lt; k; ++i)
+				g[i] = min(f[i], f[i + (1 &lt;&lt; j)]);
+		}
+	}
+	inline int operator () (const int u, const int v) {
+		assert((unsigned)u &lt; (unsigned)n &amp;&amp; (unsigned)v &lt; (unsigned)n);
+		if (u == v) return n - u;
+		int L, R, c; std::tie(L, R) = std::minmax(rnk[u], rnk[v]), c = lg2(R - L);
+		return min(st[c][L], st[c][R - (1 &lt;&lt; c)]);
+	}
+} lcp;
+
+char s[N], str[M];
+int n, q, E = 0;
+int to[M], first[N], next[M];
+int p[N], dep[N], size[N];
+int cnt = 0, o[N], id[N], prf[N], top[N];
+pr L[LN], R[LN];
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs_wt(int x) {
+	int i, y, &amp;z = prf[x]; size[x] = !next[first[x]];
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x]) {
+			p[y] = x, dep[y] = dep[x] + 1;
+			dfs_wt(y), size[x] += size[y];
+			size[y] &gt; size[z] ? z = y : 0;
+		}	
+}
+
+void dfs_hld(int x, int r) {
+	int i, y; o[++cnt] = x, id[x] = cnt, top[x] = r;
+	if (!prf[x]) return;
+	dfs_hld(prf[x], r);
+	for (i = first[x]; i; i = next[i])
+		if (!top[y = to[i]]) dfs_hld(y, y);
+}
+
+int decomposition(int u, int v, pr *ret) {
+	static pr rev[54];
+	int x = top[u], y = top[v], c = 0, d = 0;
+	for (; x != y; dep[x] &gt; dep[y] ? (ret[c++] = pr(id[u], id[x]), u = p[x], x = top[u]) : (rev[d++] = pr(id[y], id[v]), v = p[y], y = top[v]));
+	ret[c++] = pr(id[u], id[v]);
+	return std::reverse_copy(rev, rev + d, ret + c) - ret;
+}
+
+int main() {
+	int i, j, u, v, U, V, Lc, Rc, g, pos;
+	scanf("%d%s", &amp;n, s + 1);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs_wt(1), dfs_hld(1, 1);
+	for (str[n] = 1, i = 0; i &lt; n; ++i) str[i] = str[2 * n - i] = s[ o[i + 1] ];
+	lcp.construct(str);
+	for (scanf("%d", &amp;q); q; --q) {
+		scanf("%d%d%d%d", &amp;u, &amp;v, &amp;U, &amp;V);
+		Lc = decomposition(u, v, L), Rc = decomposition(U, V, R);
+		for (pos = i = j = 0; i &lt; Lc &amp;&amp; j &lt; Rc; ) {
+			u = (L[i].first &lt;= L[i].second ? L[i].first - 1 : 2 * n - L[i].first + 1), U = abs(L[i].first - L[i].second) + 1;
+			v = (R[j].first &lt;= R[j].second ? R[j].first - 1 : 2 * n - R[j].first + 1), V = abs(R[j].first - R[j].second) + 1;
+			pos += g = std::min({lcp(u, v), U, V});
+			if (g &lt; U &amp;&amp; g &lt; V) break;
+			g == U ? ++i : (L[i].first += L[i].first &lt;= L[i].second ? g : -g);
+			g == V ? ++j : (R[j].first += R[j].first &lt;= R[j].second ? g : -g);
+		}
+		printf("%d\n", pos);
+	}	
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在剖分完毕后进行扫描的过程中，如果一条链对应的段比另一条链对应的段<strong>短</strong>，那么这条链匹配完毕后不要忘记给后面一条链打上一个<em>对应长度</em>的标记 (代码中对应 <code>L[i].first += g</code>)，表示下一次匹配后面那条链时从此位置开始。</p>
+		<p><strong>坑2：</strong>写后缀数组时，有可能需要用到 $2 n$ 的空间，注意不要数组越界。</p>
+	</body>
+</html>

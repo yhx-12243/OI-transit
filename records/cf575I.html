@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces575I]Robots protection</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个 $n \times n$ 的正方形区域，每次会放置若干个直角边平行于正方形边的<strong>等腰直角三角形</strong>，并询问一个点被覆盖了多少次。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($n \leq 5000; q \leq 10^5$)，表示正方形区域的大小和操作的个数。</p>
+		<p>接下来 $q$ 行，每行描述一个操作，格式如下：</p>
+		<ol>
+			<li><code>1 <em>dir</em> <em>x</em> <em>y</em> <em>len</em></code> ($1 \leq dir \leq 4; len \geq 1$) 表示加入一个等腰直角三角形，形状由 $dir$ 决定，位置由 $x, y$ 决定：
+			<ul>
+				<li>$dir = 1$，表示三角形的三个顶点是 $\left( x, y \right), \left( x + len, y \right), \left( x, y + len \right)$。</li>
+				<li>$dir = 2$，表示三角形的三个顶点是 $\left( x, y \right), \left( x + len, y \right), \left( x, y - len \right)$。</li>
+				<li>$dir = 3$，表示三角形的三个顶点是 $\left( x, y \right), \left( x - len, y \right), \left( x, y + len \right)$。</li>
+				<li>$dir = 4$，表示三角形的三个顶点是 $\left( x, y \right), \left( x - len, y \right), \left( x, y - len \right)$。</li>
+			</ul></li>
+			<li><code>2 <em>x</em> <em>y</em></code> ($1 \leq x, y \leq n$)，表示询问点 $\left( x, y \right)$ 在当前多少个三角形的内部 (含边界)。</li>
+		</ol>
+		<p>保证所加入的三角形内部的<strong>所有点</strong>都在正方形区域中。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每个 2 操作，输出一行一个整数，表示点 $\left( x, y \right)$ 在多少个三角形内部。</p>
+
+		<h3>题解</h3>
+		<p>如果加入的是正方形而不是三角形，但它就是一个容易的问题 —— 二维差分后变为<strong>单点加</strong>、<strong>矩形求和</strong>。使用二维线段树 (树套树) 解决。</p>
+		<p>那么对于等腰直角三角形，又该怎么做呢？</p>
+		<p>其实思路也是类似的。考虑一个等腰三角形，我们可以将其看成两个 (无限延伸的) 平行四边形区域的差：</p>
+		<img class="center-block" src="uploads/158.png" alt="平行四边形的差" />
+		<p>对于右边那个 (蓝色) 的矩形，是非常容易维护的，那对于左边那个平行四边形，维护其实也不难：只需要做一个<strong>切变变换</strong>，将其变为矩形区域，使用另一个树套树维护即可。最终，每个点的值就只需要在两个树套树中分别求值然后做差即可。</p>
+		<p>由于等腰直角三角形的斜边方向有两种，因此，需要做两种切变变换，从而需要两棵额外的树套树。</p>
+		<p>总时间复杂度 $O \left( n + q \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lowbit(x) (x &amp; -x)
+
+const int N = 5054;
+
+struct BST {
+	struct node {int v, lc, rc;} x[20030731 / 2];
+
+	int Row, Col, cnt = 0, root[N];
+
+	int add(int id, int L, int R, int h, int v) {
+		if (!id) id = ++cnt; x[id].v += v;
+		if (L == R) return id;
+		int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[id].lc = add(x[id].lc, L, M, h, v) : (x[id].rc = add(x[id].rc, M + 1, R, h, v));
+		return id;
+	}
+
+	int prefix(int id, int L, int R, int h) {
+		if (!id || R &lt;= h) return x[id].v;
+		int M = (L + R - 1) &gt;&gt; 1;
+		return h &lt;= M ? prefix(x[id].lc, L, M, h) : x[id].lc[x].v + prefix(x[id].rc, M + 1, R, h);
+	}
+
+	void add(int r, int c, int v) {
+		if (c &lt; 1 || c &gt; Col) return;
+		for (; r &lt;= Row; r += lowbit(r)) root[r] = add(root[r], 1, Col, c, v);
+	}
+
+	int sum(int r, int c) {
+		int s = 0;
+		for (; r &gt; 0; r -= lowbit(r)) s += prefix(root[r], 1, Col, c);
+		return s;
+	}
+	
+} S, MD, AD;
+
+int n, q;
+
+int main() {
+	int op, d, r, c, a;
+	scanf("%d%d", &amp;n, &amp;q);
+	S.Col = S.Row = MD.Row = AD.Row = n;
+	MD.Col = AD.Col = 2 * n - 1;
+	for (; q; --q)
+		if (scanf("%d", &amp;op), op == 1)
+			switch (scanf("%d%d%d%d", &amp;d, &amp;r, &amp;c, &amp;a), d) {
+				case 1:
+					S.add(r, c, 1), S.add(r + a + 1, c, -1);
+					AD.add(r, r + c + a, -1), AD.add(r + a + 1, r + c + a, 1);
+					break;
+				case 2:
+					S.add(r, c + 1, -1), S.add(r + a + 1, c + 1, 1);
+					MD.add(r, n - r + c - a, 1), MD.add(r + a + 1, n - r + c - a, -1);
+					break;
+				case 3:
+					S.add(r - a, c, 1), S.add(r + 1, c, -1);
+					MD.add(r - a, n - r + c + a + 1, -1), MD.add(r + 1, n - r + c + a + 1, 1);
+					break;
+				case 4:
+					S.add(r - a, c + 1, -1), S.add(r + 1, c + 1, 1);
+					AD.add(r - a, r + c - a - 1, 1), AD.add(r + 1, r + c - a - 1, -1);
+					break;
+			}
+		else
+			scanf("%d%d", &amp;r, &amp;c),
+			printf("%d\n", S.sum(r, c) + MD.sum(r, n - r + c) + AD.sum(r, r + c - 1));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意数组的大小！由于二维 (动态开点) 线段树的空间是 $O \left( q \log^2 n \right)$，因此需要开的足够大。同时，由于有三个树套树，因此也不能开得太大，以免 MLE。</p>
+		<p><strong>坑2：</strong>做切变变换后的树套树的大小是 $n \times 2 n$ 的，也不要开小了。</p>
+	</body>
+</html>

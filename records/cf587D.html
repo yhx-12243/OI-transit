@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces587D]Duff in Mafia</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style>
+			dfn {font-weight: bold; color: fuchsia}
+		</style>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $n$ 个点 $m$ 条边的无向图 $G$，第 $i$ 条边连接了顶点 $v_i$ 和 $u_i$ ($v_i \neq u_i$)，颜色为 $c_i$，<em>拆解时间</em>为 $t_i$。</p>
+		<p>定义<dfn>匹配 (Matching)</dfn> 为边集的一个子集，满足这些边中两两没有公共顶点。</p>
+		<p>称边集 $E_0 \subseteq E \left( G \right)$ 是合法的，当且仅当 $E_0$ 是一个匹配，且将 $E_0$ 中的边删去 (拆解) 后，剩下每种颜色的边均形成一个<em>匹配</em>。</p>
+		<p>当然，在 $t$ 时刻你<strong>只能删去<em>拆解时间</em>不超过 $t_i$</strong> 的边。</p>
+		<p>求最早的时刻 $t$，满足你可以在 $t$ 时刻删去一个满足合法的边的子集 $E_0$，或说明不存在这样的 $t$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 50000$)，表示图的点数和边数。</p>
+		<p>接下来 $m$ 行，每行包含四个正整数 $v_i, u_i, c_i, t_i$ ($1 \leq v_i, u_i \leq n; v_i \neq u_i; 1 \leq c_i, t_i \leq 10^9$)，表示有一条连接 $v_i$ 和 $u_i$，颜色为 $c_i$，<em>拆解时间</em>为 $t_i$ 的无向边。</p>
+
+		<h3>输出格式</h3>
+		<p>如果不存在满足条件的 $t$，输出一行 <code>No</code>。</p>
+		<p>否则，第一行输出 <code>Yes</code>，第二行输出两个整数 $t, k$，分别表示最早的时刻 $t$ 和边集 $E_0$ 的大小 $\left| E_0 \right|$。</p>
+		<p>第三行输出 $k$ 个互不相同的整数，表示你删去的边在输出中的编号。你需要保证这些边构成一个匹配。</p>
+		<p>如果有多组 ($t$ 最小的) 解，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>考虑二分 $t$，变为判断对于一个 $E_t \subseteq E \left( G \right)$，是否存在合法的 $E_t$ 的子集。</p>
+		<p>然后，我们可以将 "匹配" 的条件转化为下面两种条件：</p>
+		<ol>
+			<li><p>对于每个顶点 $v$，与 $v$ 关联的边中，<strong>至多一个</strong>属于 $E_0$。</p></li>
+			<li><p>对于每个顶点 $v$ 和每个颜色 $c$，与 $v$ 关联的颜色为 $c$ 的边，<strong>至多一个不</strong>属于 $E_0$。</p></li>
+		</ol>
+		<p>如果我们把 "<strong>每条边 $e$ 是否属于 $E_0$</strong>" 看成一个布尔变量 $x_e$，那么，就得到了若干个布尔方程，且每个布尔方程可以化简成二元的 (比如，$a, b, c, d$ 中至多一个属于 $E_0$，则有 $x_a \to \neg x_b = \mathrm{true}$，etc.)。</p>
+		<p>也就是说，我们把这个问题转化成了一个 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 问题，于是可以通过图论算法来解决。</p>
+		<p>然而，这样的连边数可以达到 $O \left( m^2 \right)$，因为如果某个点的度很大，那么与它关联的边中两两都有限制。</p>
+		<p>不过，这并不是什么大问题。和 <a href="../index.html?redirect=424" target="_blank">[uoj210]寻找罪犯</a> 类似，当时我们也遇到了边数过多的问题。我们的解决方案是，建立<strong>前后缀</strong>变量，然后将一个点的限制转移到前后缀的限制，然后由前后缀的性质继续连边。这样优化连边后，总边数就降到 $O \left( m \right)$ 了。</p>
+		<p>当然，在 <a href="../index.html?redirect=424" target="_blank">[uoj210]寻找罪犯</a> 的 "坑" 部分也提到过，事实上我们只需要建立<strong>前缀</strong>变量就可以，而不需要<strong>后缀</strong>变量，因为如果后面有不满足的，那么后面的布尔条件会先挂掉。</p>
+		<p>最后不要忘记，对于<strong>不在 $E_t$ 中的边 $e$</strong>，通过连边 $x_e \to \neg x_e = \mathrm{true}$ 来强制限制 $x_e = \mathrm{false}$。</p>
+		<p>总时间复杂度 $O \left( n + m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 50054;
+
+struct edge {
+	int u, v, c, t;
+	edge (int u0 = 0, int v0 = 0, int c0 = 0, int t0 = 0) : u(u0), v(v0), c(c0), t(t0) {}
+	edge * read() {return scanf("%d%d%d%d", &amp;u, &amp;v, &amp;c, &amp;t), this;}
+} e[N];
+
+int V, E, T, Estd;
+int cnt = 0, ans[N];
+vector G[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace DC {
+	typedef std::pair &lt;int, int&gt; pr;
+	int F[N]; pr D[N];
+
+	int Discretize(int n) {
+		int i, cnt = 0;
+		std::sort(D, D + n);
+		for (i = 0; i &lt; n; ++i)
+			F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+}
+
+namespace Graph {
+	#define ad(x) ((x - 1 ^ 1) + 1)
+	const int N = ::N * 10, M = ::N * 50;
+
+	struct edge {
+		int u, v;
+		edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+	} e[M], ee[M];
+
+	int V, E = 0, V1;
+	int first[N], next[M];
+	int Fi[N], Ni[M];
+	int cnt = 0, id[N], low[N];
+	int stc = 0, stack[N], top[N];
+	bool in_stack[N];
+	int col[N], conflict[N];
+	int deg[N], que[N];
+
+	inline void addedge(int u, int v) {e[++E] = edge(u, v), next[E] = first[u], first[u] = E;}
+
+	inline void deledge(int end) {for (; E &gt; end; --E) first[e[E].u] = next[E];}
+
+	inline void implies(int u, int v) {addedge(u, v), addedge(ad(v), ad(u));}
+
+	void dfs(int x) {
+		int i, y; id[x] = low[x] = ++cnt, in_stack[x] = true, stack[stc++] = x;
+		for (i = first[x]; i; i = next[i])
+			if (!id[y = e[i].v])
+				dfs(y), down(low[x], low[y]);
+			else if (in_stack[y])
+				down(low[x], id[y]);
+		if (id[x] == low[x])
+			for (y = 0; y != x; y = stack[--stc], in_stack[y] = false, top[y] = x);
+	}
+
+	void shrink() {
+		int i, u, v;
+		for (i = 1; i &lt;= E; ++i)
+			if ((u = top[e[i].u]) != (v = top[e[i].v]))
+				++deg[u], Ni[i] = Fi[v], Fi[v] = i, ee[i] = edge(u, v);
+	}
+
+	void toposort() {
+		int h, t = 0, x, i;
+		for (i = 1; i &lt;= V; ++i) if (i == top[i] &amp;&amp; !deg[i]) que[t++] = i;
+		for (h = 0; h &lt; t; ++h)
+			for (i = Fi[x = que[h]]; i; i = Ni[i])
+				if (!--deg[ee[i].u]) que[t++] = ee[i].u;
+		V1 = t;
+	}
+
+	void final() {
+		int i, x;
+		for (i = 0; i &lt; V1; ++i)
+			if (!col[x = que[i]])
+				col[x] = 1, col[conflict[x]] = -1;
+	}
+
+	inline bool _2_SAT() {
+		int i, u, v;
+		cnt = stc = 0;
+		memset(Fi, 0, (V + 1) &lt;&lt; 2);
+		memset(id, 0, (V + 1) &lt;&lt; 2);
+		memset(col, 0, (V + 1) &lt;&lt; 2);
+		memset(conflict, 0, (V + 1) &lt;&lt; 2);
+		memset(deg, 0, (V + 1) &lt;&lt; 2);
+		for (i = 1; i &lt;= V; ++i) if (!id[i]) dfs(i);
+		for (i = 1; i &lt;= V; i += 2) {
+			if ((u = Graph::top[i]) == (v = Graph::top[i + 1])) return false;
+			conflict[u] = v, conflict[v] = u;
+		}
+		return shrink(), toposort(), final(), true;
+	}
+}
+
+inline bool check(int time_limit) {
+	Graph::deledge(Estd);
+	for (int i = 0; i &lt; E; ++i) if (e[i].t &gt; time_limit) Graph::addedge(i * 2 + 1, i * 2 + 2);
+	return Graph::_2_SAT();
+}
+
+int main() {
+	int i, j, k, l, n, L, R, M, &amp;c = Graph::V;
+	scanf("%d%d", &amp;V, &amp;E), c = E * 2;
+	for (i = 0; i &lt; E; ++i) DC::D[i] = DC::pr(e[i].read()-&gt;t, i), G[e[i].u].EB(i), G[e[i].v].EB(i);
+	T = DC::Discretize(E);
+	for (i = 0; i &lt; E; ++i) e[i].t = DC::F[i];
+	for (i = 1; i &lt;= V; ++i) if (n = G[i].size()) {
+		vector &amp;t = G[i];
+		std::sort(t.begin(), t.end(), [] (const int x, const int y) {return e[x].c &lt; e[y].c;});
+		for (j = 0; j &lt; n; ++j)
+			Graph::implies(c + j * 2 + 2, t[j] * 2 + 2);
+		for (j = 1; j &lt; n; ++j)
+			Graph::implies(t[j] * 2 + 1, c + j * 2),
+			Graph::implies(c + j * 2 + 2, c + j * 2);
+		for (k = j = 0; j &lt; n; j = k) {
+			for (; k &lt; n &amp;&amp; e[t[j]].c == e[t[k]].c; ++k);
+			for (l = j; l &lt; k; ++l)
+				Graph::implies(c + n * 2 + l * 2 + 1, t[l] * 2 + 1);
+			for (l = j + 1; l &lt; k; ++l)
+				Graph::implies(         t[l] * 2 + 2, c + n * 2 + l * 2 - 1),
+				Graph::implies(c + n * 2 + l * 2 + 1, c + n * 2 + l * 2 - 1);
+		}
+		c += n * 4;
+	}
+	Estd = Graph::E;
+	if (check(-1)) return puts("Yes\n0 0"), 0;
+	if (!check(T - 1)) return puts("No"), 0;
+	for (L = 0, R = T - 1; L &lt; R; check(M = (L + R) / 2) ? R = M : (L = M + 1));
+	assert(check(L));
+	for (i = 1; i &lt;= E; ++i)
+		if (Graph::col[ Graph::top[i * 2 - 1] ] == 1) ans[cnt++] = i;
+	printf("Yes\n%d %d\n", DC::D[L].first, cnt);
+	for (i = 0; i &lt; cnt; ++i)
+		printf("%d%c", ans[i], i == cnt - 1 ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意前后缀连边的时候要另外建点，不然用对应编号的点可能会被访问两次而乱掉。</p>
+		<p><strong>坑2：</strong>关于限制的边可以一开始就连好，后面二分时就只需要连接形如 $x_e \to \neg x_e = \mathrm{true}$ 的边了。</p>
+	</body>
+</html>

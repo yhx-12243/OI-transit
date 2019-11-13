@@ -2,11 +2,11 @@
 
 	'use strict';
 
-	let
-		okay, config = {};
-
 	const
 		cfColor = {0 : 'gray', 1200 : 'green', 1400 : 'cyan', 1600 : 'blue', 1900 : 'violet', 2100 : 'orange', 2400 : 'red', 3000 : 'legendary'};
+
+	let
+		okay, config = {};
 
 	// ---------------- Configuration ---------------- //
 	win.setFileConfig = function (key, val) {
@@ -123,7 +123,7 @@
 					.append($('<td />').html(dateFormat(new Date(p.lastOnlineTimeSeconds * 1e3))))
 					.append(
 						$('<td />').append(
-							(L = getFL(p.handle)) ? $('<a href="' + L + '" target="_blank">' + L + '</a>') : null
+							(L = getFL(p.handle)) && $('<a href="' + L + '" target="_blank">' + L + '</a>')
 						)
 					)
 					.get(0)

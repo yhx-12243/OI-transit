@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder5141,Grand35D]Add and Remove</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个长度为 $N$ 的数列，第 $i$ 个数为 $A_i$。</p>
+		<p>每次可以进行如下操作：</p>
+		<ol>
+			<li>选择位置连续的三个数 $x, y, z$。</li>
+			<li>令 $x \gets x + y, z \gets z + y$。</li>
+			<li>去掉数 $y$，得到一个长度比原来长度少 $1$ 的数列。</li>
+		</ol>
+		<p>在操作 $N - 2$ 轮后，将会得到一个长度为 $2$ 的序列，你需要求出这个长度为 $2$ 的序列中两个数的和的<strong>最小值</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 18$)。</p>
+		<p>第二行包含 $N$ 个非负整数 $A_1, A_2, \cdots, A_n$ ($0 \leq A_i \leq 10^9$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最后的序列中两个数的和的<strong>最小值</strong>。</p>
+
+		<h3>题解</h3>
+		<p>直接计算一次操作最后两个数的和不容易，我们尝试考虑一下<strong>最初时的每个数对答案的贡献</strong>。</p>
+		<p>容易发现，无论怎么操作，$A_1$ 和 $A_n$ 对答案的贡献系数都是确定的 —— 均为 $1$。</p>
+		<p>然后，我们可以发现，考虑最后一次操作前，所得到的两边的数之间的操作是独立的。</p>
+		<p>于是，可以考虑对每一个<strong>连续段</strong>设计状态 —— 用 $f_{l, r}$ 表示操作区间局限于 $\left[ l, r \right]$ 时，<strong>$\left( l, r \right)$ 中的数的贡献</strong>的最小值。</p>
+		<p>不过这样并不够，因为当这一段合并完毕后得到两个数 $u, v$，要和其它段进行合并时，$u$ 和 $v$ 的贡献系数可能是不一样的。</p>
+		<p>因此状态中需要加两维 —— 用 $f_{l, r, c_l, c_r}$ 表示操作仅仅局限于 $\left[ l, r \right]$，且两侧断点的系数为 $c_l, c_r$ 时，$\left( l, r \right)$ 中的数的贡献的最小值。</p>
+		<p>考虑转移，显然是枚举哪个点作为断点，形成两部分 (其实就是枚举最后一步的中间点最开始的位置)，具体的方程如下：</p>
+		<p>$$ f_{l, r, c_l, c_r} = \max_{l &lt; i &lt; r} \left( f_{l, i, c_l, c_l + c_r} + f_{i, r, c_l + c_r, c_r} + \left( c_l + c_r \right) \cdot A_i \right) $$</p>
+		<p>于是就可以进行转移了，最终答案就是 $f_{2, n - 1, 1, 1} + A_1 + A_n$。</p>
+		<p>但是这样状态数真的不会爆呢？<del>不会，你改成搜索就过了。</del></p>
+		<p>其实，我们只需要考虑二元组 $\left( c_l, c_r \right)$ 的个数，可以发现，每次 $\left( c_l, c_r \right)$ 是由 $\left( 1, 1 \right)$ 开始，每次将其中一个位置改成两个位置的和得到的。</p>
+		<p>又因为转移至多进行 $n - 3$ 层，因此这样的状态对一共只有不超过 $2^{n - 3}$ 对。</p>
+		<p>考虑第 $i$ ($0 \leq i \leq n - 4$) 层的状态，$\left( c_l, c_r \right)$ 的数量为 $2^i$，每个区间的长度不超过 $n - 3 - i$，于是共有不超过 $n \left( n - 3 - i \right) \cdot 2^i$ 种状态，于是总的状态数不超过</p>
+		<p>$$ n \cdot \left( \left( n - 3 \right) + \left( n - 4 \right) \cdot 2 + \left( n - 5 \right) \cdot 2^2 + \cdots + 1 \cdot 2^{n-4} \right) = n \cdot 2^{n-2} \cdot \left( 1 + o \left( 1 \right) \right) $$</p>
+		<p>于是显然是可以存下 (直接 DP) 的，用记忆化搜索可以略微减小一些常数。</p>
+		<p>当然，经实测，直接对原转移式进行爆搜 (剪枝可加可不加) 也可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+
+int n;
+ll a[20];
+
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+
+ll dfs(int l, int r, int cl, int cr) {
+	if (l &gt; r) return 0;
+	int i; ll ret = LLONG_MAX;
+	for (i = l; i &lt;= r; ++i) down(ret, (cl + cr) * a[i] + dfs(l, i - 1, cl, cl + cr) + dfs(i + 1, r, cl + cr, cr));
+	return ret;
+}
+
+int main() {
+	int i;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%lld", a + i);
+	printf("%lld\n", a[1] + a[n] + dfs(2, n - 1, 1, 1));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在 $\left( c_l + c_r \right) \cdot A_i$ 的乘法部分可能爆 <code>int</code>，实现时注意下。</p>
+	</body>
+</html>

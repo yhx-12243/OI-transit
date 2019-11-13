@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4929,Grand33F]Add and Remove</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $N$ 个顶点的树 $T$ 和一个 $M$ 个顶点，$M$ 条边的无向简单图 $G$，顶点从 $1 \sim N$ 编号。</p>
+		<p>你可以通过如下操作给图 $G$ 添加边：</p>
+		<blockquote>对于三个互不相同的正整数 $a, b, c$，如果 $G$ 中 $a, b$ 之间，$b, c$ 之间分别连有一条边，$a, c$ 之间没有边，且 $a, b, c$ 在 $T$ 中<strong>以某种顺序</strong>构成一条路径，则可以在 $a, c$ 之间连一条边。</blockquote>
+		<p>你需要不断给 $G$ 添加边，<strong>直到不存在满足条件的 $a, b, c$ 为止</strong>。求此时 $G$ 中边的数量，容易证明答案和操作顺序无关。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $N, M$ ($2 \leq N \leq 2000; 1 \leq M \leq 2000$)，表示树/图的点数和图的初始边数。</p>
+		<p>接下来 $N - 1$ 行，每行包含两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq n; a_i \neq b_i$)，表示 $T$ 中 $a_i$ 和 $b_i$ 之间有一条边。</p>
+		<p>接下来 $M - 1$ 行，每行包含两个正整数 $c_j, d_j$ ($1 \leq c_j, d_j \leq n; c_j \neq d_j$)，表示 $G$ 中 $c_j$ 和 $d_j$ 之间有一条边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示当无法操作时 $G$ 的边数。</p>
+
+		<h3>题解</h3>
+		<p>考虑使用暴力加边 —— 每次枚举 $a, b, c$，检验是否满足 $\left( a, b \right), \left( b, c \right) \in E \wedge \left( a, c \right) \notin E$，并检查 $a, b, c$ 在树中是否形成一条链，并将 $\left( a, c \right)$ 加入边集即可。</p>
+		<p>检查三点是否形成一条链可以通过<strong>三点联合 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr></strong> 的方法，在 $O \left( 1 \right)$ 时间内判定。</p>
+		<p>每次检验是否存在 $a, b, c$，直到无法找到时 <code>break</code> 掉。</p>
+		<p>不过这样的时间复杂度太高了，显然无法通过。</p>
+		<p>考虑进行优化。首先就是把一些无谓的判断删去。</p>
+		<p>当加入一条边 $\left( u, v \right)$ 时，由这条边所能衍生出的新的边，要么以 $u$ 为一个端点 ($\left( u, v \right) + \left( u, w \right) \Rightarrow \left( v, w \right)$)，要么以 $v$ 为一个端点 ($\left( u, v \right) + \left( v, w \right) \Rightarrow \left( u, w \right)$)。</p>
+		<p>于是可以利用 bfs 的思想，每加入一条边，就将其放入队尾，当一条边 $\left( u, v \right)$ 出队时，<strong>只检查</strong>恰与 $\left( u, v \right)$ 中一个点相邻的顶点，并检验在树中是否形成一条链。</p>
+		<p>分析一下时间复杂度，由于队列大小不超过 $O \left( n^2 \right)$，每次处理一个元素时间复杂度不超过 $O \left( n \right)$，于是总时间复杂度是 $O \left( n^3 \right)$。</p>
+		<p>能不能更快呢？</p>
+		<p>考虑 $n^3$ 的部分 —— 就是因为我们对于每条出队的边需要检查 $O \left( n \right)$ 个点。如果检查成功的话，它以后就不再会被检查，如果检查失败 (这条边没连上)，以后就会造成重复的检查，从而将时间复杂度带到 $O \left( n^3 \right)$。</p>
+		<p>所以我们希望<strong>每次检验都是成功的</strong> —— 即每次检验都能连上一条边。</p>
+		<p>那具体怎么实现呢？对于一条出队的边 $\left( u, v \right)$，我们需要找到可行的集合 $S$，使得 $x \in S$ 当且仅当下列两个条件成立：</p>
+		<ol>
+			<li>$\left( \left( x, u \right) \in E \wedge \left( x, v \right) \notin E \right) \vee \left( \left( x, u \right) \notin E \wedge \left( x, v \right) \in E \right)$，换句话说 $\left( x, u \right) \in E \color {red} \oplus \left( x, v \right) \in E$。</li>
+			<li>$x, u, v$ 在 $T$ 中形成一条链。</li>
+		</ol>
+		<p>考虑到两个条件是相对独立的，我们分别处理，最后求个交集。</p>
+		<p>对于第 1 个条件，我们设当前的图中点 $v$ 的<em>邻域</em>为 $N \left( v \right)$，那么这个条件可以写成 $x \in N \left( u \right) \oplus N \left( v \right)$，其中 $\oplus$ 表示集合的<em>对称差</em>。当然，由于 $u, v \in N \left( u \right) \oplus N \left( v \right)$，因此还要去除它们俩。</p>
+		<p>对于第 2 个条件，我们可以预处理出，对于每两个 $u, v$，集合 $M_{u, v}$ —— 表示能和 $u, v$ 构成一条链的所有点。由树的性质，它可以分为三部分：</p>
+		<ol>
+			<li>路径 $u \leadsto v$ 上的所有点；</li>
+			<li>将路径 $u \leadsto v$ 去掉后，$u$ 所在的连通块 ("子树") 中的所有点；</li>
+			<li>将路径 $u \leadsto v$ 去掉后，$v$ 所在的连通块 ("子树") 中的所有点。</li>
+		</ol>
+		<p>当给树规定一个根节点时，根据 $u, v$ 是否是祖先关系可以分为两种情形：</p>
+		<ul>
+			<li>如果 $u, v$ 是祖先关系 (不妨设 $u$ 是 $v$ 的祖先)，则 $M_{u, v} = \overline {subtree \left( v_0 \right)} \cup subtree \left( v \right) \cup path \left( u, v \right)$，其中 $v_0$ 路径 $u \leadsto v$ 中 $u$ 的邻点；</li>
+			<li>如果 $u, v$ 不是祖先关系，则 $M_{u, v} = subtree \left( u \right) \cup subtree \left( v \right) \cup path \left( u, v \right)$。</li>
+		</ul>
+		<p>因此，我们已经对上面两个条件进行了刻画。现在，只要能快速求出这两个集合 (的交集)，就能做到每次枚举都是有价值的。</p>
+		<p>那如何快速维护这些集合呢？不难想到，<strong>使用 bitset 优化</strong>。</p>
+		<p>对于条件 1，直接使用 bitset 维护每个的邻域即可，时间复杂度是正确的。</p>
+		<p>对于条件 2，只需要维护出以每个点为根的子树集合 $subtree \left( v \right)$，以及每个点到根的路径集合 $path \left( r, v \right)$ 就可以了。两点 $u, v$ 间的路径集合就是 $\left( subtree \left( u \right) \oplus subtree \left( v \right) \right) \cup \left\{ LCA \left( u, v \right) \right\}$。</p>
+		<p>于是，我们最终只需要求出可行集合 $S$ 的 bitset，然后使用它的 <code>_Find_first()</code> 和 <code>_Find_next(int)</code> 方法来<em>正确地</em>枚举，这样就保证了每条 (最终被加入的边) 至多被枚举到常数次。</p>
+		<p>于是总时间复杂度 $O \left( \dfrac {n^3} \omega \right)$，可以通过此题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define for_bitset(variable, bitset) for (variable = bitset._Find_first(); variable != N; variable = bitset._Find_next(variable))
+
+const int N = 2054, M = 2000054;
+typedef std::bitset &lt;N&gt; bitset;
+
+int V, E, h, t = 0;
+bitset G[N], subtree[N], path[N];
+bitset ALL, allow[M], Gr[N];
+int p[N], S[N], lca[N][N];
+int que[M];
+
+inline void addedge(int u, int v) {G[u].set(v), G[v].set(u);}
+
+inline void link(int x, int y) {Gr[x].set(y), Gr[y].set(x), que[t++] = x &lt;&lt; 16 | y;}
+
+void dfs(int x) {
+	int u, v, y; path[x].set(x), subtree[x].set(x);
+	for_bitset(y, G[x]) if (y != p[x]) {
+		p[y] = x, path[y] = path[x], dfs(y);
+		for_bitset(u, subtree[x])
+			for_bitset(v, subtree[y])
+				lca[u][v] = lca[v][u] = x;
+		subtree[x] |= subtree[y];
+	}
+	G[x].reset(p[x]);
+}
+
+inline void direct_path(bitset &amp;r, int top, int bottom) {
+	int la = (G[top] &amp; path[bottom])._Find_first();
+	r = subtree[bottom], r |= path[bottom], r |= ~subtree[la], r &amp;= ALL;
+}
+
+int main() {
+	int i, u, v, w; bitset can;
+	scanf("%d%d", &amp;V, &amp;E), S[1] = -1;
+	for (i = 1; i &lt; V; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v), S[i + 1] = S[i] + i - 1;
+	for (i = 1; i &lt;= V; ++i) ALL.set(i);
+	dfs(1), i = 0;
+	for (u = 1; u &lt;= V; ++u)
+		for (v = 1; v &lt; u; ++v, ++i) {
+			bitset &amp;r = allow[i];
+			if (w = lca[u][v], w == u || w == v) direct_path(r, w, w ^ u ^ v);
+			else
+				r = subtree[u], r |= path[u],
+				r |= subtree[v], r |= path[v], r &amp;= ~path[p[w]];
+		}
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), link(u, v);
+	for (h = 0; h &lt; t; ++h) {
+		u = que[h] &gt;&gt; 16, v = que[h] &amp; 65535;
+		if (u &gt; v) std::swap(u, v); w = S[v] + u;
+		can = allow[w], can &amp;= Gr[u], can &amp;= ~Gr[v], can.reset(v);
+		for_bitset(i, can) link(i, v);
+		can = allow[w], can &amp;= Gr[v], can &amp;= ~Gr[u], can.reset(u);
+		for_bitset(i, can) link(i, u);
+	}
+	printf("%d\n", t);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>如果采取<strong>暴力 dfs</strong> 的方法来计算集合 $M_{u, v}$，注意不要开 $n^2$ 个 <code>bitset</code> (会 MLE)，要利用<em>对称性</em> ($M_{u, v} = M_{v, u}$) 来节省一半的内存。</p>
+		<p><strong>坑2：</strong>计算条件 1 的集合时，不要忘记把 $u$ 和 $v$ 去除。</p>
+	</body>
+</html>
