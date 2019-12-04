@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces578E]Walking!</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一条长度为 $n$ 的道路，其中一个人在这条路上<strong>交替使用左右脚</strong>踩了 $n$ 次 (第一步可以是左脚也可以使右脚)。这 $n$ 次的位置不一定是有序的，但<strong>恰好构成 $1 \sim n$ 的排列</strong>。</p>
+		<p>现在，已知每个位置的脚印是<strong>左脚印</strong>还是<strong>右脚印</strong>，你需要求出这个人<strong>向后走</strong> (即下一步的落脚点在这一步的后面) 的次数的最小值。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个由 <code>L</code> 和 <code>R</code> 构成的字符串 $s$ ($1 \leq n = \left| s \right| \leq 10^5$)，其中第 $i$ 个字符为 <code>L</code> 当且仅当位置 $i$ 上的脚印是左脚印。</p>
+		<p>保证存在合法解，即字符串中 <code>L</code> 的个数 <code>R</code> 的个数的差的绝对值不超过 $1$。</p>
+
+		<h3>输出格式</h3>
+		<p>共两行。第一行输出一个整数 $c$，表示最小的<strong>向后走</strong>次数、</p>
+		<p>第二行包含 $n$ 个整数 $p_1, p_2, \cdots, p_n$ ($1 \leq p_i \leq n$，且 $p_i$ 构成 $1 \sim n$ 的一个排列)，表示一种可行的走路方式，你需要保证 $s_{p_i} \neq s_{p_{i+1}}$ (即脚步合法)，且向后走 ($p_i &gt; p_{i+1}$) 的次数恰好为 $c$。</p>
+		<p>如果有多种向后走次数达到的最小的走路方式，任意输出一种均可。</p>
+
+		<h3>题解</h3>
+		<p>考虑排列中的每一段 "单调上升" (即只有向前走) 的部分，我们就是要将序列拆成若干个 "单调上升" 的部分，且每一部分是 <code>L/R</code> 交替的，且可以串起来使得总串也是 <code>L/R</code> 交替的。</p>
+		<p>那么，答案的一个<strong>下界</strong>，就是将原串拆成若干个 <code>L/R</code> 交替的<strong>子序列</strong>的个数的最小值 <span class="text-muted">[再减去 $1$]</span> (因为我们忽略了后一个条件)。</p>
+		<p>这个子问题可以这样解决，考虑对于一对 <code>L</code> 和 <code>R</code>，且 <code>L</code> 在 <code>R</code> 的左边，则我们在这个 (左边的) <code>L</code> 和 (右边的) <code>R</code> 之间连一条有向边。</p>
+		<p>于是，子序列的最小值就等于这个有向图的<strong>最小不交链覆盖</strong> (最小不交路径覆盖)，根据<a href="../index.html?redirect=781" target="_blank">这道题</a>的经验，可以建立二分图的模型，只需要找到它的一个最大匹配。</p>
+		<p>而这个匹配其实可以贪心进行：从前往后，考虑每个 <code>R</code>，找到它前面最早一个尚未向右匹配的 <code>L</code>，与之匹配即可。由独立性，对于 <code>L</code> 同理处理即可。</p>
+		<p>这样，我们就把这个子问题的答案 (也就是原问题的答案下界) 求出来了。</p>
+		<hr />
+		<p>那么，只求这个下界有什么用呢？事实上，它就是答案的下确界，从而就是最小值。</p>
+		<p>我们尝试给出一个合理的构造。证明，这些子序列一定可以通过合适的顺序，并成一个 <code>L/R</code> 交错的长序列。</p>
+		<p>所有的极长子序列一共有 $4$ 种可能的情况：</p>
+		<ol>
+			<li><code>LRLR...RLRL</code></li>
+			<li><code>LRLR...LRLR</code></li>
+			<li><code>RLRL...RLRL</code></li>
+			<li><code>RLRL...LRLR</code></li>
+		</ol>
+		<p>考虑每一种串的 <code>L</code> 的个数和 <code>R</code> 的个数的 (带符号) 差，分别为 $1, 0, 0, -1$。又由于两种串的个数差的总数为 $-1, 0, 1$，因此，<strong>第 1 类串和第 4 类串的个数之差的绝对值不超过 $1$</strong>。下面分两种情况讨论：</p>
+		<ol>
+			<li><p>存在第 1 类串或第 4 类串。</p>
+			<p>那么，由于第 1 类串和第 4 类串的个数差不超过 $1$，因此，一定可以将它们合理安排，使得<strong>这些串</strong>拼起来是 <code>L</code>/<code>R</code> 交错的：</p>
+			<ul>
+				<li><p>第 1 类串个数 = 第 4 类串个数。</p>
+				<p><code><strong style="color: blue">c</strong>LRLRL<strong style="color: blue">d</strong>RLRLR LRLRL RLRLR ... LRLRL RLRLR</code>。</p></li>
+				<li><p>第 1 类串个数 = 第 4 类串个数 + 1。</p>
+				<p><code><strong style="color: blue">c</strong>LRLRL<strong style="color: blue">d</strong>RLRLR LRLRL RLRLR ... RLRLR LRLRL</code>。</p></li>
+				<li><p>第 1 类串个数 = 第 4 类串个数 - 1。</p>
+				<p><code><strong style="color: blue">d</strong>RLRLR<strong style="color: blue">c</strong>LRLRL RLRLR LRLRL ... LRLRL RLRLR</code>。</p></li>
+			</ul>
+			<p>此时，我们将所有的第 2 类串插入在 <samp>c</samp> 处，将所有的第 3 类串插入在 <samp>d</samp> 处，从而就得到了一个满足条件的串。</p></li>
+			<li><p>不存在第 1 类串或第 4 类串。</p>
+			<p>同理，我们还是可以不妨假设只有<strong>不超过一个</strong>第 2 类串以及第 3 类串。</p>
+			<p>如果这两类串不同时出现，则问题已经解决。</p>
+			<p>否则，不妨设第 2 类串的起始位置在第 3 类串的前面，如下：</p>
+			<pre><strong style="color: blue">L</strong> R L RL RLR   LR
+ <strong style="color: blue">R</strong> L R  L   RLR  LR
+</pre>
+			<p>我们将第 2 类串最前面的 <samp>L</samp> "借" 给第 3 类串，得到如下串：</p>
+			<pre>  R L RL RLR   LR
+<strong style="color: red">L</strong><strong style="color: blue">R</strong> L R  L   RLR  LR
+</pre>
+			<p>然后直接按照 "第 2 类串" + "第 3 类串" 的形式拼接起来即可。</p>
+		</ol>
+		<p>于是，我们确实对这个 "答案的下界" 给出了一个合理的构造，从而这就是最终答案。由于整个过程只使用了一个贪心匹配和连接的过程，因此时间复杂度是 $O \left( n \right)$ 的。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 100054;
+
+int n, L, R;
+int pred[N], succ[N];
+int que[2][N];
+int cnt = 0, result[N];
+char s[N], *p = s;
+vector seq[4], final;
+
+inline void join(vector &amp;A, const vector &amp;B) {A.insert(A.end(), B.begin(), B.end());}
+
+int main() {
+	int i, j, v, h[2] = {0, 0}, t[2] = {0, 0}, ans;
+	for (scanf("%s", s); *p; ++p) *p = (*p &amp; 2) &gt;&gt; 1; ans = n = p - s;
+	L = std::count(s, p, 0), R = std::count(s, p, 1);
+	if (abs(L - R) &gt; 1) throw "orzfy";
+	memset(pred, -1, n &lt;&lt; 2), memset(succ, -1, n &lt;&lt; 2);
+	for (p = s; p != s + n; que[*p][t[*p]++] = p - s, ++p)
+		if (h[!*p] &lt; t[!*p]) --ans, succ[ pred[p - s] = que[!*p][h[!*p]++] ] = p - s;
+	printf("%d\n", ans - 1);
+	for (i = 0; i &lt; n; ++i)
+		if (!~pred[i]) {for (j = i; ~succ[j]; j = succ[j]); seq[s[i] | s[j] &lt;&lt; 1].EB(i);}
+	assert(int(seq[0].size() + seq[1].size() + seq[2].size() + seq[3].size()) == ans);
+	final.reserve(n);
+	if (seq[0].empty() &amp;&amp; seq[3].empty()) {
+		if (!(seq[1].empty() || seq[2].empty())) {
+			if (seq[1].front() &gt; seq[2].front()) seq[1].swap(seq[2]);
+			v = seq[1].front(), seq[1].front() = succ[v], succ[v] = seq[2].front(), seq[2].front() = v;
+		}
+		join(final = seq[1], seq[2]);
+	} else {
+		if (seq[0].size() &lt; seq[3].size()) seq[0].swap(seq[3]), seq[1].swap(seq[2]);
+		final = seq[2], final.EB(seq[0].back()), seq[0].pop_back(), join(final, seq[1]);
+		for (v = 3; !seq[v].empty(); v ^= 3) final.EB(seq[v].back()), seq[v].pop_back();
+	}
+	for (int st : final) for (i = st; ~i; i = succ[i]) result[cnt++] = i;
+	assert(cnt == n);
+	for (i = 0; i &lt; n; ++i) printf("%d%c", result[i] + 1, i == n - 1 ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于情况有点多，分类讨论时注意一下细节。</p>
+		<p><strong>坑2：</strong>输出的答案是最小的<strong>向后走</strong>次数，而不是最小的<strong>段数</strong>，因此需要将后者的结果减去 $1$。</p>
+	</body>
+</html>

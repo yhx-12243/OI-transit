@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces547E]Mike and Friends</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义 $occur \left( pattern, text \right)$ 表示串 $pattern$ 在 $text$ 中的出现次数 (可重叠)。</p>
+		<p>给定 $n$ 个字符串 $s_1, s_2, \cdots, s_n$，有 $q$ 组询问，每次给定 $l, r, k$，求 $\displaystyle \sum_{i=l}^r occur \left( s_k, s_i \right)$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($n \leq 2 \times 10^5; q \leq 5 \times 10^5$)。</p>
+		<p>接下来 $n$ 行，每行包含一个由小写字母组成的字符串 $s_i$，保证 $\displaystyle \left| s_i \right| \geq 1; \sum_{i=1}^n \left| s_i \right| \leq 2 \times 10^5$。</p>
+		<p>接下来 $q$ 行，每行三个正整数 $l, r, k$，描述一组询问。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示 $\displaystyle \sum_{i=l}^r occur \left( s_k, s_i \right)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>注意到这一堆要遍历的串 $s_l, s_{l+1}, \cdots, s_r$ 是作为<strong>母串</strong>来接受模式串的匹配的，因此 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>就不太方便，我们考虑使用<strong>后缀自动机</strong>。当然，这是一个多串的后缀自动机，于是我们还是先建立它们的<strong>广义后缀自动机</strong>。</p>
+		<p>和 <a href="../index.html?redirect=804" target="_blank">[Codeforces666E]Forensic Examination</a> 类似，我们考虑描述一个串 $s_k$ 在一堆串的出现次数的总和。</p>
+		<p>首先，类似地，我们还是容易找到 <abbr title="Suffix Automaton, 后缀自动机">SAM</abbr> 中模式串 $s_k$ 所对应的节点 $v_0$ (这回连倍增都不用写了，直接把每个串插入完毕后 <abbr title="Suffix Automaton, 后缀自动机">SAM</abbr> 的 <code>np</code> 记录下来即可)。</p>
+		<p>然后，我们只需要统计这 $r - l + 1$ 个串的<strong>所有前缀节点</strong>在 <abbr title="Suffix Automaton, 后缀自动机">SAM</abbr> 的 "以 $v_0$ 为根的子树" 中的出现次数总和就可以了。</p>
+		<p>类似地，这还是一个数颜色问题 —— 给定一个颜色区间 $C$，求这些颜色在 $subtree \left( v \right)$ 中的出现次数总和。</p>
+		<p>它仍然是一个二维数点问题，使用线段树合并/可持久化线段树/离线 + 树状数组解决，具体细节和<a href="../index.html?redirect=804" target="_blank">那道题</a>是一样的，只是 "取 $\max$" 被改成了 "求和"。</p>
+		<p>总时间复杂度 $\displaystyle O \left( \sum_{i=1}^n \left| s_i \right| \left( \left| \Sigma \right| + \log n \right) + q \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int N = 500054;
+
+int n, q;
+char s[N];
+int at[N], root[N], ans[N];
+pr qry[N];
+vector qs[N];
+
+inline bool up(pr &amp;x, const pr &amp;y) {return x &lt; y ? x = y, 1 : 0;}
+
+namespace SAM {
+	const int N = 400054;
+	int p, np, cnt = 1;
+	int pa[N], d[N][26], val[N];
+	int pos[N], child[N][26];
+	bool used[N];
+
+	#define q d[p][x]
+	#define try_split(v) { \
+		if (val[p] + 1 == val[q]) v = q; \
+		else { \
+			int nq = ++cnt; \
+			val[nq] = val[p] + 1, memcpy(d[nq], d[q], 104); \
+			pa[nq] = pa[q], v = pa[q] = nq; \
+			for (int Q = q; p &amp;&amp; q == Q; q = nq, p = pa[p]); \
+		} \
+	}
+
+	int extend(int x) {
+		if (p = np, q) try_split(np)
+		else {
+			for (val[np = ++cnt] = val[p] + 1; p &amp;&amp; !q; q = np, p = pa[p]);
+			if (p) try_split(pa[np]) else pa[np] = 1;
+		}
+		return np;
+	}
+	#undef q
+
+	void build() {
+		int i, j, c; used[1] = true;
+		for (i = cnt; i; --i) if (~pos[i])
+			for (j = i; !used[j]; j = pa[j])
+				c = pos[j] - val[pa[j]], pos[pa[j]] = pos[j],
+				child[pa[j]][int(s[c])] = j, used[j] = true;
+	}
+}
+
+namespace ST {
+	struct node {int v, lc, rc;} x[5000054];
+	int cnt;
+
+	int add(int id, int L, int R, int h, int v) {
+		id || (id = ++cnt);
+		if (L == R) return x[id].v += v, id;
+		int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[id].lc = add(x[id].lc, L, M, h, v) : (x[id].rc = add(x[id].rc, M + 1, R, h, v));
+		return x[id].v = x[id].lc[x].v + x[id].rc[x].v, id;
+	}
+
+	int merge(int id1, int id2, int L, int R) {
+		if (!(id1 &amp;&amp; id2)) return id1 | id2;
+		if (L == R) return x[id1].v += x[id2].v, id1;
+		int M = (L + R - 1) &gt;&gt; 1;
+		x[id1].lc = merge(x[id1].lc, x[id2].lc, L, M);
+		x[id1].rc = merge(x[id1].rc, x[id2].rc, M + 1, R);
+		return x[id1].v = x[id1].lc[x].v + x[id1].rc[x].v, id1;
+	}
+
+	int range(int id, int L, int R, int ql, int qr) {
+		if (!id || (ql &lt;= L &amp;&amp; R &lt;= qr)) return x[id].v;
+		int M = (L + R - 1) &gt;&gt; 1, s = 0;
+		if (ql &lt;= M) s += range(x[id].lc, L, M, ql, qr);
+		if (qr &gt; M) s += range(x[id].rc, M + 1, R, ql, qr);
+		return s;
+	}
+}
+
+void solve(int x) {
+	int i, y;
+	for (i = 0; i &lt; 26; ++i)
+		if (y = SAM::child[x][i])
+			solve(y), root[x] = ST::merge(root[x], root[y], 1, n);
+	for (int id : qs[x]) ans[id] = ST::range(root[x], 1, n, qry[id].first, qry[id].second);
+}
+
+int main() {
+	int i, v = 0, l, r, k; char *p = s;
+	memset(SAM::pos, -1, sizeof SAM::pos);
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 0; i &lt; n; ++i) {
+		for (SAM::np = 1, scanf("%s", p); *p; ++p)
+			v = SAM::extend(*p -= 97), SAM::pos[v] = p - s,
+			root[v] = ST::add(root[v], 1, n, i + 1, 1);
+		at[i] = v;
+	}
+	SAM::build();
+	for (i = 0; i &lt; q; ++i)
+		scanf("%d%d%d", &amp;l, &amp;r, &amp;k), qry[i] = pr(l, r), qs[at[--k]].EB(i);
+	solve(1);
+	for (i = 0; i &lt; q; ++i) printf("%d\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>还是要理清广义后缀自动机的写法，以及子节点的分配方法。</p>
+		<p><strong>坑2：</strong>这题的空间有点紧，记得合理分配，不要 MLE 了。</p>
+	</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces666E]Forensic Examination</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个长度为 $n$ 的字符串 $s$ 和 $m$ 个 "小" 字符串 $t_1, t_2, \cdots, t_m$。有 $q$ 组询问，每次询问，对于 $s$ 的子串 $s \left[ p_l .. p_r \right]$，求它在 $t_l, t_{l+1}, \cdots, t_r$ 中哪个串里的出现次数最多。如果有多个相同的，输出下标最小的那个。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个由小写字母构成的字符串 $s$ ($1 \leq n = \left| s \right| \leq 5 \times 10^5$)，表示字符串 $s$。</p>
+		<p>第二行包含一个正整数 $m$ ($m \leq 50000$)，表示小字符串的个数。</p>
+		<p>接下来 $m$ 行，每行包含一个由小写字母构成的字符串 $t_i$ ($\displaystyle \left| t_i \right| \geq 1; \sum_{i=1}^m \left| t_i \right| \leq 50000$)，描述对应的小字符串。</p>
+		<p>第 $m + 3$ 行包含一个正整数 $q$ ($q \leq 5 \times 10^5$)，表示询问的个数。</p>
+		<p>接下来 $q$ 行，每行包含四个正整数 $l, r, p_l, p_r$ ($1 \leq l \leq r \leq m; 1 \leq p_l \leq p_r \leq n$)，表示询问 $s \left[ p_l .. p_r \right]$ 在 $t_l, t_{l+1}, \cdots, t_r$ 中哪个串里的出现次数最多。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行两个整数，分别表示使 $s \left[ p_l .. p_r \right]$ 出现次数最多的串的下标以及对应的出现次数。如果有多个串满足条件，输出下标 (在 $l \sim r$ 内) <em>最小</em>的那个。</p>
+
+		<h3>题解</h3>
+		<p>由于出现了子串的匹配问题，因此考虑使用后缀数据结构，如后缀自动机。</p>
+		<p>首先，我们将 $s$ 的后缀自动机建立出来，那么，对于一对 $\left[ p_l, p_r \right]$，容易使用<a href="../index.html?redirect=282" target="_blank">树上倍增</a>的方法将其对应到 <abbr title="Suffix Automaton, 后缀自动机">SAM</abbr> 中的一个节点。</p>
+		<p>接下来我们需要将这个子串到 $l \sim r$ 这些串去匹配。由于 $t_i$ 这些串作为了母串，而不是去匹配别人的模式串。因此 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>就不再能用了，也应该考虑使用后缀自动机。</p>
+		<p>因此我们需要对所有串建立后缀自动机，自然就想到建立出这所有串的<strong>广义后缀自动机</strong>。</p>
+		<p>我们尝试去刻画 $s \left[ p_l .. p_r \right]$ 在某个特定的 $t_i$ 的出现次数。</p>
+		<p>考虑将子串定位到 (最终) <abbr title="Suffix Automaton, 后缀自动机">SAM</abbr> 的一个节点 $v_0$ 后，它在 $t_i$ 的出现次数，就相当于，$t_i$ 所对应的 $\left| t_i \right|$ 个<strong>前缀节点</strong>在 "以 $v_0$ 为根的子树" 中的数量。</p>
+		<p>于是，建立完广义自动机后，我们可以直接统计出，对于每个节点，它是<strong>哪些 $t_i$ 的前缀节点</strong>。</p>
+		<p>然后，每次询问就变成了一个数颜色问题了 —— 对于一棵子树 $subtree \left( v \right)$ 和一个颜色集合 $C$，求 $C$ 中哪个颜色在 $subtree \left( v \right)$ 中出现次数最多。</p>
+		<p>由于颜色集合 $C$ 是一个区间，因此引导我们使用<em>线段树</em>的区间 $\max$ 查询功能来完成。</p>
+		<p>对于子树询问的问题嘛，就套一个线段树合并或可持久化线段树就可以了，本质就是一个二维数点。</p>
+		<p>总时间复杂度 $O \left( n \log n + n \left| \Sigma \right| \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int N = 500054, M = 1111111, LN = 21;
+
+int n, q;
+char s[M];
+int at[M], root[M];
+pr qry[N], ans[N];
+vector qs[M];
+
+inline bool up(pr &amp;x, const pr &amp;y) {return x &lt; y ? x = y, 1 : 0;}
+
+namespace SAM {
+	int p, np = 1, cnt = 1;
+	int P[LN][M];
+	int *pa = *P, d[M][26], val[M];
+	int pos[M], child[M][26];
+	bool used[M];
+
+	#define q d[p][x]
+	#define try_split(v) { \
+		if (val[p] + 1 == val[q]) v = q; \
+		else { \
+			int nq = ++cnt; \
+			val[nq] = val[p] + 1, memcpy(d[nq], d[q], 104); \
+			pa[nq] = pa[q], v = pa[q] = nq; \
+			for (int Q = q; p &amp;&amp; q == Q; q = nq, p = pa[p]); \
+		} \
+	}
+
+	int extend(int x) {
+		if (p = np, q) try_split(np)
+		else {
+			for (val[np = ++cnt] = val[p] + 1; p &amp;&amp; !q; q = np, p = pa[p]);
+			if (p) try_split(pa[np]) else pa[np] = 1;
+		}
+		return np;
+	}
+	#undef q
+
+	void dfs(int x) {
+		int i, y;
+		for (i = 0; i &lt; LN - 1 &amp;&amp; P[i][x]; ++i)
+			P[i + 1][x] = P[i][P[i][x]];
+		for (i = 0; i &lt; 26; ++i)
+			if (y = child[x][i]) dfs(y);
+	}
+
+	void build() {
+		int i, j, c; used[1] = true;
+		for (i = cnt; i; --i) if (~pos[i])
+			for (j = i; !used[j]; j = pa[j])
+				c = pos[j] - val[pa[j]], pos[pa[j]] = pos[j],
+				child[pa[j]][int(s[c])] = j, used[j] = true;
+		dfs(1);
+	}
+
+	int jump_until(int x, int v) {for (int i = LN - 1; i &gt;= 0; --i) val[ P[i][x] ] &gt;= v &amp;&amp; (x = P[i][x]); return x;}
+	inline int extract(int l, int r) {return jump_until(at[r], r - l + 1);} // [l, r]
+}
+
+namespace ST {
+	struct node {pr v; int lc, rc;} x[20030731];
+	int cnt;
+
+	int add(int id, int L, int R, int h, int v) {
+		id || (id = ++cnt);
+		if (L == R) return ++x[id].v.first, x[id].v.second = h, id;
+		int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[id].lc = add(x[id].lc, L, M, h, v) : (x[id].rc = add(x[id].rc, M + 1, R, h, v));
+		return x[id].v = std::max(x[id].lc[x].v, x[id].rc[x].v), id;
+	}
+
+	int merge(int id1, int id2, int L, int R) {
+		if (!(id1 &amp;&amp; id2)) return id1 | id2;
+		if (L == R) return x[id1].v.first += x[id2].v.first, id1;
+		int M = (L + R - 1) &gt;&gt; 1;
+		x[id1].lc = merge(x[id1].lc, x[id2].lc, L, M);
+		x[id1].rc = merge(x[id1].rc, x[id2].rc, M + 1, R);
+		return x[id1].v = std::max(x[id1].lc[x].v, x[id1].rc[x].v), id1;
+	}
+
+	pr range(int id, int L, int R, int ql, int qr) {
+		if (!id) return pr(0, qr);
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id].v;
+		int M = (L + R - 1) &gt;&gt; 1; pr s(-1, -1);
+		if (ql &lt;= M) up(s, range(x[id].lc, L, M, ql, qr));
+		if (qr &gt; M) up(s, range(x[id].rc, M + 1, R, ql, qr));
+		return s;
+	}
+}
+
+void solve(int x) {
+	int i, y;
+	for (i = 0; i &lt; 26; ++i)
+		if (y = SAM::child[x][i])
+			solve(y), root[x] = ST::merge(root[x], root[y], 1, n);
+	for (int id : qs[x]) ans[id] = ST::range(root[x], 1, n, qry[id].first, qry[id].second);
+}
+
+int main() {
+	int i, v, pl, pr, l, r; char *p;
+	memset(SAM::pos, -1, sizeof SAM::pos);
+	scanf("%s%d", s, &amp;n);
+	for (p = s; *p; ++p) at[p - s] = SAM::extend(*p -= 97), SAM::pos[ at[p - s] ] = p - s;
+	for (i = 0; i &lt; n; ++i)
+		for (SAM::np = 1, scanf("%s", p); *p; ++p)
+			v = SAM::extend(*p -= 97), SAM::pos[v] = p - s,
+			root[v] = ST::add(root[v], 1, n, n - i, 1);
+	SAM::build();
+	scanf("%d", &amp;q);
+	for (i = 0; i &lt; q; ++i)
+		scanf("%d%d%d%d", &amp;l, &amp;r, &amp;pl, &amp;pr), qry[i] = ::pr(n - r + 1, n - l + 1),
+		v = SAM::extract(--pl, --pr), qs[v].EB(i);
+	solve(1);
+	for (i = 0; i &lt; q; ++i) printf("%d %d\n", n - ans[i].second + 1, ans[i].first);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>线段树合并记得空间开足。</p>
+		<p><strong>坑2：</strong>注意广义后缀自动机的写法，有一点不太一样的是，因为在插入多个串的时候有可能<strong>不会添加新的节点</strong>。</p>
+		<p><strong>坑3：</strong>若 $s \left[ p_l .. p_r \right]$ 在所有 $t_i$ 中都不出现，<em>可能</em>需要特判输出 <code>0 <em>l</em></code>。</p>
+	</body>
+</html>

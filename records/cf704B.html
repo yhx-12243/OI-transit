@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces704B]Ant Man</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个点，每个点有五个参数 $x_i, a_i, b_i, c_i, d_i$，满足 $x_i &lt; x_{i+1}$，其中有向边 $i \to j$ 的长度为 \begin{cases} x_j - x_i + d_i + a_j &amp; i &lt; j \\ x_i - x_j + c_i + b_j &amp; i &gt; j \end{cases}</p>
+		<p>你需要求原图的从 $s$ 到 $e$ 的 Hamilton 路径的长度的最小值。这里的 Hamilton 路径是以 $s$ 为起点，以 $e$ 为终点，经过其余点<strong>恰好一次</strong>的路径。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, s, e$ ($2 \leq n \leq 5000; 1 \leq s, e \leq n; s \neq e$)，表示点的个数，路径的起点和终点。</p>
+		<p>第二行包含 $n$ 个正整数 $x_1, x_2, \cdots, x_n$ ($1 \leq x_i &lt; x_{i+1} \leq 10^9$)。</p>
+		<p>第三行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($1 \leq a_i \leq 10^9$)。</p>
+		<p>第四行包含 $n$ 个正整数 $b_1, b_2, \cdots, b_n$ ($1 \leq b_i \leq 10^9$)。</p>
+		<p>第五行包含 $n$ 个正整数 $c_1, c_2, \cdots, c_n$ ($1 \leq c_i \leq 10^9$)。</p>
+		<p>第六行包含 $n$ 个正整数 $d_1, d_2, \cdots, d_n$ ($1 \leq d_i \leq 10^9$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最短 Hamilton 路径的长度。</p>
+
+		<h3>题解</h3>
+		<p>令 $A_i = a_i + x_i, B_i = b_i - x_i, C_i = c_i + x_i, D_i = d_i - x_i$，则 $\operatorname{dist} \left( i \to j \right) = \begin{cases} D_i + A_j &amp; i &lt; j \\ C_i + B_j &amp; i &gt; j \end{cases}$。</p>
+		<p>我们维护这个 Hamilton 路径，初始时为 $\left[ s, e \right]$，然后考虑将 $1, 2, \cdots, n$ 依次加入到这个 Hamilton 路径中，考虑它所安放的合适的位置。</p>
+		<p>我们考虑在序列中插入 $i$，对答案的贡献 (增量)。</p>
+		<p>设 $i$ 前面的数为 $u$，后面的数为 $v$。先不考虑边上的 $s, e$，如果 $u, v \notin \left\{ s, e \right\}$，则由插入规则知必有 $u &lt; i \wedge v &lt; i$。</p>
+		<p>不妨设 $u &lt; v$，则答案的增量 $\Delta ans = \operatorname{dist} \left( u \to i \right) + \operatorname{dist} \left( i \to v \right) - \operatorname{dist} \left( u \to v \right) = \left( D_u + A_i \right) + \left( C_i + B_v \right) - \left( D_u + A_v \right) = \left( A_i + C_i \right) + \left( B_v - A_v \right)$。</p>
+		<p>同理，如果 $u &gt; v$，则可以算出答案的增量 $\Delta ans = \left( A_i + C_i \right) + \left( D_u - C_u \right)$。</p>
+		<p>也就是说，对于 $i$ 比较大的情况 (如果 $s, e$ 也比 $i$ 小的话)，则答案的增量是：<span style="color: blue">固定的 $A_i + C_i$</span>，和一个关于 $\max \left\{ u, v \right\}$ 的函数 (其中 $u, v$ 是相邻的)。</p>
+		<p>我们先考虑如何解决这个局部最优问题，<span class="text-muted">最后再来证明它的全局最优性</span>。</p>
+		<p>对于一个给定的序列，它的每一个相邻段 $u, v$ ($u$ 在 $v$ 的左边) 都有一个权值，我们用 $f$ 表示，即：$f \left( u, v \right) = \begin{cases} B_v - A_v &amp; u &lt; v \\ D_u - C_u &amp; u &gt; v \end{cases}$。</p>
+		<p>于是，设当前的段为 $\left[ s, p_1, p_2, \cdots, p_k, e \right]$，如果我们插入一个点 $i$ ($s, p_j, e &lt; i; 1 \leq j \leq k$)，则我们自然要取所有相邻段中 $f$ 最小的，即 $\left( \Delta ans \right)_\min = \color {blue} {\left( A_i + C_i \right)} + \min \left\{ f \left( s, p_1 \right), f \left( p_1, p_2 \right), \cdots, f \left( p_{k-1}, p_k \right), f \left( p_k, e \right) \right\}$</p>
+		<p>然后，我们使用优先队列 (堆) 来维护这一坨东西的最小值，然后取出来后将其 $pop$ 掉，由于 $i$ 是最大元，然后在堆中插入 $B_i - A_i$ 和 $D_i - C_i$ 这两个元素。</p>
+		<p>当然，别忘了讨论 $i &lt; \max \left\{ s, e \right\}$ 的情形。先考虑左边 ($i &lt; s$)，此时，在 $s$ 后插入 $i$ 的贡献为 $\Delta ans = \left( C_s + B_i \right) + \left( C_i + B_v \right) - \left( C_s + B_v \right) = \left( A_i + C_i \right) + \left( B_i - A_i \right)$，可以看出，将<span style="color: blue">固定值 $A_i + C_i$</span> 去除后，它是一个关于自身 $i$ 的函数。</p>
+		<p>因此，我们要将 $B_i - A_i$ 插入到堆中，然后共同取最小值。</p>
+		<p style="color: red">最后关键的部分来了，如果 $B_i - A_i$ 不是最小值，我们也<strong>无需将其 <code>pop()</code> 掉</strong>：因为在插入失败后，由于 $i$ 大于位于左边的元素 $u$，它将作为 $f \left( u, i \right)$ 而存在，等待下一个在 $u, i$ 间插入的元素。</p>
+		<p>综上，也就是说，我们只是<strong>把插入 $B_i - A_i$ 的时间少许提前了一些</strong> (提前到过程 "在序列中插入 $i$" 即 <code>pop()</code> 之前)，而无需插入新的元素。</p>
+		<p>同理，对于右边 ($i &lt; e$) 的情形，也是类似的，无非就是把 $B_i - A_i$ 改成 $D_i - C_i$。</p>
+		<p>最后的一些小细节：</p>
+		<p>在 $i$ 跨越 $s$ 的时候，才能插入 $f \left( s, v \right) = D_s - C_s$ ($s &gt; v$)，因为这个时候，$s$ 也会比新插入的 $i$ 小了，从而贡献才能用 $f$ 表示 —— 落到 $s$ 的头上，而不是关于自身 $i$ 的函数。$i$ 跨越 $t$ 的时候同理。</p>
+		<p>其次，如果 $s, e &gt; 1$，在插入 $1$ 的时候，情况非常特殊，因为此时 $s &gt; 1 &lt; e$，我们上面的分析都不满足了，因此我们需要特判 —— 当然一个比较明智的做法是先将 $1$ 插入到序列中，变为 $\left[ s, 1, e \right]$，然后在其上 "增广"，就不会产生类似的问题了。</p>
+		<hr />
+		<p>最后，简要说明一下它的全局最优性。</p>
+		<p>首先，概括一下主要思想：<strong style="color: fuchsia">本题中，局部最优就是全局最优的本质，就是上面<span style="color: red">红色性质</span></strong>。也就是说，这个算法的正确性由<span style="color: red">红色性质</span>所保证。</p>
+		<p>若运行上面算法所得到的解不是最优解，考虑一个最优解，它必然是可以通过上述算法来 "生成" 的，于是，必定有一步，它取出的<strong>不是堆中最小</strong>的元素。</p>
+		<p>而<span style="color: red">红色性质</span>保证了，对于堆中任意一个元素，<strong>只要它没有被取出，就不可能通过其它手段将其删除</strong>。于是，我们将这一步改为最小的元素，则整个过程的答案不变劣。</p>
+		<p style="color: red">(ps: 再次说明，这个红色性质是它的全局最优性的保证。其实，对于一个局部最优过程，只要满足<strong>一个元素只要未有取出就不会因其它原因而删除</strong>，则局部最优就是全局最优)</p>
+		<hr />
+		<p>从而只需实现一个优先队列 (堆) 即可，时间复杂度 $O \left( n \log n \right)$ <del>(喂喂喂 $n$ 为啥不出到 $10^5$？)</del>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 5054;
+
+int n, si, ti;
+int x[N], Ls[N], Rs[N], Lt[N], Rt[N];
+std::priority_queue &lt;ll, std::vector &lt;ll&gt;, std::greater &lt;ll&gt; &gt; pq;
+
+inline ll dist(int u, int v) {return u &lt; v ? (ll)Rs[u] + Rt[v] : u &gt; v ? (ll)Ls[u] + Lt[v] : 0;}
+
+int main() {
+	int i; ll ans, left_profit, right_profit;
+	scanf("%d%d%d", &amp;n, &amp;si, &amp;ti);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", x + i);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", Rt + i), Rt[i] += x[i];
+	for (i = 1; i &lt;= n; ++i) scanf("%d", Lt + i), Lt[i] -= x[i];
+	for (i = 1; i &lt;= n; ++i) scanf("%d", Ls + i), Ls[i] += x[i];
+	for (i = 1; i &lt;= n; ++i) scanf("%d", Rs + i), Rs[i] -= x[i];
+	ans = dist(si, 1) + dist(1, ti);
+	for (i = 2; i &lt;= n; ++i) {
+		left_profit = (ll)Rs[i] - Ls[i];
+		right_profit = (ll)Lt[i] - Rt[i];
+		if (i == si) pq.push(left_profit);
+		else if (i == ti) pq.push(right_profit);
+		else {
+			if (i &lt; si) pq.push(right_profit);
+			if (i &lt; ti) pq.push(left_profit);
+			ans += pq.top() + Ls[i] + Rt[i], pq.pop();
+			if (i &gt; si) pq.push(right_profit);
+			if (i &gt; ti) pq.push(left_profit);
+		}
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意到这里改过的权值 ($A_i, B_i, C_i, D_i$) 可以到 $2 \times 10^9$ 的级别，因此再次做加减法的时候 ($B_i - A_i, D_i - C_i$) 需要使用 <code>long long</code>。</p>
+		<p><strong>坑2：</strong>本题在处理细节的时候有一个小 trick —— <strong>当 $\min \left\{ s, e \right\} &gt; 1$ 时</strong>，先将 $1$ 插入到序列中，然后再插入其它元素。当然，当 $\min \left\{ s, e \right\} = 1$ 时，按照原来的方式插入不会产生问题。</p>
+	</body>
+</html>

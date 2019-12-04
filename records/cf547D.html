@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces547D]Mike and Fish</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>平面上有 $n$ 个整点，第 $i$ 个点的坐标为 $\left( x_i, y_i \right)$，保证所有点的坐标互不相同。</p>
+		<p>你需要在对这些点进行红、蓝 $2-$染色，需要保证每一条水平线 ($y = y_0$) 或竖直线 ($x = x_0$) 上红点与蓝点的数量的差 (的绝对值) 不超过 $1$。</p>
+		<p>请给出一组合法的染色方案。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 2 \times 10^5$)，表示点的数量。</p>
+		<p>接下来 $n$ 行，每行两个正整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq 2 \times 10^5$)，表示第 $i$ 个点的坐标。</p>
+		<p>保证所有点的坐标两两不相同，<span class="text-muted">且可以证明一定存在合法的解</span>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个长度为 $n$ 的，由 <code>r</code> 和 <code>b</code> 构成的字符串，第 $i$ 个字符表示第 $i$ 个点的颜色 (<code>r</code> 为红色，<code>b</code> 为蓝色)，描述你的染色方案。</p>
+		<p>如果有多组合法的染色方案，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>当然，如果你用 <a href="../index.html?redirect=815" target="_blank">[Codeforces704D]Captain America</a> 的做法做这道题 (建立二分图/网络流模型) 也是没问题的。<del>只不过很可能会 TLE</del></p>
+		<p>考虑到这里的条件其实更强 (差不超过 $1$，每条线都有限制)，因此可以在建立二分图模型后尝试直接使用图论方法解决。</p>
+		<p>我们先将条件转化一下 —— 如果我们把红点看成 $1$，蓝点看成 $-1$，则每行 (列) 红蓝点数量差不超过 $1$ 可以刻画为<strong>该行所有点对应的数之和为 $-1, 0, 1$</strong>。</p>
+		<p>下面证明，在这个条件下，一定存在合法的解。证明如下 (同时也给出了构造方法)：</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<img class="center-block" src="uploads/165.png" alt="证明" />
+			</div>
+		</div>
+		<p>只需要实现类似找 Euler 回路的过程即可，时间复杂度 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) ((x - 1 ^ 1) + 1)
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 400054, M = N * 2;
+
+int V1, V2, E, Es = 0;
+int to[M], first[N], next[M], deg[N];
+int g_[M];
+bool used[M];
+char ans[N];
+
+inline void addedge(int u, int v) {
+	to[++Es] = v, next[Es] = first[u], first[u] = Es, ++deg[u];
+	to[++Es] = u, next[Es] = first[v], first[v] = Es, ++deg[v];
+}
+
+namespace DC {
+	int F[N]; pr D[N];
+
+	int Discretize(int n) {
+		int i, cnt = 0;
+		std::sort(D, D + n);
+		for (i = 0; i &lt; n; ++i)
+			F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+}
+
+void dfs(int x) {
+	for (int &amp;i = first[x]; i; i = next[i])
+		if (!used[i])
+			used[ad(i)] = used[i] = true, ans[(i - 1) / 2] = i &amp; 1 ? 98 : 114, dfs(to[i]);
+}
+
+int main() {
+	int i, j = -1, u, v;
+	scanf("%d", &amp;E);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", g_ + i, g_ + (E + i)), DC::D[i] = pr(g_[i], i);
+	V1 = DC::Discretize(E);
+	for (i = 0; i &lt; E; ++i) g_[i] = DC::F[i], DC::D[i] = pr(g_[E + i], i);
+	V2 = DC::Discretize(E);
+	for (i = 0; i &lt; E; ++i) u = g_[i], v = DC::F[i], addedge(u, v + V1);
+	for (i = 0; i &lt; V1 + V2; ++i) if (deg[i] &amp; 1) ~j ? addedge(j, i), j = -1 : j = i;
+	for (i = 0; i &lt; V1 + V2; ++i) dfs(i);
+	ans[E] = 0, puts(ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在求 Euler 回路的过程中，不要忘记动态引用 <code>first[]</code> 数组，以及一条边不要被访问超过一次。</p>
+	</body>
+</html>

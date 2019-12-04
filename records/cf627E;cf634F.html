@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces627E/634F]Orchestra</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>音乐会上正在演奏者一首管弦乐。管弦乐队排成 $r \times c$ 的矩形，其中共有 $n$ 个中提琴手。Paul 喜欢中提琴，因此他希望他拍的照片中<strong>至少有 $k$ 个</strong>中提琴手。</p>
+		<p>Paul 的相机是任意 (边平行于大矩形的) 非空子矩形。你需要计算，Paul 一共能拍多少种<strong>不相同</strong>的照片，满足每张照片中至少有 $k$ 个中提琴手。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个正整数 $r, c, n, k$ ($r, c, n \leq 3000; k \leq \min \left\{ n, 10 \right\}$)，表示矩形的行数和列数，中提琴手的个数以及 Paul 希望入镜的中提琴手个数。</p>
+		<p>接下来 $n$ 行，每行两个正整数 $x_i, y_i$ ($1 \leq x_i \leq r; 1 \leq y_i \leq c$)，表示其中一个中提琴手在第 $x_i$ 行第 $y_i$ 列。保证所有中提琴手的坐标两两不相同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示可以拍得的不相同的照片的数量。</p>
+
+		<h3>题解</h3>
+		<p>考虑固定上边界 $r_0$ ($1 \leq r_0 \leq r$)，考虑有多少个满足条件的照片。</p>
+		<p>考虑下边界从 $r_1 - 1$ 移动到 $r_1$，如果第 $r_1 - 1$ 行<strong>没有中提琴手</strong>，则 "上边界为 $r_0$，下边界为 $r_1 - 1$" 的合法照片数 (即左、右边界的二元组数) 和 "上边界为 $r_0$，下边界为 $r_1$" 的合法照片数应该是<strong>相等的</strong>，从而这引导我们在统计上边界为 $r_0$ 的照片数时，考虑<strong>差分的思想</strong> —— 即下边界每移动一个单位，计算出答案的<strong>增量</strong>，最后将所有答案相加即得。</p>
+		<p>于是我们考虑第 $r_1$ 行<strong>有中提琴手</strong>的情况，考虑答案的增量。</p>
+		<p>不妨先假设这一行只有一个中提琴手，位于第 $j$ 列。</p>
+		<p>此时，第 $r_0 \sim r_1 - 1$ 行的中提琴手，在我们所要统计的答案的增量 (上边界为 $r_0$，下边界为 $r_1$) 中，是本质相同的。那么，我们可以将它们 "压" 到一行中去。</p>
+		<hr />
+		<p>接下来我们尝试去刻画这个 "答案的增量"。</p>
+		<p>考虑一个左、右边界的二元组 $L, R$，它在增量中，由定义，当且仅当矩形 $\left( r_0, r_1 - 1; L, R \right)$ 中的中提琴手数<strong>小于 $k$</strong>，矩形 $\left( r_0, r_1; L, R \right)$ 中的中提琴手数<strong>大于等于 $k$</strong>。<span style="color: red">(ps: 矩形 $\left( top, bottom; left, right \right)$ 表示上、下、左、右边界分别为 $top, bottom, left, right$ 的矩形)</span></p>
+		<p>由假设，第 $r_1$ 行<strong>只有一个</strong>中提琴手，因此上述的两个数应<strong>恰为</strong> $k - 1$ 和 $k$。</p>
+		<p>设此时第 $i$ 列有 $A_i$ 个中提琴手，从而我们只需要统计有多少个二元组 $\left( L, R \right)$，满足 $L \leq j \leq R$ 且 $\displaystyle \sum_{i=L}^R A_i = k$。</p>
+		<p>这是一个经典的<strong>双指针</strong>问题 <del>(因为你显然不能求整个序列的前缀和，不然就 TLE 了)</del>，我们只需要枚举 $L$，则 $R$ 的取值是单调的，因此直接双指针扫过去即可。</p>
+		<p>我们刚才也说了，不能在这个问题下花 $O \left( c \right)$ 的时间。不过，注意到 $k$ 非常小，它提示我们利用附近的信息。</p>
+		<p>对，由于还有 $L \leq j \leq R$ 这个条件，因此，实际上，(将所有人按照列标排序后) <strong>只有新加的人的左边 $K$ 个，她本身，以及她右边 $K$ 个</strong>是有用的。</p>
+		<p>只将这些人拉出来处理，这样的机器人数至多 $2 K + 1$ 个。</p>
+		<p>考虑到这些人之间可能差的很远，裸的双指针还是不行 —— 这已经不是大问题了，将这些坐标<strong>离散化</strong>一下，然后将对应的坐标<strong>差值</strong>相乘就可以了。</p>
+		<p>这样，在 "计算单行的增量" 这个问题上所花的时间就降到了 $O \left( k \right)$，从而可以接受。</p>
+		<hr />
+		<p>当然，如果某一行中有多个中提琴手，问题也并不复杂 —— 将这些人一个一个依次加入，考虑答案的增量，将这些增量相加，即得整行的增量。容易证明它的正确性。</p>
+		<p>分析一下总时间复杂度：首先，要枚举 $r_0$，这需要 $O \left( r \right)$ 的时间，在 $r_0$ 确定后，要扫描一遍 (下边界) $r_1$，然后在遇到<strong>每个</strong>中提琴手的时候，需要花 $O \left( k \right)$ 时间内计算增量。</p>
+		<p>不过，在这个 $O \left( k \right)$ 中，我们需要寻找<strong>它附近的 $2 K + 1$ 个人</strong>，可以使用<strong>链表</strong>来实现。当然，也可以像下面的代码一样偷懒用 <code>std::multiset</code>，只不过时间复杂度会多一个 $O \left( \log n \right)$。</p>
+		<p>因此最后时间复杂度就是 $O \left( r^2 + r \cdot n \cdot k \right)$ (链表) 或 $O \left( r^2 + r \cdot n \log n \cdot k \right)$ (<code>std::multiset</code>)，当然，这里可以不妨假设 $r \leq c$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef long long ll;
+typedef std::vector &lt;int&gt; vector;
+typedef std::multiset &lt;int&gt; set;
+const int N = 3054;
+
+int R, C, n, inf;
+int fy_[54], *col = fy_ + 27;
+vector row[N];
+set U;
+
+int main() {
+	int i, u, r, c, cur; ll ans = 0; set::iterator le, ri;
+	scanf("%d%d%d%d", &amp;R, &amp;C, &amp;n, &amp;inf);
+	for (i = 0; i &lt; n; ++i) scanf("%d%d", &amp;r, &amp;c), row[r].EB(c);
+	for (u = 1; u &lt;= R; ++u)
+		for (U.clear(), cur = 0, r = u; r &lt;= R; ++r, ans += cur)
+			for (int c : row[r]) {
+				++(ri = le = U.emplace(*col = c));
+				for (i = 1; i &lt;= inf; ++i) col[-i] = (le == U.begin() ? 0 : *--le), col[i] = (ri == U.end() ? C + 1 : *ri++);
+				for (i = 1; i &lt;= inf; ++i) cur += (col[i] - col[i - 1]) * (col[i - inf] - col[i - inf - 1]);
+			}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意这里要使用 <code>std::multiset</code> 而不是 <code>std::set</code>，因为可能有多个小提琴手位于同一列。</p>
+		<p><strong>坑2：</strong>注意 STL 集合的使用方法，不要做诸如取 <code>*S.end()</code> 之类的行为。</p>
+	</body>
+</html>

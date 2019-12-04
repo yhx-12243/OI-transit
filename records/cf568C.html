@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces568C]New Language</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>现在有一门新的语言，它的单词由字母表中前 $l$ ($1 \leq l \leq 26$) 个字符组成，每个字符或者是元音 (<code>V</code>)，或者是辅音 (<code>C</code>)。具体的组成规则如下：</p>
+		<ol>
+			<li><p>所有单词的长度为 $n$。</p></li>
+			<li><p>有 $m$ 条特殊的规则 $\left( pos_1, t_1, pos_2, t_2 \right)$ ($1 \leq pos_1, pos_2 \leq n; pos_1 \neq pos_2; t_1, t_2 \in \left\{ \texttt V, \texttt C \right\}$)，每条规则如下：如果该单词的第 $pos_1$ 个字母是 $t_1$ 类型，则这个单词的第 $pos_2$ 个字母须为 $t_2$ 类型。</p></li>
+		</ol>
+		<p>给定一个长度为 $n$ 的，由前 $l$ 个字母构成的字符串 $s$ (它并不一定是该语言的 "单词")，你需要寻找一个<strong>字典序不小于 $s$ 的最小的 (该语言的) 单词</strong>，或者说明它不存在。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个长度为 $l$ ($1 \leq l \leq 26$) 的，由 <samp>V</samp> 和 <samp>C</samp> 构成的字符串，描述该语言的各个字母的性质 —— 如果第 $i$ 个字符为 <samp>V</samp>，则表示字母表中第 $i$ 个字母为元音；如果第 $i$ 个字符为 <samp>C</samp>，则表示字母表中第 $i$ 个字母为辅音。</p>
+		<p>第二行包含两个非负整数 $n, m$ ($1 \leq n \leq 200; 0 \leq m \leq 4 n \left( n - 1 \right)$)，分别表示该语言的单词长度和额外的限制数。</p>
+		<p>接下来 $m$ 行，每行的格式如下：<code><em>pos</em><sub>1</sub> <em>t</em><sub>1</sub> <em>pos</em><sub>2</sub> <em>t</em><sub>2</sub></code> ($1 \leq pos_1, pos_2 \leq n; pos_1 \neq pos_2; t_1, t_2 \in \left\{ \texttt V, \texttt C \right\}$)，描述一条特殊的规则，具体格式见题目描述。</p>
+		<p>最后一行包含一个长度为 $n$，由前 $l$ 个小写字母构成的串 $s$，表示你所寻找的串的基准。</p>
+		<p>保证所有规则两两不相同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个长度为 $n$ 的字符串，表示字典序不小于 $s$ 的最小的单词。如果这样的单词不存在，输出一行 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>由于字典序最小，我们考虑使用贪心。</p>
+		<p>考虑使用 dfs 来实现这个贪心，有点类似数位 DP 的思想，记录一个 $bounded$ 变量表示现在是否在边界，从而决定从哪个字符开始搜索。</p>
+		<p>如果现在不在边界，可以发现，我们只需要搜索两个不同的字符 —— 最小的元音和最小的辅音。</p>
+		<p>如果现在在边界，则我们需要搜索三个不同的字符 —— 当前字符，比它大的最小的元音和最小的辅音。</p>
+		<p>当然，如果对应的字符不存在，我们可以直接跳过。</p>
+		<p>显然，裸搜是容易 TLE 的。因此，我们需要剪枝 —— 即每搜一步，检验后续状态是否合法。如果不存在合法解，则直接 <code>return;</code> 掉。这样一来，每搜到一个状态，后续均是有解的，从而时间复杂度就正确了。</p>
+		<p>因此，剩下的问题是，如何检验一个状态是否合法呢？</p>
+		<p>由于这里的限制关系 (规则) 和 <a href="../index.html?redirect=62" target="_blank">[NOI2017]游戏</a> 中的规则比较类似，且每种字符只有两种类型 (元音/辅音)，这引导我们使用 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 进行处理。</p>
+		<p>具体地，对每个位置 $i$，我们建立两个布尔变量 $v_i, c_i$，分别表示第 $i$ 个位置的字母是元音和辅音。</p>
+		<p>于是，对于每条规则，都可以转化成对应的布尔方程。比如，$\left( p, \texttt V, q, \texttt C \right)$ 就对应方程 $v_p \to c_q = \mathrm{true}$。</p>
+		<p>于是使用 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 即可完成判定，单次判定复杂度 $O \left( n + m \right)$。</p>
+		<p>由于外面套了一层搜索，因此总的判定次数为 $O \left( n \right)$，因此最终的时间复杂度应为 $O \left( n^2 + n m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 254, M = 200054;
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace Graph {
+	#define ad(x) ((x - 1 ^ 1) + 1)
+	const int N = 508, M = 2000000;
+
+	struct edge {
+		int u, v;
+		edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+	} e[M], ee[M];
+
+	int V, E = 0, V1;
+	int first[N], next[M], Fi[N], Ni[M];
+	int cnt = 0, id[N], low[N];
+	int stc = 0, stack[N], top[N];
+	bool in_stack[N];
+	int col[N], conflict[N];
+	int deg[N], que[N];
+
+	inline void addedge(int u, int v) {e[++E] = edge(u, v), next[E] = first[u], first[u] = E;}
+	inline void deledge(int end) {for (; E &gt; end; --E) first[e[E].u] = next[E];}
+	inline void implies(int u, int v) {addedge(u, v), addedge(ad(v), ad(u));}
+	inline void must(int x) {addedge(ad(x), x);}
+
+	void dfs(int x) {
+		int i, y; id[x] = low[x] = ++cnt, in_stack[x] = true, stack[stc++] = x;
+		for (i = first[x]; i; i = next[i])
+			if (!id[y = e[i].v])
+				dfs(y), down(low[x], low[y]);
+			else if (in_stack[y])
+				down(low[x], id[y]);
+		if (id[x] == low[x])
+			for (y = 0; y != x; y = stack[--stc], in_stack[y] = false, top[y] = x);
+	}
+
+	void shrink() {
+		int i, u, v;
+		for (i = 1; i &lt;= E; ++i)
+			if ((u = top[e[i].u]) != (v = top[e[i].v]))
+				++deg[u], Ni[i] = Fi[v], Fi[v] = i, ee[i] = edge(u, v);
+	}
+
+	void toposort() {
+		int h, t = 0, x, i;
+		for (i = 1; i &lt;= V; ++i) if (i == top[i] &amp;&amp; !deg[i]) que[t++] = i;
+		for (h = 0; h &lt; t; ++h)
+			for (i = Fi[x = que[h]]; i; i = Ni[i])
+				if (!--deg[ee[i].u]) que[t++] = ee[i].u;
+		V1 = t;
+	}
+
+	void final() {
+		for (int x, i = 0; i &lt; V1; ++i)
+			if (!col[x = que[i]]) col[x] = 1, col[conflict[x]] = -1;
+	}
+
+	inline bool _2_SAT() {
+		int i, u, v; cnt = stc = 0;
+		memset(Fi, 0, (V + 1) &lt;&lt; 2);
+		memset(id, 0, (V + 1) &lt;&lt; 2);
+		memset(col, 0, (V + 1) &lt;&lt; 2);
+		memset(conflict, 0, (V + 1) &lt;&lt; 2);
+		memset(deg, 0, (V + 1) &lt;&lt; 2);
+		for (i = 1; i &lt;= V; ++i) if (!id[i]) dfs(i);
+		for (i = 1; i &lt;= V; i += 2) {
+			if ((u = top[i]) == (v = top[i + 1])) return false;
+			conflict[u] = v, conflict[v] = u;
+		}
+		return shrink(), toposort(), final(), true;
+	}
+}
+
+int n, m, charset, Estd;
+char type[30], s[N], ss[N];
+
+inline bool check(int len) {
+	Graph::deledge(Estd);
+	for (int i = 0; i &lt; len; ++i) Graph::must(i * 2 + type[ss[i]] + 1);
+	return Graph::_2_SAT();
+}
+
+inline bool dfs(int dep, bool border = true) {
+	if (dep &gt;= n) return true;
+	int i, u = INT_MAX, v = INT_MAX;
+	if (border) {
+		for (i = charset - 1; i &gt; s[dep]; --i) type[i] ? v = i : (u = i);
+		if (u &gt; v) std::swap(u, v);
+		if (ss[dep] = s[dep], check(dep + 1) &amp;&amp; dfs(dep + 1, true)) return true;
+		if (u == INT_MAX) return false;
+	} else {
+		for (i = charset - 1; i &gt;= 0; --i) type[i] ? v = i : (u = i);
+		if (u &gt; v) std::swap(u, v);
+	} 
+	if (ss[dep] = u, check(dep + 1) &amp;&amp; dfs(dep + 1, false)) return true;
+	if (v == INT_MAX) return false;
+	return ss[dep] = v, dfs(dep + 1, false);
+}
+
+int main() {
+	int i, u, v; char *_p, $[6];
+	scanf("%s%d%d", type, &amp;n, &amp;m);
+	for (_p = type; *_p; ++_p) *_p &amp;= 1; charset = _p - type;
+	for (i = 0; i &lt; m; ++i)
+		scanf("%d%s%d%s", &amp;u, $, &amp;v, $ + 3), --u, --v, *$ &amp;= 1, $[3] &amp;= 1,
+		Graph::implies(u * 2 + *$ + 1, v * 2 + $[3] + 1);
+	Graph::V = 2 * n, Estd = Graph::E;
+	if (!check(0)) return puts("-1"), 0;
+	for (scanf("%s", s), _p = s; *_p; ++_p) *_p -= 97; assert(_p - s == n);;
+	if (dfs(0)) {for (i = 0; i &lt; n; ++i) ss[i] += 97; puts(ss);}
+	else puts("-1");
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在边界的情况下，记得要搜索三个不同的字符，缺一不少。因为边界的字符对后续仍有限制，可能会导致因为边界而无解的情况发生 (样例 3)。</p>
+		<p><strong>坑2：</strong>和<a href="../index.html?redirect=796" target="_blank">这题</a>类似，关于规则的边也可以一开始就连好，最后只需要连目前已知字符的限制边。当然，由于本题数据范围较小，使用 Floyd 大暴力也是可以过的。</p>
+	</body>
+</html>

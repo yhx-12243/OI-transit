@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces704D]Captain America</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>平面上有 $n$ 个整点，第 $i$ 个点的坐标为 $\left( x_i, y_i \right)$。两个点的坐标<strong>可能相同</strong>。</p>
+		<p>Steve Rogers 现在想要对这些点进行染色。其中每个点可以被染成红色或蓝色，代价分别为 $r$ 和 $b$。</p>
+		<p>当然，有 $m$ 条额外限制，形式如下：</p>
+		<ol>
+			<li>在直线 $x = l_i$ 上，红色与蓝色的点的数量的差的绝对值不超过 $d_i$。</li>
+			<li>在直线 $y = l_i$ 上，红色与蓝色的点的数量的差的绝对值不超过 $d_i$。</li>
+		</ol>
+		<p>你需要在满足这 $m$ 条限制的情况下，最小化对所有点染色的总代价。或者指出不存在满足这 $m$ 条限制的染色方案。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 10^5$)，分别表示点的数量和限制的数量。</p>
+		<p>第二行包含两个正整数 $r, b$ ($r, b \leq 10^9$)，分别表示将一个点染成红色或蓝色的代价。</p>
+		<p>接下来 $n$ 行，每行两个正整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq 10^9$)，描述这些点的坐标。</p>
+		<p>接下来 $m$ 行，每行三个正整数 $t_j, l_j, d_j$ ($t_j \in \left\{ 1, 2 \right\}; 1 \leq l_j \leq 10^9; 0 \leq d_j \leq n$)，描述一条限制。如果 $t_j = 1$，则表示是第 1 类 ($x = l_j$ 上的) 限制，如果 $t_j = 2$，则表示是第 2 类 ($y = l_j$ 上的) 限制。</p>
+
+		<h3>输出格式</h3>
+		<p>如果不存在满足所有限制的方案，输出一行 $-1$。</p>
+		<p>否则，第一行输出一个整数，表示最小的总代价。</p>
+		<p>第二行输出一个长度为 $n$ 的，由 <code>r</code> 和 <code>b</code> 构成的字符串，第 $i$ 个字符表示第 $i$ 个点的颜色 (<code>r</code> 为红色，<code>b</code> 为蓝色)。你需要保证你的方案的总代价和第一行输出的整数相等。</p>
+		<p>如果有多组最优解，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>首先将横纵坐标离散化，于是可以不妨假设 $1 \leq x_i, y_i \leq 10^5$。</p>
+		<p>我们将这些整点放到网格图中进行考虑，从而限制相当于每行每列有一个点数差限制。</p>
+		<p>而一行 (列) 的总点数是已知的，那么这些条件其实可以转化成<em>某种颜色的点数在一个特定的区间中</em>！</p>
+		<p>具体地，设这一行 (列) 共有 $K$ 个点，红蓝点数量差不超过 $d$。</p>
+		<p>则我们设有 $x$ 个红点，那么就应该有 $K - x$ 个蓝点，由条件列出不等式得 $$ \left| x - \left( K - x \right) \right| \leq d \Rightarrow \left| 2 x - K \right| \leq d \Rightarrow K - d \leq 2 x \leq K + d \Rightarrow \left \lceil \frac {K - d} 2 \right \rceil \leq x \leq \left \lfloor \frac {K + d} 2 \right \rfloor $$</p>
+		<p>于是，对于这一行 (列)，红点和蓝点的数量都应该在 $\left[ \left \lceil \dfrac {K - d} 2 \right \rceil, \left \lfloor \dfrac {K + d} 2 \right \rfloor \right]$ 中 (当然它们的和仍应该是 $K$)。</p>
+		<p>我们将其一般化，即每一行的红点限制为 $\left[ l_i, r_i \right]$，对应黑点限制为 $\left[ K - r_i, K - l_i \right]$。</p>
+		<p>由对称性，不妨假设 $r \leq b$，从而，欲使总代价最小，就需要<strong>将尽可能多的点</strong>染成红色。我们只需要求出能染成红色的点的数目的最大值，进一步就能得到答案了。</p>
+		<hr />
+		<p>那这个最大值怎么求呢？</p>
+		<p>首先，<del>根据套路</del>，对于网格图，我们可以对每个<em>行</em>以及每个<em>列</em>分别建立一个点 $r_i, c_j$，然后对于网格中的每一个格子/格点，它一定可以是某个行 $r_i$ 和某个列 $c_j$ 的交点，我们用边 $\left( r_i, c_j \right)$ 来描述这个格子，从而得到一个二分图。</p>
+		<p>在这道题中，我们将每个<strong>待染色的点</strong>转化成这样的边。从而我们就需要最大化<strong>红边</strong>的数量，其中限制转化成了每个点引出的红边数量限制。</p>
+		<p>此时，我们可以将红边看成流量，从而将原图转化成一个<strong>网络流</strong>模型 (因为恰好是二分图)，我们只需要求这个网络的最大流，只是每个点流入/出的流量有上下界即可。</p>
+		<p>而这个限制就可以看成，边 $\left( S, r_i \right)$ 或 $\left( c_j, T \right)$ 有一个上下界而已。</p>
+		<p>于是，只需要求这个网络的<a href="../index.html?tag=%E6%9C%89%E6%BA%90%E6%B1%87%E6%9C%89%E7%95%8C%E6%9C%80%E5%A4%A7%E6%B5%81" target="_blank"><strong>有源汇有界最大流</strong></a>，即可得到答案。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 100054;
+
+struct DC {
+	int F[N]; pr D[N];
+
+	int Discretize(int n) {
+		int i, cnt = 0; std::sort(D, D + n);
+		for (i = 0; i &lt; n; ++i)
+			F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+} X, Y;
+
+int n, q, cX, cY;
+int x[N], y[N], cx[N], cy[N], lx[N], ly[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace F {
+	#define ad(x) ((x - 1 ^ 1) + 1)
+
+	const int N = 200054, M = 2003731;
+
+	struct edge {
+		int u, v, f;
+		edge (int u0 = 0, int v0 = 0, int f0 = 0) : u(u0), v(v0), f(f0) {}
+	} e[M];
+
+	int V = 2, E = 0, si = 1, ti = 2, flow;
+	int first[N], next[M], deg[N];
+	int dep[N], cur[N], que[N];
+
+	inline void addedge(int u, int v, int f) {
+		e[++E] = edge(u, v, f); next[E] = first[u]; first[u] = E;
+		e[++E] = edge(v, u); next[E] = first[v]; first[v] = E;
+	}
+
+	bool bfs() {
+		int h, t = 1, i, x, y;
+		memset(dep, -1, sizeof dep);
+		que[0] = si; dep[si] = 0;
+		for (h = 0; h &lt; t; h++) {
+			if ((x = que[h]) == ti) return true;
+			for (i = first[x]; i; i = next[i])
+				if (dep[y = e[i].v] == -1 &amp;&amp; e[i].f) {
+					que[t++] = y;
+					dep[y] = dep[x] + 1;
+				}
+		}
+		return false;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		for (int &amp;i = cur[x]; i; i = next[i])
+			if (dep[e[i].v] == dep[x] + 1 &amp;&amp; e[i].f) {
+				a = std::min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c; e[ad(i)].f += c;
+				if((f += c) == lim) return f;
+			}
+		return f;
+	}
+
+	int Dinic() {
+		for (flow = 0; bfs(); flow += dfs(si, INT_MAX))
+			memcpy(cur, first, sizeof cur);
+		return flow;
+	}
+
+	inline void link(int u, int v, int l, int r) {addedge(u + 2, v + 2, r - l), deg[u] -= l, deg[v] += l;}
+
+	inline void reduce(int x) {for (int &amp;i = first[x]; i &amp;&amp; e[i].v &lt;= 2; i = next[i]);}
+
+	int main() {
+		int i;
+		for (i = 1; i &lt;= V; ++i)
+			if (deg[i] &gt; 0) addedge(1, i + 2, deg[i]);
+			else if (deg[i] &lt; 0) addedge(i + 2, 2, -deg[i]);
+		addedge(4, 3, INT_MAX), Dinic();
+		for (i = first[1]; i; i = next[i])
+			if (~dep[e[i].v]) return -1;
+		first[1] = first[2] = 0;
+		for (i = 1; i &lt;= V; ++i) reduce(i + 2);
+		return si = 3, ti = 4, Dinic();
+	}
+}
+
+int main() {
+	int i, op, r, v, x0, y0; bool flip; ll A, B;
+	scanf("%d%d%lld%lld", &amp;n, &amp;q, &amp;A, &amp;B);
+	if (flip = A &gt; B) std::swap(A, B);
+	A -= B, B *= n;
+	for (i = 0; i &lt; n; ++i)
+		scanf("%d%d", &amp;x0, &amp;y0), X.D[i] = pr(x0, i), Y.D[i] = pr(y0, i);
+	cX = X.Discretize(n), cY = Y.Discretize(n);
+	for (i = 0; i &lt; n; ++i)
+		++cx[ x[i] = X.F[i] ], ++cy[ y[i] = Y.F[i] ], F::link(x[i] + 3, y[i] + 3 + cX, 0, 1);
+	memcpy(lx, cx, cX &lt;&lt; 2), memcpy(ly, cy, cY &lt;&lt; 2);
+	for (; q; --q)
+		if (scanf("%d%d%d", &amp;op, &amp;r, &amp;v), op == 1) {
+			x0 = std::lower_bound(X.D, X.D + cX, pr(r, 0)) - X.D;
+			if (X.D[x0].first == r) down(lx[x0], (cx[x0] + v) / 2);
+		} else {
+			y0 = std::lower_bound(Y.D, Y.D + cY, pr(r, 0)) - Y.D;
+			if (Y.D[y0].first == r) down(ly[y0], (cy[y0] + v) / 2);
+		}
+	for (i = 0; i &lt; cX; ++i) {
+		if (lx[i] * 2 &lt; cx[i]) return puts("-1"), 0;
+		F::link(1, i + 3, cx[i] - lx[i], lx[i]);
+	}
+	for (i = 0; i &lt; cY; ++i) {
+		if (ly[i] * 2 &lt; cy[i]) return puts("-1"), 0;
+		F::link(i + 3 + cX, 2, cy[i] - ly[i], ly[i]);
+	}
+	F::V = cX + cY + 2;
+	if (!~(r = F::main())) return puts("-1"), 0;
+	printf("%lld\n", A * r + B);
+	flip ? (x0 = 114, y0 = 98) : (x0 = 98, y0 = 114);
+	for (i = 0; i &lt; n; ++i) putchar(F::e[i * 2 + 1].f ? x0 : y0);
+	putchar(10);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>网络流的边数组记得开大点。</p>
+		<p><strong>坑2：</strong>输出时注意顺序，比如有没有翻转，边有没有流量之类的，不要搞反了。</p>
+	</body>
+</html>

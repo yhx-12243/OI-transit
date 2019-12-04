@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces547E]Fibonotci</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Fibonotci 数列由如下初值和递推关系定义：$$ F_0 = 0, F_1 = 1, F_n = s_{n-1} \cdot F_{n-1} + s_{n-2} \cdot F_{n-2} $$</p>
+		<p>其中 $\left\{ s_n \right\}$ 是一个 "几乎" 周期的数列，具体定义是，对于 "几乎所有" 的自然数 $i$，都有 $s_i = s_{i \bmod N}$，除了有限个特殊的 $i \geq N$，不满足 $s_i = s_{i \bmod N}$。</p>
+		<p>举个例子，下面的序列就是一个 "几乎" 以 $4$ 为周期的数列：</p>
+		<p>$s = \left[ 5, 3, 8, 11, 5, 3, 7, 11, 5, 3, 8, 11, 5, 3, 8, 11, \cdots \right]$，注意到除了 $i = 6$ 有 $s_6 = 7$ 但 $s_{6 \bmod 4} = s_2 = 8$，对于其它所有的 $i \in \mathbb N, i \neq 6$ 均有 $s_i = s_{i \bmod 4}$。</p>
+		<p>现在给定非负整数 $K, P$，你需要求 $F_K \bmod P$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $K, P$ ($0 \leq K \leq 10^{18}; 1 \leq P \leq 10^9$)，分别表示需要求的项的下标和模数。</p>
+		<p>第二行包含一个正整数 $N$ ($1 \leq N \leq 50000$)，表示 "几乎" 周期数列 $\left\{ s_n \right\}$ 的周期。</p>
+		<p>第三行包含 $N$ 个正整数 $s_0, s_1, \cdots, s_{N-1}$ ($1 \leq s_i \leq 10^9$)，描述数列 $\left\{ s_n \right\}$ 的前 $N$ 项。</p>
+		<p>第四行包含一个正整数 $M$ ($1 \leq M \leq 50000$)，表示不满足 $s_i = s_{i \bmod N}$ 的特殊的 $i$ 的个数。</p>
+		<p>最后 $M$ 行，每行包含两个正整数 $j, v$ ($N \leq j \leq 10^{18}; 1 \leq v \leq 10^9$)，描述一个特殊的下标 $j$，表示 $s_j = v$。<em>保证所有的 $j$ 互不相同</em>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $F_K \bmod P$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>容易注意到这个 $\left\{ F_n \right\}$ 数列几乎很像线性递推的数列，这启发我们使用矩阵优化 (矩阵快速幂)。</p>
+		<p>然而事实上它不是线性递推的，而是 "周期递推" 的。好在这个周期不太长 (不超过 $50000$)，因此我们可以先将这 $N$ 个转移矩阵先乘起来，得到组合矩阵 $\mathbf M$，然后计算 $\mathbf M$ 的幂，最后将零头暴力计算即可。</p>
+		<p>于是，我们得到了 $M = 0$ 时的做法：先将 $N$ 个转移矩阵乘起来，得到 $\mathbf M$，然后计算 $\mathbf M^{\left \lfloor K / n \right \rfloor}$，最后将这些零头乘起来即可。</p>
+		<p>那么对于 $M &gt; 0$ 的情况，又该怎么处理呢？</p>
+		<p>可以发现，修改的个数非常少，而 $K$ 又很大。因此，有大部分的<em>周期</em> (我们把 $N$ 个连续的转移矩阵称为一个<dfn>周期</dfn>) 是<strong>不改变的</strong>，因此这些周期可以视作一个整体进行矩阵快速幂 (即计算矩阵 $\mathbf M$ 的幂)，而这样的连续段的个数也不会超过 $M + 1$，从而这部分的时间复杂度是 $O \left( M \log K \right)$ 的。</p>
+		<p>考虑被修改的<dfn>周期</dfn>，我们尝试着去暴力计算，然后发现这个会 TLE —— 因为如果一个周期修改了一两个元素，修改了几万个周期，这样如果每次周期暴力枚举 $N$ 个矩阵的话，复杂度就达到了 $O \left( N M \right)$，这显然无法接受。</p>
+		<p>这里，我们可以尝试着使用<strong>数据结构</strong>去优化这个修改-查询的过程。</p>
+		<p>注意到矩阵乘法有<strong>结合律</strong>，因此我们可以使用<strong>线段树</strong>去维护这些矩阵。</p>
+		<p>于是处理这些被修改的周期，就相当于线段树的<strong>单点修改</strong>和<strong>区间 (全局) 查询</strong>，使用线段树就可以啦。</p>
+		<p class="text-muted">(当然，另一种处理的方法是通过倍增，来维护 [相邻两个修改的矩阵] 中间 [未修改的矩阵] 的乘积，<del>不过时间、空间以及常数好像都被线段树打爆了呢</del>)</p>
+		<p>于是，线段树的修改和查询的次数均为 $O \left( M \right)$，总时间复杂度 $O \left( M \log N + M \log K \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+#define copy(x, y) memcpy(y, x, sizeof(mat))
+
+typedef long long ll;
+typedef int mat[2][2], (*pmat)[2];
+typedef std::tuple &lt;ll, int, int&gt; tup;
+const int N = 50054;
+
+int mod;
+
+ll nth;
+int n, D, E = 0;
+int c[N];
+tup diff[N * 2];
+mat x[N * 4], O, ans = {{1, 0}, {0, 1}};
+pmat leaf[N];
+bool tag[N * 4];
+
+inline void define(pmat mat, int a00, int a01, int a10, int a11) {mat[0][0] = a00, mat[0][1] = a01, mat[1][0] = a10, mat[1][1] = a11;}
+
+inline void __builtin_matmul(pmat a, pmat b, pmat ret) {
+	ret[0][0] = ((ll)a[0][0] * b[0][0] + (ll)a[0][1] * b[1][0]) % mod;
+	ret[0][1] = ((ll)a[0][0] * b[0][1] + (ll)a[0][1] * b[1][1]) % mod;
+	ret[1][0] = ((ll)a[1][0] * b[0][0] + (ll)a[1][1] * b[1][0]) % mod;
+	ret[1][1] = ((ll)a[1][0] * b[0][1] + (ll)a[1][1] * b[1][1]) % mod;
+}
+
+inline void matmul(pmat a, pmat b, pmat ret) {mat tmp; __builtin_matmul(a, b, tmp), copy(tmp, ret);}
+
+void matPowerMod(pmat a, ll n, pmat c) {mat tmp; for (copy(a, tmp); n; n &gt;&gt;= 1, matmul(tmp, tmp, tmp)) if (n &amp; 1) matmul(tmp, c, c);}
+
+void build(int id, int L, int R) {
+	if (L == R) return define(leaf[L] = x[id], c[L + 1], c[L], 1, 0);
+	segc; build(lc, L, M), build(rc, M + 1, R);
+	__builtin_matmul(x[rc], x[lc], x[id]);
+}
+
+void adj(int id, int L, int R, int h, int r, int c, int v) {
+	tag[id] = true;
+	if (L == R)	{x[id][r][c] = v; return;}
+	segc; h &lt;= M ? adj(lc, L, M, h, r, c, v) : adj(rc, M + 1, R, h, r, c, v);
+	__builtin_matmul(x[rc], x[lc], x[id]);
+}
+
+void recover(int id, int L, int R) {
+	if (L == R) return define(x[id], c[L + 1], c[L], 1, 0);
+	segc; if (tag[lc]) recover(lc, L, M); if (tag[rc]) recover(rc, M + 1, R);
+	__builtin_matmul(x[rc], x[lc], x[id]), tag[id] = false;
+}
+
+int main() {
+	int i, j, k, v; ll p, la = -1;
+	scanf("%lld%d%d", &amp;nth, &amp;mod, &amp;n);
+	if (!nth--) return putchar(48), putchar(10), 0;
+	for (i = 0; i &lt; n; ++i) scanf("%d", c + i), c[i] %= mod; c[n] = *c;
+	scanf("%d", &amp;D);
+	for (i = 0; i &lt; D; ++i) {
+		scanf("%lld%d", &amp;p, &amp;v);
+		if (p &gt; nth) continue;
+		diff[E++] = tup(p / n, p % n, v %= mod);
+		if (!(p % n)) diff[E++] = tup(p / n - 1, n, v);
+	}
+	diff[E++] = tup(nth / n, nth % n, c[nth % n]);
+	std::sort(diff, diff + E);
+	build(1, 0, n - 1), copy(x[1], O);
+	for (j = i = 0; i &lt; E; i = j) {
+		p = std::get&lt;0&gt;(diff[i]);
+		matPowerMod(O, p - la - 1, ans);
+		for (la = p; j &lt; E &amp;&amp; std::get&lt;0&gt;(diff[j]) == p; ++j) {
+			std::tie(p, k, v) = diff[j];
+			if (k &lt; n) adj(1, 0, n - 1, k, 0, 1, v);
+			if (k) adj(1, 0, n - 1, k - 1, 0, 0, v);
+		}
+		if (j == E) // last round
+			for (assert(p == nth / n), v = nth % n, k = 0; k &lt; v; ++k)
+				matmul(leaf[k], ans, ans);
+		else
+			matmul(x[1], ans, ans), recover(1, 0, n - 1), la = p;
+	}
+	printf("%d\n", ans[0][0] % mod);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $s_i$ 和 $v$ 都可能大于 $P$，因此读入时应先对 $P$ 取模。当然，也需要特判一下 $P = 1$ 的情形。</p>
+		<p><strong>坑2：</strong>矩阵快速幂的时候注意乘法顺序，分清是左乘还是右乘。</p>
+	</body>
+</html>
