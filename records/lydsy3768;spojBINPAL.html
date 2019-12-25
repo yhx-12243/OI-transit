@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy3768][spoj BINPAL]Binary palindrome</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个由 <em>$k$ 个长度不超过 $L$ 的 $\texttt 0/\texttt 1$ 串</em>构成的集合 $S$，求有多少个长度为 $n$ 的 $\texttt 0/\texttt 1$ 串 $s$ 满足：</p>
+		<ol>
+			<li>$S$ 为回文串 (形式化地，$s = s^R$)。</li>
+			<li>该串不存在两个不重叠的子串，在给定的 $k$ 个串中 (形式化地，不存在 $s_1, s_2 \in S \wedge u, v, w \in \left\{ \texttt 0, \texttt 1 \right\}^*$，满足 $s = u \cdot s_1 \cdot v \cdot s_2 \cdot w$)。</li>
+		</ol>
+		<p>举个例子，当 $S = \left\{ \texttt{101}, \texttt{1001} \right\}$ 时，$\texttt{1010001}$ 不满足条件 1，$\texttt{1010101}$ 不满足条件 2，$\text{1001001}, \text{0100010}$ 满足所有两个条件。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, k$ ($1 \leq n \leq 300; 0 \leq k \leq 30$)，表示所求的串长和集合 $S$ 的大小。</p>
+		<p>接下来 $k$ 行，每行包含一个由 $\texttt 0, \texttt 1$ 构成的字符串 $s_i$ ($\left| s_i \right| \leq L \leq 30$)，表示 $S$ 中的一个元素。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的 $\texttt 0/\texttt 1$ 串的个数模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>对于这种多模式匹配的问题，考虑建立 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>后然后在它上面 DP。</p>
+		<p>不过有回文串，因此会少许有点麻烦 (不能直接顺着 DP)，因此我们考虑<strong>从两边向中间</strong>进行 DP (当然从中间向两边也是可以的，这个随个人写法)。</p>
+		<p>为了方便起见，先不妨假设 $n$ 是偶数。</p>
+		<p>由于这些串被要求<strong>不能出现</strong>，因此我们在 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>上走的时候应避开这些 "<em>最终节点</em>"。而我们在 DP 的时候同时也在填充右边的字符串，因此我们还需要对 $S$ 中每个串的<strong>翻转</strong>建立一个 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>。我们把原来的 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>和 "翻转后的" <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>分别记作 $\mathcal P, \mathcal N$。</p>
+		<p>用 $f_{i, j, k, c}$ 表示当前已经填充了前 $i$ 个 (以及后 $i$ 个) 字符，前 $i$ 个字符在 $\mathcal P$ 中的状态为 $j$，后 $i$ 个字符在 $\mathcal N$ 中的状态为 $k$，目前已经有 $c$ ($c \in \left\{ 0, 1 \right\}$) 个完整匹配的方案数。</p>
+		<p>转移并不难，直接枚举下一个字符是 $0$ 还是 $1$，然后在 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>上转移一下即可，当走到 "<em>最终节点</em>" 时令 $c' = c + 1$。由于题目中需要保证两个子串不重叠，因此走到 "<em>最终节点</em>" 时需要将 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>的状态重新设为根节点。</p>
+		<p>不过，最后有一种<del>比较恶心</del>的情况：$s$ 所包含的某个 $S$ 中子串 "跨越" 了 $s$ 的 "中线"。这也是我们 DP 时所漏考虑的。</p>
+		<p>我们的解决的方案是：由于 $L$ 不是很大，我们考虑对于 $S$ 中的每个串 $s_i$，对于每个 $0 \leq j \leq \left| s_i \right|$ 以及 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr>上的每个状态 $t$，都能<strong>唯一确定</strong>出走到 $t$ 上的<strong>任意串</strong>是否匹配 $s_i \left[ 1 .. j \right]$ ($s_i$ 的长度为 $j$ 的前缀)。</p>
+		<p>确定 $s_i, t$ 后，对于每个 $j$，它都是一个布尔值，因此我们可以对 $j$ 进行状态压缩，从而存到一个 $32$ 位整数里，具体实现可以见代码。</p>
+		<p>最后，容易证明所有的 $f_{n/2, j, k, 0}$ 状态均为合法状态，对于 $f_{n/2, j, k, 1}$ 的状态，我们需要进行额外检查：</p>
+		<p>具体地，枚举 $S$ 中的每个串 $s_i$，计算出状态 $j$ 对 $s_i$ 的前缀匹配情况，以及状态 $k$ 对 $s_i^R$ 的前缀匹配情况 —— 即对 $s_i$ 的后缀匹配情况，通过简单的位运算 (按位与) 即可检验是否有完整匹配。</p>
+		<hr />
+		<p>对于 $n$ 是奇数的情况，实际上也不难，DP 完 $\dfrac {n - 1} 2$ 对后单独让一个 <abbr title="Aho-Corasick 自动机">AC 自动机</abbr> (比如 $\mathcal P$) 走一步就可以了。</p>
+		<p>接下来分析一下时间复杂度：<abbr title="Aho-Corasick 自动机">AC 自动机</abbr>的大小为 $O \left( k L \right)$，总状态数为 $O \left( n \left( k L \right)^2 \right)$ (当然 DP 的第一位在空间上可以滚动掉)，转移是线性的，故前期 DP 复杂度就是 $O \left( n k^2 L^2 \right)$。</p>
+		<p>后期的统计，需要检验 $\left( k L \right)^2$ 个状态，单次检验是 $O \left( n \right)$ 的，因此复杂度也是 $O \left( n k^2 L^2 \right)$，从而复杂度 $O \left( n k^2 L^2 \right)$，勉强可以通过。</p>
+		<hr />
+		<p>不过这种算法非常有 TLE 的风险，我们可以对其加一个<del>看似不起眼实则非常有用的</del>优化：<strong>只跑已经访问过的状态，不跑空状态</strong>！(即用 <del>map</del> 数组记录每时每刻能更新到的状态，然后层层更新)</p>
+		<p>事实上，可以证明，在 DP 中有效的状态数是<strong>不超过 $O \left( k^2 L \right)$ 的</strong>。</p>
+		<p>于是，这个算法的总时间复杂度就瞬间将为 $O \left( n k^2 L \right)$，你就可以跑得飞快啦。</p>
+		
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef unsigned int u32;
+const int N = 1054, mod = 1000000007;
+
+int n, q, H, B;
+int dp[2][N * N][2], (*cur)[2] = *dp, (*nxt)[2] = dp[1];
+int idx = 0, states[N * N], state_id[N * N];
+
+struct AC {
+	int cnt, d[N][2], f[N], val[N], que[N];
+	u32 state[N][36];
+	AC () : cnt(1) {}
+
+	void append(char *s, int num, int base, int incr) {
+		char *p = s; int t = 1, id;
+		for (; *p; ++p, base += incr)
+			id = *p &amp; 1, t = (d[t][id] ? d[t][id] : (d[t][id] = ++cnt)),
+			state[t][num] |= 1 &lt;&lt; base;
+		val[t] = 1;
+	}
+
+	void build() {
+		int h, ta = 1, i, j, t, id;
+		*que = 1, f[1] = 0;	
+		for (h = 0; h &lt; ta; ++h)
+			for (i = que[h], id = 0; id &lt; 2; ++id) {
+				t = (f[i] ? d[f[i]][id] : 1);
+				int &amp;u = d[i][id];
+				if (!u) {u = t; continue;}
+				f[u] = t, que[ta++] = u, val[u] |= val[t];
+				for (j = 0; j &lt; q; ++j) state[u][j] |= state[t][j];
+			}
+	}
+} PAC, NAC;
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+int main() {
+	int i, j, k, oi, ni, len, ch, pt, nt, pt_, nt_, ans = 0;
+	char s[54], *p;
+	scanf("%d%d", &amp;n, &amp;q), H = n / 2;
+	for (i = 0; i &lt; q; ++i) {
+		for (scanf("%s", p = s); *p; ++p);
+		PAC.append(s, i, 0, 1), std::reverse(s, p), NAC.append(s, i, p - s - 1, -1);
+	}
+	PAC.build(), NAC.build(), B = NAC.cnt;
+
+	memset(state_id, -1, sizeof state_id);
+	states[idx] = 0, state_id[0] = idx++, nxt[0][0] = 1;
+
+	for (len = 0; len &lt; H; ++len) {
+		std::swap(cur, nxt);
+		for (ch = 0; ch &lt; 2; ++ch)
+			for (i = 0; i &lt; idx; ++i) {
+				oi = states[i], pt = oi / B + 1, nt = oi % B + 1, k = 0;
+				if (PAC.val[ pt_ = PAC.d[pt][ch] ]) pt_ = 1, ++k;
+				if (NAC.val[ nt_ = NAC.d[nt][ch] ]) nt_ = 1, ++k;
+				ni = (pt_ - 1) * B + (nt_ - 1);
+				for (j = 0; k &lt; 2; ++j, ++k) {
+					add(nxt[ni][k], cur[oi][j]);
+					if (!~state_id[ni]) states[idx] = ni, state_id[ni] = idx++;
+				}
+			}
+		for (i = 0; i &lt; idx; ++i) cur[ states[i] ][0] = cur[ states[i] ][1] = 0;
+	}
+
+	if (n &amp; 1) {
+		std::swap(cur, nxt);
+		for (ch = 0; ch &lt; 2; ++ch)
+			for (i = 0; i &lt; idx; ++i) {
+				oi = states[i], pt = oi / B + 1, nt = oi % B + 1, k = 0;
+				if (PAC.val[ pt_ = PAC.d[pt][ch] ]) pt_ = 1, ++k;
+				ni = (pt_ - 1) * B + (nt - 1);
+				for (j = 0; k &lt; 2; ++j, ++k) {
+					add(nxt[ni][k], cur[oi][j]);
+					if (!~state_id[ni]) states[idx] = ni, state_id[ni] = idx++;
+				}
+			}
+	}
+
+	for (i = 0; i &lt; idx; ++i) {
+		oi = states[i], pt = oi / B + 1, nt = oi % B + 1;
+		add(ans, nxt[oi][0]);
+		for (j = 0; j &lt; q &amp;&amp; !(PAC.state[pt][j] &lt;&lt; 1 &amp; NAC.state[nt][j]); ++j);
+		if (j == q) add(ans, nxt[oi][1]);
+	}
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于题目限制了不重叠，因此完成匹配后需要将状态指针移回根节点而不是停留在原位置。</p>
+		<p><strong>坑2：</strong>在状态压缩存储匹配的情况时，采用适当的顺序，使得最后可以直接通过按位左移和按位与来完成，而不需要其它操作 (具体见代码)。</p>
+	</body>
+</html>

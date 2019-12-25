@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces704C]Black Widow</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个布尔变量 $x_1, x_2, \cdots, x_m$ 和 $n$ 个<strong>表达式</strong>，每个表达式定义如下：</p>
+		<p>$$ E_i = v_{i, 1} \vee v_{i, 2} \vee \cdots \vee v_{i, k_i} $$</p>
+		<p>其中，$k_i$ 表示这个表达式所涉及的变量个数，保证 $k_i \in \left\{ 1, 2 \right\}$，$v_{i, j}$ 表示对应变量或<strong>它的否定</strong>，即 $\exists k$，满足 $v_{i, j} \equiv x_k$ 或 $v_{i, j} \equiv \neg x_k$。</p>
+		<p>保证，对于每个 $k$，<em>至多有两对 $\left( i, j \right)$，满足 $v_{i, j} \equiv x_k$ <strong>或</strong> $v_{i, j} \equiv \neg x_k$</em> (换句话说，每个变量至多出现两次)。</p>
+		<p>求布尔方程 $E_1 \oplus E_2 \oplus \cdots \oplus E_n = 1$ 的解的组数，由于答案可能很大，请模 $10^9 + 7$ 输出。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 10^5$)，表示<strong>表达式</strong>的个数和变量的个数。</p>
+		<p>接下来 $n$ 行，每行第一个正整数 $k_i$ ($k_i \in \left\{ 1, 2 \right\}$ 表示该表达式涉及的变量个数；接下来 $k_i$ 个整数 $a_{i, j}$ ($1 \leq \left| a_{i, j} \right| \leq m$)，如果 $a_{i, j} &gt; 0$，表示 $v_{i, j} \equiv x_{a_{i, j}}$；如果 $a_{i, j} &lt; 0$，则表示 $v_{i, j} \equiv x_{-a_{i, j}}$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示方程的解数模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>注意到每个变量的出现次数不超过 $2$，因此如果对于一个<strong>涉及到两个变量</strong>的表达式，我们在它所涉及到的两个变量之间<em>连接一条边</em>，最终会得到一个<strong>每个点的度数均不超过 $2$ 的图</strong> $G$。</p>
+		<p>由简单的图论知识可知，$G$ 由若干个圈和若干条链构成。</p>
+		<p>考虑 $G$ 中的两个不同的连通分量 $A, B$，可以发现，这两个连通分量之间的取值是独立的。于是，如果用 $a_0, a_1$ 表示连通分量 $A$ 中的变量通过取值使得它导出的子图对应的异或和为 $0$ 和 $1$ 的方案 ($b_0, b_1$ 同理)，则 $A \cup B$ 异或出 $0$ 的方案就等于 $c_0 = a_0 b_0 + a_1 b_1$，异或出 $1$ 的方案 $c_1 = a_0 b_1 + a_1 b_0$。</p>
+		<p>于是我们就把问题转化成了<strong>只有一个连通分量</strong>的情形，而一个连通分量要么是链，要么是圈。</p>
+		<hr />
+		<p>我们先来考虑链的情况，不妨设这条链为 $1 - 2 - \cdots - n$。</p>
+		<p>不难想到 DP。用 $f_{i, j, k}$ 表示当前考虑了前 $i$ 个变量，其中第 $i$ 个变量的取值为 $j$，前 $i$ 个点导出的子图，所对应的异或和为 $k$ 的方案数。</p>
+		<p>于是，每加一个点 $i$，只需要考虑形如 $x_i$ ($\neg x_i$) 或 $x_{i-1} \vee x_i$ ($x_{i-1} \vee \neg x_i$ 等等) 诸如此类的式子就可以了，容易列出转移方程。</p>
+		<p>当然，实际实现的时候可以压缩掉 $i$ 这一维，于是可以看成一个 $2 \times 2$ 矩阵。</p>
+		<p>最后，$f_{n, j, 0}$ 和 $f_{n, j, 1}$ 就是这整条链异或出 $0$ 和 $1$ 的方案数，时间复杂度为 $O \left( n \right)$。</p>
+		<hr />对于环的情况，其实也是类似的。</p>
+		<p>采用<strong>破环为链</strong>的思想，我们固定环上一点的取值，然后将这个点分裂为两个点，于是得到一条链。然后按照链的算法进行 dfs，dfs 一圈回来，取对应的 $f_{n, j, k}$，$k$ 为刚才我们所枚举的取值就可以了。</p>
+		<p>从而环的情况也可以在 $O \left( n \right)$ 时间内解决。</p>
+		<p>最后按照开头所述的方法将各连通分量合并即可，总时间复杂度 $O \left( n + m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define clr(x) memset(x, 0, sizeof(mat))
+#define copy(x, y) memcpy(y, x, sizeof(mat))
+#define ad(x) (((x - 1) ^ 1) + 1)
+#define EB emplace_back
+
+typedef long long ll;
+typedef int mat[2][2], (*pmat)[2];
+typedef std::vector &lt;int&gt; vector;
+const int N = 100054, M = N * 2, mod = 1000000007;
+
+struct edge {
+	int u, v; bool fu, fv;
+	edge (int u0 = 0, int v0 = 0, bool neg_u = false, bool neg_v = false) : u(u0), v(v0), fu(neg_u), fv(neg_v) {}
+} e[M];
+
+int V, E, Es = 0;
+int single[N], deg[N];
+vector G[N];
+bool need_clear = true;
+mat f;
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+inline void addedge(int u, int v, bool fu, bool fv) {
+	e[++Es] = edge(u, v, fu, fv), G[u].EB(Es);
+	e[++Es] = edge(v, u, fv, fu), G[v].EB(Es);
+}
+
+#define trans(x, y, z) add(f[x][ tr[x][y] ^ z ], g[y][z])
+
+void dfs(int x, int px, bool g0, bool g1) {
+	int i = -1, y; mat tr, g;
+	for (int _ : G[x]) if (e[_].v != px) {i = _; break;}
+	if (~i) {
+		dfs(y = e[i].v, x, g0, g1);
+		tr[0][0] = tr[0][1] = tr[1][0] = tr[1][1] = 1, tr[e[i].fu][e[i].fv] = 0;
+		if (~single[x]) tr[!single[x]][0] ^= 1, tr[!single[x]][1] ^= 1;
+		copy(f, g), clr(f),
+		trans(0, 0, 0), trans(0, 0, 1), trans(0, 1, 0), trans(0, 1, 1),
+		trans(1, 0, 0), trans(1, 0, 1), trans(1, 1, 0), trans(1, 1, 1);
+	} else
+		clr(f), f[0][single[x] == 1] = g0, f[1][!single[x]] = g1;
+	if (need_clear) G[x].clear();
+}
+
+namespace final_manager {
+	int A0 = 1, A1 = 0;
+	inline void push(int C0, int C1) {int t = ((ll)A0 * C0 + (ll)A1 * C1) % mod; A1 = ((ll)A0 * C1 + (ll)A1 * C0) % mod, A0 = t;}
+}
+
+int main() {
+	int i, j, u, v, C0, C1; bool fu, fv;
+	scanf("%d%d", &amp;E, &amp;V);
+	memset(single, -1, sizeof single);
+	for (i = 0; i &lt; E; ++i)
+		if (scanf("%d", &amp;j), j == 1) {
+			if (scanf("%d", &amp;v), v &gt;= 0)
+				switch (single[v]) {
+					case -1: single[v] = 0; break;
+					case 0: single[v] = -1; break;
+					case 1: single[v] = -1, final_manager::push(0, 1); break;
+				}
+			else
+				switch (single[-v]) {
+					case -1: single[-v] = 1; break;
+					case 0: single[-v] = -1, final_manager::push(0, 1); break;
+					case 1: single[-v] = -1; break;
+				}
+		} else {
+			scanf("%d%d", &amp;u, &amp;v), (fu = u &lt; 0) &amp;&amp; (u = -u), (fv = v &lt; 0) &amp;&amp; (v = -v);
+			if (u == v) single[u] = (fu == fv ? 1 : 2);
+			else addedge(u, v, fu, fv);
+		}
+	for (v = 1; v &lt;= V; ++v) if (G[v].empty())
+		switch (single[v]) {
+			case -1: final_manager::push(2, 0); break;
+			case 0:
+			case 1: final_manager::push(1, 1); break;
+			case 2: final_manager::push(0, 2); break;
+		}
+	for (v = 1; v &lt;= V; ++v) if (G[v].size() == 1)
+		dfs(v, 0, 1, 1), final_manager::push(f[0][0] + f[1][0], f[0][1] + f[1][1]);
+	for (v = 1; v &lt;= V; ++v) if (G[v].size() == 2) {
+		u = e[ i = G[v].back() ].v, e[ad(i)].u = e[i].v = V + 1;
+		G[u].erase(std::find(G[u].begin(), G[u].end(), ad(i)));
+		G[V + 1].EB(ad(i));
+		need_clear = false, dfs(u, 0, 1, 0), C0 = f[0][0], C1 = f[0][1];
+		need_clear = true, dfs(u, 0, 0, 1), C0 += f[1][0], C1 += f[1][1];
+		final_manager::push(C0, C1);
+	}
+	printf("%d\n", final_manager::A1);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>对于圈的情况，我们枚举环上一点为 $0/1$ 后应该先相加，再与其它连通分量合并，而不能分别合并掉。</p>
+		<p><strong>坑2：</strong>注意处理单点 ($k_i = 1$) 的情况，可以一边读入一边处理，使得对于每个变量 $x_i$，只涉及它的表达式只有一个，这样在 dfs 时会方便处理。</p>
+	</body>
+</html>

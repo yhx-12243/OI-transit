@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces555E]Case of Computer Network</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张无向简单图和 $q$ 个点对 $\left( s_i, d_i \right)$，询问是否存在一组将所有边定向的方案，使得在新的有向图中，对所有的 $i$，存在从 $s_i$ 到 $d_i$ 的路径。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, q$ ($n, m, q \leq 2 \times 10^5$)，表示图的点数、边数以及给定的点对数。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $v_i, u_i$ ($1 \leq v_i, u_i \leq n; v_i \neq u_i$)，表示有一条从 $v_i$ 到 $u_i$ 的无向边。保证同一个无序对 $\left( v_i, u_i \right)$ 出现至多一次。</p>
+		<p>接下来 $q$ 行，每行两个正整数 $s_i, d_i$ ($1 \leq s_i, d_i \leq n; s_i \neq d_i$)，描述一组给定的点对 $\left( s_i, d_i \right)$。</p>
+		<p>不保证给出的无向图连通。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个字符串，如果存在满足要求的定向方案，则输出 <code>Yes</code>，否则输出 <code>No</code>。</p>
+
+		<h3>题解</h3>
+		<p><strong style="color: green">引理：一个无向简单图 $G$ 能定向成强连通图 $G'$ 的充分必要条件是，$G$ 是 $2-$边连通图 (即它是一个边双连通图)。</strong>(可以试着对比 <a href="../index.html?redirect=379" target="_blank">[uoj134]App 管理器</a>)</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>必要性：<del>由强连通图和 $2-$边连通图的定义即得</del>。</p>
+				<p>反设 $G$ 不是 $2-$边连通图，则 $G$ 存在桥边 $\left( u, v \right)$，于是 $G'$ 中不可能既存在 $u$ 到 $v$ 的有向路径和 $v$ 到 $u$ 的有向路径，矛盾。</p>
+				<p>充分性：设 $G$ 是一个 $2-$边连通图，取它的一个 dfs 树 $T$，将 $T$ 中的边定向为 "父节点指向子节点"。由无向图 dfs 树的性质知 $G \setminus T$ 中的边均为返祖边，我们将其定向为 "子孙指向祖先"。下证明，这样得到的图 $G'$ 是强连通的。</p>
+				<p>实际上，我们只需要证明，在 $G'$ 中每个点 $u$ 可以到达它在 $T$ 中的父节点 (记为 $p_u$) 就可以了。</p>
+				<p>反之，令 $V_1$ 为以 $u$ 为根的子树，$V_2 = V \left( G \right) \setminus V_1$。</p>
+				<p>由于 $G$ 是 $2-$边连通图，因此 $\left( u, p_u \right)$ 不是割边，因此至少存在一条不同于 $\left( u, p_u \right)$ 的边 $\left( x, y \right)$，满足 $x \in V_1 \wedge y \in V_2$。</p>
+				<p>由 dfs 树的性质知，$y$ 是 $x$ 的祖先。从而，由 $y \in V_2$ 知，$y$ 是 $p_u$ 的祖先。</p>
+				<p>于是在 $G'$ 中存在路径 $u \leadsto x \to y \leadsto p_u$，证毕。</p>
+			</div>
+		</div>
+		<p>由引理可知，对于原图 $G$，我们可以先对其进行<strong>边双缩点</strong>，这是因为在同一个边双中，肯定存在一组合法定向方案使之强连通。</p>
+		<p>于是，我们只需要对这些<strong>桥边</strong>进行定向即可，换句话说，我们只需要对一棵树完成这个问题。</p>
+		<p>对于树的情况，那问题就不难了。由于树上两点路径唯一，因此，每个 $\left( s_i, d_i \right)$ 对就固定了若干条边的定向。</p>
+		<p>因此，只需要验证这些定向是否有矛盾即可。</p>
+		<p>在具体实现时，我们只需要求出一条边 $\left( u, v \right)$ 是否被 $u \to v$ 定向过，以及是否被 $v \to u$ 定向过。如果都定向过，则无解，否则就有解。</p>
+		<p>至于如何求前面两个问题，则我们可以看成统计<strong>定向次数</strong>，因此就是一个树上<strong>链加</strong>，使用树上逆差分 (子树差分) 即可解决。</p>
+		<p>总时间复杂度 $O \left( n + m + q \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) (((x - 1) ^ 1) + 1)
+#define lg2 std::__lg
+
+const int N = 200054, M = N * 2, LN = 19;
+
+int V, E, q;
+
+struct edge {
+	int u, v;
+	edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+};
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace Tree {
+	edge e[M];
+	int V, E = 0, first[N], next[M];
+	int B, p[N], dep[N], bel[N], stack[N];
+	int cnt = 0, id[N], st[LN][M], *ord = *st;
+	int ui[N], di[N];
+
+	inline int dmin(const int x, const int y) {return dep[x] &lt; dep[y] ? x : y;}
+	inline bool idcmp(const int x, const int y) {return id[x] &lt; id[y];}
+
+	inline void addedge(int u, int v) {
+		e[++E] = edge(u, v), next[E] = first[u], first[u] = E;
+		e[++E] = edge(v, u), next[E] = first[v], first[v] = E;
+	}
+
+	void dfs(int x) {
+		int i, y; ord[cnt] = x, id[x] = cnt++, bel[x] = B;
+		for (i = first[x]; i; i = next[i])
+			if ((y = e[i].v) != p[x]) p[y] = x, dep[y] = dep[x] + 1, dfs(y), ord[cnt++] = x;
+	}
+
+	void build_sparse_table() {
+		int *f, *g = ord, i, j, k = cnt;
+		for (j = 0; 1 &lt;&lt; (j + 1) &lt;= cnt; ++j) {
+			f = g, g = st[j + 1], k -= 1 &lt;&lt; j;
+			for (i = 0; i &lt; k; ++i) g[i] = dmin(f[i], f[i + (1 &lt;&lt; j)]);
+		}
+	}
+
+	inline bool conn(int x, int y) {return bel[x] == bel[y];}
+
+	inline int LCA(int x, int y) {
+		int L, R, c; std::tie(L, R) = std::minmax(id[x], id[y]), c = lg2(++R - L);
+		return dmin(st[c][L], st[c][R - (1 &lt;&lt; c)]);
+	}
+
+	inline void add_chain(int x, int y) {int lca = LCA(x, y); ++ui[x], ++di[y], --ui[lca], --di[lca];}
+
+	bool check() {
+		int i, v;
+		for (i = cnt - 1; i &gt;= 0; --i) if (v = ord[i], p[v] &amp;&amp; id[v] == i) ui[p[v]] += ui[v], di[p[v]] += di[v];
+		for (i = 1; i &lt;= V; ++i) if (ui[i] &amp;&amp; di[i]) return false;
+		return true;
+	}
+
+	void main() {
+		memset(id, -1, (V + 1) &lt;&lt; 2);
+		for (int i = 1; i &lt;= V; ++i) if (!~id[i]) B = cnt, dfs(i);
+		build_sparse_table();
+	}
+}
+
+namespace Graph {
+	edge e[M];
+	int V, E = 0, first[N], next[M];
+	int cnt = 0, id[N], low[N];
+	int stc = 0, stack[N];
+	int nbcc = 0, bel[N];
+	bool bridge[M];
+
+	inline void addedge(int u, int v) {
+		e[++E] = edge(u, v), next[E] = first[u], first[u] = E;
+		e[++E] = edge(v, u), next[E] = first[v], first[v] = E;
+	}
+
+	void dfs(int x, int px = 0) {
+		int i, y; id[x] = low[x] = ++cnt, stack[stc++] = x;
+		for (i = first[x]; i; i = next[i])
+			if (!id[y = e[i].v]) {
+				dfs(y, i), down(low[x], low[y]);
+				if (id[x] &lt; low[y]) bridge[ad(i)] = bridge[i] = true;
+			} else if ((px - 1) ^ (i - 1) ^ 1)
+				down(low[x], id[y]);
+		if (id[x] == low[x])
+			for (++nbcc, y = 0; y != x; y = stack[--stc], bel[y] = nbcc);
+	}
+
+	void main() {
+		int i, u, v;
+		for (i = 1; i &lt;= V; ++i) if (!id[i]) dfs(i); Tree::V = Graph::nbcc;
+		for (i = 1; i &lt;= E; i += 2) if (bridge[i]) u = bel[e[i].u], v = bel[e[i].v], Tree::addedge(u, v);
+	}
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d%d%d", &amp;V, &amp;E, &amp;q);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), Graph::addedge(u, v);
+	for (Graph::V = V, Graph::main(), Tree::main(); q; --q) {
+		scanf("%d%d", &amp;u, &amp;v), u = Graph::bel[u], v = Graph::bel[v];
+		if (!Tree::conn(u, v)) return puts("No"), 0;
+		Tree::add_chain(u, v);
+	}
+	return puts(Tree::check() ? "Yes" : "No"), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意原图可能不连通，所以当 $s_i$ 和 $d_i$ 不在同一个连通块的时候应输出 <code>No</code>。</p>
+		<p><strong>坑2：</strong>注意树上顺差分 (链差分) 和树上逆差分 (子树差分) 的区别，以及遍历的顺序。</p>
+	</body>
+</html>

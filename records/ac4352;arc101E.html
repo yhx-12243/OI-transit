@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4352,Regular101E]Ribbons on Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定偶数 $N$ 和一棵 $N$ 个顶点的树，顶点标号为 $1, 2, \cdots, N$。</p>
+		<p>现在，你需要将这 $N$ 个点两两配对，共配成 $\dfrac N2$ 个无序对 (对与对之间没有顺序)。对于每一个无序对 $\left( a, b \right)$，它表示一条树上从 $a$ 到 $b$ 的路径。</p>
+		<p>求有多少种配对的方案，使得所有 $\dfrac N2$ 个无序对所对应的路径的并为树上所有 $N - 1$ 条边。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 5000; 2 \mid N$)，表示树的点数。</p>
+		<p>接下来 $N - 1$ 行，每行两个正整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq N; x_i \neq y_i$)，表示 $x_i$ 和 $y_i$ 之间有一条边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的配对的方案数模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>如果没有额外的限制，那么答案就是 $n$ 个元素两两配对的方案总数 (完全图 $K_n$ 的完美匹配个数)，为 $\left( N - 1 \right) !! = 1 \cdot 3 \cdot 5 \cdots \cdot \left( N - 1 \right)$ ($n !! = n \cdot \left( n - 2 \right) \cdot \left( n - 4 \right) \cdots$ 表示<strong>双阶乘</strong>)。</p>
+		<p>那么有额外的限制怎么办？容斥原理呗！如果枚举一个边的子集 $F$，并让这些边强行不覆盖后，我们就把问题分割成了若干棵子树 <span style="color: red">(ps: 其实严格地来说应该是一个<strong>连通块</strong>)</span>，其中每棵子树的点之间互相配对，不同子树间互相独立。</p>
+		<p>对于每一棵子树，由于其中的边<strong>没有限制</strong>，因此方案总数要么是 $0$，要么是一个奇数的双阶乘。</p>
+		<p>这样我们就可以算出答案了，然而容斥的过程中需要枚举 $2^{N-1}$ 个集合，怎么办呢？</p>
+		<p>这已经是套路了！和 <a href="../index.html?redirect=644" target="_blank">[CTS2019]氪金手游</a> 一样，在树形 DP 的同时，进行容斥。</p>
+		<p>用 $f_{i, j}$ 表示以 $i$ 为根的子树，<strong style="color: fuchsia">在 $F$ 的划分下，$i$ 所在连通块当前有 $j$ 个点</strong>的方案数 (带容斥系数)。用 $F_i$ 表示以 $i$ 为根的子树的答案 (带容斥系数)。由定义，$F_i = f_{i, 0}$ <span style="color: red">(ps: 这个理解就是，$i$ 的子树自己与自己匹配，相当于封存下来了，在对父节点的贡献时，整棵子树就被切断了)</span>。</p>
+		<p>考虑转移，当 $j &gt; 0$ 时，两棵子树直接合并即可：$f'_{x, u + v} \gets f'_{x, u + v} + f_{x, u} \cdot f_{y, v}$。</p>
+		<p>当 $j = 0$ 时 (即 $F_i$)，相当于我们规定边 $\left( i, p_i \right) \in F$。</p>
+		<p>于是，对于每个状态 $f_{i, j}$，这 $j$ 个点构成的一个连通块需要进行任意配对，于是方案数就是 $\left[ 2 \mid j \right] \cdot \left( j - 1 \right) !!$。</p>
+		<p>最后，不要忘记容斥系数 $-1$。总的转移方程就是 $$ F_i = - \sum_{2 \mid j, j &gt; 0} f_{i, j} \cdot \left( j - 1 \right) !! $$</p>
+		<p>DP 完成后，最终的答案也可以类似地计算，只是不需要乘上那个额外容斥系数了。因此答案就是 $- F_1$。</p>
+		<p>时间复杂度和<a href="../index.html?redirect=644" target="_blank">那道题</a>完全一样，$O \left( N^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 5054, M = N * 2, mod = 1000000007;
+
+int n, E = 0;
+int to[M], first[N], next[M];
+int dfact[N], size[N];
+int f[N][N], t[N];
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x, int px = 0) {
+	int i, y, c, u, v; f[x][1] = size[x] = 1;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px) {
+			dfs(y, x);
+			for (u = 1; u &lt;= size[x]; ++u) if (f[x][u])
+				for (v = 0; v &lt;= size[y]; ++v) if (f[y][v])
+					t[u + v] = (t[u + v] + (ll)f[x][u] * f[y][v]) % mod;
+			size[x] += size[y], memcpy(f[x], t, (size[x] + 1) &lt;&lt; 2), memset(t, 0, (size[x] + 1) &lt;&lt; 2);
+		}
+	for (c = 2; c &lt;= size[x]; c += 2) *f[x] = (*f[x] - (ll)f[x][c] * dfact[c]) % mod;
+	reduce(*f[x]);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d", &amp;n);
+	for (*dfact = i = 1; i &lt; n; i += 2) dfact[i + 1] = dfact[i] = (ll)dfact[i - 1] * i % mod;
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1);
+	printf("%d\n", neg(*f[1]));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>最后答案是 $- F_1$ 而不是 $F_1$，输出时注意一下。</p>
+		<p><strong>坑2：</strong>树形 DP 时，类似 "背包合并" 的过程中，枚举时只能枚举到 <code>size</code> 而不能是 $N$，不然复杂度无法保证。</p>
+	</body>
+</html>

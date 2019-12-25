@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4502,Grand29C]Lexicographic constraints</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $N$ 个字符串 $S_1, S_2, \cdots, S_N$ 排成一排，现在要求对于 $1 \leq i &lt; N$，$S_i$ 的字典序<strong>小于</strong> $S_{i+1}$，即 $S_1 &lt; S_2 &lt; \cdots &lt; S_N$。</p>
+		<p>目前已知第 $i$ 个字符串的长度 $\left| S_i \right| = A_i$，求：为了满足上面的性质，所有字符串的<strong>字符集大小</strong>至少要是多少？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 2 \times 10^5$)，表示字符串的个数。</p>
+		<p>第二行包含 $N$ 个正整数 $A_1, A_2, \cdots, A_N$ ($1 \leq A_i \leq 10^9$)，依次表示各字符串的长度。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示为使这些字符串的字典序递增，所需要的字符集大小的最小值。</p>
+
+		<h3>题解</h3>
+		<p>显然，答案具有可二分性。我们考虑二分一个字符集大小 $\Sigma_0$，然后判定能否用 $\Sigma_0$ 个字符来使得这些串的字典序递增。</p>
+		<p>注意到，这个判定具有局部贪心性质 —— 形式化地，如果对于 $1 \leq i \leq N$，$S_i = \Xi$ 可以使得后面的串完成构造，则对 $\forall \Xi' &lt; \Xi$，令 $S_i \gets \Xi'$，后面的构造也依然可以完成。事实上，原封不动即可。</p>
+		<p>于是，我们 $S_i$ 就应该为<strong>大于 $S_{i-1}$ 的，长度为 $A_i$ 的最小字符串</strong>即可，而 $S_1 = \texttt a^{A_1}$，这里用 $\texttt a$ 指代<strong>字典序最小的字符</strong>。</p>
+		<p>设我们已经构造完了 $S_{i-1}$，我们现在需要构造 $S_i$。</p>
+		<p>首先，如果 $A_{i-1} &lt; A_i$，我们只需要在后面补 $A_i - A_{i-1}$ 个 $\texttt a$ 即可 ($S_i = S_{i-1} \cdot \texttt a^{A_i - A_{i-1}}$)，容易验证满足定义。</p>
+		<p>否则，我们取 $S_{i-1}$ 的一个长度为 $A_i$ 的前缀，然后将最后一个字符向后移。</p>
+		<p>不过，这可能会出现问题 —— 它已经是字母表中最后一个字符了。</p>
+		<p>这里，我们需要联想一下我们的<strong>进制系统</strong> —— 比如 $10$ 进制，在 $0, 1, 2, \cdots, 9$ 后面，会有一个 $10$ 出现，这个过程和我们所需要的字符串替换的过程非常相像 —— 将末尾连续的 "$9$" 去掉，将前面一位进一，然后以相同数量的 "$0$" 来补充。<em>同样，我们用 $\texttt 0$ 和 $\texttt 9$ 分别指代字符集中，字典序最小和最大的字符</em>。</p>
+		<p>当然，如果在某个时刻，整个串变成了 "$\texttt{9999} \cdots \text{999}$"，那么再加 $1$ 就<del>爆炸</del>溢出了，说明 <em>$\Sigma_0$ 个字符无法完成任务</em>。反之，如果构造到最后，也没有发生溢出，那么说明这个 $\Sigma_0$ 就是可行滴。</p>
+		<hr />
+		<p>具体实现的时候，可以发现，每构造一个字符串，<strong>新增的非 $0$ 位置</strong>至多增加一个，因此如果使用栈等数据结构即可轻松达到 $O \left( n \right)$。</p>
+		<p>要说明的一点是，如果在实现的时候不是那么精细，那么在判定 $1$ 的时候可能会出错。因此我们可以将答案 (字符集大小) 为 $1$ 的情况特判掉 —— 显然，答案能为 $1 \Leftrightarrow A_i$ <strong>严格</strong>递增。</p>
+		<p>算上外面的那层二分 (容易发现二分的上界是 $n$)，总时间复杂度为 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef std::map &lt;int, int&gt; map;
+const int N = 200054;
+
+int n, a[N];
+map M;
+
+inline bool check(int B) {
+	int i, L = a[1]; bool result;
+	map::iterator it; M.clear();
+	for (i = 2; i &lt;= n; ++i) if (a[i] &lt;= L) {
+		for (L = a[i]; !M.empty(); )
+			if (it = --M.end(), it-&gt;first &gt;= L) M.erase(it);
+			else if (it-&gt;first == L - 1 &amp;&amp; it-&gt;second == B - 1) M.erase(it), --L;
+			else break;
+		if (!L) return false;
+		std::tie(it, result) = M.emplace(L - 1, 1);
+		if (!result) ++it-&gt;second;
+	} else L = a[i];
+	return true;
+}
+
+int main() {
+	int i, L, R, M; bool incr = true;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) if (scanf("%d", a + i), a[i] &lt;= a[i - 1]) incr = false;
+	if (incr) return putchar(49), putchar(10), 0;
+	for (L = 2, R = n; L &lt; R; check(M = (L + R) / 2) ? R = M : L = M + 1);
+	printf("%d\n", L);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>上面已经提到过，需要对 $\Sigma_0 = 1$ 的情形进行特判。</p>
+		<p><strong>坑2：</strong>如果像上面偷懒使用 <code>std::map</code>，注意操作的方式，以保证复杂度 (因为下标访问会创建元素)。</p>
+	</body>
+</html>

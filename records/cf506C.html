@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces506C]Mr. Kitayuta vs. Bamboos</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Kitayuta 有 $n$ 根竹子，第 $i$ 根竹子的初始高度为 $h_i$，每天生长 $a_i \,\mathrm m$。</p>
+		<p>Kitayuta 讨厌这些竹子，它每天可以 "砍" 不超过 $k$ <strong>次</strong>竹子，每砍一次，对应竹子的高度会减少 $p$ (当然如果原来的高度不足 $p$，那么高度会变为 $0$，但会继续生长)，从而变为 $\max \left\{ 0, h - p \right\} \mathrm m$。当然，允许多次砍一根柱子。</p>
+		<p>Kitayuta 想知道，在最优策略下，$m$ 天后<strong>最高的竹子的高度</strong>的<strong>最小值</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个正整数 $n, m, k, p$ ($n \leq 10^5; m \leq 5000; k \leq 10; p \leq 10^9$)，分别表示竹子的根数，天数，每天砍的竹子次数的上限，以及每次砍竹子高度的减少量。</p>
+		<p>接下来 $n$ 行，每行两个非负整数 $h_i, a_i$ ($0 \leq h_i \leq 10^9; 1 \leq a_i \leq 10^9$)，第 $i + 1$ 行的整数表示第 $i$ 根竹子的<em>初始高度</em>和<em>每日生长高度</em>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $m$ 天后<strong>最高的竹子的高度</strong>的<strong>最小值</strong>。</p>
+
+		<h3>题解</h3>
+		<p>根据套路，首先二分答案，转化成判定性问题。</p>
+		<p>但是问题是，每一次砍竹子后<strong>对 $0$ 取 $\max$</strong> 这个操作，就令人很头疼。</p>
+		<p>那怎么才能避免这个操作呢？</p>
+		<p>没错，就是将整个操作<strong>倒过来做</strong>。</p>
+		<p>由于转化为判定性问题后，我们设存在一组合法方案，所有竹子的最终高度都 $\leq L$。则我们将这个操作序列倒过来做，那么每次操作可以看成<strong>将每根竹子的高度减少 $a_i$</strong>，然后做 $k$ 轮 "将某个竹子的高度增加 $p$。</p>
+		<p>不过，要注意的是，在每轮操作后，所有竹子的高度必须 $\geq a_i$，否则这个操作序列就不合法。</p>
+		<p>为了方便起见，我们可以将所有竹子的初始高度都<strong>设为 $L$</strong>，这样在操作序列后，所有的竹子的高度只会更高，从而合法的序列仍然合法。</p>
+		<p>而最终，我们只需要检验，是否存在一种合法的操作序列，使得最终<strong>所有的竹子的高度都 $\geq a_i$</strong>。</p>
+		<p>首先，对于一根竹子 $i$，如果 $L - m \cdot a_i \geq h_i$，则这根竹子不会对答案产生影响，让它自然 "变矮" 就可以了。</p>
+		<p>否则，说明 $L - m \cdot a_i &lt; h_i$，说明这个竹子需要拔高。</p>
+		<p>由<a href="../index.html?redirect=63" target="_blank"><del>自然的</del></a>贪(gu)心(gu)思想，我们将这些拔高操作放到<strong>尽可能晚</strong>地去执行 —— 也就是说，"以赶 deadline 为主"，先做 deadline 早的操作。</p>
+		<p>而这里的 deadline，自然就是 $\left \lfloor \dfrac L {a_i} \right \rfloor$，即多少天后这个竹子的高度会变到 $&lt; a_i$，从而下一次就不合法了。</p>
+		<hr />
+		<p>使用一个堆维护这些竹子的 deadline (雾)，每次挑 deadline 最早的竹子先进行操作，操作完成后判断一下它能否在剩下的时间内高度不会低于 $h_i$，如果是的，在将这个竹子扔掉，否则，(算出新的 deadline 后) 重新将其插回堆里。</p>
+		<p>最终只需要判定最终一波赶 deadline 后能否把所有竹子的高度都搞得 $\geq h_i$ (即堆空)，如果是，则判定为有解，否则为无解。</p>	
+		<p>算上外面的那层二分，最终的时间复杂度就是 $O \left( \left( n + m k \right) \log n \log \max \left( h_i + a_i m \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr; 
+
+const int N = 100054;
+
+int n, rounds, each, delta;
+int a[N];
+ll h[N], height[N];
+std::priority_queue &lt;pr, std::vector &lt;pr&gt;, std::greater &lt;pr&gt; &gt; pq;
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+inline bool check(ll limit) {
+	int i, r, cur; pr t;
+	for (; !pq.empty(); pq.pop());
+	std::fill(height, height + n, limit);
+	for (i = 0; i &lt; n; ++i) if (height[i] &lt; h[i]) pq.emplace(height[i] / a[i], i);
+	for (r = 1; r &lt;= rounds &amp;&amp; !pq.empty(); ++r)
+		for (cur = each; cur &amp;&amp; !pq.empty(); --cur) {
+			t = pq.top(), pq.pop(), i = t.second;
+			if (r &gt; t.first) return false;
+			if ((height[i] += delta) &lt; h[i]) pq.emplace(height[i] / a[i], i);
+		}
+	return pq.empty();
+}
+
+int main() {
+	int i; ll L = 0, R = 0, M;
+	scanf("%d%d%d%d", &amp;n, &amp;rounds, &amp;each, &amp;delta);
+	for (i = 0; i &lt; n; ++i)
+		scanf("%lld%d", h + i, a + i), up(R, h[i] += (ll)a[i] * rounds);
+	for (; L &lt; R; M = (L + R) / 2, check(M) ? R = M : (L = M + 1));
+	printf("%lld\n", L);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在做各种操作的时候，应及时判断堆是否为空，如果是空，则可以直接 <code>break;</code> 并返回 <code>true</code>，以免在空堆中删除元素导致 RE。</p>
+		<p><strong>坑2：</strong>二分的时候注意一下上下界。</p>
+	</body>
+</html>

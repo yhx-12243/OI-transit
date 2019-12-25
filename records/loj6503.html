@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[loj6503][雅礼集训 2018D4]Magic</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>桌面上摆放着 $m$ 种魔术卡，共 $n$ 张，第 $i$ 种魔术卡数量为 $a_i$，魔术卡顺次摆放，形成一个长度为 $n$ 的魔术序列，在魔术序列中，若两张相邻魔术卡的种类相同，则它们被称为一个魔术对。</p>
+		<p>两个魔术序列本质不同，当且仅当存在至少一个位置，使得两个魔术序列这个位置上的魔术卡的种类不同，求本质不同的恰好包含 $k$ 个魔术对的魔术序列的数量，答案对 $998244353$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $m, n, k$ ($0 \leq k \leq n \leq 10^5; 1 \leq m \leq 20000$)，分别表示魔术卡的种数、张数以及所需要的魔术对的个数。</p>
+		<p>第二行包含 $m$ 个正整数 $a_i$ ($\sum a_i = n$)，表示每种魔术卡的数量。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示恰包含 $k$ 个魔术对的魔术序列的数量模 $998244353$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>先考虑 $k = 0$ 的情形。</p>
+		<p>可以发现，相当于有若干元素，每个元素有一个类别，你需要将将它们做一个排列，使得<strong>相邻两个元素</strong>所属的类别不同。</p>
+		<p>回想一下 <a href="../index.html?redirect=673" target="_blank">[JSOI2019]神经网络</a>，可以发现它的后半段也是一个类似的模型 <span class="text-muted">(下面一段是引用那篇题解)</span>：</p>
+		<blockquote>
+			<p>接下来考虑如何将这些零散的链<strong>拼合</strong>成一个完整的 Hamilton 圈。</p>
+			<p>根据套路，我们先破环为链，讨论链的处理方法。</p>
+			<p>我们使用<strong>生成函数</strong>来解决这个问题，注意到是排列，因此使用<strong>指数生成函数</strong>。</p>
+			<p>考虑每棵树的生成函数，设用了 $k$ 条链，则一共有 $Dec \left( T, k \right)$ 种方案，于是方案数看似就是 $Dec \left( T, k \right) x^k$。最后再将所有树的生成函数乘起来即可。</p>
+			<p>然而这并没有保证 <strong>"相邻两条链不能来自同一棵树"</strong> 这一限制。</p>
+		</blockquote>
+		<p>在这道题中，省去了求一个类别中的方案数的过程，这个数固定为 $1$，而且最终所要求的，也是链而不是环。</p>
+		<p>类似地，还是考虑使用<strong>容斥原理</strong> —— 枚举有多少个固定的 "魔术对" (相邻两个同类元素的对)。</p>
+		<p>使用指数生成函数。考虑一类元素，设它有 $a_i$ 个，那么首先，由于使用了 (带排列的) 指数生成函数，于是它内部就有 $a_i !$ 种排列方案。</p>
+		<p>其次，和<a href="../index.html?redirect=673" target="_blank">那道题</a>一样，我们枚举它被分成了 $j$ 段 (于是有 $a_i - j$ 段被 "粘在一起")，这样的方案有 $\dbinom {a_i - 1} {j - 1}$ 种，然后再乘上容斥系数 $\left( -1 \right)^{a_i - j}$。</p>
+		<p>最后，在这个生成函数与其它生成函数合并的时候，需要看成 $j$ 段去合并，因此这一项的次数为 $j$。</p>
+		<p>综上，一类元素的生成函数为 $$ G_i \left( x \right) = a_i ! \sum_{j=1}^{a_i} \left( -1 \right)^{a_i - j} \binom {a_i - 1} {j - 1} \frac {x^j} {j !} $$</p>
+		<p>最后计算答案也不难，只需要计算 $\displaystyle Ans \left( x \right) = \prod_{i=1}^m G_i \left( x \right) = G_1 \left( x \right) G_2 \left( x \right) \cdots G_m \left( x \right)$，然后总的方案数就是 $\sum\limits_i i ! \left[ x^i \right] Ans \left( x \right)$。</p>
+		<p>具体实现时，由于本题中的 $n$ 比较大，因此可以使用分治 NTT 来取代暴力乘，从而时间复杂度 $O \left( n \log^2 n \right)$。</p>
+		<hr />
+		<p>接下来考虑 $k \geq 1$ 的情形。</p>
+		<p>和 <a href="../index.html?redirect=643" target="_blank">[CTS2019]随机立方体</a> 的思路比较像，我们利用二项式反演 (部分容斥) 的技巧来处理。对，还是容斥。</p>
+		<p>为了更好的利用组合意义，我们把原先乘在 $G_i \left( x \right)$ 的容斥系数 $\left( -1 \right)^{a_i - j}$ 去掉，变成 (美观的) $$ G_i \left( x \right) = a_i ! \sum_{j=1}^{a_i} \binom {a_i - 1} {j - 1} \frac {x^j} {j !} $$</p>
+		<p>然后再记 $\displaystyle F \left( x \right) = \prod_{i=1}^m G_i \left( x \right) = G_1 \left( x \right) G_2 \left( x \right) \cdots G_m \left( x \right)$，则 $f_i = i ! \left[ x^i \right] F \left( x \right)$ 就表示有 $i$ 个<strong>段</strong>，相邻段元素<strong>可能相同</strong>的方案数。</p>
+		<p>于是，由于总的元素个数为 $n$，于是可以令 $f'_i = f_{n-i}$，从而 $f'_i$ 就表示<strong style="color: fuchsia">有 $i$ 个已知魔术对，其余位置<em>可能出现</em>额外魔术对</strong>的方案数。</p>
+		<p>emmm，这个状态就和<a href="../index.html?redirect=643" target="_blank">那道题</a>中的非常类似了。</p>
+		<p>最终，由容斥原理，可知，魔术对个数<strong>恰好为 $k$</strong> 的方案数就是 $$ \sum_{i=k}^n \left( -1 \right)^{i - k} \binom ik f'_i $$</p>
+		<p>最后枚举一遍即可，总时间复杂度不变，$O \left( n \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+#define EB emplace_back
+
+typedef long long ll;
+const int N = 530000, mod = 998244353, root = 31;
+typedef int vec[N], *pvec;
+typedef std::vector &lt;int&gt; vector;
+
+vec fact, finv;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (*fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	--i, finv[i] = PowerMod(fact[i], mod - 2);
+	for (; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+inline ll C(int n, int r) {return (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		DNTT(a, c), DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c), std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+
+	void Mul(vector &amp;a, vector &amp;b, vector &amp;ret) {
+		int degA = a.size() - 1, degB = b.size() - 1;
+		if (!(degA || degB)) {ret.emplace_back((ll)a[0] * b[0] % mod); return;}
+		NTT_init(lg2(degA + degB) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		memcpy(B1, a.data(), (degA + 1) &lt;&lt; 2), memset(B1 + (degA + 1), 0, (n - degA - 1) &lt;&lt; 2);
+		memcpy(B2, b.data(), (degB + 1) &lt;&lt; 2), memset(B2 + (degB + 1), 0, (n - degB - 1) &lt;&lt; 2);
+		DNTT(B1, B3), DNTT(B2, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * B3[i] % mod;
+		DNTT(B1, B3), std::reverse(B3 + 1, B3 + n); ret.clear(), ret.reserve(degA + degB + 1);
+		for (i = 0; i &lt;= degA + degB; ++i) ret.EB(B3[i] * iv % mod);
+	}
+}
+
+int n, q, K, ty, cnt;
+vec a, b;
+vector g[N];
+
+int solve(int L, int R) {
+	if (L + 1 == R) return L;
+	int M = (L + R) / 2, id = cnt++, lp = solve(L, M), rp = solve(M, R);
+	return Poly::Mul(g[lp], g[rp], g[id]), id;
+}
+
+int main() {
+	int i, j, id, cur, z = 1; ll ans = 0;
+	scanf("%d%d%d", &amp;ty, &amp;n, &amp;K), init();
+	for (i = 0; i &lt; ty; a[i] ? ++i : --ty) scanf("%d", a + i);
+	for (i = 0; i &lt; ty; z = (ll)z * finv[a[i++]] % mod)
+		for (j = 1; j &lt;= a[i]; ++j)
+			g[i].EB(C(a[i] - 1, j - 1) * finv[j] % mod * fact[a[i]] % mod);
+	cnt = ty, id = solve(0, ty), n -= ty;
+	memcpy(b, g[id].data(), (n + 1) &lt;&lt; 2);
+	for (i = 0; i &lt;= n; ++i) b[i] = (ll)b[i] * fact[i + ty] % mod * z % mod;
+	for (i = K; i &lt;= n; ++i)
+		cur = (ll)C(i, K) * b[n - i] % mod, (i ^ K) &amp; 1 ? ans -= cur : ans += cur; 
+	ans %= mod, ans += ans &gt;&gt; 63 &amp; mod, printf("%d\n", int(ans));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>分治 NTT 的时候注意写法以及常数。</p>
+		<p><strong>坑2：</strong>由于这些多项式 $G_i \left( x \right)$ 的常数项为 $0$，因此可以先除以 $x$，乘起来后再乘上 $x^m$。</p>
+	</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4434,Regular103F]Distance Sums</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个长度为 $N$ 的序列 $D_1, D_2, \cdots, D_N$，<strong>保证所有 $D_i$ 互不相同</strong>。</p>
+		<p>你需要回答，是否存在一棵 $N$ 个顶点的树，顶点标号为 $1, 2, \cdots, N$，边权为 $1$，满足：<em>顶点 $i$ 到所有顶点的<strong>距离和</strong>恰为 $D_i$</em>。如果存在，并给出一组构造。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 10^5$)，表示序列的长度和你需要构造的树的大小。</p>
+		<p>接下来 $N$ 行，每行一个正整数 $D_i$ ($1 \leq D_i \leq 10^{12}$)，第 $i$ 行的整数表示期望的点 $i$ 到所有顶点的距离和。</p>
+
+		<h3>输出格式</h3>
+		<p>如果不存在满足条件的树，输出一行 $-1$。</p>
+		<p>如果存在满足条件的树，输出 $N - 1$ 行，每行两个整数，第 $i$ 行的整数 $u_i, v_i$ 表示树上 $u_i$ 和 $v_i$ 之间连有一条边。</p>
+		<p>你需要保证这 $N - 1$ 条边恰好构成一棵树。如果有多棵树满足条件，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>看到距离和，不难想到树的重心 (就像<a href="../index.html?redirect=826" target="_blank">看到距离最大值想到树的直径</a>一样)。</p>
+		<p>对于一棵已知的树，以它的重心为根，考虑一个顶点 $v$ 的 $D$ 值 <span style="color: red">(ps: 暂且把一个顶点到所有顶点的距离和成为它的 $D$ 值)</span> 以及它的父节点 $p_v$ 的 $D$ 值。</p>
+		<p>考虑每个点 $u$ 对 $D$ 值的贡献的增量，如果 $u \in subtree \left( v \right)$，则 $\operatorname{dist} \left( u, v \right) - \operatorname{dist} \left( u, p_v \right) = -1$，否则 ($u \notin subtree \left( v \right)$)，一定有 $\operatorname{dist} \left( u, v \right) - \operatorname{dist} \left( u, p_v \right) = 1$。</p>
+		<p>从而，$D_v - D_{p_v} = \left| V \setminus subtree \left( v \right) \right| - \left| subtree \left( v \right) \right| = N - 2 \left| subtree \left( v \right) \right|$。</p>
+		<p>由重心的性质知，$\left| subtree \left( v \right) \right| \leq \dfrac N2$，于是 $D_v - D_{p_v} \geq 0 \Rightarrow D_v \geq D_{p_v}$。</p>
+		<p>于是，$D$ 函数具有类似 "深度" 的性质：随着深度的增加而单调递增。况且，题目还保证了所有 $D_i$ 互不相同，因此这个递增是<em>严格的</em>。</p>
+		<p>那么，回到原题，根据这个性质，我们可以确定：<strong>$D$ 最小的顶点一定是重心，$D$ 最大的顶点是一定是叶节点</strong>。而且，一个点 $v$ 和其父节点 $p_v$ 的 $D$ 值之差是关于以该节点为根的子树大小 ($\left| subtree \left( v \right) \right|$) 的一次函数。</p>
+		<p>如果我们从小到大考虑，发现知道重心后就无从下手了，那么我能不妨倒着考虑，<strong>从大到小</strong>考虑。</p>
+		<p>这样的一个优点是，考虑到一个点 $v$ 时，它的子树已经构建完毕了。</p>
+		<p>此时，由于我们已经知道了它的 $D$ 值 ($D_v$) 和以 $v$ 为根的子树大小 $\left| subtree \left( v \right) \right|$，自然就可以反推处 $D_{p_v}$ 的值了。</p>
+		<p>而题目保证了所有 $D_i$ 互不相同，因此我们就可以二分查找 (或用 <code>std::map</code>/Hash Map 等) 出 $v$ 的父节点了。</p>
+		<p>这样层层推进，我们就构建出了整棵树。当然，如果在构造过程中找不到 $D_{p_v}$ 所对应的点，那么就<del>只好说 bye-bye 了</del>无解了呗。</p>
+		<p>不过，最后不要忘记 "<em>检验构造出的这棵树的合法性</em>"，因为这些性质只是这棵树所要满足的<strong>必要条件</strong>而非充分，因此最终需要手动计算一下这棵树的 $D$ 值是不是和题目中所给的一致。</p>
+		<p>更精细地，我们只需要检验根节点 (重心) 的 $D$ 值即可，因为其余点的 $D$ 值由构造过程是保持相对大小的。</p>
+		<p>总时间复杂度 $O \left( N \right)$ 或 $O \left( N \log N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 100054;
+
+int n;
+int o[N], size[N];
+int p[N], fc[N], nc[N];
+ll D[N];
+std::vector &lt;pr&gt; edges;
+
+inline bool Dcmp(const int x, const int y) {return D[x] &gt; D[y];}
+
+inline bool find(ll x, int &amp;ret) {return *D = x, ret = std::lower_bound(o, o + n, 0, Dcmp) - o, D[o[ret]] == x;}
+
+inline void link(int x, int px) {p[x] = px, nc[x] = fc[px], fc[px] = x, size[px] += size[x];}
+
+void dfs(int x, int d) {*D += d; for (int y = fc[x]; y; y = nc[y]) dfs(y, d + 1);}
+
+int main() {
+	int i, j, u;
+	scanf("%d", &amp;n), std::iota(o, o + n, 1);
+	for (i = 1; i &lt;= n; ++i) scanf("%lld", D + i);
+	std::sort(o, o + n, Dcmp), std::fill(size + 1, size + (n + 1), 1);
+	for (i = 0; i &lt; n - 1; link(u, o[j]), ++i)
+		if (u = o[i], !find(D[u] + 2 * size[u] - n, j) || j &lt;= i) return puts("-1"), 0;
+	if (dfs(o[i], *D = 0), *D != D[o[i]]) return puts("-1"), 0;
+	for (i = 1; i &lt;= n; ++i) if (p[i]) edges.EB(std::minmax(i, p[i]));
+	std::sort(edges.begin(), edges.end());
+	for (const pr &amp;e : edges) printf("%d %d\n", e.first, e.second);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意最后不要忘记检验根节点的 $D$ 值合法性。</p>
+		<p><strong>坑2：</strong>在二分之前可以先检验 $D_{p_v} &lt; D_v$ 是否成立，如果不成立可以直接输出 $-1$，以免造成连边出环的情况。</p>
+	</body>
+</html>

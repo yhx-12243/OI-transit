@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces639F]Bear and Chemistry</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张无向图 $G$ (可能不连通，有自环与重边)，有 $q$ 组询问，每组询问给出 $n_i$ 个点和 $m_i$ 条边，你需要判断将这 $m_i$ 条边加入图中，这 $n_i$ 个点是否在同一个<strong>边双连通分量</strong>中。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, m, q$ ($1 \leq n, q \leq 3 \times 10^5; 0 \leq m \leq 3 \times 10^5$)，表示图的点数，边数以及询问的组数。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq n$)，描述图上的一条边。</p>
+		<p>接下来的若干行，描述 $q$ 组询问：</p>
+		<p>每组询问的第一行包含两个非负整数 $n_i, m_i$ ($n_i \geq 0; \sum n_i, \sum m_i \leq 3 \times 10^5$)，表示这组询问给出的点和边。</p>
+		<p>第二行包含 $n_i$ 个<strong>互不相同</strong>的正整数 $x'_{i, 1}, x'_{i, 2}, \cdots, x'_{i, n_i}$ ($1 \leq x'_{i, j} \leq n$)，描述这 $n_i$ 个点，<em>注意 $n_i$ 可以等于 $1$</em>。</p>
+		<p>最后 $m_i$ 行，每行两个正整数 $a'_{i, j}, b'_{i, j}$ ($1 \leq a'_{i, j}, b'_{i, j} \leq n$)，描述所加入的一条边。</p>
+		<p>询问强制在线。也就是说，对于每个 $x'_{i, j}, a'_{i, j}$ 以及 $b'_{i, j}$，实际值应为输入值在模 $n$ 意义下<strong>向前循环平移</strong> $R$ 个单位的结果，即 $x_{i, j} = \left( x'_{i, j} + R - 1 \right) \bmod n + 1$ ($a_{i, j}, b_{i, j}$ 同理)，其中 $R$ 为<em>该询问之前，所有答案为 <code>YES</code> 的询问的<strong>编号之和</strong>，询问从 $1$ 开始编号</em>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行一个字符串，如果这 $n_i$ 个点在同一个<strong>边双连通分量</strong>中，输出 <code>YES</code>，否则输出 <code>NO</code>。</p>
+
+		<h3>题解</h3>
+		<p>边双连通分量有个比较好的性质：所有的边双连通分量<strong>两两不交</strong>，且并为原图的点集。</p>
+		<p>而且，如果 $u, v$ 在 $G$ 中是边双连通的，则对于任意一条边 $e$，$u, v$ 在 $G \cup \left\{ e \right\}$ 中也是边双连通的。</p>
+		<p>于是，我们可以对原图 (使用 Tarjan 算法) 进行<strong>边双缩点</strong>，从而得到一棵 (一般的) 树，不过由于原图可能不连通，因此确切地说应该是一片<strong>森林</strong>。<strong>故以下不妨假设原图就是一棵森林</strong>。</p>
+		<p>我们考虑加入了 $n_i$ 个点和 $m_i$ 条边，我们把这些点和边所涉及到的不超过 $n_i + 2 m_i$ 个点 (即点并上边的端点) 提取出来，容易发现这个询问<strong>只和这些点有关</strong>。</p>
+		<p>因此，我们对这些点 (用 <abbr title="Depth Stack Algorithm, 深度栈算法">DSA</abbr> 算法) 建立一棵虚树 (或虚森林)，然后在虚树上将对应边连接起来，暴力跑跑 Tarjan 边双，即可检验这 $n_i$ 个点是否在同一个边双中。</p>
+		<p>由于 Tarjan 是线性的，因此整个算法的时间复杂度为 $O \left( n + m + \sum n_i + \sum m_i \right)$ (理论最优)，也是正确的。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) (((x - 1) ^ 1) + 1)
+#define lg2 std::__lg
+
+const int N = 300054, M = N * 2, LN = 20;
+
+int V, E, kV, kE, q, mask;
+int v[N], vcheck[N];
+int cnt_vir, vir[N], virp[N];
+
+struct edge {
+	int u, v;
+	edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+} es[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace Tree { // Forest
+	edge e[M];
+	int V, E = 0, first[N], next[M];
+	int B, dep[N], bel[N], stack[N];
+	int cnt = 0, id[N], st[LN][M], *ord = *st;
+
+	inline int dmin(const int x, const int y) {return dep[x] &lt; dep[y] ? x : y;}
+	inline bool idcmp(const int x, const int y) {return id[x] &lt; id[y];}
+
+	inline void addedge(int u, int v) {
+		e[++E] = edge(u, v), next[E] = first[u], first[u] = E;
+		e[++E] = edge(v, u), next[E] = first[v], first[v] = E;
+	}
+
+	void dfs(int x, int px = 0) {
+		int i, y; ord[cnt] = x, id[x] = cnt++, bel[x] = B;
+		for (i = first[x]; i; i = next[i])
+			if ((y = e[i].v) != px) dep[y] = dep[x] + 1, dfs(y, x), ord[cnt++] = x;
+	}
+
+	void build_sparse_table() {
+		int *f, *g = ord, i, j, k = cnt;
+		for (j = 0; 1 &lt;&lt; (j + 1) &lt;= cnt; ++j) {
+			f = g, g = st[j + 1], k -= 1 &lt;&lt; j;
+			for (i = 0; i &lt; k; ++i) g[i] = dmin(f[i], f[i + (1 &lt;&lt; j)]);
+		}
+	}
+
+	inline bool conn(int x, int y) {return bel[x] == bel[y];}
+
+	inline int LCA(int x, int y) {
+		int L, R, c; std::tie(L, R) = std::minmax(id[x], id[y]), c = lg2(++R - L);
+		return dmin(st[c][L], st[c][R - (1 &lt;&lt; c)]);
+	}
+
+	void DSA(int n, int *v) {
+		#define ins(x) (virp[x] = stack[top], stack[++top] = vir[cnt_vir++] = x)
+		int i, x, y, top = 0; cnt_vir = 0;
+		for (i = 0; i &lt; n; ++i)
+			if (x = v[i], !(top &amp;&amp; conn(stack[top], x))) {
+				for (; top; --top) stack[top] = 0; ins(x);
+			} else {
+				stack[top + 1] = 0;
+				for (y = LCA(stack[top], x); dep[ stack[top] ] &gt; dep[y]; --top);
+				virp[ stack[top + 1] ] = y;
+				if (stack[top] != y) ins(y); ins(x);
+			}
+		for (; top; --top) stack[top] = 0;
+		std::sort(vir, vir + cnt_vir, idcmp);
+	}
+
+	void main() {
+		int i; memset(id, -1, (V + 1) &lt;&lt; 2);
+		for (i = 1; i &lt;= V; ++i) if (!~id[i]) B = cnt, dfs(i);
+		build_sparse_table();
+	}
+}
+
+namespace Graph {
+	edge e[M];
+	int V, E = 0, first[N], next[M];
+	int cnt = 0, id[N], low[N];
+	int stc = 0, stack[N];
+	int nbcc = 0, bel[N];
+	bool bridge[M];
+
+	inline void addedge(int u, int v) {
+		e[++E] = edge(u, v), next[E] = first[u], first[u] = E;
+		e[++E] = edge(v, u), next[E] = first[v], first[v] = E;
+	}
+
+	void dfs(int x, int px = 0) {
+		int i, y; id[x] = low[x] = ++cnt, stack[stc++] = x;
+		for (i = first[x]; i; i = next[i])
+			if (!id[y = e[i].v]) {
+				dfs(y, i), down(low[x], low[y]);
+				if (id[x] &lt; low[y]) bridge[ad(i)] = bridge[i] = true;
+			} else if ((px - 1) ^ (i - 1) ^ 1)
+				down(low[x], id[y]);
+		if (id[x] == low[x])
+			for (++nbcc, y = 0; y != x; y = stack[--stc], bel[y] = nbcc);
+	}
+
+	void main() {
+		int i, u, v;
+		for (i = 1; i &lt;= V; ++i) if (!id[i]) dfs(i); Tree::V = Graph::nbcc;
+		for (i = 1; i &lt;= E; i += 2) if (bridge[i]) u = bel[e[i].u], v = bel[e[i].v], Tree::addedge(u, v);
+	}
+}
+
+namespace Virtual {
+	edge e[M];
+	int E, first[N], next[M];
+	int cnt, id[N], low[N];
+	int stc, stack[N];
+	int nbcc, bel[N];
+
+	inline void addedge(int u, int v) {
+		e[++E] = edge(u, v), next[E] = first[u], first[u] = E;
+		e[++E] = edge(v, u), next[E] = first[v], first[v] = E;
+	}
+
+	void dfs(int x, int px = 0) {
+		int i, y; id[x] = low[x] = ++cnt, stack[stc++] = x;
+		for (i = first[x]; i; i = next[i])
+			if (!id[y = e[i].v])
+				dfs(y, i), down(low[x], low[y]);
+			else if ((px - 1) ^ (i - 1) ^ 1)
+				down(low[x], id[y]);
+		if (id[x] == low[x])
+			for (++nbcc, y = 0; y != x; y = stack[--stc], bel[y] = nbcc);
+	}
+
+	inline void init() {
+		nbcc = stc = cnt = E = 0;
+		for (int v, i = 0; i &lt; cnt_vir; ++i) v = vir[i], first[v] = id[v] = 0;
+	}
+
+	inline bool main() {
+		int i, v;
+		for (i = 0; i &lt; cnt_vir; ++i) if (!(id[ v = vir[i] ])) dfs(v);
+		for (v = bel[*vcheck], i = 1; i &lt; kV; ++i) if (bel[vcheck[i]] != v) return false;
+		return true;
+	}
+}
+
+inline int next() {int $; return scanf("%d", &amp;$), Graph::bel[($ + mask - 1) % V + 1];}
+
+int main() {
+	int i, j, u, v, n; bool ret;
+	scanf("%d%d%d", &amp;V, &amp;E, &amp;q);
+	for (i = 0; i &lt; E; ++i)
+		if (scanf("%d%d", &amp;u, &amp;v), u != v) Graph::addedge(u, v);
+	for (Graph::V = V, Graph::main(), Tree::main(), j = 1; j &lt;= q; ++j) {
+		scanf("%d%d", &amp;kV, &amp;kE), n = kV;
+		for (i = 0; i &lt; kV; ++i) vcheck[i] = ::v[i] = next();
+		for (i = 0; i &lt; kE; ++i) {
+			if ((u = next()) == (v = next())) {--i, --kE; continue;}
+			::v[n++] = u, ::v[n++] = v, es[i] = edge(u, v);
+		}
+		std::sort(::v, ::v + n, Tree::idcmp), n = std::unique(::v, ::v + n) - ::v;
+		Tree::DSA(n, ::v), Virtual::init();
+		for (i = 0; i &lt; cnt_vir; ++i) if (virp[vir[i]]) Virtual::addedge(vir[i], virp[vir[i]]);
+		for (i = 0; i &lt; kE; ++i) Virtual::addedge(es[i].u, es[i].v);
+		if (ret = Virtual::main()) mask = (mask + j) % V, puts("YES");
+		else puts("NO");
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>多组询问的时候记得及时清空数组，并注意清空的复杂度。</p>
+		<p><strong>坑2：</strong>注意询问的加密方式 —— 是<strong>所有 <code>YES</code> 询问的编号之和</strong>，而不是<em>为 <code>YES</code> 的询问个数</em>。</p>
+		<p><strong>坑3：</strong>在 Tarjan 算法的时候注意对自环、重边的处理。</p>
+	</body>
+</html>

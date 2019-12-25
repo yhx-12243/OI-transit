@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4437,Grand28C]Min Cost Cycle</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $N$ 个点，每个点有两个参数 $A_i, B_i$，现有一张 $N$ 个点的有向完全图 <span class="text-muted">(不是竞赛图，是有 $N \left( N - 1 \right)$ 条边的图)</span>，其中有向边 $i \to j$ 的长度为 $\min \left\{ A_i, B_j \right\}$。</p>
+		<p>你需要求原图的 Hamilton 圈的长度的最小值。Hamilton 圈指的是路径是从一个点出发回到自身，经过其余点<strong>恰好一次</strong>的圈。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 10^5$)，表示点的个数。</p>
+		<p>接下来 $N$ 行，每行两个正整数 $A_i, B_i$ ($1 \leq A_i, B_i \leq 10^9$)，表示第 $i$ 个点的参数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最短 Hamilton 圈的长度。</p>
+
+		<h3>题解</h3>
+		<p><del>根据套路</del>，我们先不考虑每一条边的 $\min$ ($\min \left\{ A_i, B_j \right\}$)，而是规定，对于 Hamilton 圈中的每一条边 $i \to j$，在 $A_i$ 和 $B_j$ 中<strong>任意取一个</strong>作为权值。这样，对于一条确定的 (有向) Hamilton 圈，它就对应 $2^{N-1}$ 种不同的权值 <span class="text-muted">(确切地来讲应该是 <strong>$2^{N-1}$ 种不同的方案</strong>，因为两种不同的方案可能会得到相同的权值)</span>。</p>
+		<p>现在，我们把原来的 $\left( N - 1 \right) !$ 个 Hamilton 圈扩展成了 $\left( N - 1 \right) ! \cdot 2^{N-1}$ 种方案，每种方案有一个权值。不过，虽然方案数变多了，但是它们的<strong>最小值</strong>仍然是不变的。</p>
+		<p>不过这样转化后就有一个好处 —— 我们不需要求<strong>局部最小值</strong>了：因为每种方案内部只有<strong>加法</strong>，我们所要做的，就是对所有 $\left( N - 1 \right) ! \cdot 2^{N-1}$ 种不同的方案取一个<strong>全局最小值</strong>就可以了。</p>
+		<p>考虑每个加法，由定义可知它一定是题目中给出的 $2 N$ 个数中选取 $N$ 个数的和。但是，<em>反过来，在这 $2 N$ 个数中，任选 $N$ 个数，这 $N$ 个数可能找不到一种能对应到它的方案</em>。</p>
+		<p>于是，我们就需要探索，<strong style="color: fuchsia">什么样的 $N$ 元子集，是存在方案能对应到它的呢</strong>？</p>
+		<hr />
+		<p>首先，$\left\{ A_1, A_2, \cdots, A_N \right\}$ 和 $\left\{ B_1, B_2, \cdots, B_N \right\}$ 显然是合法方案，因为任意一条路径都可以通过合适的选权值方案得到它。</p>
+		<p>接下来，为方便起见，我们定义<strong>下标</strong>的概念：对于元素 $A_i$ <span class="text-muted">(这里的 $A_i$ 指的是抽象元素，而不是具体的值)</span>，它的<strong>下标</strong>为 $i$，对于元素 $B_i$，它的<strong>下标</strong>也是 $i$。</p>
+		<p>如果对于一个 $N$ 元子集，它的下标构成的 (可重) 集合恰好是 $\left\{ 1, 2, \cdots, N \right\}$，则除了刚才所说的两种情况 ($\left\{ A_1, A_2, \cdots, A_N \right\}$ 与 $\left\{ B_1, B_2, \cdots, B_N \right\}$) 外，<strong>一定是不合法的</strong>。</p>
+		<p>这是因为，如果你在选择权值的过程中，如果不是全选 $A$ 或全选 $B$，那么，由于它是一个<strong>圈</strong>，因此一定有一步选了 $B$，下一步选了 $A$，从而这两个元素具有<strong>相同的下标</strong>。</p>
+		<hr />
+		<p>反之，如果一个 $N$ 元子集，它的下标构成的 (可重) 集合<strong>不是</strong> $\left\{ 1, 2, \cdots, N \right\}$，则它<strong>一定</strong>存在满足条件的方案。</p>
+		<p>我们通过下面的方法进行构造：</p>
+		<p>不妨设 $1, 2, 3, \cdots, m$ 作为下标出现了<strong>两次</strong>，$N - \left( m - 1 \right), N - \left( m - 2 \right), \cdots, N - 1, N$ 作为下标出现了<strong>零次</strong>，其余元素作为下标出现了<strong>一次</strong>，这里 $1 \leq m \leq \dfrac N2$。</p>
+		<p>首先，如果对于 $m + 1 \leq j \leq N - \left( m + 1 \right)$，这个 $j$ 都是来自 $A_j$，在可以使用这样的构造：</p>
+		<p>\begin{align*}
+&amp;N \to \color {red} 1, \color {red} 1 \to N - 1, N - 1 \to \color {red} 2, \color {red} 2 \to N - 2, \cdots, N - \left( m - 2 \right) \to \color {red} {m - 1}, \color {red} {m - 1} \to N - \left( m - 1 \right), N - \left( m - 1 \right) \to \color {red} m, \\
+&amp;\color {red} m \to m + 1, \color {red} {m + 1} \to m + 2, \color {red} {m + 2} \to m + 3, \cdots, \color {red} {N - \left( m + 1 \right)} \to N - m, \color {red} {N - m} \to N
+\end{align*}</p>
+		<p>然后，将上面的圈中，最后 $N - 2 m$ 条边从选 $A$ 依次切换回选 $B$，你就可以使得中间 $N - 2 m$ 个元素中，任意的数量来自 $A_j$，其余的数量均来自 $B_j$。</p>
+		<p>举一个 $N = 11, m = 3$ 的例子：</p>
+		<div class="row">
+			<div class="col-xs-2 table-responsive">
+				<table class="table table-bordered table-text-center table-vertical-middle table-hover">
+					<tbody>
+						<tr><td>$11$</td><td>$\color {red} 1$</td></tr>
+						<tr><td>$\color {red} 1$</td><td>$10$</td></tr>
+						<tr><td>$10$</td><td>$\color {red} 2$</td></tr>
+						<tr><td>$\color {red} 2$</td><td>$9$</td></tr>
+						<tr><td>$9$</td><td>$\color {red} 3$</td></tr>
+						<tr><td>$\color {red} 3$</td><td>$4$</td></tr>
+						<tr><td>$\color {red} 4$</td><td>$5$</td></tr>
+						<tr><td>$\color {red} 5$</td><td>$6$</td></tr>
+						<tr><td>$\color {red} 6$</td><td>$7$</td></tr>
+						<tr><td>$\color {red} 7$</td><td>$8$</td></tr>
+						<tr><td>$\color {red} 8$</td><td>$11$</td></tr>
+					</tbody>
+				</table>
+			</div>
+			<div class="col-xs-2 table-responsive">
+				<table class="table table-bordered table-text-center table-vertical-middle table-hover">
+					<tbody>
+						<tr><td>$11$</td><td>$\color {red} 1$</td></tr>
+						<tr><td>$\color {red} 1$</td><td>$10$</td></tr>
+						<tr><td>$10$</td><td>$\color {red} 2$</td></tr>
+						<tr><td>$\color {red} 2$</td><td>$9$</td></tr>
+						<tr><td>$9$</td><td>$\color {red} 3$</td></tr>
+						<tr><td>$\color {red} 3$</td><td>$4$</td></tr>
+						<tr><td>$\color {red} 4$</td><td>$5$</td></tr>
+						<tr><td>$\color {red} 5$</td><td>$6$</td></tr>
+						<tr><td>$\color {red} 6$</td><td>$7$</td></tr>
+						<tr><td>$\color {red} 7$</td><td>$8$</td></tr>
+						<tr><td>$8$</td><td>$\color {fuchsia} {11}$</td></tr>
+					</tbody>
+				</table>
+			</div>
+			<div class="col-xs-2 table-responsive">
+				<table class="table table-bordered table-text-center table-vertical-middle table-hover">
+					<tbody>
+						<tr><td>$11$</td><td>$\color {red} 1$</td></tr>
+						<tr><td>$\color {red} 1$</td><td>$10$</td></tr>
+						<tr><td>$10$</td><td>$\color {red} 2$</td></tr>
+						<tr><td>$\color {red} 2$</td><td>$9$</td></tr>
+						<tr><td>$9$</td><td>$\color {red} 3$</td></tr>
+						<tr><td>$\color {red} 3$</td><td>$4$</td></tr>
+						<tr><td>$\color {red} 4$</td><td>$5$</td></tr>
+						<tr><td>$\color {red} 5$</td><td>$6$</td></tr>
+						<tr><td>$\color {red} 6$</td><td>$7$</td></tr>
+						<tr><td>$7$</td><td>$\color {fuchsia} 8$</td></tr>
+						<tr><td>$8$</td><td>$\color {fuchsia} {11}$</td></tr>
+					</tbody>
+				</table>
+			</div>
+			<div class="col-xs-2 table-responsive">
+				<table class="table table-bordered table-text-center table-vertical-middle table-hover">
+					<tbody>
+						<tr><td>$11$</td><td>$\color {red} 1$</td></tr>
+						<tr><td>$\color {red} 1$</td><td>$10$</td></tr>
+						<tr><td>$10$</td><td>$\color {red} 2$</td></tr>
+						<tr><td>$\color {red} 2$</td><td>$9$</td></tr>
+						<tr><td>$9$</td><td>$\color {red} 3$</td></tr>
+						<tr><td>$\color {red} 3$</td><td>$4$</td></tr>
+						<tr><td>$\color {red} 4$</td><td>$5$</td></tr>
+						<tr><td>$\color {red} 5$</td><td>$6$</td></tr>
+						<tr><td>$6$</td><td>$\color {fuchsia} 7$</td></tr>
+						<tr><td>$7$</td><td>$\color {fuchsia} 8$</td></tr>
+						<tr><td>$8$</td><td>$\color {fuchsia} {11}$</td></tr>
+					</tbody>
+				</table>
+			</div>
+			<div class="col-xs-2 table-responsive">
+				<table class="table table-bordered table-text-center table-vertical-middle table-hover">
+					<tbody>
+						<tr><td>$11$</td><td>$\color {red} 1$</td></tr>
+						<tr><td>$\color {red} 1$</td><td>$10$</td></tr>
+						<tr><td>$10$</td><td>$\color {red} 2$</td></tr>
+						<tr><td>$\color {red} 2$</td><td>$9$</td></tr>
+						<tr><td>$9$</td><td>$\color {red} 3$</td></tr>
+						<tr><td>$\color {red} 3$</td><td>$4$</td></tr>
+						<tr><td>$\color {red} 4$</td><td>$5$</td></tr>
+						<tr><td>$5$</td><td>$\color {fuchsia} 6$</td></tr>
+						<tr><td>$6$</td><td>$\color {fuchsia} 7$</td></tr>
+						<tr><td>$7$</td><td>$\color {fuchsia} 8$</td></tr>
+						<tr><td>$8$</td><td>$\color {fuchsia} {11}$</td></tr>
+					</tbody>
+				</table>
+			</div>
+			<div class="col-xs-2 table-responsive">
+				<table class="table table-bordered table-text-center table-vertical-middle table-hover">
+					<tbody>
+						<tr><td>$11$</td><td>$\color {red} 1$</td></tr>
+						<tr><td>$\color {red} 1$</td><td>$10$</td></tr>
+						<tr><td>$10$</td><td>$\color {red} 2$</td></tr>
+						<tr><td>$\color {red} 2$</td><td>$9$</td></tr>
+						<tr><td>$9$</td><td>$\color {red} 3$</td></tr>
+						<tr><td>$\color {red} 3$</td><td>$4$</td></tr>
+						<tr><td>$4$</td><td>$\color {fuchsia} 5$</td></tr>
+						<tr><td>$5$</td><td>$\color {fuchsia} 6$</td></tr>
+						<tr><td>$6$</td><td>$\color {fuchsia} 7$</td></tr>
+						<tr><td>$7$</td><td>$\color {fuchsia} 8$</td></tr>
+						<tr><td>$8$</td><td>$\color {fuchsia} {11}$</td></tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<p>因此，最终 (粉色问题) 的结论是：<strong style="color: green">只要 $N$ 元子集的下标集合不是 $\left\{ 1, 2, \cdots, N \right\}$，或者它就等于 $\left\{ A_1, A_2, \cdots, A_N \right\}$ 或 $\left\{ B_1, B_2, \cdots, B_N \right\}$, 就是存在对应方案的</strong>。</p>
+		<hr />
+		<p>现在，由贪心的原则，我们选取这 $2 N$ 个数中最小的 $N$ 个。直观感受下，由于不存在方案的集合极其苛刻，因此一般情况下，检验一下可以发现它是合法的。</p>
+		<p>但是，<del>出题人肯定要卡你啊！</del>你不得不去面对这种极端情况 —— 即最小的 $N$ 个恰好是不合法的。</p>
+		<p>由<del>类似堆的算法</del> $N$ 元子集大小的关系可知，次小的情况是唯一的 —— 最小的 $N - 1$ 个与排名第 $N + 1$ 的元素。</p>
+		<p>如果它还是不合法，我们分析一下可知，(排名) 第 $N$ 个元素与第 $N + 1$ 个元素具有<strong>相同的下标</strong>。</p>
+		<p>此时，它们和第 $N + 2$ 个元素的<strong>下标</strong>一定<em>不相同</em>。从而，最小的 $N - 1$ 个与排名第 $N + 2$ 的元素一定是合法方案。</p>
+		<p>不过，还有一种调整策略，是使用最小的 $N - 2$ 个与排名第 $N, N + 1$ 的元素，它也一定满足条件。</p>
+		<p>可以证明，任何一种<strong>存在方案的策略</strong>，一定 (偏序地) 大于二者之一。从而对这两种情形取 $\min$ 即可获得问题的解决。</p>
+		<p>总时间复杂度 $O \left( N \log N \right)$ (排序)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 200054;
+
+int n;
+pr a[N];
+bool fill[N];
+
+inline ll min(const ll x, const ll y) {return x &lt; y ? x : y;}
+
+int main() {
+	int i, u, v; ll ans, s = 0; bool ok = false;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), a[i] = pr(u, i), a[i + n] = pr(v, i + n);
+	std::sort(a, a + 2 * n);
+	for (u = i = 0; i &lt; n; ++i) s += a[i].first, v = a[i].second % n, fill[v] ? ok = true : fill[v] = true, u += a[i].second &lt; n;
+	if (ok |= !u || u == n) ans = 0;
+	else if (a[n].second % n == a[n - 1].second % n) ans = min(a[n].first - a[n - 2].first, a[n + 1].first - a[n - 1].first);
+	else ans = a[n].first - a[n - 1].first;
+	printf("%lld\n", ans + s);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于要判定是不是 $\left\{ A_1, A_2, \cdots, A_N \right\}$ 或 $\left\{ B_1, B_2, \cdots, B_N \right\}$，因此每个元素需要记录一个 $\left[ 1, 2 N \right]$ 的 "下标"。此时判断<strong>下标</strong>是否相同需要将原来的 "下标" 模 $n$ 比较。</p>
+		<p><strong>坑2：</strong>在这道题中，还有一个实现方法：即特判完 $\left\{ A_1, A_2, \cdots, A_N \right\}$ 与 $\left\{ B_1, B_2, \cdots, B_N \right\}$ 后，<strong>固定一个 $i$，使得 $A_i$ 和 $B_i$ 都在集合中</strong>，然后取剩下元素中前 $N - 2$ 小的。不过实现起来略微麻烦一点。</p>
+	</body>
+</html>

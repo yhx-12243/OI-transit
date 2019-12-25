@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4141][THUSC2013]魔塔</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 只怪物，第 $i$ 只怪物拥有三个属性 $H_i, A_i, D_i$，分别表示该怪物的血量、攻击和防御。</p>
+		<p>现在你要配置一名勇士的属性，使得通过合理安排该勇士挑战怪物的顺序，他最终能击破所有的 $n$ 只怪物。勇士的属性同样只有三个，血量、攻击和防御。每给勇士配置一点血量需要一枚金币，一点攻击需要 $C_A$ 枚金币，一点防御需要 $C_D$ 枚金币。<strong>勇士的防御值必须大于零</strong>。</p>
+		<p>勇士和每只怪物的战斗是自动回合制的，每回合<del>勇士先攻击，怪物后攻击</del><ins style="color: red">双方同时攻击</ins>，当某一方的血量降为 $0$ 后，战斗立刻终止，无论该回合是否完成。一次攻击对敌方造成的伤害为 $\max \left\{ \text{己方攻击} - \text{敌方防御}, 0 \right\}$。</p>
+		<p>求出配置一名能击破 $n$ 只怪物的勇士所需的最小金币量。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, C_A, C_D$ ($n \leq 5000; C_A, C_D \leq 10^6$)，分别表示怪物数量、购买单位攻击力的价格以及购买单位防御力的价格。</p>
+		<p>接下来 $n$ 行，每行包含三个正整数 $H_i, A_i, D_i$ ($H_i, A_i, D_i \leq 10^6$)，表示第 $i$ 只怪物的血量、攻击和防御。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含三个整数，表示勇士的生命值、攻击力和防御力。如果有多种方案均能击破所有怪物且花费金币数最少，输出任意一种即可。</p>
+
+		<h3>题解</h3>
+		<p>显然，我们需要取勇士的生命值为它所受到的伤害总和 $+ 1$ (少了会挂，多了会浪费)，因此接下来只需考虑攻击力和防御力。</p>
+		<p>先考虑一名勇士的<strong>攻击力</strong>已确定的情况，设攻击力为 $A_0$。</p>
+		<p>此时，对于一个怪物 $\left( H, A, D \right)$，这个勇士所需的攻击次数为 $\left \lceil \dfrac H {A_0 - D} \right \rceil$，于是它所受到的伤害为 $\max \left\{ A - x, 0 \right\} \cdot \left \lceil \dfrac H {A_0 - D} \right \rceil$，其中 $x$ 为勇士的防御力。</p>
+		<p>我们将上式看成一个关于勇士防御力的函数 $f \left( x \right)$，则由于 $\left \lceil \dfrac H {A_0 - D} \right \rceil &gt; 0$ 可知 $f \left( x \right)$ 是一个凸函数 (下凸函数)。</p>
+		<p>所以，勇士收到 $n$ 个怪物的伤害总和 $F \left( x \right) = f_1 \left( x \right) + f_2 \left( x \right) + \cdots + f_n \left( x \right)$ 也是关于 $x$ (防御力) 的一个凸函数。</p>
+		<p>而对于凸函数，它一定是单峰的，因此容易找到它的极值。设攻击力为 $A_0$ 的极值防御力为 $ED \left( A_0 \right)$。</p>
+		<hr />
+		<p>接下来考虑函数 $ED \left( A \right)$ 随 $A$ 的变化情况。</p>
+		<p>我们考虑当 $A$ 增大的情况。此时，对于每一个分函数 $f_i \left( x \right)$，它左边的部分 ($\max \left\{ A_i - x, 0 \right\}$) 是不变的，右边的部分由于 $A$ 增大，它是 (非严格) 减小的。</p>
+		<p>也就是说，当 $x \leq A_i$ 时，$g_i \left( x \right) = f_i \left( x \right) + k x + b$ (其中 $g_i$ 表示<strong>新的</strong> $f_i$，系数 $k &gt; 0$，$b$ 为常数)。</p>
+		<p>两边求导，得 $g'_i \left( x \right) = f'_i \left( x \right) + k \cdot \left[ x \leq A_i \right]$，结合 $f_i, g_i$ 的凸性知，<strong>$g'_i \left( x \right)$ 的极值点不大于 $f'_i \left( x \right)$ 的极值点</strong>，也就是说，对于 $A_1 &lt; A_2$，有 $ED \left( A_1 \right) \geq ED \left( A_2 \right)$。</p>
+		<hr />
+		<p>于是，考虑使用<strong>双指针</strong>来维护这个过程。我们从 $1 + \max D_i$ 到 $\max \left\{ H_i + D_i \right\}$ 升序枚举 $A$，需要降序扫描 $D$ 直到找到一个极值 (即寻找 $ED \left( A \right)$ 的值)。</p>
+		<p>具体地，由于我们已经在最外面一层枚举了 $A$，我们需要快速计算出 $\Delta^R F \left( x \right) = F \left( x - 1 \right) - F \left( x \right)$ ($\Delta^R$ 表示<strong>反向差分</strong>)，并检验它的符号。</p>
+		<p>而 $\Delta^R f_i \left( x \right) = \left \lceil \dfrac {H_i} {A - D_i} \right \rceil \cdot \left[ x \leq A_i \right]$ 是一个<strong>分段线性函数</strong>，仍不易维护，我们考虑维护它的<strong>二阶反向差分</strong>：\begin{align*}
+\Delta^{2 R} f_i \left( x \right) &amp;= \Delta^R f_i \left( x - 1 \right) - \Delta^R f_i \left( x \right) \\
+&amp;= \left \lceil \frac {H_i} {A - D_i} \right \rceil \cdot \left[ x - 1 \leq A_i \right] - \left \lceil \frac {H_i} {A - D_i} \right \rceil \cdot \left[ x \leq A_i \right] \\
+&amp;= \left \lceil \frac {H_i} {A - D_i} \right \rceil \cdot \left[ x = A_i + 1 \right]
+\end{align*}</p>
+		<p>不错，它的二阶反向差分只有一项！于是，当 $A$ 固定时，对于 $\forall 1 \leq i \leq n$，$\Delta^{2 R} f_i \left( x \right)$ 只有一个非零项，从而 $\Delta^{2 R} F \left( x \right)$ 的非零项数不超过 $n$，从而可以直接计算。</p>
+		<p>当 $A$ 变化时，这些函数的二阶反向差分也会发生变化。</p>
+		<p>观察式子 $\Delta^{2 R} f_i \left( x \right) = \left \lceil \dfrac {H_i} {A - D_i} \right \rceil \cdot \left[ x = A_i + 1 \right]$，由<strong>整除分块</strong>的经验可知，它的二阶反向差分的变化次数<strong>不超过 $2 \sqrt {H_i} + O \left( 1 \right)$</strong>，因此，我们可以将这些二阶反向差分变化的时刻都记下来，然后当 $A_i$ 改变的时候改变对应的数组。</p>
+		<p>当然，由于我们还维护了前缀和，因此，如果二阶反向差分时，对应的自变量 ($A_i + 1$) 比当前的 $x$ 要来的大，那么同时还需要维护一下对应的前缀和 (一阶反向差分 $\Delta^R F \left( x \right)$) 和二阶前缀和 ($F \left( x \right)$)。</p>
+		<p>由于二阶反向差分改变的次数为 $O \left( \sum \sqrt {H_i} \right)$，于是总时间复杂度即为 $O \left( n + \sum \sqrt {H_i} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;pr&gt; vector;
+const int N = 5054, L = 2000054;
+
+struct monster {
+	int h, a, d;	
+	monster * read() {return scanf("%d%d%d", &amp;h, &amp;a, &amp;d), this;}
+	inline int kill(int attack) {return (h - 1) / (attack - d) + 1;}
+} a[N], b[N];
+
+int n, CA, CD;
+ll fy[L];
+vector adjs[L];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+int main() {
+	int i, j, k, l, m, attack, defense = 0, inf = 0, sup = 0, best_attack = 0, best_defense = 0;
+	ll ans = LLONG_MAX, delta = 0, health = 0, current, best_health = 0;
+	scanf("%d%d%d", &amp;n, &amp;CA, &amp;CD);
+	for (i = 0; i &lt; n; ++i) up(inf, a[i].read()-&gt;d), up(sup, a[i].h + a[i].d), up(defense, a[i].a);
+	for (++inf, i = 0; i &lt; n; ++i) {
+		fy[a[i].a] += a[i].kill(inf), m = a[i].h - 1;
+		for (j = inf, l = -1; ; l = k, j = m / k + a[i].d + 1) {
+			k = m / (j - a[i].d);
+			if (~l) adjs[j].EB(a[i].a, k - l);
+			if (!k) break;
+		}
+	}
+	for (attack = inf; attack &lt;= sup; ++attack) {
+		for (const pr &amp;adj : adjs[attack])
+			if (fy[adj.first] += adj.second, defense &lt; adj.first)
+				delta += adj.second, health += (adj.first - defense) * adj.second;
+		for (; defense &gt; 1; health += delta += fy[defense--])
+			if (delta + fy[defense] &gt;= CD) break;
+		current = health + (ll)CA * attack + (ll)CD * defense;
+		if (current &lt;= ans)
+			ans = current, best_attack = attack, best_defense = defense, best_health = health;
+	}
+	printf("%lld %d %d\n", ++best_health, best_attack, best_defense);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><del><strong>坑1：</strong>这题在 lydsy 上没有 checker，因此要在 lydsy 上过的话 (如果有多种方案) 需要选择这样的方案：先尽可能使 $A$ 大，再尽可能使 $D$ 大。</del></p>
+		<p><strong>坑2：</strong>注意题目中的描述 $D &gt; 0$，以及整除分块的时候注意写法：对于正整数 $a, b$，有 $\left \lceil \dfrac ab \right \rceil = \left \lfloor \dfrac {a - 1} b \right \rfloor + 1$。</p>
+		<p><strong>坑3：</strong>由于多个 $f_i \left( x \right)$ 可能在相同的自变量 $x$ 上产生二阶反向差分，因此维护的时候需要用 <code>
++=</code> 而不是 <code>=</code>。</p>
+	</body>
+</html>

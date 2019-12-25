@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces671D]Roads in Yusland</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个顶点的有根树，其中 $1$ 为根。有 $m$ 个有序对 $\left( u_i, v_i \right)$，保证 $v_i$ 为 $u_i$ 的祖先，表示一条从 $v_i$ 到 $u_i$ 的路径，它的权值为 $c_i$。</p>
+		<p>你需要从这 $m$ 个有序对中选出若干个，使得它们对应的路径的并为树上的所有 $n - 1$ 条边。你需要最小化这些有序对的权值和。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 3 \times 10^5$)，表示树的点树以及有序对的个数。</p>
+		<p>接下来 $n - 1$ 行，每行两个正整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq n$)，表示 $x_i$ 和 $y_i$ 之间有一条边。</p>
+		<p>最后 $m$ 行，每行三个正整数 $u_i, v_i, c_i$ ($1 \leq u_i, v_i \leq n; 1 \leq c_i \leq 10^9$)，表示一个权值为 $c_i$ 的有序对 $\left( u_i, v_i \right)$。</p>
+
+		<h3>输出格式</h3>
+		<p>如果所有有序对对应的路径的并仍不能包含所有的边，输出一行 $-1$。</p>
+		<p>否则，输出一行一个整数，表示有序对的权值和的最小值。</p>
+
+		<h3>题解</h3>
+		<p>考虑类似 <del>DP</del> 贪心的思想，从深到浅，每条边需要找到一条链来覆盖它。</p>
+		<p>最贪心的算法就是 —— 搜索到 (非根的) 每个顶点 $v$ 时，如果它未被覆盖，找一条能覆盖 $v \to p_v$ <strong>且权值最小</strong>的链覆盖它，然后回溯到父节点。</p>
+		<p>当然，这个算法显然是错的 —— 反例太多了，随便搞搞就叉掉了。</p>
+		<p>像<a href="../index.html?redirect=679" target="_blank">这道题</a>一样，我们考虑加入 "反悔" (消负圈) 的思想，使用一个堆来维护这些权值。这样，就不至于把其余候选的链给删掉了。</p>
+		<p>具体地，在 $v$ 时，我们用堆维护出所有跨越/经过边 $v \to p_v$ 的链 (及其权值)，然后，我们<strong>暂且</strong>使用权值最小的链 $c_0$ 来了覆盖这条边。</p>
+		<p>当然，可能实际上选择的不是 $c_0$，而是其它边，比如 $c_i$。而此时，选择其它边就会有额外的 (非负) 代价 $\Delta c = c_i - c_0 \geq 0$。</p>
+		<p>此时，我们将堆中所有链的权值都<strong>减去 $c_0$</strong>，得到一个新的堆，原来的链也不要弹出，因为它可以看作一个 "<strong>不改变方案</strong>" 的方案，继续向上覆盖，直到它的终点 $v_i$。</p>
+		<hr />
+		<p>具体实现的时候，对于一个节点 $v$，只需要将它的所有子节点的堆合并起来，再加入起点 $u_i = v$ 的链就可以了。</p>
+		<p>当然，在合并完之后，需要将堆中终点	在 $subtree \left( v \right)$ 中的链统统删掉。</p>
+		<p style="color: red">(ps: 堆中删除特定的元素和一般 "可删除堆" 类似，先不删除，在需要弹出元素的时候把不满足条件的堆顶都扔掉即可)</p>
+		<p>然后，我们需要实现将堆中元素整体加一个数的操作，这里有两种实现：</p>
+		<ol>
+			<li><p>可并堆 (斜堆/左偏树/...)。</p>
+			<p>使用支持合并的堆 (斜堆/左偏树/...) 即可完整合并功能，在堆中打标记就像线段树中打标记一样，直接打一个懒标记，需要访问时在 <code>push_down</code> 即可。</p></li>
+			<li><p>启发式合并，<em>下面的代码使用的就是这种实现</em>。</p>
+			<p><del>作为一个懒人</del>，手写一个带标记的堆太麻烦了，当然要使用 STL 自带的堆了。我们在合并的时候，将两个堆启发式合并，并像<a href="../index.html?redirect=687" target="_blank">这道题</a>一样记录一个全局标记。</p>
+			<p>唯一要注意的一点是，在堆中 <code>push</code> 元素的时候，需要预先减去这个标记 (<code>offset[]</code>，偏移量)。</p></li>
+		</ol>
+		<hr />
+		<p>而算法的正确性是非常容易证明的 <del>(至少比 <a href="../index.html?redirect=814" target="_blank">[Codeforces704B]Ant Man</a> 显然多了)</del>，注意到堆中的元素实际上时刻都是非负的，因而最优方案一定是能被生成到的。</p>
+		<p>总时间复杂度 $O \left( \left( n + m \right) \log m \right)$。</p>
+		
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef long long ll;
+typedef std::vector &lt;int&gt; vector;
+const int N = 300054, M = N * 2;
+
+struct chain {
+	int d, u; ll w;
+	chain * read() {return scanf("%d%d%lld", &amp;d, &amp;u, &amp;w), this;}
+	inline bool operator &lt; (const chain &amp;B) const {return w &gt; B.w;}
+} c[N];
+
+typedef std::priority_queue &lt;chain&gt; heap;
+
+int n, C, E = 0;
+int to[M], first[N], next[M];
+int dep[N];
+ll ans = 0, offset[N];
+vector cs[N];
+heap pq[N];
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E; 
+}
+
+inline void merge(int x, int y) {
+	for (chain t; !pq[y].empty(); pq[y].pop())
+		t = pq[y].top(), t.w += offset[y] - offset[x], pq[x].push(t);
+}
+
+inline bool dfs(int x, int px = 0) {
+	int i, y, w; chain t;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px) {
+			if (dep[y] = dep[x] + 1, !dfs(y, x)) return false;
+			if (pq[x].size() &lt; pq[y].size()) pq[x].swap(pq[y]), std::swap(offset[x], offset[y]);
+			merge(x, y);
+		}
+	for (int id : cs[x]) t = c[id], t.w -= offset[x], pq[x].push(t);
+	for (; !pq[x].empty() &amp;&amp; dep[pq[x].top().u] &gt;= dep[x]; pq[x].pop());
+	if (pq[x].empty()) return false;
+	return ans += w = pq[x].top().w + offset[x], offset[x] -= w, true;
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d%d", &amp;n, &amp;C);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	for (i = 0; i &lt; C; ++i) cs[c[i].read()-&gt;d].EB(i);
+	for (i = first[1]; i; i = next[i])
+		if (v = to[i], dep[v] = 1, !dfs(v, 1)) return puts("-1"), 0;
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于 $c_i$ 比较大，因此堆中的标记可以超过 <code>int</code> 的范围，因此需要使用 <code>long long</code>。</p>
+		<p><strong>坑2：</strong>在 $v = 1$ 时，不需要对堆进行什么判定及操作，其实原问题可以看成 $d \left( 1 \right)$ 个子问题，其中 $d \left( v \right)$ 表示顶点 $v$ 的子节点数。因此，可以对根节点的每个子树分别 dfs 后将答案相加即可。</p>
+	</body>
+</html>

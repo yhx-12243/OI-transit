@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces576D]Flights for Regular Customers</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>某国共 $n$ 座城市，有 $m$ 个单向航班将它们互相连接。第 $i$ 个航班从 $a_i$ 飞到 $b_i$。</p>
+		<p>不幸的是，那个国家的航班只欢迎 "老顾客"：即如果你要乘坐第 $i$ 个航班，你需要<strong>先前乘坐该国至少 $d_i$ 次 (任意) 航班</strong>。</p>
+		<p>你现在在 $1$ 号城市，<em>且未乘坐过该国家的任何一次航班</em>。你现在要去 $n$ 号城市，问至少要乘坐多少次航班？或者指出，你现在无法到达 $n$ 号城市。</p>
+		<p><strong>注意：一个相同的航班可以乘坐多次</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($2 \leq n \leq 150; 1 \leq m \leq 150$)，表示城市的个数和航班的个数。</p>
+		<p>接下来 $m$ 行，每行三个非负整数 $a_i, b_i, d_i$ ($1 \leq a_i, b_i \leq n; a_i \neq b_i; 0 \leq d_i \leq 10^9$)，表示第 $i$ 个航班，从 $a_i$ 飞到 $b_i$，且需要先前乘坐 $d_i$ 次航班才能乘坐。</p>
+
+		<h3>输出格式</h3>	
+		<p>如果无法到达 $n$ 号城市，输出一行一个字符串 <code>Impossible</code>。</p>
+		<p>否则，输出一行一个整数，表示乘坐航班的总次数的最小值。</p>
+
+		<h3>题解</h3>
+		<p>将城市看成点，航班看成边，容易建立图论模型。</p>
+		<p>我们将所有边按照 $d_i$ 排序，由于边数不多，我们 (按顺序) 枚举到达 $n$ 时哪些边是可用的 (available，即走过的边数 $\geq d_i$ 以致可以经过)。</p>
+		<p>枚举完后，我们会得到一个路程长度的一个范围，比如 $\left[ d_i, d_{i+1} \right]$，我们需要检验在这个范围内是否可以到达。</p>
+		<p>假设可以到达，设路径为 $P$，用 $P_i$ 表示在 $i$ 时刻的位置。由于这段时间内<strong>不会加入新边</strong>，因此，在这一段时间内，$P$ 走的是最短路，也就是说，在 $d_i$ 到 $t$ (到达时刻) 的过程中，$P_{d_i}, P_{d_i + 1}, \cdots, P_t = n$ 就是从 $P_{d_i}$ 到 $n$ 的<strong>最短路</strong>。</p>
+		<p>因此，由于最短路一定是简单路径，从而必有 $t \leq d_i + n$。</p>
+		<p>于是，当我们固定了 $i$ 后，我们只需要知道 $d_i$ 时刻 (走过 $d_i$ 条边后) 能到达哪些点，然后只需要求它们到 $n$ 的最短路就可以了。</p>
+		<p>设当前 $d_i$ 步能到达的点的集合为 $S_i$，我们只需要求一个以 $S_i$ 为起点的<em>同步多源最短路</em>，将它们的距离设为 $0$ 后跑 Dijkstra 即可 (当然，由于这里的边权为 $1$，这个 Dijkstra 本质上就是一个 <abbr title="Breadth-first Search, 宽度优先搜索"><strong>bfs</strong></abbr>)。</p>
+		<p>于是，剩下的事情就是，我们如何快速知道在某一个特定时刻 $d$ (走过 $d$ 条边后)  可以到达哪些点。</p>
+		<p>容易想到一个 $O \left( d \cdot n \cdot m \right)$ 的 DP 算法，可惜 $d$ 的范围 (即 $d_i$ 的范围) 太大，无法使用这个算法。</p>
+		<p>注意这个 DP 的形式，它可以写成<strong>矩阵乘法</strong>的形式，事实上，<span style="color: blue">对于一张固定的图，从 $i$ 开始走 $d$ 步能到达的点，可以通过原图的<strong>邻接矩阵</strong>的 $d$ 次幂的第 $i$ 行的值来表示</span> (可以试着对比<a href="../index.html?redirect=590" target="_blank">这里 ([poj2888]Magic Bracelet)</a>)。</p>
+		<p>于是我们就可以考虑使用<strong>矩阵快速幂</strong>来优化这个过程了。由于对连续的一段 $\left[ d_i, d_{i+1} \right]$，图的邻接矩阵是固定的，因此确实可以使用<em>矩阵快速幂</em>进行优化。</p>
+		<p>而这样的段数是 $O \left( m \right)$ 的，因此这部分的时间复杂度为 $O \left( n^3 m \log \max d_i \right)$，可能会 TLE 掉。</p>
+		<p>然而，注意到我们并不需要求方案数，只需要求是否可以到达，因此矩阵乘法可以在<strong>布尔意义下</strong> (即乘为 $\&amp;$，加为 $\mid$) 进行，从而可以使用 <code>std::bitset</code> 优化。</p>
+		<p>总时间复杂度 $O \left( \dfrac {n^3 m \log \max d_i} \omega \right)$，可以通过此题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define matcopy(x, y) std::copy(x + 1, x + (V + 1), y + 1)
+
+const int N = 162, INF = 0x3f3f3f3f;
+typedef std::bitset &lt;N&gt; bitset, mat[N], *pmat;
+
+struct edge {
+	int u, v, w;
+	edge * read() {return scanf("%d%d%d", &amp;u, &amp;v, &amp;w), this;}
+	inline bool operator &lt; (const edge &amp;B) const {return w &lt; B.w;}
+} e[N];
+
+int V, E;
+int que[N], dis[N];
+mat G, C;
+
+inline void __builtin_matmul(pmat a, pmat b, pmat ret) {
+	for (int k, i = 1; i &lt;= V; ++i)
+		for (ret[i].reset(), k = a[i]._Find_first(); k != N; k = a[i]._Find_next(k))
+			ret[i] |= b[k];
+}
+
+inline void matmul(pmat a, pmat b, pmat ret) {static mat tmp; __builtin_matmul(a, b, tmp), matcopy(tmp, ret);}
+
+void matPower(pmat a, int n, pmat c) {static mat tmp; for (matcopy(a, tmp); n; n &gt;&gt;= 1, matmul(tmp, tmp, tmp)) if (n &amp; 1) matmul(c, tmp, c);}
+
+int main() {
+	int i, j, u, v, t = 0, next, head, tail;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 0; i &lt; E; ++i) e[i].read();
+	std::sort(e, e + E), e[E].w = INF, C[1].set(1);
+	for (j = i = 0; i &lt; E; i = j, t = next) {
+		if (t != e[i].w) break;
+		for (; e[j].w == t; ++j) G[e[j].u].set(e[j].v); next = e[j].w;
+		tail = 0, memset(dis, 63, (V + 1) &lt;&lt; 2);
+		for (v = C[1]._Find_first(); v != N; v = C[1]._Find_next(v)) dis[v] = t, que[tail++] = v;
+		for (head = 0; head &lt; tail; ++head) {
+			if ((u = que[head]) == V) return printf("%d\n", dis[V]), 0;
+			if (dis[u] == next) break;
+			for (v = G[u]._Find_first(); v != N; v = G[u]._Find_next(v))
+				if (dis[v] &gt; dis[u] + 1) dis[v] = dis[u] + 1, que[tail++] = v;
+		}
+		matPower(G, next - t, C);
+	}
+	return puts("Impossible"), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在使用 <code>std::bitset</code> 优化的时候可以适当使用 <code>_Find_first</code> 和 <code>_Find_next</code> 来减小常数。</p>
+		<p><strong>坑2：</strong>在 bfs 的时候注意距离至多只能搜索到 $d_{i+1}$，否则可能求得的不是最优解，应当在加入新边时再搜索。</p>
+	</body>
+</html>
