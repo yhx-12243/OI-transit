@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4995,Grand34E]Complete Compress</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $N$ 个顶点的树，顶点标号为 $1, 2, \cdots, N$。同时，你还有一个长度为 $N$ 的，由 $\texttt 0$ 和 $\texttt 1$ 构成的字符串 $S$。$S$ 的第 $i$ 个字符，表示在顶点 $i$ 上的棋子数量。</p>
+		<p>Snuke 将会进行若干次如下操作：</p>
+		<ul>
+			<li>选择 $u, v \in \left[ 1, n \right]$，且 $\operatorname{dist} \left( u, v \right) \geq 2$，且当前顶点 $u, v$ 上<strong>各有至少一枚棋子</strong>。然后，<strong>沿着路径 $u \leadsto v$</strong>，将点 $u$ 上的<strong>其中一枚</strong>棋子，以及点 $v$ 上的<strong>其中一枚</strong>棋子往路径中部靠拢一个单位。</li>
+		</ul>
+		<p>Snuke 想知道，通过若干次这种操作，能否将所有的棋子都集中到一个顶点上。如果可能，并输出操作次数的最小可能值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 2000$)，表示树的点数。</p>
+		<p>第二行包含一个由 $\texttt 0$ 和 $\texttt 1$ 构成的字符串 $S$ ($\left| S \right| = N$)，其中第 $i$ 个字符为 $\texttt 1$，如果在顶点 $i$ 上有一枚棋子；为 $\texttt 0$，如果在顶点 $i$ 上没有棋子。</p>
+		<p>接下来 $N - 1$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq N; a_i \neq b_i$)，表示树上有一条连接顶点 $a_i$ 和 $b_i$ 的边。保证这 $N - 1$ 条边恰好构成一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>如果不能将所有的棋子都集中到一个顶点上，则输出一行 $-1$，否则输出一行一个整数，表示操作次数的最小可能值。</p>
+
+		<h3>题解</h3>
+		<p>由于 $N$ 非常小，我们可以枚举其中一个顶点作为最终的顶点 (根)，于是我们把问题转化为了 —— <span style="color: teal">能否将所有棋子都集中到点 $r$，如果能，返回最小的操作次数，否则返回不行</span>。</p>
+		<p>考虑这些操作，大体可以分为两类：</p>
+		<ol>
+			<li><p>$u$ 是 $v$ 的祖先 ($v$ 是 $u$ 的祖先与其本质相同)。</p>
+			<p>此时，$u \gets$ "它在 $v$ 方向的子孙"，$v \gets p_v$。</p></li>
+			<li><p>$u, v$ 不为祖先关系。</p>
+			<p>此时，$u \gets p_u, v \gets p_v$。</p></li>
+		</ol>
+		<p>尝试在其中寻找不变量，容易发现 —— 所有点的深度总和 ($\sum\limits_v dep_v$) 要么不变 (Case #1)，要么减少 $2$ (Case #2)。</p>
+		<p class="text-muted">于是，如果 $\sum\limits_v dep_v$ 为奇数则无法完成目标。不过这个结论并没有什么卵用。</p>
+		<p>现在考虑 $\sum\limits_v dep_v$ 为偶数，容易构造得出，这只是一个<strong>必要条件</strong>而非<em>充分条件</em>。那什么时候能完成目标，什么时候又不能呢？</p>
+		<p>首先，我们要证明一个结论：<strong style="color: green">操作 1 没有实际作用。换句话说，原问题有解的充分必要条件是，只允许操作 2 后，仍然有解</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>充分性显然。下证必要性：
+				<p>设操作序列为 $o_1, o_2, \cdots, o_k$，且操作后所有点都到根 $r$。</p>
+				<p>设最后一个操作 1 是 $o_i$，则它下面的操作均为第 2 种类型的。显然 $i \neq k$，考虑 $o_i$ 后的两个顶点 $u, v$，那么至少有一个不为 $r$，设在 $i$ 后面第一个<strong>涉及 $u$ 或 $v$ 的操作 2</strong> 为 $j$。</p>
+				<ol>
+					<li><p>如果 $o_j$ 的操作对象为 $v, w$ ($w \neq u$)，则我们将 $o_i$ 撤去，将 $o_j$ 改成 $\left( u, w \right)$，容易证明效果不变。</p></li>
+					<li><p>如果 $o_j$ 的操作对象为 $u, w$ ($w \neq v$)，则我们将 $o_i$ 移到 $o_j$ 后面，容易证明效果不变。</p></li>
+				</ol>
+				<p>重复此操作，就可以依次把所有的操作 1 删除掉 (因为每个操作 1 最后的归宿一定是 '1.' 中情形，因为 $i \neq k$)。</p>
+			</div>
+		</div>
+		<p>这使我们得到了两个结论：首先，我们只需要考虑操作 2 就可以了；其次，<span style="color: fuchsia">一旦有解，答案一定是 $\dfrac 12 \sum\limits_v dep_v$</span>。从而，我们将问题转化为了一个<strong>判定性问题</strong>。</p>
+		<p>现在就来考虑操作 2。首先，操作 2 的条件比较苛刻：$\operatorname{LCA} \left( u, v \right) \notin \left\{ u, v \right\}$。</p>
+		<p>那该怎么处理呢？我们需要充分利用树的性质 —— 将其转化为一个<strong>树形 DP</strong>。为了方便起见，先考虑限制为 "$\operatorname{LCA} \left( u, v \right) = r$" 的情形的判定。</p>
+		<p>这样一来，问题就转化成了：有 $n$ 个自然数 $a_1, a_2, \cdots, a_k$，每次操作可以选择两个正整数 $1 \leq i &lt; j \leq k$，然后令 $a_i \gets a_i - 1, a_j \gets a_j - 1$，询问最后能否将所有数都变为 $0$。</p>
+		<p>这个问题的结论比较简单：首先，一个必要条件是 $2 \mid a_1 + a_2 + \cdots + a_k$，然后，不妨设 $a_1 = \max \left\{ a_1, a_2, \cdots, a_n \right\}$，则 (在预条件成立的情况下) 有解当且仅当 $a_i \leq \dfrac n2$，且操作次数为 $\dfrac 12 \sum\limits_i a_i$。</p>
+		<p>现在考虑加入 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 不为 $r$ 的限制，容易想到使用树形 DP 处理 —— 先将子树的状态调到 "尽可能优" (即无法在子树内进一步调整)，然后再使用刚才的结论进行判定。容易证明这个贪心策略的正确性。</p>
+		<p>此时我们就需要略为改变一下状态了 —— 用 $f_i$ 表示以 $i$ 为根的子树，通过最优的策略，最终所能达到的<strong><span style="color: red">相对</span>深度之和的最小值</strong> (当然，如果都能搬到根则 $f_i = 0$)。于是，有解当且仅当 $f_r = 0$。</p>
+		<p>考虑转移。和 <a href="../index.html?redirect=580" target="_blank">[清华集训2017]榕树之心</a> 非常像，考虑当前 $f$ 最大的子树，如果它不超过总和的一半，那么根据<strong>当前点的<em>相对深度之和</em>的奇偶性来决定</strong>；否则，就<strong>尽力 "拉"</strong>，使之拉到尽可能浅的位置 (量化一下就是使得相对深度之和<strong>尽量小</strong>)。</p>
+		<p>转移方程这里就不写了，和那道题非常像，具体可以见代码。</p>
+		<p>最后判定 $f_r = 0$ 是否成立即可，总时间复杂度 $O \left( N^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt; 
+
+const int N = 2054, M = N * 2;
+
+int n, E = 0;
+int to[M], first[N], next[M];
+int size[N], depsum[N], f[N];
+char A[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x, int px = 0) {
+	int i, y, z = 0; depsum[x] = size[x] = 0;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px)
+			dfs(y, x), size[x] += size[y], depsum[x] += depsum[y],
+			f[z] &lt; f[y] ? z = y : 0;
+	f[x] = (f[z] &lt;= depsum[x] - depsum[z] ? depsum[x] &amp; 1 : f[z] - (depsum[x] - depsum[z]));
+	depsum[x] += size[x] += A[x], f[x] += size[x];
+}
+
+int main() {
+	int i, u, v, ans = INT_MAX;
+	scanf("%d%s", &amp;n, A + 1), *f = 0;
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	for (i = 1; i &lt;= n; ++i) A[i] &amp;= 1;
+	for (i = 1; i &lt;= n; ++i)
+		if (dfs(i), depsum[i] -= size[i], !(f[i] -= size[i])) down(ans, depsum[i] / 2);
+	printf("%d\n", ans == INT_MAX ? -1 : ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在计算相对深度总和时，可以使用<strong>交换求和次序</strong>的技巧 ($size$ 和 $dep$ 的对偶性)，可以发现它相对于是做两次树上逆部分和 (子树部分和)，于是可以一边 dfs 一边处理。</p>
+		<p><strong>坑2：</strong>DP 的时候不要忘记深度的相对性，记得及时转换回来 (就是加上一个 <code>size[]</code>)。</p>
+	</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4378,Grand27D]Modulo Matrix</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定正整数 $N$，你需要构造一个 $N \times N$ 的矩阵 $\mathbf A$ (第 $i$ 行第 $j$ 列的元素为 $a_{i, j}$)，满足如下条件：</p>
+		<ul>
+			<li>$1 \leq a_{i, j} \leq 10^{15}$。</li>
+			<li>$a_{i, j}$ 两两不相同。</li>
+			<li>存在<strong>正整数</strong> $m$，满足：对于任意矩阵中任意两个 $4-$<strong>相邻</strong>的元素，设它们的较小者为 $x$，较大者为 $y$，则 $y \bmod x = m$。</li>
+		</ul>
+		<p class="text-muted">保证在给定数据范围中，存在一组合法的解。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $N$ ($2 \leq N \leq 500$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $N$ 行，每行 $N$ 个整数，表示矩阵中的元素。</p>
+
+		<h3>题解</h3>
+		<p>我们加强条件，不妨假设 $m = 1$。</p>
+		<p>考虑一个格子 $v$，如果它去模 $a, b, \cdots$ 得到 $1$，那么有 $\operatorname{lcm} \left( a, b, \cdots \right) \mid v - 1$。</p>
+		<p>如果 $A, B, \cdots$ 模它得到 $1$，则 $v \mid \gcd \left( A, B, \cdots \right) - 1$。</p>
+		<p><del>容易发现，前面的关于 $\operatorname{lcm}$ 的条件比后面的关于 $\gcd$ 的条件要 "好用"。</del></p>
+		<p>先假设这个格子是 "单调" 的，即右边 &gt; 左边，下面 &gt; 上面，那么，因为一个数 $a_{i, j}$ 模 $a_{i, j-1}$ 和 $a_{i-1, j}$ 均为 $1$，从而 $\operatorname{lcm} \left( a_{i, j-1}, a_{i-1, j} \right) \mid a_{i, j} - 1$。</p>
+		<p>于是可以通过固定第一行及第一列的方法得到整张表，不过通常这种方法会超过 $10^{15}$。</p>
+		<p>因此，我们需要寻找一种合适的填表方法，使得相邻两个数取模后为 $1$ 且绝对值不超过 $10^{15}$。</p>
+		<p>观察题目条件，<strong>网格图中相邻的两个格子</strong>，这提示我们建立二分图模型：</p>
+		<p>将网格图 (按照国际象棋棋盘) 黑白染色，相邻两个点之间连一条边，就得到了一张二分图。</p>
+		<p>取二分图的一部 (比如左部)，在左部中任意填数 (但要保证互不相同)，对于右部中的每个点，将它的权值设为 "<strong>与它相邻的 (左部的) 点上的数的 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr></strong>" 再加 $1$，容易验证最后的二分图满足题目条件。</p>
+		<p>但是，二分图的一部有约 $\dfrac {N^2} 2 = 1.25 \times 10^5$ 个点，如果它们互不相同，则这些元素的大小至少是 $1 \sim 1.25 \times 10^5$，如果填数是直接按顺序或随机等<em>没什么策略的</em>填法，那么 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr> 基本可以看成与乘积同阶，最大的乘积则可以达到至少约 $\left( \dfrac {1.25 \times 10^5} 2 \right)^4 \approx 1.5 \times 10^{19}$，就<strong>远远超出</strong>范围了 (但它其实已经比一开始 "单调" 的填法好很多了)。</p>
+		<p>那该怎么构造，才能使得这些数不超过范围呢？</p>
+		<hr />
+		<p>由于题目中有 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr>，我们考虑从数论角度去思考。</p>
+		<p>考虑一个数相邻的四个位置，平静下来每个数是 $O \left( N^2 \right)$ 级别的，不过它们之间是<strong>独立，没有关联的</strong>。</p>
+		<p>那如果，我们把这四个位置中 "相邻" (即原矩阵中距离为 $\sqrt 2$) 的两个位置中一点 "联系"，即提供一个 $O \left( N \right)$ 级别的 <abbr title="Greatest Common Divisor, 最大公约数">GCD</abbr>，那么这四个数的 LCM 就只有 $O \left( N^4 \right)$ 的级别了，而 $N^4 = 6.25 \times 10^{10}$，看起来还比较松。</p>
+		<p>因此，现在我们考虑，如何使 "<strong>对角线相邻</strong>" 的两个格子 "提供一些联系" (即使它们有一个非平凡的 <abbr title="Greatest Common Divisor, 最大公约数">GCD</abbr>)。</p>
+		<p>经过简单尝试，可以发现，只需<strong>令一条对角线上的元素</strong>有一个共同的 <abbr title="Greatest Common Divisor, 最大公约数">GCD</abbr> 即可。</p>
+		<p>综上，我们可以进行如下操作：</p>
+		<p>首先，对每一条对角线 (不管是主对角线还是副对角线)，我们都给它标记一个数 $w$，作为联系这条对角线的 "纽带"。</p>
+		<p>然后，对每一个格子 $a_{i, j}$，设经过它两条对角线为 $d_1, d_2$，将 $a_{i, j}$ 设为 $w_{d_1}$ 和 $w_{d_2}$ 的乘积。</p>
+		<p>为了保证所有的数互不相同，我们可以取 $w$ 为<strong>最小的若干个素数</strong>。</p>
+		<p>于是，二分图的另一部就是我们所选的 <strong>$4$ 个素数乘积</strong>再加 $1$。</p>
+		<p>而对角线的条数不超过 $2 N$，第 $500$ 个素数为 $3571$，第 $1000$ 个素数为 $7919$，它们的乘积 $3571^2 \cdot 7919^2 \approx 8 \times 10^{14} &lt; 10^{15}$。</p>
+		<p>于是，这样的构造就满足题意。时间复杂度 $O \left( N^2 \right)$ <span style="color: red">(ps: 这个 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr> 其实是不用花 $O \left( \log N \right)$ 时间去求解的，因为由构造知 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr> 就等于 $4$ 个素数乘积)</span>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 540;
+
+int n;
+int pn = 0, c[7930], p[1054];
+ll a[N][N];
+
+void sieve(int n) {
+	int i, j, v;
+	memset(c, -1, sizeof c);
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i]) p[pn] = i, c[i] = pn++;
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt;= c[i]; ++j) c[v] = j;
+	}
+}
+
+int main() {
+	int i, j, *q;
+	scanf("%d", &amp;n), sieve(7929);
+	q = p + (n - 1);
+	for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; n; ++j) if ((i ^ j) &amp; 1)
+		a[i][j] = p[(i + j - 1) / 2] * q[(j - i + n - 1) / 2];
+	for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; n; ++j) if (!((i ^ j) &amp; 1)) {
+		ll &amp;s = a[i][j]; s = 1;
+		if (i          || j         ) s *= p[(i + j - 2) / 2];
+		if (i != n - 1 || j != n - 1) s *= p[(i + j) / 2];
+		if (i          || j != n - 1) s *= q[(j - i + n) / 2];
+		if (i != n - 1 || j         ) s *= q[(j - i + n - 2) / 2];
+		++s;
+	}
+	if (n == 2) a[1][1] = a[1][1] * 2 - 1;
+	for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; n; ++j)
+		printf("%lld%c", a[i][j], j == n - 1 ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意这种构造当 $N = 2$ 时会有两个格子的 <abbr title="Least Common Multiple, 最小公倍数">LCM</abbr> 相同，此时需要人为地将一个格子乘以 $2$。</p>
+		<p><strong>坑2：</strong>注意筛素数的范围是<strong>前 $2 N$ 个素数</strong>而不是 $N, 2 N$，前 $N$ 个素数等。所以干脆直接筛 $8000$ 个即可。</p>
+	</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4519,Grand32D]Rotation Sort</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个 $1 \sim N$ 的排列 $p = \left( p_1, p_2, \cdots, p_N \right)$，你可以对其进行两种操作：</p>
+		<ol>
+			<li><p><dfn>左旋</dfn>：选定整数 $l, r$ ($1 \leq l &lt; r \leq N$)，然后将子段 $\left( p_l, p_{l+1}, \cdots, p_{r-1}, p_r \right)$ 变为 $\left( p_{l+1}, p_{l+2}, \cdots, p_r, p_l \right)$。</p></li>
+			<li><p><dfn>右旋</dfn>：选定整数 $l, r$ ($1 \leq l &lt; r \leq N$)，然后将子段 $\left( p_l, p_{l+1}, \cdots, p_{r-1}, p_r \right)$ 变为 $\left( p_r, p_l, \cdots, p_{r-2}, p_{r-1} \right)$。</p></li>
+		</ol>
+		<p>现在已知，一次<em>左旋</em>的花费为 $A$，一次<em>右旋</em>的花费为 $B$，求将原排列排成升序序列所需的最小代价。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $N, A, B$ ($N \leq 5000; A, B \leq 10^9$)，表示排列的大小以及一次<em>左旋</em>和<em>右旋</em>的代价。</p>
+		<p>第二行包含 $N$ 个正整数 $p_1, p_2, \cdots, p_N$ ($1 \leq p_i \leq N$)，表示给出的排列。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示求将原排列变为升序序列所需的代价的最小值。</p>
+
+		<h3>题解</h3>
+		<p>对于一串操作序列，我们考虑它对其中<strong>每个单独的数</strong>的影响。</p>
+		<p>可以发现，对于一次<em>左旋</em>，它实际上就是把某个数 "<strong>向右移</strong>"。</p>
+		<p>同理，对于一次<em>右旋</em>，它实际上就是把某个数 "<strong>向左移</strong>"。</p>
+		<p>于是，我们接下来就不要以 "<em style="color: red">旋</em>" 的角度思考问题，只考虑将一个数取出来，放到另一位置插进去 (即 "<em style="color: fuchsia">移</em>")。</p>
+		<p>在这个转化下，不同数的移动看起来独立了一些。首先，容易得到一个结论：</p>
+		<p><strong style="color: green">一个数至多被<span style="color: fuchsia">移动</span>一次</strong>。<span class="text-muted">(否则，如果一个数被移动了超过一次，那么在第一次直接将其移动到目标位置，对其它数的相对顺序不影响)</span></p>
+		<p>那么，我们需要考虑哪些数需要移动，哪些数不需要移动。</p>
+		<p>如果我们现在已经有了 "不动点" 集合 $F$ (即不需要移动的下标集合)，那么，对于下标为 $F$ 中的元素，它们应该本身就是递增的。否则，它们之间的相对顺序不改变，那就怎么也排不完序了。</p>
+		<p>在集合 $F$ 确定完之后，剩下的问题就和 <a href="../index.html?redirect=799" target="_blank">[AtCoder4363,Regular102F]Revenge of BBuBBBlesort!</a> 很像了 —— 考虑一个下标 $i \notin F$，设它在 $i$ 中的两个邻居为 $l, r$。</p>
+		<p style="color: blue">如果 $p_i &lt; p_l$，那么毋庸置疑 $i$ 需要向左移动；如果 $p_i &gt; p_r$，那么 $i$ 需要向右移动；如果 $p_l &lt; p_i &lt; p_r$，那么 $i$ 就不需要移动。不过，由于有这种情况，这个 $F$ 集合肯定不是最优的，因此我们随便指定一个移动方向即可，比如说向右移动。</p>
+		<p>接下来，<del>作为一名熟练的 DP 选手</del>，我们就可以对其进行 DP 了：</p>
+		<p>设 $f_{i, l}$ 表示当前考虑了前 $i$ 个元素，$F$ 集合中最后一个元素为 $l$ ($l = 0$ 表示 $F = \varnothing$)，前 $i$ 个元素的代价最小值。</p>
+		<p>转移分为两种：</p>
+		<ol>
+			<li><p>$i \notin F$ ($l &lt; i$)。</p>
+			<p>此时，由前蓝色字所述，只需要根据 $p_i$ 和 $p_l$ 的大小关系，即可知道它向哪个方向移动，并加上对应的权值。形式化地，$f_{i, l} = f_{i-1, l} + B \cdot \left[ p_i &lt; p_l \right] + A \cdot \left[ p_i &gt; p_l \right]$。</p></li>
+			<li><p>$i \in F$ ($l = i$)。</p>
+			<p>此时，我们需要找到 $F$ 中 $i$ 前面的那个元素，设为 $j$。由 $F$ 的单调性知，必须有 $p_j &lt; p_i$。于是，$f_{i, i} = \min\limits_{j &lt; i \wedge p_j &lt; p_i} f_{i-1, j}$。</p></li>
+		</ol>
+		<p>最后答案就是 $\min\limits_{0 \leq j \leq N} f_{N, j}$，时间复杂度 $O \left( N^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 5054;
+
+int n, L, R;
+int p[N];
+ll f[N][N];
+
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+
+int main() {
+	int i, j;
+	scanf("%d%d%d", &amp;n, &amp;R, &amp;L);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", p + i);
+	for (i = 1; i &lt;= n + 1; ++i) {
+		for (j = 0; j &lt; i; ++j) f[i][j] = f[i - 1][j] + (p[i] &lt; p[j] ? L : R);
+		f[i][i] = LLONG_MAX;
+		for (j = 0; j &lt; i; ++j) if (p[i] &gt; p[j]) down(f[i][i], f[i - 1][j]);
+	}
+	printf("%lld\n", *std::min_element(f[n], f[n] + (n + 1)));;
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在转移 $f_{i, i}$ 时，不要忘记前提条件 $p_j &lt; p_i$。</p>
+		<p><strong>坑2：</strong>"<em style="color: red">旋</em>" 的方向和 "<em style="color: fuchsia">移</em>" 的方向略有区别 (比如 "左旋" 对应 "向右移动"，"右旋" 对应 "向左移动")，实现时不要搞混了。</p>
+	</body>
+</html>

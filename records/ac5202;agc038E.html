@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder5202,Grand38E]Gachapon</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 $\omega$ 是养鸽子的人。一天，小 $\omega$ 给鸽子们喂玉米吃。一共有 $n$ 只鸽子，小 $\omega$ 每秒会以一定的概率选择一只鸽子并给他一粒玉米。具体地，给第 $i$ 只鸽子的概率为 $\dfrac {A_i} {A_1 + A_2 + \cdots + A_n}$。第 $i$ 只鸽子饱了当且仅当它吃了的玉米粒数量 $\geq B_i$。</p>
+		<p>小 $\omega$ 想要你告诉他，期望多少秒之后所有的鸽子都饱了。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 400$)。</p>
+		<p>接下来 $N$ 行，每行两个正整数 $A_i, B_i$ ($\displaystyle \sum_{i=0}^{N-1} A_i \leq 400; \sum_{i=0}^{N-1} B_i \leq 400$)，表示每只鸽子的概率系数和它的食量。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示期望时间在模 $998244353$ 意义下的结果。</p>
+
+		<h3>题解</h3>
+		<p>可以看出，这就是 <a href="../index.html?redirect=702" target="_blank">[WMTC2018]喂鸽子</a> 的<em>改编版本</em>。</p>
+		<p>不过，由于数据范围以及具体参数等较那道题有所改变 (比如所有鸽子都变得不同了)，因此直接硬套算法就不太行了，我们需要理清那道题的思想，按照它的思路走。</p>
+		<p>首先，最外面还是一如既往的套一层 Min-Max 容斥，转化为一个集合的鸽子 "至少一个饱了" 的期望时间。</p>
+		<p>然后 <span class="text-muted">(第一处不同来了)</span>，我们不能像那道题一样直接枚举 $i$ ($i$ 只鸽子)，由于所有的鸽子的不同，于是就需要枚举一个鸽子的非空子集 $P \subseteq U$，来计算它被喂饱的期望时间，然后乘以容斥系数 $\left( -1 \right)^{\left| P \right| - 1}$。</p>
+		<p>还是由几何分布，每投入 $1$ 粒玉米，期望时间为 $\dfrac {S_A \left( U \right)} {S_A \left( P \right)}$ <span style="color: red">(ps: $S_A \left( S \right)$ 表示 $\displaystyle \sum_{i \in S} A_i$，$U = \left\{ 1, 2, \cdots, n \right\}$)</span>，枚举共投了 $i$ 粒玉米，期望时间自然就是 $i \cdot \dfrac {S_A \left( U \right)} {S_A \left( P \right)}$。</p>
+		<hr />
+		<p>接下来开始分析集合内部，对于 $i$ 粒玉米分布在鸽子集合 $P$ 中的情况。</p>
+		<p>类似地，设喂饱的鸽子为 $f \in P$，一个玉米序列 $c_1, c_2, \cdots, c_i$ ($c_j \in P$) 合法当且仅当 $c_i = f$，且在前 $i - 1$ 个数中 <span style="color: fuchsia">$f$ 出现恰好 $B_f - 1$ 次，其它数 $g$ 出现<strong>不能超过</strong> $B_g - 1$ 次</span>。</p>
+		<p>定义幂级数 $\displaystyle \mathcal A_f \left( x \right) = \frac {\left( A_f x \right)^{B_f - 1}} {\left( B_f - 1 \right) !}, \mathcal B_g \left( x \right) = 1 + A_g x + \frac {\left( A_g x \right)^2} {2 !} + \frac {\left( A_g x \right)^3} {3 !} + \cdots + \frac {\left( A_g x \right)^{B_g - 1}} {\left( B_g - 1 \right) !} = \sum_{0 \leq j &lt; B_g} \frac {\left( A_g x \right)^j} {j !}$。</p>
+		<p>则，最后喂饱的鸽子为 $f$ 的总生成函数就应为 $\displaystyle \mathcal A_f \left( x \right) \cdot \prod_{g \in P, g \neq f} \mathcal B_g \left( x \right)$。</p>
+		<p>取它的 $i - 1$ 次项系数，就是最后喂饱的鸽子为 $f$ 的长度为 $i$ 的合法玉米序列的量，这个量要除以 $S_A^i \left( P \right)$ 后才是对应的概率，才能与外面的 $i \cdot \dfrac {S_A \left( U \right)} {S_A \left( P \right)}$ 相乘。</p>
+		<hr />
+		<p>接下来考虑如何计算 <span class="text-muted">(第二处不同)</span>，显然，这里的集合数量也变多了，因此暴力计算就变得不现实了，需要使用更加精细的方法。类似地，仍然还是得把式子化简：</p>
+		<p>固定鸽子集合 $P$ 和玉米粒数量 $i$，则这一部分对答案贡献为：$$ \left( i - 1 \right) ! \left[ x^{i-1} \right] \left( \sum_{f \in P} \mathcal A_f \left( x \right) \cdot \prod_{g \in P, g \neq f} \mathcal B_g \left( x \right) \right) \cdot \frac 1 {S_A^i \left( P \right)} \cdot i \cdot \frac {S_A \left( U \right)} {S_A \left( P \right)} = \frac {i !} {S_A^{i + 1} \left( P \right)} \cdot \left[ x^{i-1} \right] \left( \sum_{f \in P} \mathcal A_f \left( x \right) \cdot \prod_{g \in P \setminus \left\{ f \right\}} \mathcal B_g \left( x \right) \right) \cdot S_A \left( U \right) $$	
+		<p>$\displaystyle S_A \left( U \right) = \sum_{i=1}^n A_i$ 为常数可以提到外面，因此我们只需要考虑左边两项。</p>
+		<p>将固定的 $P, i$ 变化起来，即得最终的答案表达式：$$ S_A \left( U \right) \cdot \sum_{P \subseteq U, P \neq \varnothing} \left( -1 \right)^{\left| P \right| - 1} \sum_{i \geq 0} \frac {i !} {S_A^{i + 1} \left( P \right)} \cdot \left[ x^{i-1} \right] \left( \sum_{f \in P} \mathcal A_f \left( x \right) \cdot \prod_{g \in P \setminus \left\{ f \right\}} \mathcal B_g \left( x \right) \right) $$</p>
+		<p>考虑计算这个大家伙。那道题的求导什么的<del>黑科技</del>到这里也用不了了，该怎么办呢？</p>
+		<p>首先，这里出现了四次 $P$：第一次在容斥系数上，第二次在分母上，后两次在乘积表达式上。</p>
+		<p>如果 $P$ 只出现在后两次的乘积表达式上，这个应该是一个<del>不难的</del> DP 题：</p>
+		<p>用 $f_i$ 和 $g_i$ 表示，当前考虑了前 $i$ 个元素，$f_i$ 表示只有 $\mathcal B$ 的乘积，$g_i$ 表示已经有 $\mathcal A$ 的乘积，这样所有集合的贡献和。</p>
+		<p>转移的时候，对于 $f_i$，可以考虑<strong>不放这个元素</strong> (什么都不干)，<strong>放入 $\mathcal B$</strong> (直接乘回 $f_{i+1}$)，以及<strong>放入 $\mathcal A$</strong> (转移到 $g_{i+1}$)。</p>
+		<p>对于 $g_i$，只有两种情形：<strong>不妨这个元素</strong> (什么都不干)，<strong>放入 $\mathcal B$</strong> (乘回 $g_{i+1}$)。由于它里面已经有一个 $\mathcal A$ 了，因此就不能再有第二个 $\mathcal A$ 了。</p>
+		<p>接下来考虑剩下的两次 $P$：首先，在容斥系数上的 $P$ 其实还比较好处理：只需令 $\mathcal A' \gets - \mathcal A, \mathcal B' \gets - \mathcal B$，最后取答案的相反数即可。</p>
+		<p>那对于<strong>分母</strong>上的 $P$ 呢？由于它是类似线性的，因此并没有像刚才那样好的方法了。</p>
+		<p>仔细观察，可以发现，这个 $P$ 的实质是对其中的元素求 $A_i$ 之和。</p>
+		<p>注意到一个性质：$\displaystyle \color {red} {\sum_{i=0}^{N-1} A_i \leq 400}$。对，$A_i$ 的总和很小。这使我们想起了 <a href="../index.html?redirect=625" target="_blank">[ZJOI2019]开关</a> —— 这道题的 $\sum p_i$ 也比较小。</p>
+		<p>因此，这引导我们把 $S_A \left( P \right)$ 也当作一维状态来处理，即用 $f_{i, j}$ 表示前 $i$ 个元素，当前 $S_A \left( P \right) = j$ 的多项式总和。</p>
+		<p>这样一来，最后只需要枚举 $i$ 和 $S_A \left( P \right)$ 即可计算答案。</p>
+		<p>分析一下时间复杂度：状态数是 $O \left( N \cdot \left( \sum A_i \right) \right)$，考虑每次转移，注意到 $\mathcal A$ 型转移 (平移) 的复杂度严格低于 $\mathcal B$ 型转移 (卷积) 的复杂度，因此只需要考虑 $\mathcal B$ 型转移的复杂度。</p>
+		<p>又 $\deg \mathcal B_i \left( x \right) = B_i - 1$，因此不算 $j$，卷积的复杂度为 $B_0 B_1 + \left( B_0 + B_1 \right) B_2 + \cdots + \left( B_0 + B_1 + \cdots + B_{n-2} \right) B_{n-1} = O \left( \left( \sum B_i \right)^2 \right)$。</p>
+		<p>算上那层 $j$，总时间复杂度就是 $O \left( \left( \sum A_i \right) \cdot \left( \sum B_i \right)^2 \right)$，可以通过此题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt; 
+#define EB emplace_back
+
+typedef long long ll;
+typedef std::vector &lt;int&gt; vector;
+const int N = 432, mod = 998244353;
+
+int n;
+int A[N], B[N];
+int fact[N], inv[N], finv[N];
+vector Z[N];
+vector buf_[4][N], *cf = *buf_, *nf = buf_[1], *cg = buf_[2], *ng = buf_[3];
+
+inline void fma(int &amp;x, const int y, const int z) {x = (x + (ll)y * z) % mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = ll(mod - mod / i) * inv[mod % i] % mod; 
+	for (*finv = *fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+void conv_add(vector &amp;ret, const vector &amp;f, const vector &amp;g) {
+	int i, j, n = f.size(), m = g.size();
+	if ((int)ret.size() &lt; n + m - 1) ret.resize(n + m - 1);
+	for (i = 0; i &lt; n; ++i) for (j = 0; j &lt; m; ++j) fma(ret[i + j], f[i], g[j]);
+}
+
+void single_add(vector &amp;ret, const vector &amp;f, int offset, int coeff) {
+	int i, n = f.size();
+	if ((int)ret.size() &lt; n + offset) ret.resize(n + offset);
+	for (i = 0; i &lt; n; ++i) fma(ret[i + offset], f[i], coeff);
+}
+
+int main() {
+	int i, j, r, S = 0, ans = 0;
+	scanf("%d", &amp;n), init();
+	for (i = 0; i &lt; n; ++i) {
+		scanf("%d%d", A + i, B + i), Z[i].reserve(B[i]);
+		for (r = mod - 1, j = 0; j &lt; B[i]; r = (ll)r * A[i] % mod * inv[++j] % mod) Z[i].EB(r);
+	}
+	nf[0].EB(1);
+	for (i = 0; i &lt; n; S += A[i], ++i) {
+		std::copy(nf, nf + (S + 1), cf), std::copy(ng, ng + (S + 1), cg);
+		for (j = 0; j &lt;= S; ++j)
+			conv_add(nf[j + A[i]], cf[j], Z[i]), conv_add(ng[j + A[i]], cg[j], Z[i]),
+			single_add(ng[j + A[i]], cf[j], B[i] - 1, (ll)A[i] * Z[i].back() % mod);
+	}
+	for (j = 1; j &lt;= S; ++j) {
+		for (r = 0, i = ng[j].size() - 1; i &gt;= 0; --i) r = (r + (ll)fact[i + 1] * ng[j][i]) % mod * inv[j] % mod;
+		ans = (ans + (ll)r * inv[j]) % mod;
+	}
+	printf("%d\n", ans = ll(mod - ans) * S % mod);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>这道题中尤其要注意循环的问题，一些变量不要 for 到底，避免复杂度退化。当然，可以使用 <code>std::vector</code> 的方法<del>来偷懒</del>。</p>
+		<p><strong>坑2：</strong>最后答案不要忘记乘上前面的常数 $- S_A \left( U \right)$。</p>
+	</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4927,Grand33D]Complexity</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一张任意黑白染色的矩形网格，定义它的<em>复杂度</em>如下：</p>
+		<ul>
+			<li>如果这个网格是全黑或全白的，则它的<em>复杂度</em>为 $0$。</li>
+			<li>否则，将这个网格沿<strong>边平行于网格边界的线</strong> (即<em>水平线</em>或<em>竖直线</em>) 将其划分为两个子矩形网格，设这两个网格的<em>复杂度</em>分别为 $c_1$ 和 $c_2$。对于所有可能的划分方案，我们把 <span style="color: red">$\max \left\{ c_1, c_2 \right\}$ 的最小可能值</span>称为这个网格的<em>复杂度</em>。</p>
+		</ul>
+		<p>现在给定一个 $H \times W$ 的网格，求它的<em>复杂度</em>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $H, W$ ($H, W \leq 185$)，表示网格的行数和列数。</p>
+		<p>接下来 $H$ 行，每行包含一个由 <code>#</code> 和 <code>.</code> 构成的字符串，描述网格的第 $i$ 行。具体地，第 $i$ 行第 $j$ 个字符为 <code>#</code>，当且仅当网格中第 $i$ 行第 $j$ 列的格子为<span style="color: black">黑色</span>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示整个网格的<em>复杂度</em>。</p>
+
+		<h3>题解</h3>
+		<p>首先，容易想到一个 $O \left( n^5 \right)$ <span style="color: teal">(不妨假设 $n \sim H \sim W$)</span> 的 DP：用 $f_{r_1, r_2, c_1, c_2}$ 表示子矩形 $\left[ r_1, r_2 \right] \times \left[ c_1, c_2 \right]$ 的复杂度，然后枚举分割线进行转移。</p>
+		<p>然而这种做法时间比较紧张，空间也根本开不下。</p>
+		<p>不过，我们可以注意到这样一个性质：<strong>答案很小，且不超过 $\left \lceil \log_2 H \right \rceil + \left \lceil \log_2 W \right \rceil$</strong>。</p>
+		<p>这个的证明并不难，只需对二元组 $\left( H, W \right)$ 归纳证明即可。每次随便选一个方向将其切成<strong>尽可能均匀</strong> (即极差不超过 $1$) 的两段即可。而「国际象棋棋盘染色」就可以达到这个上界。</p>
+		<p>那么，这个性质有啥用呢？注意到这个 DP 具有单调性 (若 $A$ 是 $B$ 的子集，则 $A$ 的复杂度不高于 $B$ 的复杂度)，因此我们可以尝试将状态 "换一换"：</p>
+		<hr />
+		<p>令 $R_{k, r_1, r_2, c}$ 表示最大的<strong>列标</strong> $x$，使得 $f_{r_1, r_2, c, x} \leq k$ <span style="color: red">(ps: 如果 $f_{r_1, r_2, c, c} &gt; k$，则令 $R_{k, r_1, r_2, c} = c - 1$)</span>。</p>
+		<p>这样换的原因是，由 DP 单调性知，如果把 $f_{r_1, r_2, c, x}$ 看成一个<strong>关于 $x$ 的函数</strong>，则它是关于 $x$ 的<strong>单调递增</strong>函数，而它的定义域非常大，值域非常小，因此我们可以将这两维 "换着存储"。</p>
+		<p>首先，我们在最外层枚举 $k$，考虑从 $k$ 转移到 $k + 1$。对于一对 $r_1 \leq r_2$ 和一个 $c$，它有两种 "切割方式"：</p>
+		<ol>
+			<li><p>竖直切割。</p>
+			<p>此时，设 $c' = R_{k, r_1, r_2, c}$。由于 $f_{r_1, r_2, c, c'} = k$，于是可以将其放到一块中，右边 (从第 $c' + 1$ 列起) 再贪心地切一块，设可以切到 $c''$，则更新 $R_{k+1, r_1, r_2, c} \uparrow c''$。</p>
+			<p>可以证明，这种方案可以切到最远 (尽可能靠右) 的格子。这是因为，如果第一步没有切到它最远的地方 (第 $c'$ 列)，那么由 DP 的单调性知，第二步切得就<strong>不可能超过 $c''$</strong>。</p></li>
+			<li><p>水平切割。</p>
+			<p>此时，我们就需要枚举中间的「媒介行」—— 设为 $r$。于是，我们会将网格切成 $r_1 \sim r$ 以及 $\left( r + 1 \right) \sim r_2$ 两段，取 $R_{k, r_1, r, c}$ 和 $R_{k, r + 1, r_2, c}$ 中的<strong>较小值</strong>就是我们所要更新的答案 ($R_{k+1, r_1, r_2, c}$)。</p>
+			<p>它的正确性非常显然，不需要证明了。但是，这一部分需要 $O \left( r_2 - r_1 \right)$ 的枚举，导致总的时间复杂度达到 $O \left( n^4 \log n \right)$。</p>
+		</ol>
+		<p>$O \left( n^4 \log n \right)$ 的时间，这显然不能接受，我们需要考虑进一步优化它。</p>
+		<hr />
+		<p>注意到我们刚才只记录了<strong>向右切割</strong>的最远点，那么无妨试试<strong>向下切割</strong>所能到达的最远点吧~</p>
+		<p>具体地，令 $D_{k, c_1, c_2, r}$，表示最大的<strong>行标</strong> $x$，使得 $f_{r, x, c_1, c_2} \leq k$。</p>
+		<p>于是，$D_{k, c_1, c_2, r}$ 的<strong>水平切割</strong>型转移和前面的竖直切割转移相同，直接 $O \left( 1 \right)$ 完成。</p>
+		<p>那么 $R_{k, c_1, c_2, r}$ 的水平切割转移呢？我们考虑进行<strong>交叉转移</strong>。</p>
+		<p>假设我们<strong>已经知道</strong>了在<strong>水平切割</strong>下更新 $R_{k+1, r_1, r_2, c_1}$ 它的最大值，设它为 $c_2$。</p>
+		<p>这说明，$f_{r_1, r_2, c_1, c_2} \leq k + 1$，从而 $D_{k+1, c_1, c_2, r_1} \geq r_2$。</p>
+		<p>考虑 $D_{k+1, c_1, c_2, r_1}$ 这一项：那么可以知道，至少它可以通过「<strong>最后一步水平切割</strong>」的方法达到 $r_2$ 行，因此，如果我们只完成 $D_{k+1, c_1, c_2, r_1}$ 的水平切割，它的值就<strong>至少能达到 $\geq r_2$</strong>。</p>
+		<p>这样就好了，我们就可以得到一个算法了：</p>
+		<ol>
+			<li><p>首先，进行方便的转移：$R_{k, r_1, r_2, c}$ 的<strong>竖直切割</strong>，以及 $D_{k, c_1, c_2, r}$ 的<strong>水平切割</strong>。</p></li>
+			<li><p>其次，进行交叉转移：设 $D_{k+1, c_1, c_2, r} = r'$，则对于 $\forall \left[ r_1, r_2 \right] \subseteq \left[ r, r' \right]$，更新 $R_{k+1, r_1, r_2, c_1} \uparrow c_2$。对称地，由 $R$ 数组更新 $D$ 数组的情况同理。</p></li>
+		</ol>
+		<p>它的正确性刚才已经说明。现在最后一个问题是：如何<strong>子集转移</strong> (即对于 $\forall \left[ r_1, r_2 \right] \subseteq \left[ r, r' \right]$ 进行更新) 而不改变复杂度。</p>
+		<p>这个问题其实不难，<del>有 DP 基础的选手肯定都会</del>。<span style="color: fuchsia">只需要按 $r_2 - r_1$ 从大到小枚举，然后 $R_{k+1, r_1, r_2 - 1, c_1} \uparrow R_{k+1, r_1, r_2, c_1}, R_{k+1, r_1 + 1, r_2, c_1} \uparrow R_{k+1, r_1, r_2, c_1}$ 即可 (可以试着对比 <a href="../index.html?redirect=559" target="_blank">[清华集训2014]文学</a>)。</p>
+		<p>于是我们就把一轮 $k$ 的转移的时间复杂度优化到了 $O \left( n^3 \right)$。由于答案不超过 $O \left( \log n \right)$，因此总时间复杂度 $O \left( n^3 \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define rep2D(l, r, n) \
+	for (int __repeat_gap = 0; __repeat_gap &lt; n; ++__repeat_gap) \
+		for (l = 1, r = l + __repeat_gap; r &lt;= n; ++l, ++r)
+#define per2D(l, r, n) \
+	for (int __repeat_gap = n - 1; __repeat_gap &gt; 0; --__repeat_gap) \
+		for (l = 1, r = l + __repeat_gap; r &lt;= n; ++l, ++r)
+
+typedef unsigned char u8;
+const int N = 187;
+
+int R, C;
+int sum[N][N];
+u8 ri[16][N][N][N], dn[16][N][N][N];
+// right[k][r1][r2][c], down[k][c1][c2][r]
+
+inline void up(u8 &amp;x, const u8 y) {x &lt; y ? x = y : 0;}
+inline int S(int r1, int c1, int r2, int c2) {return sum[r2][c2] - sum[r2][c1 - 1] - sum[r1 - 1][c2] + sum[r1 - 1][c1 - 1];}
+
+int main() {
+	int i, j, r1, r2, c1, c2, cur, la, ans;
+	char tmp[N]; u8 *f, *g;
+	scanf("%d%d", &amp;R, &amp;C);
+	for (i = 1; i &lt;= R; ++i)
+		for (scanf("%s", tmp + 1), j = 1; j &lt;= C; ++j)
+			sum[i][j] = sum[i][j - 1] + sum[i - 1][j] - sum[i - 1][j - 1] + (tmp[j] &amp; 1);
+	rep2D(r1, r2, R) {
+		f = ri[0][r1][r2], la = -1;
+		for (j = C; j; --j, la = cur)
+			cur = S(r1, j, r2, j), f[j] = (cur &amp;&amp; cur != r2 - r1 + 1 ? j - 1 : cur == la ? f[j + 1] : j);
+	}
+	rep2D(c1, c2, C) {
+		f = dn[0][c1][c2], la = -1;
+		for (i = R; i; --i, la = cur)
+			cur = S(i, c1, i, c2), f[i] = (cur &amp;&amp; cur != c2 - c1 + 1 ? i - 1 : cur == la ? f[i + 1] : i);
+	}
+	// main_loop
+	for (ans = 0; ans &lt; 15 &amp;&amp; ri[ans][1][R][1] &lt; C; ) {
+		rep2D(r1, r2, R) {
+			f = ri[ans][r1][r2], g = ri[ans + 1][r1][r2];
+			for (j = 1; j &lt;= C; ++j) up(g[j], f[j] == C ? C : f[f[j] + 1]), up(dn[ans + 1][j][g[j]][r1], r2);
+		}
+		rep2D(c1, c2, C) {
+			f = dn[ans][c1][c2], g = dn[ans + 1][c1][c2];
+			for (i = 1; i &lt;= R; ++i) up(g[i], f[i] == R ? R : f[f[i] + 1]), up(ri[ans + 1][i][g[i]][c1], c2);
+		}
+		++ans;
+		per2D(r1, r2, R)
+			for (j = 1; j &lt;= C; ++j)
+				up(ri[ans][r1][r2 - 1][j], ri[ans][r1][r2][j]), up(ri[ans][r1 + 1][r2][j], ri[ans][r1][r2][j]);
+		per2D(c1, c2, C)
+			for (i = 1; i &lt;= R; ++i)
+				up(dn[ans][c1][c2 - 1][i], dn[ans][c1][c2][i]), up(dn[ans][c1 + 1][c2][i], dn[ans][c1][c2][i]);
+	}
+	ans += ri[ans][1][R][1] &lt; C, printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意这题的空间略微有点紧，因此具体实现的时候需要卡卡常，比如说把 DP 数组的第一维 $k$ 滚动掉或直接压缩掉 (通过合理的转移顺序)，或者由于 DP 值是 $O \left( n \right)$ 的，可以用 <code>unsigned char</code> 存储。</p>
+		<p><strong>坑2：</strong>转移的时候注意顺序，以及 $k$ 值的变化时间。</p>
+	</body>
+</html>

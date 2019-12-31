@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4520,Grand32E]Modulo Pairing</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定正整数 $M$ 和 $2 N$ 个 $0 \sim M - 1$ 之间的整数。</p>
+		<p>你需要将这 $2 N$ 个整数<strong>两两配对</strong>，共配成 $N$ 个无序对，你需要保证每个整数恰好在一个无序对中。</p>
+		<p>我们定义无序对 $\left( x, y \right)$ 的权值为 $\left( x + y \right) \bmod M$。设 $Z$ 为 $N$ 个无序对中的权值最大值，请求出 $Z$ 的最小可能值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $N, M$ ($N \leq 10^5; M \leq 10^9$)。</p>
+		<p>第二行包含 $2 N$ 个非负整数 $a_1, a_2, \cdots, a_{2 N}$ ($0 \leq a_i &lt; M$)，表示这 $2 N$ 个整数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $Z$ 的最小可能值。</p>
+
+		<h3>题解</h3>
+		<p>初看觉得二分 + 判定不好完成，因为在判定的过程中很难维护出哪个数跟哪个数配对。</p>
+		<p>不过，我们可以去寻找一下最优解的一些<strong>必要条件</strong>。</p>
+		<p>首先，为了方便，不妨假设 $a_1 \leq a_2 \leq \cdots \leq a_{2 N}$。显然，由于 $a_i &lt; M$，因此两个数的和不超过 $2 M$，从而一个无序对 $\left( x, y \right)$ 的权值 <strong style="color: red">(记作 $w \left( x, y \right)$)</strong> 要么是 $x + y$，要么是 $x + y - M$。</p>
+		<p>下面证明几个引理：</p>
+		<p style="color: green">引理 1：<strong>存在一组最优解，使得不存在 $i &lt; j &lt; k &lt; l$，使得 $a_i$ 和 $a_k$ 配对，$a_j$ 和 $a_l$ 配对 —— 换句话说，存在形成<em style="color: fuchsia">嵌套关系 (nested relation)</em> 的最优解</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>设有解满足 $i &lt; j &lt; k &lt; l$ 且 $a_i$ 和 $a_k$ 配对，$a_j$ 和 $a_l$ 配对。</p>
+				<ol>
+					<li><p>若 $w \left( a_i, a_k \right) = a_i + a_k, w \left( a_j, a_l \right) = a_j + a_l$。</p>
+					<p>则 $a_i + a_l \leq a_j + a_l &lt; M, a_j + a_k \leq a_j + a_l &lt; M$，从而 $\max \left\{ w \left( a_i, a_l \right), w \left( a_j, a_k \right) \right\} \leq a_j + a_l = w \left( a_j, a_l \right) \leq \max \left\{ w \left( a_i, a_k \right), w \left( a_j, a_l \right) \right\}$。</p></li>
+					<li><p>若 $w \left( a_i, a_k \right) = a_i + a_k - M, w \left( a_j, a_l \right) = a_j + a_l - M$。</p>
+					<p>则情况与 (1) 类似。</p></li>
+					<li><p>若 $w \left( a_i, a_k \right) = a_i + a_k, w \left( a_j, a_l \right) = a_j + a_l - M$。</p>
+					<p>则 $a_i + a_j \leq a_i + a_k &lt; M, M \leq a_j + a_l \leq a_k + a_l &lt; a_k + \left( a_i + M \right) \leq M + a_i + a_k \Rightarrow 0 \leq a_k + a_l - M \leq a_i + a_k$。</p>
+					<p>从而 $\max \left\{ w \left( a_i, a_j \right), w \left( a_k, a_l \right) \right\} = \max \left\{ a_i + a_j, a_k + a_l - M \right\} \leq a_i + a_k = w \left( a_i, a_k \right) \leq \max \left\{ w \left( a_i, a_k \right), w \left( a_j, a_l \right) \right\}$。</p></li>
+				</ol>
+			</div>
+		</div>
+		<p>于是，我们就只需要考虑<strong>嵌套关系</strong>的配对即可，至于嵌套关系，它有两种情形：<strong>互相包含</strong>与<strong>互不相交</strong>。</p>
+		<p>具体是互相包含呢，还是互不相交呢？下面的引理将给出答案。</p>
+		<p style="color: green">引理 2：<strong>存在一组最优解，满足：对于 $i &lt; j &lt; k &lt; l$，若 $w \left( a_i, a_j \right) = a_i + a_j, w \left( a_k, a_l \right) = a_k + a_l$ (或 $w \left( a_i, a_j \right) = a_i + a_j - M, w \left( a_k, a_l \right) = a_k + a_l - M$)，则它们之间形成<strong>包含关系</strong> —— $a_i$ 和 $a_l$ 配对，$a_j$ 和 $a_k$ 配对</strong>。</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>设有解满足 $i &lt; j &lt; k &lt; l$ 且 $a_i$ 和 $a_j$ 配对，$a_k$ 和 $a_l$ 配对，且 $w \left( a_i, a_j \right) = a_i + a_j, w \left( a_k, a_l \right) = a_k + a_l$。</p>
+				<p>则 $\max \left\{ a_i + a_l, a_j + a_k \right\} \leq a_k + a_l &lt; M$，从而 $\max \left\{ w \left( a_i, a_l \right), w \left( a_j, a_k \right) \right\} = \max \left\{ a_i + a_l, a_j + a_k \right\} \leq a_k + a_l = w \left( a_k, a_l \right) \leq \max \left\{ w \left( a_i, a_j \right), w \left( a_k, a_l \right) \right\}$，矛盾。</p>
+				<p>对于第二种情况同理，证明留给读者。</p>
+			</div>
+		</div>
+		<p style="color: green">引理 3：<strong>存在一组最优解，满足：对于 $i &lt; j &lt; k &lt; l$，若 $w \left( a_i, a_l \right) = a_i + a_l, w \left( a_j, a_k \right) = a_k + a_l - M$ (或 $w \left( a_i, a_l \right) = a_i + a_l - M, w \left( a_j, a_k \right) = a_j + a_k$)，则它们<strong>互不相交</strong> —— $a_i$ 和 $a_j$ 配对，$a_k$ 和 $a_l$ 配对</strong>。</p>
+		<div class="panel panel-danger">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>设有解满足 $i &lt; j &lt; k &lt; l$ 且 $a_i$ 和 $a_l$ 配对，$a_j$ 和 $a_k$ 配对，且 $w \left( a_i, a_l \right) = a_i + a_l, w \left( a_j, a_k \right) = a_j + a_k - M$。</p>
+				<p>则 $a_i + a_j \leq a_i + a_l &lt; M, M \leq a_j + a_k \leq a_k + a_l &lt; \left( a_i + M \right) + a_l \leq M + a_i + a_l \Rightarrow 0 \leq a_k + a_l - M \leq a_i + a_l$。</p>
+				<p>从而 $\max \left\{ w \left( a_i, a_j \right), w \left( a_k, a_l \right) \right\} = \max \left\{ a_i + a_j, a_k + a_l - M \right\} \leq a_i + a_l = w \left( a_i, a_l \right) \leq \max \left\{ w \left( a_i, a_l \right), w \left( a_j, a_k \right) \right\}$。</p>
+				<hr />
+				<p>设有解满足 $i &lt; j &lt; k &lt; l$ 且 $a_i$ 和 $a_l$ 配对，$a_j$ 和 $a_k$ 配对，且 $w \left( a_i, a_l \right) = a_i + a_l - M, w \left( a_j, a_k \right) = a_j + a_k$。</p>
+				<p>则 $a_i + a_j \leq a_j + a_k &lt; M, M \leq a_i + a_l \leq a_k + a_l &lt; a_k + \left( a_j + M \right) \leq M + a_j + a_k \Rightarrow 0 \leq a_k + a_l - M \leq a_j + a_k$。</p>
+				<p>从而 $\max \left\{ w \left( a_i, a_j \right), w \left( a_k, a_l \right) \right\} = \max \left\{ a_i + a_j, a_k + a_l - M \right\} \leq a_j + a_k = w \left( a_j, a_k \right) \leq \max \left\{ w \left( a_i, a_l \right), w \left( a_j, a_k \right) \right\}$。</p>
+			</div>
+		</div>
+		<p>通过上面 3 个引理，我们可以得到：</p>
+		<p style="color: orange">推论：<strong>存在一组最优解，满足 $\exists 0 \leq x \leq 2 N, 2 \mid x$，满足 $a_1$ 和 $a_x$ 配对，$a_2$ 和 $a_{x-1}$ 配对，……，$a_{x/2}$ 和 $a_{x/2 + 1}$ 配对 —— 这些对的权值为 "$x + y$" 型；$a_{x+1}$ 和 $a_{2 N}$ 配对，$a_{x+2}$ 和 $a_{2 N - 1}$ 配对，……，$a_{x/2 + N}$ 和 $a_{x/2 + N + 1}$ 配对 —— 这些对的权值为 "$x + y - M$" 型</strong>。</p>
+		<div class="panel panel-warning">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>由引理 1, 2, 3 和调整法易得此结论。</p>
+			</div>
+		</div>
+		<p>由上述推论，可知，最优解<strong>至少只有 $N + 1$ 种选择</strong>！<span class="text-muted">(因为每个最优解都能唯一对应着一个 $0 \sim 2 N$ 之间的偶数 $x$，而不满足这个条件的 "最优解" 一定可以通过调整法得到满足这种条件的答案相同的 "最优解")</span></p>
+		<p>但是，并不是这 $N + 1$ 种选择都是 "靠谱" 的。首先，我们需要保证 $\max \left\{ a_1 + a_x, a_2 + a_{x-1}, \cdots, a_{x/2} + a_{x/2 + 1} \right\} &lt; M$，以及 $\min \left\{ a_{x+1} + a_{2 N}, a_{x+2} + a_{2 N - 1}, \cdots, a_{x/2 + N} + a_{x/2 + N + 1} \right\} \geq M$。</p>
+		<p>考察这两个条件，可以发现它们具有单调性 (可二分性)：左边的条件随着 $x$ 的增大逐渐从「成立」变得「不成立」，而右边的条件随着 $x$ 的增大逐渐从「不成立」变得「成立」。而两边的条件不可能同时不成立 (容易证明)。</p>
+		<p>于是可以通过二分的方法，得到两个条件的临界点 $x_\inf, x_\sup$，然后我们只需要在 $x_\inf \sim x_\sup$ 间找一个 $x$，这里面的最小值就是原问题的最优解。</p>
+		<p>由于 $\max \left\{ a_1 + a_x, a_2 + a_{x-1}, \cdots, a_{x/2} + a_{x/2 + 1} \right\} &lt; M \wedge \min \left\{ a_{x+1} + a_{2 N}, a_{x+2} + a_{2 N - 1}, \cdots, a_{x/2 + N} + a_{x/2 + N + 1} \right\} \geq M$，因此容易证明，<strong>答案随着 $x$ 的增加而单调增加</strong>，于是我们取 $x = x_\inf$ 就是最终的答案。</p>
+		<p>时间复杂度就是二分判定的复杂度，$O \left( N \log N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 200054;
+
+int n, B;
+int a[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+inline bool check(int x) {
+	for (int i = x * 2, j = n - 1; i &lt; j; ++i, --j) if (a[i] + a[j] &lt; B) return false;
+	return true;
+}
+
+int main() {
+	int i, j, L, R, M, ans = 0;
+	scanf("%d%d", &amp;n, &amp;B), n *= 2;
+	for (i = 0; i &lt; n; ++i) scanf("%d", a + i);
+	std::sort(a, a + n);
+	for (L = 0, R = n / 2; L &lt; R; ) check(M = (L + R) / 2) ? R = M : L = M + 1;
+	for (i = 0, j = L * 2 - 1; i &lt; j; ++i, --j) up(ans, a[i] + a[j]);
+	for (i = L * 2, j = n - 1; i &lt; j; ++i, --j) up(ans, a[i] + a[j] - B);
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于最终的答案只需要得到左边这个临界点，而这个临界点只由 "右边的条件" 所控制，因此实际上只需要二分右边条件的临界点 $x_\inf$ 即可。</p>
+		<p><strong>坑2：</strong>在二分时，需要保证 $x$ 是偶数，因此在实际实现时可以对 $\dfrac x2$ 进行二分。</p>
+	</body>
+</html>
