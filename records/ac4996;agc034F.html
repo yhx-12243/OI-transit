@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4996,Grand34F]RNG and XOR</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个随机数生成器，它以 $A_0, A_1, \cdots, A_{2^N - 1}$ 的<strong>概率比</strong>生成 $0 \sim 2^N - 1$ 之间的随机整数。也就是说，生成 $i$ ($0 \leq i \leq 2^N - 1$) 的概率为 $\dfrac {A_i} {\sum_{i=0}^{2^N - 1} A_i}$。</p>
+		<p>现在 Snuke 有一个整数 $X$，最初时它等于 $0$，她可以任意次执行下述操作：</p>
+		<ul>
+			<li>使用随机数生成器生成整数 $v$，然后令 $X \gets X \oplus v$。</li>
+		</ul>
+		<p>你现在需要对每个 $i \in \left[ 0, 2^N - 1 \right]$，求出：如果当 $X = i$ 时停止操作，Snuke 操作总次数的期望。换句话说，期望多少次操作后，$X$ 才能<strong>第一次</strong>变成 $i$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 18$)，决定随机数生成器的值域。</p>
+		<p>第二行包含 $2^N$ 个正整数 $A_0, A_1, \cdots, A_{2^N - 1}$ ($A_i \leq 1000$)，表示随机数生成器生成 $i$ 各个数的<strong>权重</strong>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $2^N$ 行，第 $\left( i + 1 \right)$ ($0 \leq i \leq 2^N - 1$) 行的整数，表示如果当 $X = i$ 时停止操作，操作总次数的期望在模 $998244353$ 意义下的结果。</p>
+
+		<h3>题解</h3>
+		<p>容易类比到 <a href="../index.html?redirect=625" target="_blank">[ZJOI2019]开关</a> 这道题。</p>
+		<p>于是，首先将整个过程反过来，即假设目标状态为 $0$，初始状态为 $i$。设期望步数为 $E_i$，显然 $E_0 = 0$。</p>
+		<p>和<a href="https://www.luogu.org/problemnew/solution/P5326" target="_blank">那题的题解</a>类似，设 $p_i = \dfrac {A_i} {A_0 + A_1 + \cdots + A_{2^N - 1}}$，则有 $$ E_n = 1 + \sum_{i=0}^{2^N - 1} p_i \cdot E_{n \oplus i} \qquad \left( n \neq 0 \right) \tag 1 \label 1 $$</p>
+		<p>可以发现这是一个<strong>集合对称差卷积</strong>，因此考虑构造集合幂级数来处理。</p>
+		<p>设 $\displaystyle E \left( x \right) = \sum_{i=0}^{2^N - 1} E_i x^i, P \left( x \right) = \sum_{i=0}^{2^N - 1} p_i x^i, \mathbf I = \sum_{i=0}^{2^N - 1} x^i$ (注意这里面单项式乘法遵循<strong>指数异或</strong>)，于是有 $$ E \left( x \right) = \mathbf I + E \left( x \right) \ast P \left( x \right) + c \cdot x^\varnothing \tag 2 \label 2 $$</p>
+		<p>最后一项的目的是消除 $n = 0$ (或者说 $n = \varnothing$，以下<strong style="color: blue">不区分集合和二进制数</strong>) 时 $\eqref 1$ 式不满足的影响。</p>
+		<p>设 $\operatorname{FWT} \left[ E \left( x \right) \right] = \mathcal E \left( x \right), \operatorname{FWT} \left[ P \left( x \right) \right] = \mathcal P \left( x \right)$，并注意到 $\displaystyle \operatorname{FWT} \left( \mathbf I \right) = 2^N x^\varnothing$，则有 $\eqref 2 \Leftrightarrow$ $$ \mathcal E \left( x \right) = 2^N x^\varnothing + \mathcal E \left( x \right) \odot \mathcal P \left( x \right) + c \cdot \mathbf I $$ (这里的 "$\odot$" 表示作<strong>点积</strong>，即<strong>对应系数直接相乘</strong>)</p>
+		<p>移项，化简得 $$ \mathcal E \left( x \right) \odot \left( \mathbf I - \mathcal P \left( x \right) \right) = 2^N x^\varnothing + c \cdot \mathbf I \tag 3 \label 3 $$</p>
+		<p>两边同时取 $x^\varnothing$ 项系数，得 $$ \left[ x^\varnothing \right] \mathcal E \left( x \right) \cdot \left( 1 - \left[ x^\varnothing \right] \mathcal P \left( x \right) \right) = 2^N + c $$</p>
+		<p>即 $$ \left[ x^\varnothing \right] \mathcal E \left( x \right) \cdot \left( 1 - \sum_{i=0}^{2^N - 1} p_i \right)	= 2^N + c \tag 4 \label 4 $$</p>
+		<p>由 $p_i$ 定义知 $\eqref 4$ 式左边为 $0$，于是 $\color {red} {c = -2^N}$。</p>
+		<p>带入 $\eqref 3$ 式并化简得 $$ \mathcal E \left( x \right) \odot \left( \mathcal P \left( x \right) - \mathbf I \right) = 2^N \left( \mathbf I - x^\varnothing \right) \tag 5 \label 5 $$</p>
+		<p>对于 $S \neq \varnothing$，在 $\eqref 5$ 式两端同时取 $x^S$ 项系数，可得 $$ \left[ x^S \right] \mathcal E \left( x \right) \cdot \left( \left[ x^S \right] \mathcal P \left( x \right) - 1 \right) = 2^N $$</p>
+		<p>由于 $\displaystyle \left[ x^S \right] \mathcal P \left( x \right) = \sum_{i=0}^{2^N - 1} \left( -1 \right)^{\left| i \oplus S \right|} p_i = 1 - 2 \sum_{\substack{0 \leq i &lt; 2^N \\ \left| i \oplus S \right| \equiv 1 \pmod 2}} p_i$，由于 $S \neq \varnothing$，于是等式右端一项<strong>不为 $0$</strong>，从而 $\left[ x^S \right] \mathcal P \left( x \right) \neq 1$。</p>
+		<p>于是，就可以将 $\left[ x^S \right] \mathcal P \left( x \right) - 1$ 放心大胆地除下来了，从而有 $\left[ x^S \right] \mathcal E \left( x \right) = \dfrac {2^N} {\left[ x^S \right] \mathcal P \left( x \right) - 1}$。</p>
+		<p>因此，对于 $\forall S \neq \varnothing$，我们都已经知道 $\left[ x^S \right] \mathcal E \left( x \right)$ 的值了，现在就只剩下 $\left[ x^\varnothing \right] \mathcal E \left( x \right)$ 了。</p>
+		<p>考虑 $\operatorname{FWT} \left( \mathcal E \left( x \right) \right)$，由 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 的对合性知 $\operatorname{FWT} \left( \mathcal E \left( x \right) \right) = 2^N \cdot E \left( x \right)$，从而两边取 $x^\varnothing$ 项系数可知 $$ \sum_{i=0}^{2^N - 1} \left[ x^i \right] \mathcal E \left( x \right) = 2^N \cdot E_0 = 0 \tag 6 \label 6 $$</p>
+		<p>又我们已经知道对所有 $S \neq \varnothing$，$\left[ x^S \right] \mathcal E \left( x \right)$ 的值了，从而自然就能解出 $\left[ x^\varnothing \right] \mathcal E \left( x \right)$ 了。</p>
+		<p>这样一来，我们就知道了完整的 $\mathcal E \left( x \right)$，再做一遍 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 就可以得到最终我们所要求的 $E \left( x \right)$ 了。时间复杂度 $O \left( 2^N \cdot N \right)$，共计 2 次 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 262154, mod = 998244353;
+
+int n, ALL;
+int f[N], p[N];
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void FWT(int *a) {
+	int i, j, k, r, len = 1;
+	for (i = 0; i &lt; n; ++i, len &lt;&lt;= 1)
+		for (j = 0; j &lt;= ALL; j += len &lt;&lt; 1)
+			for (k = j; k &lt; j + len; ++k)
+				r = a[k + len], reduce(a[k + len] = a[k] - r), add(a[k], r);
+}
+
+int main() {
+	int i; ll s = 0;
+	scanf("%d", &amp;n), ALL = ~(-1 &lt;&lt; n);
+	for (i = 0; i &lt;= ALL; ++i) scanf("%d", p + i), s += p[i];
+	s = PowerMod(s, mod - 2);
+	for (i = 0; i &lt;= ALL; ++i) p[i] = p[i] * s % mod;
+	s = 0, FWT(p);
+	for (i = 1; i &lt;= ALL; ++i) s += f[i] = PowerMod(p[i] - 1, mod - 2);
+	reduce(*f = -s % mod), FWT(f);
+	for (i = 0; i &lt;= ALL; ++i) printf("%d\n", f[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>事实上，我们可以令 $\left[ x^S \right] \mathcal E \left( x \right) = \dfrac 1 {\left[ x^S \right] \mathcal P \left( x \right) - 1}$，这样最后 IFWT 的 $2^N$ 也不用除下来了。</p>
+		<p><strong>坑2：</strong><abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 的时候注意实现常数<del>，不要 TLE 了</del>。</p>
+	</body>
+</html>

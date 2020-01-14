@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder3975,Grand26F]Manju Game</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $N$ 个数排成一排，分别为 $a_1, a_2, \cdots, a_N$，Alice 和 Bob 正在上面玩游戏，Alice 先手。</p>
+		<p>轮到某个玩家操作时，她可以选择<strong>当前尚未取走的数</strong>，将其取走。不过需要满足如下条件：</p>
+		<ul>
+			<li><p>如果这个操作不是 Alice 的第一轮，且最后一次操作所取的数的两侧存在<strong>至少一个尚未取走的数</strong>，则取的数必须和最后一次操作所取的数<strong>相邻</strong>。</p></li>
+			<li><p>否则，可以任选一个尚未取走的数将其取走。</p></li>
+		</ul>
+		<p>当所有数均被取走后，游戏结束。一个玩家的总分为她所取走的所有数的和。现在 Alice 和 Bob 都希望他们的总分尽可能大。现在她们足够聪明，请求出在最优策略下，Alice 和 Bob 的总分。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 3 \times 10^5$)，表示数的总数。</p>
+		<p>第二行包含 $N$ 个正整数 $a_1, a_2, \cdots, a_N$ ($1 \leq a_i \leq 1000$)，表示对应的数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含两个整数，表示在最优策略下，Alice (先手) 和 Bob (后手) 的总分。</p>
+
+		<h3>题解</h3>
+		<p>简单实验后可以发现，无论使用什么策略，取数的整个过程可以分为若干 "<strong>轮</strong>"：每一轮从某个数开始，去了整个序列的前缀或者后缀。</p>
+		<p>比如说，整个过程大概是这样的：</p>
+		<pre>Round #		A	B	C	D	E	F	G	H	I	J	K	L
+      <strong style="color: fuchsia">1</strong>	       [<span style="color: red">A<sub>5</sub></span>	<span style="color: blue">B<sub>4</sub></span>	<span style="color: red">C<sub>3</sub></span>	<span style="color: blue">D<sub>2</sub></span>	<span style="color: red">E<sub>1</sub></span>								]
+      <strong style="color: fuchsia">2</strong>						       [				<span style="color: blue">J<sub>6</sub></span>	<span style="color: red">K<sub>7</sub></span>	<span style="color: blue">L<sub>8</sub></span>	]
+      <strong style="color: fuchsia">3</strong>						       [		<span style="color: red">H<sub>9</sub></span>	<span style="color: blue">I<sub>10</sub></span>	]
+      <strong style="color: fuchsia">4</strong>						       [<span style="color: blue">F<sub>12</sub></span>	<span style="color: red">G<sub>11</sub></span>	]
+</pre>
+		<p>于是，整个操作过程可以看作是一个<strong>前缀/后缀</strong>再加上<strong>子问题</strong>。</p>
+		<p>首先，考虑先手的一个策略：<strong>取两端的数</strong>。这样可以使得游戏在 $1$ <strong>轮</strong>后直接结束，而此时先手可以得到一个 "交错和"，比如 $a_1 + a_3 + a_5 + \cdots$。</p>
+		<p>这引导我们按照 $N$ 的奇偶性分类讨论。</p>
+		<ol>
+			<li><p>$N$ 是偶数。</p>
+			<p>此时，Alice 的两种策略 (从头取/从尾取) 将导致两种不同的结果：具体地，设 $S_o = a_1 + a_3 + a_5 + \cdots, S_e = a_2 + a_4 + a_6 + \cdots, S = a_1 + a_2 + a_3 + \cdots = S_o + S_e$，则 Alice 可以获得 $S_o$ 也可以获得 $S_e$。那她当然会选择 $\max \left\{ S_o, S_e \right\}$ 啦。</p>
+			<p>现在，考虑 Bob。如果 Alice 选择的不是头/尾，那么剩下的两端中数的个数<strong>必定是一奇一偶</strong>。然后 Bob 选剩下<strong>包含偶数个数</strong>的方向，第一<strong>轮</strong>取完后 Bob 反而得到了先手。</p>
+			<p>此时，剩下的那一段 $b_1, b_2, \cdots, b_k$ 有奇数个元素 (即 $2 \nmid k$) 于是，Bob 可以取 $\max \left\{ b_1 + b_3 + \cdots + b_k, b_2 + b_4 + \cdots + b_{k-1} \right\}$，加上原先的位置，可以证明这个值<strong>不小于</strong> $\min \left\{ S_o, S_e \right\}$。</p>
+			<p>从而，Alice 的总分<strong>不大于</strong> $S - \min \left\{ S_o, S_e \right\} = \max \left\{ S_o, S_e \right\}$，达到了一个<strong>平衡</strong>，从而 Alice 的答案就是 $\max \left\{ S_o, S_e \right\}$。</p></li>
+			<li><p>$N$ 是奇数。</p>
+			<p>此时，由于对称性已经消失，我们可以把 $a_1, a_3, a_5, \cdots, a_N$ 这些位置称为<strong>奇位</strong>，$a_2, a_4, \cdots, a_{N-1}$ 称为<strong>偶位</strong>。</p>
+			<p>和上面类似，Alice 还是可以拿到 $\max \left\{ S_o, S_e \right\}$，那有没有更好的方法呢？<del>显然是 (可能) 有的</del>。</p>
+			<p>首先，Alice 第一步肯定不会取 (非端点) <strong>奇位</strong>上的数。否则，剩下的两端中均包含偶数个数。由 1. 中所讲，Bob 可以保证自己取到的数不小于 $S_e$，从而 Alice 还不如直接取 $a_1$ 或 $a_N$。</p>
+			<p>但是，Alice 第一步取<strong>偶位</strong>的情况就不太一样了，如果她取了一个偶位上的数，无论 Bob 取那个方向，这一<strong>轮</strong>结束后，Alice 仍然是下一轮的先手，且下一轮的数的总数仍然是奇数。</p>
+			<p>当然，在某个时刻，Alice 可以放弃这种策略，直接取端点，得到该子段中所有奇位上的数，<del>快速</del>结束游戏。</p>
+			<p>整个格局大致如下表：</p>
+			<pre>Round #		A	B	C	D	E	F	G	H	I	J	K	L	M
+      <strong style="color: fuchsia">1</strong>	       [<span style="color: blue">A<sub>6</sub></span>	<span style="color: red">B<sub>5</sub></span>	<span style="color: blue">C<sub>4</sub></span>	<span style="color: red">D<sub>3</sub></span>	<span style="color: blue">E<sub>2</sub></span>	<span style="color: red">F<sub>1</sub></span>								]
+      <strong style="color: fuchsia">2</strong>							       [					<span style="color: red">L<sub>7</sub></span>	<span style="color: blue">M<sub>8</sub></span>	]
+      <strong style="color: fuchsia">3</strong>							       [<span style="color: blue">G<sub>10</sub></span>	<span style="color: red">H<sub>9</sub></span>				]
+     <strong style="color: fuchsia">&lt;4&gt;</strong>								       [<span style="color: red">I<sub>11</sub></span>	<span style="color: blue">J<sub>12</sub></span>	<span style="color: red">K<sub>13</sub></span>	]
+Accumulated	<span style="color: blue">A<sub>6</sub></span>	<span style="color: red">B<sub>5</sub></span>	<span style="color: blue">C<sub>4</sub></span>	<span style="color: red">D<sub>3</sub></span>	<span style="color: blue">E<sub>2</sub></span>	<span style="color: red">F<sub>1</sub></span>	<span style="color: blue">G<sub>10</sub></span>	<span style="color: red">H<sub>9</sub></span>	<span style="color: red">I<sub>11</sub></span>	<span style="color: blue">J<sub>12</sub></span>	<span style="color: red">K<sub>13</sub></span>	<span style="color: red">L<sub>7</sub></span>	<span style="color: blue">M<sub>8</sub></span>
+</pre>
+			<p>容易发现，除了最后一轮外，前面若干轮全部是 <strong>Alice 取偶位，Bob 取奇位</strong>，而最后一轮是 <strong>Alice 取偶位，Bob 取奇位</strong>。</p>
+			<p>于是我们把最终 Alice 的总分<strong>与 $S_e$ 相比较</strong>，可以发现差是一个连续段，且正负交替。如，上面的例子就是 $Alice - S_e = I - J + K$。更精细地，奇位上的数的系数一定为 $1$，偶位上的数的系数一定为 $-1$。</p>
+			<p>定义序列 $\left\{ b_n \right\}$，满足 $b_n = \begin{cases} a_n &amp; 2 \nmid n \\ - a_n &amp; 2 \mid n \end{cases}$，最后的答案就等于 $S_e$，再加上 $\left\{ b_n \right\}$ 的下标范围为 $\left[ l, r \right]$ 的<strong>区间和</strong>，其中 $l, r$ 均为奇数。</p>
+			<p>但是 Bob 可以阻止 Alice 完成这件事情，因此要达到一个均衡，Alice 需要合适地斟酌。</p>
+			<hr />
+			<p>考虑将 $\left\{ b_n \right\}$ <strong>划分</strong>为若干个段： $\left[ l_1, r_1 \right], \left[ l_2, r_2 \right], \cdots, \left[ l_k, r_k \right]$ ($2 \nmid l_i, 2 \nmid r_i, 1 = l_1 \leq r_1 &lt; l_2 \leq r_2 &lt; \cdots &lt; l_k \leq r_k = n, l_i = r_{i-1} + 2$)。</p>
+			<p>如果存在一个常数 $C$，满足对于 $\forall 1 \leq i \leq k$，均有 $b_{l_i} + b_{l_i + 1} + \cdots + b_{r_1} \geq C$，则我们证明：<strong>Alice 存在使得它的总分 $\geq S_e + C$ 的策略</strong>。</p>
+			<p>具体策略如下：如果当前子段只包含一个区间，Alice 取端点结束游戏即可。</p>
+			<p>否则，任取一个区间分界点 $sp$ (即两个区间中间的<strong>偶数</strong>)，然后不管 Bob 怎么取，Alice 都将得到一个相同的子问题，于是最终一定以前面这种情况 (当前子段只包含一个区间) 结束。</p>
+			<p>因此，我们可以调整 $C$，使得它尽可能大。首先，当划分确定时，可以令 $C = \min \left\{ b_{l_1} + b_{l_1 + 1} + \cdots + b_{r_1}, b_{l_2} + b_{l_2 + 1} + \cdots + b_{r_2}, \cdots, b_{l_k} + b_{l_k + 1} + \cdots + b_{r_k} \right\}$。于是，我们需要合理选择这个<strong>划分</strong>，使得上述表达式尽可能大。</p>
+			<p>我们设这样的最大值为 $C_0$。下证明，<strong>Bob 存在使得 Alice 的总数 $\leq S_e + C_0$ 的策略</strong>。</p>
+			<p>考虑 Alice 的一次选择，比如说为 $sp$ ($2 \mid sp$)，这样可以得到两个子段。</p>
+			<p>我们对两个子段分别求划分所得到的 $C$，设为 $C_l, C_r$，如果 $C_l &gt; C_0 \wedge C_r &gt; C_0$，则完整的序列存在一种 $C$ 值为 $\min \left\{ C_l, C_r \right\} &gt; C_0$ 的方案，与假设矛盾。</p>
+			<p>于是，必有一侧的 $C$ 值 $\leq C_0$，不妨设 $C_l \leq C_0$，于是 Bob 向右取，留下左边的子段，转化为一个相同的子问题。再套上一层数学归纳法，即可完成证明。</p>
+			<hr />
+			<p>因此，现在的问题就是，如何找到这组 "最优划分"？</p>
+			<p>直接寻找划分并不是很容易，因此我们<strong>反其道而行之</strong>，先枚举这个 $C$，然后看看是否存在这样符合要求的划分。然后这个枚举显然可以换成<strong>二分</strong>。</p>
+			<p>判断是否有满足条件 (每一段都 $\geq C$) 的划分，可以使用 DP，用 $f_i$ 表示 $i$ 是否能为某个划分的右端点，转移时只需枚举满足 $f_j = \mathrm{true}$ 的 $j$，判断 $\left[ j + 1 .. i - 1 \right]$ 的区间和是否 $\geq C$ 即可。</p>
+			<p>这样 DP 是 $O \left( N^2 \right)$ 的，不过，我们注意到为 $\mathrm{true}$ 的下标 $j$ 的集合是<strong>偏序递增</strong>的，因此只需维护这个集合中 $\left\{ b_n \right\}$ 前缀和最小者即可。这样单次判定就达到了 $O \left( N \right)$。</p>
+			<p>从而通过二分 + 判定，就能求出所要的最优的 $C_0$ 及对应划分，时间复杂度 $O \left( N \log S_o \right)$。</p></li>
+		</ol>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 300054;
+
+int n, S, So, Se;
+int a[N], s[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+inline bool check(int x) {
+	int i, min = 0;
+	for (i = 2; i &lt; n; i += 2) if (s[i - 1] &gt;= min + x) down(min, s[i]);
+	return s[n] &gt;= min + x;
+}
+
+int main() {
+	int i, ans, L, R, M;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i), S += a[i], s[i] = s[i - 1] + (i &amp; 1 ? (So += a[i], a[i]) : (Se += a[i], -a[i]));
+	ans = (n &amp; 1 ? ({for (L = 0, R = So; L &lt; R; check(M = (L + R + 1) / 2) ? L = M : R = M - 1); Se + L;}) : std::max(So, Se));
+	printf("%d %d\n", ans, S - ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>二分时记得边界，避免死循环。</p>
+		<p><strong>坑2：</strong>注意最后答案的表达式为 $S_e + C_0$ 而不是 $S_o + C_0$ 等。</p>
+	</body>
+</html>

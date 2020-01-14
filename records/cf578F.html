@@ -47,7 +47,11 @@
 		<hr />
 		<p>那么对于有些边给定的情形，其实也不麻烦。我们先将这些边用并查集 (或 dfs/bfs) 缩起来，然后对于新图的两个连通块 $C_1, C_2$，连接一条边权为 $e \left( C_1, C_2 \right)$ 的边，其中 $e \left( C_1, C_2 \right)$ 为一个端点在 $C_1$ 中，一个端点在 $C_2$ 中的边的个数。</p>
 		<p>最后只需要使用 Kirchhoff's Matrix-Tree 定理，就可以统计出生成树的个数了。</p>
-		<p>总时间复杂度 $O \left( n m + K^3 \right)$，其中 $K$ 表示 <code>*</code> 的个数 (不过要注意实际矩阵大小的上界是 $401$，因此$K^3$ 前面相对原来的 Gauss 消元会有 $8$ 倍的常数)。</p>
+		<p>总时间复杂度 $O \left( n m + K^3 \right)$，其中 $K$ 表示 <code>*</code> 的个数 (不过要注意实际矩阵大小的上界是 $401$，因此 $K^3$ 前面相对原来的 Gauss 消元会有 $8$ 倍的常数)。</p>
+		<p><strong style="color: red">(ps: 以下内容为 2020.1.13 更新)</strong></p>
+		<p>事实上，我们需要注意要先判断<strong>题目中给的所有镜子之间是否形成圈</strong>，如果形成了圈，则由前面推理的结论知<strong>此时问题无解</strong>。</p>
+		<p>有没有解倒问题不大，关键是如果形成了圈的话，整个图的<strong>连通块</strong>个数可以达到 $O \left( n m \right)$ 级别。(大家可以想象一下<strong>「只连<span style="color: green">绿色</span>点」</strong>这种构造)，从而导致无法进行 Gauss 消元。而这个判断的具体过程可以使用<em>并查集</em>或其它方法解决。</p>
+		<p>而只有当<strong>判完无圈</strong>后，此时每一条边会使整张图减少一个连通块，从而容易证明最终图的连通块<strong>总数</strong>恰为 $n + m + K + 1$。</p>
 
 		<h3>代码</h3>
 
@@ -67,7 +71,10 @@ pr fe[N2 * 2];
 
 inline int ID(int r, int c) {return r * (C + 1) + c;}
 int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
-inline void Union(int x, int y) {p[ancestor(x)] = ancestor(y);}	
+inline bool Union(int x, int y) {
+	if ((x = ancestor(x)) == (y = ancestor(y))) return true;
+	return p[x] = y, false;
+}
 
 ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
 
@@ -98,8 +105,8 @@ int main() {
 		for (scanf("%s", buf_), j = 0; j &lt; C; ++j)
 			switch (buf_[j]) {
 				case 42: fe[E++] = pr(ID(i, j + 1), ID(i + 1, j)), fe[E++] = pr(ID(i, j), ID(i + 1, j + 1)); break;
-				case 47: Union(ID(i, j + 1), ID(i + 1, j)); break;
-				case 92: Union(ID(i, j), ID(i + 1, j + 1)); break;
+				case 47: if (Union(ID(i, j + 1), ID(i + 1, j))) return putchar(48), putchar(10), 0; break;
+				case 92: if (Union(ID(i, j), ID(i + 1, j + 1))) return putchar(48), putchar(10), 0; break;
 			}
 	for (i = 0; i &lt;= R; ++i)
 		for (j = 0; j &lt;= C; ++j) type[ID(i, j)] = (i ^ j) &amp; 1;
@@ -116,5 +123,6 @@ int main() {
 		<h3>坑</h3>
 		<p><strong>坑1：</strong>注意矩阵大小是 $400$ 左右，数组不要开小了。</p>
 		<p><strong>坑2：</strong>缩点时注意点的类型 (实质是二分图的 $2-$染色)，需要对每种颜色分别统计出生成树个数，再加起来。</p>
+		<p><strong>坑3：</strong>不要忘记判断原图中是否有圈哦！</p>
 	</body>
 </html>

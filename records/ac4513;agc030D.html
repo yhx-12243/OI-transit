@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4513,Grand30D]Inversion Sum</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个长度为 $N$ 的整数序列 $A_1, A_2, \cdots, A_N$。有 $Q$ 个对这个序列的操作 $O_1, O_2, \cdots, O_Q$，其中 $O_i$ 为「交换序列的<strong>第 $X_i$ 项</strong>和<strong>第 $Y_i$ 项</strong>」。</p>
+		<p>现在，你可以选择这些操作的任意一个<strong>子集</strong> $S \subseteq \left\{ O_1, O_2, \cdots, O_Q \right\}$，按顺序完成其中的操作。</p>
+		<p>这样你将会得到 $2^Q$ 个 (有可能相同的) 序列，求这 $2^Q$ 个序列的<strong>逆序数</strong>之和模 $10^9 + 7$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $N, Q$ ($1 \leq N \leq 3000; 0 \leq Q \leq 3000$)，表示序列的长度和操作的个数。</p>
+		<p>接下来 $N$ 行，每行一个非负整数 $A_i$ ($1 \leq i \leq N; 0 \leq A_i \leq 10^9$)，表示序列的第 $i$ 项。</p>
+		<p>最后 $Q$ 行，每行两个正整数 $X_i, Y_i$ ($1 \leq X_i, Y_i \leq n; X_i \neq Y_i$)，描述第 $i$ 个操作。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有 $2^Q$ 个序列的<strong>逆序数</strong>之和模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>考虑逆序数的定义，$\displaystyle N \left( \sigma \right) = \sum_{1 \leq i &lt; j \leq n} \left[ \sigma_i &gt; \sigma_j \right]$，我们尝试分别计算每一项的贡献 —— 于是我们需要将<strong>总和</strong>转化为<strong>期望</strong>，最后再乘 $2^Q$。</p>
+		<p>接着，就可以使用期望的线性性质了，$\displaystyle E \left( N \left( A \right) \right) = \sum_{1 \leq i &lt; j \leq n} p \left( A_i &gt; A_j \right)$，从而转化为计算最终序列中，对于每一对 $i, j$，$A_i &gt; A_j$ 的概率。</p>
+		<p>由于 $N$ 比较小，因此我们考虑在操作的过程中<strong>动态维护 $p \left( A_i &gt; A_j \right)$</strong>，在操作结束后再调出来 (类似 DP/Floyd 的思想，<span style="color: blue">$f_{q, i, j}$ 表示只考虑前 $q$ 次操作，$A_i &gt; A_j$ 的<strong>概率</strong></span>)。</p>
+		<p>现在考虑第 $q$ 次操作 —— 交换 $A_X, A_Y$。显然的是，若 $\left\{ i, j \right\} \cap \left\{ X, Y \right\} = \varnothing$，则 $p \left( A_i &gt; A_j \right)$ <strong>不改变</strong> (即 $p \left( A'_i &gt; A'_j \right) = p \left( A_i &gt; A_j \right)$)。</p>
+		<p>对于 $p \left( A'_X &gt; A'_Y \right)$，由于「交换 $A_X, A_Y$」这个操作可以看作是 "<strong>以 $\dfrac 12$ 概率</strong>" 进行的，因此在最终操作的序列中，$A_X$ 在左边还是 $A_Y$ 在左边，概率各占 $\dfrac 12$，<del class="text-muted">于是 $p \left( A'_X &gt; A'_Y \right) = \dfrac 12$ 啦！</del></p>
+		<p>醒醒，<strong>$A_X$ 和 $A_Y$ 是可能相等的</strong>！因此，我们还要除掉它们相等的概率！那这个概率是多少呢，其实不用维护，就是<em>原先的</em> $1 - p \left( A_X &gt; A_Y \right) - p \left( A_Y &gt; A_X \right)$。因此，正确的转移方程应该是 $$ p \left( A'_X &gt; A'_Y \right) = p \left( A'_Y &gt; A'_X \right) = \frac 12 \left( p \left( A_X &gt; A_Y \right) + p \left( A_Y &gt; A_X \right) \right) $$</p>
+		<p>接下来考虑 $p \left( A'_X &gt; A'_i \right)$ ($i \notin \left\{ X, Y \right\}$)，由于 $A'_X$ <strong>有 $\dfrac 12$ 的概率为 $A_X$，有 $\dfrac 12$ 的概率为 $A_Y$</strong>，从而熟练的同学很快就能推出转移方程了：$$ p \left( A'_X &gt; A'_i \right) = \frac 12 \left( p \left( A_X &gt; A_i \right) + p \left( A_Y &gt; A_i \right) \right) $$</p>
+		<p>对于 $p \left( A'_Y &gt; A'_i \right), p \left( A'_i &gt; A'_X \right), p \left( A'_i &gt; A'_Y \right)$，情况都是类似的，就留给读者思考了。</p>
+		<p>综上，对于新增的一个操作 $\left( X, Y \right)$，能引起 $p \left( A'_i &gt; A'_j \right)$ 变化的 $\left( i, j \right)$ 对需要满足 $\left\{ i, j \right\} \cap \left\{ X, Y \right\} \neq \varnothing$，从而只有 $O \left( N \right)$ 对；此外，我们可以在 $O \left( 1 \right)$ 时间内得到新的值，从而时间复杂度自然就是 $O \left( N^2 \right)$ 啦。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 3054, mod = 1000000007, iv2 = (mod + 1) / 2;
+
+int n, q;
+int a[N], f[N][N];
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+inline int half(int x) {return x = (x &gt;&gt; 1) + (-(x &amp; 1) &amp; (iv2 - mod)), x + (x &gt;&gt; 31 &amp; mod);}
+
+int main() {
+	int i, j, u, v; ll I = 0;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	for (i = 1; i &lt;= n; ++i)
+		for (j = 1; j &lt;= n; ++j)
+			f[i][j] = a[i] &gt; a[j];
+	for (i = 0; i &lt; q; ++i) {
+		scanf("%d%d", &amp;u, &amp;v), f[u][v] = f[v][u] = half(f[u][v] + f[v][u]);
+		for (j = 1; j &lt;= n; ++j) if (j != u &amp;&amp; j != v)
+			f[u][j] = f[v][j] = half(f[u][j] + f[v][j]),
+			f[j][u] = f[j][v] = half(f[j][u] + f[j][v]);
+	}
+	for (i = 1; i &lt;= n; ++i) I += std::accumulate(f[i] + i, f[i] + (n + 1), 0ll);
+	printf("%d\n", (int)PowerMod(2, q, I % mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意时间复杂度及常数，不要瞎多出一个 $O \left( \log N \right)$ 或 $O \left( N \right)$。</p>
+		<p><strong>坑2：</strong>题目中没有说明 $A_i$ 互不相同，因此分析时尤其要注意多个 $A_i$ 相同的情形，不要想当然。</p>
+	</body>
+</html>

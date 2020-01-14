@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder3957,Grand23F]01 on Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $N$ 个顶点的有根树，顶点标号为 $1 \sim N$，其中 $1$ 为树根，顶点 $i$ 的父节点为 $P_i$。</p>
+		<p>每个顶点上有一个为 $0$ 或 $1$ 的整数，第 $i$ 个顶点上的数为 $V_i$。</p>
+		<p>你需要找到顶点的一个排列，需要保证，对于 $\forall 1 \leq u, v \leq N; u \neq v$，如果 $u$ 是 $v$ 的祖先，则在排列中 $u$ 应该出现在 $v$ 的左边。</p>
+		<p>定义序列 $X$，使得 $X_i$ 为排列中第 $i$ 个元素所对应的顶点上的数。你需要求出在所有满足条件的排列中，$X$ 的<strong>逆序数</strong>的最小值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 2 \times 10^5$)，表示树的点数。</p>
+		<p>第二行包含 $N - 1$ 个正整数 $P_2, P_3, \cdots, P_N$ ($1 \leq P_i &lt; i$)，表示每个顶点的父节点。</p>
+		<p>第三行包含 $N$ 个非负整数 $V_1, V_2, \cdots, V_N$ ($V_i \in \left\{ 0, 1 \right\}$)，依次表示每个顶点上的数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $X$ 的逆序数的最小值。</p>
+
+		<h3>题解</h3>
+		<p>我们先来考虑只有一层的情况：即除了根节点外，其余点都是根的直接子节点。</p>
+		<p>当然，在这种情况下，一个点代表了一棵子树，子树内部的逆序数假装已经算完了，于是这个点可以看成 "有 $s_0$ 个 $0$ 和 $s_1$ 个 $1$ 的集合"。</p>
+		<p>又根节点的位置是固定的 (只能在最前面)，因此就相当于这样一个问题 —— 有若干个集合，每个集合中有 $s_0$ 个 $0$ 和 $s_1$ 个 $1$，不同集合中的数可以不一样。</p>
+		<p>你现在需要找到这些集合的一个排列，使得它的 "逆序数" 最小。这里的逆序数的定义为，对于两个集合 $A, B$，分别有 $a_0, b_0$ 个 $0$ 和 $a_1, b_1$ 个 $1$，如果 $A$ 在 $B$ 前面，则这对集合产生 $a_1 b_0$ 个逆序对。</p>
+		<p>和 <a href="../index.html?redirect=819" target="_blank">[Codeforces639E]Bear and Paradox</a> 类似，考虑交换相邻两个集合，所产生的逆序数的<strong>变化量</strong>。</p>
+		<p>由逆序数的定义，如果这两个集合都不是 $A, B$，则逆序数不变；如果两个集合包含 $A, B$ 中的一个，则它们的相对位置也不改变；否则，假设从 $\left[ \cdots, A, B, \cdots \right]$ 变为了 $\left[ \cdots, B, A, \cdots \right]$，则逆序数的变化量 $\Delta N = b_1 a_0 - a_1 b_0 = b_0 b_1 \cdot \left( \dfrac {a_0} {a_1} - \dfrac {b_0} {b_1} \right)$。</p>
+		<p>所以，$\Delta N &gt; 0 \Leftrightarrow \dfrac {a_0} {a_1} &gt; \dfrac {b_0} {b_1}$。</p>
+		<p>类似分析可知，<strong>最优策略就是将 $\dfrac {S_0} {S_1}$ 单调递增</strong>依次连接所得到的序列。</p>
+		<hr />
+		<p>那如何转移到树上呢？</p>
+		<p>像 <a href="../index.html?redirect=651" target="_blank">[WMTC2018]三角形</a> 一样，对于链上贪心存在<strong>全序关系</strong>的，转移到树上的主要思路都是相同的 —— 用堆来进行合并，从而找到树上的全序。</p>
+		<p>每次，考虑 $\dfrac {S_0} {S_1}$ <strong>最小</strong>的一个 "块" ("块" 的定义和那道题类似) $v$，将其<strong>紧接</strong>到 $p_v$ 后面。这样的策略一定是最优的。</p>
+		<p>否则，假设最终最优策略下 $p_v$ 后面不是 $v$，那么设 $p_v$ 和 $v$ 中间还存在 $u_1, u_2, \cdots, u_k$，那么将 $v$ <strong>向左移动</strong>，一直移动到 $p_v$ 和 $u_1$ 中间。</p>
+		<p>首先这样移动后这个排列仍然是合法的，其次，由于 $v$ 的 "标准序" (沿用那题的说法，其实就是 $\dfrac {S_0} {S_1}$) 是最小的，因此每移动一次，答案都至少不变劣，从而就可以让 $v$ <strong>紧跟在 $p_v$ 后面</strong>。</p>
+		<p>从而，这两部分就形成了一个整体，<del>再也无法分割了</del>，我们顺便可以处理出这一部分对答案 (总逆序数) 的贡献 —— $S_1 \left( p_v \right) \cdot S_0 \left( v \right)$。</p>
+		<p>具体实现的时候可以使用堆/平衡树来维护 $\dfrac {S_0} {S_1}$ 最小的点 (因为合并后 $\dfrac {S_0 \left( p_v \right)} {S_1 \left( p_v \right)}$ 单调不增，因此可以使用堆来维护)，只要每次合并后删除原节点 $v$ 并更新父节点 $p_v$ (堆的删除可以使用惰性删除)。</p>
+		<p>对于合并的连通块，和那道题一样，可以使用并查集来维护。</p>
+		<p>当所有 $N - 1$ 次合并完成后，每次合并的贡献总和就是最终的答案 —— 即最终逆序对的最小值，这一点由贪心的过程可知是正确的。</p>
+		<p>总时间复杂度 $O \left( N \log N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 200054;
+
+struct node {
+	int _0, _1, id;
+	node (int _0_ = 0, int _1_ = 0, int id_ = 0) : _0(_0_), _1(_1_), id(id_) {}
+	inline node &amp; operator += (const node &amp;B) {return _0 += B._0, _1 += B._1, *this;}
+	inline bool operator &lt; (const node &amp;B) const {return (ll)_0 * B._1 &lt; (ll)_1 * B._0 || ((ll)_0 * B._1 == (ll)_1 * B._0 &amp;&amp; id &gt; B.id);}
+	inline bool operator == (const node &amp;B) const {return _0 == B._0 &amp;&amp; _1 == B._1;}
+} v[N];
+
+int n;
+int p[N], dsu[N];
+ll ans = 0;
+std::priority_queue &lt;node&gt; pq;
+
+int ancestor(int x) {return dsu[x] == x ? x : (dsu[x] = ancestor(dsu[x]));}
+
+inline void Union(int x, int px) {ans += (ll)v[px]._1 * v[x]._0, v[px] += v[x], px == 1 || (pq.push(v[px]), 0), dsu[x] = px;}
+
+int main() {
+	int i, x; node t;
+	scanf("%d", &amp;n);
+	for (i = 2; i &lt;= n; ++i) scanf("%d", p + i);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", &amp;x), v[i] = node(!x, x, i);
+	for (i = 2; i &lt;= n; ++i) pq.emplace(v[i]);
+	for (std::iota(dsu, dsu + (n + 1), 0); !pq.empty(); )
+		if (t = pq.top(), pq.pop(), t == v[i = t.id]) Union(i, ancestor(p[i]));
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在结构体比较的时候还是不要忘记比较第二关键字 ($\dfrac {S_0} {S_1}$ 相同时比较 <samp>id</samp>) 哦！</p>
+		<p><strong>坑2：</strong>根节点是不能再向上合并的，因此注意不要把它加到堆中。</p>
+	</body>
+</html>

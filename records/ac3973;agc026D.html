@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder3973,Grand26D]Histogram Coloring</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张 $N$ 列的 "直方图" (即无限行 $N$ 列的方格表，满足每列中最下面的若干个小方格被标记)，用 $\left( i, j \right)$ 表示左数第 $i$ 列<strong>下数</strong>第 $j$ 行的小方格。</p>
+		<p>现在，这个直方图的第 $i$ 列的高度为 $h_i$。你现在需要将每个被标记的小方格染上<span style="color: red">红</span><span style="color: blue">蓝</span>两色之一，满足：</p>
+		<p>对于整个方格表的任意一个 $2 \times 2$ 的子矩形，若其中四个小方格均被标记，则它们的颜色应<strong>恰好是两个<span style="color: red">红色</span>，两个<span style="color: blue">蓝色</span></strong>。</p>
+		<p>求一共有多少种满足条件的染色方案。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 100$)，表示方格表 (直方图) 的列数。</p>
+		<p>第二行包含 $N$ 个正整数 $h_1, h_2, \cdots, h_N$ ($1 \leq h_i \leq 10^9$)，依次表示方格表 (直方图) 中每一列的高度。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的染色方案数模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>观察直方图的形态，很容易想到使用<strong>分治</strong>的方法去计算。</p>
+		<p>具体地，我们设 $h = \min \left\{ h_1, h_2, \cdots, h_N \right\}$，然后整个直方图可以看成底下一个 $h \times N$ 的 "<strong>地基</strong>" 和若干个分离的 "<strong>子直方图</strong>"。</p>
+		<p>然后，我们就可以递归处理这些子直方图的贡献。</p>
+		<p>当然，这里递归的终点就是 $h_1 = h_2 = \cdots = h_N$，此时只有地基而没有子直方图。</p>
+		<p>我们考虑此时的答案，即一个矩形的答案：</p>
+		<p>首先，我们有 $2^N$ 种方法确定第一行。对于第一行的方案，分为两种情况：</p>
+		<ol>
+			<li><p>第一行中，存在相邻两个方格颜色相同。</p>
+			<p>不妨设它们是 $\left( i, j \right)$ 和 $\left( i, j + 1 \right)$。于是，由条件可知，下一行的 $\left( i + 1, j \right), \left( i + 1, j + 1 \right)$ 颜色也应该相同，且与上面的两个格子<strong>反色</strong>。</p>
+			<p>这两个格子确定后，两边的格子就可以依次推得，从而得到：<strong>下一行的颜色只能是这一行的 "反色"</strong>，且第 $j$ 列和第 $j + 1$ 列的颜色仍然相同。</p>
+			<p>这样一直 "继承" 下去，可知下面的填充方法是<strong>唯一确定</strong>的。</p></li>
+			<li><p>第一行中，任意相邻两个方格不同色。此时，这样的填法一定是 $2$ 种：<code><span style="color: red">R</span><span style="color: blue">B</span><span style="color: red">R</span><span style="color: blue">B</span>...</code> 和 <code><span style="color: blue">B</span><span style="color: red">R</span><span style="color: blue">B</span><span style="color: red">R</span>...</code>。</p>
+			<p>此时，下面的每一行都可以是 <code><span style="color: red">R</span><span style="color: blue">B</span><span style="color: red">R</span><span style="color: blue">B</span>...</code> 或者 <code><span style="color: blue">B</span><span style="color: red">R</span><span style="color: blue">B</span><span style="color: red">R</span>...</code>，从而这样可以得到 $2^h$ 种不同填法。</p></li>
+		</ol>
+		<p>综上，对于 $h \times N$ 的 "地基"，填法一共有 $2^N + 2^h - 2$ 种。</p>
+		<hr />
+		<p>接下来考虑上面有子直方图的情形。通过刚才的分析，我们可以发现：第一行中<strong>是否有相邻方格同色</strong>是一个至关重要的信息：它可以决定后面的 "指数" 是 $2$ 还是 $1$ <span style="color: red">(即下面的每一行独立的有 $2$ 种填法还是只有唯一填法)</span>。</p>
+		<p>于是，我们在分治计算子直方图的时候，最终统计两个信息 $\left( f_C, f_A \right)$：$f_C$ 表示染色方案的<strong>总数</strong>，而 $f_A$ 表示满足<strong>最下面一行</strong>中，任意相邻两个方格不同色的方案数。<span class="text-muted">容易发现 $f_C$ 和 $f_A$ 都是偶数</span>。</p>
+		<p>接下来就可以正式开始分治的<em>汇总</em>过程了，约定上面继承下来的值分别为 $\color {fuchsia} {\left( u_C, u_A \right), \left( v_C, v_A \right), \cdots}$。</p>
+		<p>先考虑计算 $f_A$：最下面一行中，任意相邻两个方格不同色的方案数。</p>
+		<p>对于这个条件，首先需要满足，地基中<strong>第一行</strong>两个方格就不同色，从而上面继承下来的这些子直方图，都得满足这个性质。</p>
+		<p>因此上面这些子直方图一共有 $u_A \cdot v_A \cdot \cdots$ 种选择，从而 $\color {fuchsia} {f_A = 2^h \cdot u_A \cdot v_A \cdot \cdots}$。</p>
+		<p>接下来考虑计算 $f_C$。这个稍微复杂一些。</p>
+		<p>为了更有条理的分析，我们先计算<strong>地基最上面一行中，存在相邻两个方格同色</strong>的方案数 $R_0$。对于每一种这样的方案，下面的染色方法是唯一的，于是最终 $f_C = R_0 + 2 f_A$。这样，我们就把问题转化为了<strong>只有一行</strong>的情形了。</p>
+		<p>设上面的某个子直方图的列标范围是 $\left[ l, r \right]$，先考虑它所压住的 $r - l + 1$ 个小方格该如何填充。</p>
+		<p>首先，对于 $u_A - u_C$ 种方案 (存在相邻同色)，下面只有一种填法，而对于 $u_C$ 种方案 (任意相邻不同色)，下面都有两种填法。</p>
+		<p>于是，这 $r - l + 1$ 个小方格共有 $\left( u_A - u_C \right) + 2 u_C = \color {teal} {u_A + u_C}$ 种填法。</p>
+		<p>接下来考虑剩下的那些满足 $h_i = h$ 的 "<strong>裸露</strong>" 方格，它们在第一行的填法显然是任意的，于是最后再乘上 $2^W$ ($W$ 表示 "<strong>裸露</strong>" 小方格数量)。</p>
+		<p>最后，再减去 $2 u_A \cdot v_A \cdots$ 种任意相邻方格不同色的方案，就得到了：$$ \color {fuchsia} {f_C = 2^W \left( u_A + u_C \right) \left( v_A + v_C \right) \cdots - 2 u_A \cdot v_A \cdot \cdots + f_A} $$</p>
+		<p>最终整个直方图的 $f_C$ 也就是我们所要求的答案，如果暴力分治实现，不难分析知时间复杂度就是 $O \left( N^2 \right)$ 的，<del>如果实现的更精细一点 (比如使用 Cartesian 树)，那么可以优化到 $O \left( N \right)$，不过这里没必要</del>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int mod = 1000000007;
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void sub(int &amp;x, const int y) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+pr solve(const vector &amp;h) {
+	int i, j = -1, n = h.size(), x, y = 0, P1 = 1, P2 = 1, C1, C2, W = n;
+	vector S; x = *std::min_element(h.begin(), h.end());
+	for (i = 0; i &lt;= n; ++i)
+		if (i == n || h[i] == x) {
+			if (j + 1 == i) ++j;
+			else if (j + 2 == i) ++j, P1 = PowerMod(2, h[j] - x, P1), P2 = PowerMod(2, h[j] - x, P2), ++j;
+			else {
+				W -= i - j - 1, S.clear(), S.reserve(i - j - 1);
+				for (++y; ++j &lt; i; S.EB(h[j] - x));
+				std::tie(C1, C2) = solve(S), P1 = (ll)P1 * (C1 + C2) % mod, P2 = (ll)P2 * C2 % mod;
+			}
+		}
+	C2 = PowerMod(2, x, P2), C1 = PowerMod(2, W, P1), sub(C1, P2), sub(C1, P2);
+	return add(C1, C2), pr(C1, C2);
+}
+
+int main() {
+	int i, n, x; vector h;
+	scanf("%d", &amp;n), h.reserve(n);
+	for (i = 0; i &lt; n; ++i) scanf("%d", &amp;x), h.EB(x);
+	printf("%d\n", solve(h).first);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>如果实现的比较好的话，可以发现很多讨论其实都是没必要的，比如说最后只剩下一个矩形，没有子直方图的时候，最终的公式仍然是使用的 (空乘积为 $1$)。</p>
+		<p><strong>坑2：</strong>在递归子直方图的时候，不要把最左边和最右边 "靠墙" 的子直方图给漏掉了。</p>
+	</body>
+</html>

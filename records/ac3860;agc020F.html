@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder3860,Grand20F]Arcs on a Circle</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个周长为 $C$ 的圆周，和 $N$ 段 (半径与圆相同的) 圆弧，第 $i$ 段圆弧的长度为 $L_i$。</p>
+		<p>现在，每段弧的位置在圆周上<strong>均匀分布</strong>：具体地，在圆周上等概率随机一个点，作为弧 $L_i$ 的终点。</p>
+		<p>不同的弧的位置是互相独立的，即它们有相应的概率相交。求有多大的概率，使得这 $N$ 段圆弧的<strong>并</strong>覆盖整个圆周？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $N, C$ ($2 \leq N \leq 6; 2 \leq C \leq 50$)，分别表示圆弧的段数和圆的周长。</p>
+		<p>第二行包含 $N$ 个正整数 $L_1, L_2, \cdots, L_N$ ($1 \leq L_i &lt; C$)，表示各段圆弧的长度。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示 $N$ 段圆弧的<strong>并</strong>覆盖整个圆周的概率。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-11}$。</p>
+
+		<h3>题解</h3>
+		<p>环上的问题并不是特别容易处理 (总感觉没头没尾的)，因此我们首先需要固定一个点作为<strong>起点</strong>。</p>
+		<p>那是哪个点呢？容易想到，<strong>一条弧的端点</strong>是一个比较好的选择，因为这样一条弧覆盖的就是整条链的<strong>前缀</strong>。</p>
+		<p>考虑除了弧 $i$ 外剩下的弧，它们需要覆盖 $\left[ L_i, N \right)$ 这段区间。不过，有可能存在一些弧<strong>包含了 $i$</strong>，从而它们覆盖了一个前缀和一个后缀。Hmm... 这看起来就有点棘手了。</p>
+		<p>不过没关系，我们可以通过指定 <strong>$i$ 是最长的弧</strong> (即 $L_i = \max \left\{ L_1, L_2, \cdots, L_N \right\}$)，来避免这种情况的发生。</p>
+		<p>那接下来整个问题就转化为了一个<strong>连续型</strong>的<strong>线段覆盖</strong>问题了，又该如何处理呢？</p>
+		<p>如果整个问题是<strong>离散的</strong>，那么容易通过 DP 来解决，那现在是连续的。因此关键的一步是，如何化<em>连续</em>为<em>离散</em>呢？</p>
+		<p>我们设弧 $i$ 的起点为 $P_i$，终点为 $P_i + L_i$。由于 $L_i \in \mathbb Z$，因此我们考虑将 $P_i$ 拆成 $\left[ P_i \right] + \left\{ P_i \right\}$，然后 $\left[ P_i \right]$ 就是一个 $\left[ 0, N \right)$ 上等概率分布的整型 (离散型) 随机变量，而 $\left\{ P_i \right\}$ 是一个在 $\left[ 0, 1 \right)$ 上均匀分布的实随机变量。</p>
+		<p>考察整个问题，整个圆弧能否被覆盖，更进一步地，某两条弧是否相交，可以发现，只和它们 $\left[ P_i \right]$ 的值以及 "<strong>$\left\{ P_i \right\}$ 的大小关系</strong>" 有关。</p>
+		<p style="color: red">(ps: 不妨设 $P_i \leq P_j$，于是 $i$ 与 $j$ 相交等价于 $\left[ P_i \right] + \left\{ P_i \right\} + L_i \leq P_j + \left\{ P_j \right\}$)。若 $\left[ P_i \right] + L_i \neq \left[ P_j \right]$，则小数部分不影响不等号。若 $\left[ P_i \right] + L_i = \left[ P_j \right]$，则 $\left[ P_i \right] + \left\{ P_i \right\} + L_i \leq P_j + \left\{ P_j \right\} \Leftrightarrow \left\{ P_i \right\} \leq \left\{ P_j \right\}$。</p>
+		<p>由于 $\left\{ P_i \right\}$ 是独立同分布随机变量，因此它们的大小关系就是<strong>均匀分布</strong>的，由随机变量的连续性知，可以不妨假设 $\left\{ P_i \right\}$ 两两不同，这不影响最终结果。</p>
+		<p>我们只需要对每种可能的 $\left\{ P_i \right\}$ 的大小关系，求出对应的答案 (概率)，然后最后再除以 $\left( N - 1 \right) !$ 就可以了。</p>
+		<hr />
+		<p>接下来考虑对于一种特定的大小关系，如何计算概率。</p>
+		<p>由于整个问题只和 $\left\{ P_i \right\}$ 相对大小有关，因此可以不妨假设这 $N - 1$ 个 $\left\{ P_i \right\}$ 构成的集合恰为 $\left\{ \dfrac 1N, \dfrac 2N, \cdots, \dfrac {n - 1} N \right\}$。</p>
+		<p>于是，每个 $P_i$ 的分布就变得离散了：$0 + \dfrac iN, 1 + \dfrac iN, 2 + \dfrac iN, \cdots, \left( C - 1 \right) + \dfrac iN$。</p>
+		<p>变得离散后，我们就可以考虑计算<strong>方案数</strong>了：每段弧有 $C$ 种选择方案，一共有多少种选择方案，使得它们覆盖整个圆周？</p>
+		<p>嗯，经典的状态压缩 DP。设 $f_{S, r}$ 表示用 $S$ 中的弧，最远覆盖到 $r$ (即 $\left[ 0, r \right]$ 被完全覆盖，$r$ 为右端点) 的方案数，边界是 $f_{0, L_N} = 1$ (不妨设 $L_N = \max \left\{ L_1, L_2, \cdots, L_N \right\}$，<strong>注意最长的弧是预先放置好的</strong>)。</p>
+		<p>至于转移，枚举每个位置 ($\dfrac 1N$ 的倍数)，找到这个位置所能插入的弧 $i$，对于 $i \notin S$，我们考虑将 $i$ 插入 $S$。同时，$r$ 需要在当前的起点后面，设这个弧能覆盖的右端点为 $to = \min \left\{ P_i + L_i, C \right\}$，于是转移就是 $$ \large f_{S \cup \left\{ i \right\}, \max \left\{ r, to \right\}} \gets_+ f_{S, r} $$</p>
+		<p>最后调取 $f_{U, C}$ ($U$ 为全集) 即为总方案数，乘上 $\dfrac 1 {C^{N-1}}$ 即得概率。</p>
+		<p>这部分 DP 的时间复杂度，即状态数 ($O \left( 2^{N-1} N C \right)$) 乘上转移 ($O \left( N C \right)$)，等于 $O \left( 2^{N-1} N^2 C^2 \right)$。</p>
+		<hr />
+		<p>最后算上外层的枚举大小关系 ($\left( N - 1 \right) !$)，总时间复杂度 $O \left( \left( N - 1 \right) ! \cdot 2^{N-1} \cdot N^2 C^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 10;
+
+int n, L, ALL;
+int a[N];
+int f[32][324];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+long double solve() {
+	int i, j, k, c, to, len = n * L + L;
+	memset(f, 0, sizeof f), f[0][(n + 1) * a[n]] = 1;
+	for (i = 1; i &lt; len; ++i) if (i % (n + 1)) {
+		c = i % (n + 1) - 1, to = min(i + (n + 1) * a[c], len);
+		for (j = 0; j &lt;= ALL; ++j) if (!(j &gt;&gt; c &amp; 1))
+			for (k = i; k &lt;= len; ++k)
+				f[j | 1 &lt;&lt; c][max(k, to)] += f[j][k];
+	}
+	return f[ALL][i];
+}
+
+int main() {
+	int i, cc = 0; long double ans = 0.;
+	scanf("%d%d", &amp;n, &amp;L), ALL = ~(-1 &lt;&lt; --n);
+	for (i = 0; i &lt;= n; ++i) scanf("%d", a + i);
+	std::sort(a, a + (n + 1));
+	do ans += solve(), ++cc; while (std::next_permutation(a, a + n));
+	printf("%.12Lg\n", ans / (cc * powl(L, n)));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在 <code>std::next_permutation</code> 的时候，由于 $L_i$ 可能相同，因此可能枚举的并不满 $\left( N - 1 \right) !$ 个排列，此时需要直接除以<strong>枚举的排列总数</strong>，由<em>状态等价性</em>知这样直接计算是正确的。</p>
+		<p><strong>坑2：</strong>DP 时可以将所有坐标都扩大 $N$ 倍 (从而变成容易处理的整数)，同时不要忘记在计算 $to$ 的时候要对 $C$ (右边界) 取 $\min$。</p>
+	</body>
+</html>

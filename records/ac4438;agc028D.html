@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4438,Grand28D]Chords</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在圆周上均匀分布着 $2 N$ 个点，从某个点开始按照逆时针顺序依次标号为 $1, 2, \cdots, 2 N$。</p>
+		<p>现在需要将这些点两两配对，配成 $N$ 个无序对。对于每一个无序对 $\left( A, B \right)$，在圆中作一条连接 $A, B$ 的<strong>弦</strong>。</p>
+		<p>对于一种配对方式，我们定义它的<strong>连通性</strong>为这 $N$ 条弦构成的连通块 <strong>(等价类)</strong> 数，两条弦属于一个连通块 (等价类) 当且仅当它们相交，或存在另一条弦与它们都连通。</p>
+		<p>现在已经有 $2 K$ 个点完成了配对，这 $K$ 对点分别为 $A_i, B_i$ ($1 \leq i \leq K$)。</p>
+		<p>求剩下 $2 N - 2 K$ 个点所构成的 $\left( 2 N - 2 K - 1 \right) !!$ 种配对方式的<strong>连通性</strong>之和。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $N, K$ ($1 \leq N \leq 300; 0 \leq K \leq N$)，分别表示总对数和已经完成配对的对数。</p>
+		<p>接下来 $K$ 行，每行两个正整数 $A_i, B_i$ ($1 \leq A_i, B_i \leq 2 N$)，描述一个已经完成配对的无序对。</p>
+		<p>保证 $A_1, A_2, \cdots, A_K, B_1, B_2, \cdots, B_K$ 互不相同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有 $\left( 2 N - 2 K - 1 \right) !!$ 种配对方式的<strong>连通性</strong>之和模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>首先，你应该发现，这个圆就是个幌子！我们将这 $2 N$ 个点慢慢靠近，愈靠愈近，最后它们<strong>几乎</strong>就形成了一个直线，而答案不变。</p>
+		<p>于是我们就将这个问题转化为了 "线性的" 问题：</p>
+		<blockquote>数轴上依次排列着 $2 N$ 个点，对于一种配对方式，我们把每个对 $\left( A, B \right)$ 看作<strong>闭区间 $\left[ A, B \right]$</strong>，而<strong>连通性</strong>则被定义为这些区间杂交构成的连通块个数 (两个区间相交不算一个连通块)，形式化地，这些区间在 <em>"相交" 关系</em>下构成的<strong>等价类</strong>个数。</blockquote>
+		<p>考虑一个等价类 $S$，由整数的性质知它一定存在最小元 $l = \min S$ 和最大元 $r = \max S$。容易验证 $l \not\equiv r \pmod 2$。</p>
+		<p>我们交换一下求和次序 <del class="text-muted">(利用期望的线性性)</del>，转而计算对于每一对 $l \leq r$ ($l \not\equiv r \pmod 2$)，有<strong>多少种配对方式</strong>满足存在一个等价类 $S$，使得 $\min S = l \wedge \max S = r$。我们把这个值记作 $f_{l, r}$。</p>
+		<hr />
+		<p>首先，先不考虑比 $l$ 小的部分和比 $r$ 大的部分，它们对于这个问题来说是独立的。</p>
+		<p>对于 $\left[ l, r \right]$ 之间的部分，设 $\left[ l, r \right]$ 中尚未配对元素为 $u$。若 $2 \nmid u$，则答案显然是 $0$ (因为至少有一个元素要向外配对)。</p>
+		<p>否则，考虑使用减法原理：先不考虑任何限制，让它们之间自由配对，方案数是 $\left( u - 1 \right) !!$。</p>
+		<p>当然，有一大堆方案是不合法的，我们需要将它去除。那怎样才能做到不重不漏的去除呢？</p>
+		<p>我们去寻找这些不合法方案的共同特征：考察 $l$ 所在的等价类 $T$，可以发现 $\min T = l$，但 $l &lt; \max T &lt; r$。</p>
+		<p><del>多年区间 DP 的经验告诉我们</del>：我们需要枚举这个 $\max T$。直觉是没错的，就是枚举 $m = \max T$。</p>
+		<p>和上面一样的奇偶分析可知，$l + 1 \equiv m \equiv r \pmod 2$，然后这个 $T$ 的配对方案数比较简单：因为它是原问题的一个<strong>规模更小的子问题</strong>：$\color {fuchsia} {f_{l, m}}$。</p>
+		<p>然后，对于后面的元素，就让它们<strong>自由配对</strong>，只要不跨越 $\left[ m + 1, r \right]$ 就可以了，于是方案数为 $\left[ 2 \mid u' \right] \cdot \left( u' - 1 \right) !!$，其中 $u'$ 为 $\left[ m + 1, r \right]$ 中尚未配对的元素个数。</p>
+		<p>为了方便，对于 $l &lt; r \wedge l \not\equiv r \pmod 2$，用 $u_{l, r}$ 表示区间 $\left[ l, r \right]$ 中尚未配对的元素个数，则转移方程很简单，就是 $$ f_{l, r} = \left[ 2 \mid u \left( l, r \right) \right] \cdot \left( u \left( l, r \right) - 1 \right) !! - \sum_{l &lt; m &lt; r; m \equiv r \pmod 2} f_{l, m} \cdot \left[ 2 \mid u \left( m + 1, r \right) \right] \cdot \left( u \left( m + 1, r \right) - 1 \right) !! $$ (看似很复杂，其实主要都是 $\left[ 2 \mid x \right] \cdot \left( x - 1 \right) !!$ 这种简单的东西，只是公式写起来比较麻烦)</p>
+		<p>最后考虑它对答案的贡献 —— 其实这已经不难了，只需要让 "比 $l$ 小的部分" 和 "比 $r$ 大的部分" 自由配对就可以了，相当于还是乘上一个<strong>双阶乘</strong>。</p>
+		<p>时间复杂度就是标准的区间 DP 的复杂度，$O \left( N^3 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 648, mod = 1000000007;
+
+int n;
+int a[N], s[N];
+int dfact[N], min[N][N], max[N][N], f[N][N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int sum(int l, int r) {return s[r] - s[l - 1];}
+
+int main() {
+	int i, j, k, u, v, ans = 0;
+	scanf("%d%d", &amp;n, &amp;k), n *= 2;
+	for (*dfact = i = 1; i &lt; n; i += 2) dfact[i + 1] = dfact[i] = (ll)dfact[i - 1] * i % mod;
+	for (; k; --k) scanf("%d%d", &amp;u, &amp;v), a[u] = v, a[v] = u;
+	for (i = 1; i &lt;= n; ++i) {
+		s[i] = s[i - 1] + !a[i], min[i][i - 1] = INT_MAX, max[i][i - 1] = INT_MIN;
+		for (j = i; j &lt;= n; ++j) {
+			min[i][j] = min[i][j - 1], max[i][j] = max[i][j - 1];
+			if (a[j]) down(min[i][j], a[j]), up(max[i][j], a[j]);
+		}
+	}
+	for (i = 1; i &lt;= n; ++i)
+		for (j = i + 1; j &lt;= n; j += 2) {
+			if ((u = sum(i, j)) &amp; 1 || min[i][j] &lt; i || max[i][j] &gt; j) continue;
+			int &amp;ret = f[i][j]; ret = dfact[u];
+			for (k = i + 2; k &lt; j; k += 2) if (!(sum(k, j) &amp; 1))
+				ret = (ret - (ll)f[i][k - 1] * dfact[sum(k, j)]) % mod;
+			ans = (ans + (ll)ret * dfact[s[n] - u]) % mod;
+		}
+	printf("%d\n", ans + (ans &gt;&gt; 31 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>DP 时记得判一些先验条件：比如说，$f_{l, r}$ 要是可行，则首先在已知的 $K$ 个无序对中，内部的元素不能和外部的匹配。</p>
+		<p><strong>坑2：</strong>注意各个数组及循环要到 $2 N$ 而不是 $N$。</p>
+	</body>
+</html>

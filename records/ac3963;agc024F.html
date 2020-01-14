@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder3963,Grand24F]Simple Subsequence Problem</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个由 $\texttt 0/\texttt 1$ 串构成的集合 $S$，以及一个整数 $K$。</p>
+		<p>你需要找到最长的 $\texttt 0/\texttt 1$ 串 $s$，使得 $s$ 中<strong>至少 $K$ 个不同 $\texttt 0/\texttt 1$ 串的子序列</strong>，如果有多个满足条件的最长的 $s$，输出字典序最小者。</p>
+		<p style="color: red">(ps: $A$ 是 $B$ 的子序列当且仅当可以从 $B$ 中删去零个或多个字符得到)</p>
+		<p>集合 $S$ 由如下方式给出：</p>
+		<ul>
+			<li><p>首先，给定一个正整数 $N$ 与 $N + 1$ 个 $\texttt 0/\texttt 1$ 串 $X_0, X_1, \cdots, X_N$，保证 $\left| X_i \right| = 2^i$。</p></li>
+			<li><p>其次，对于 $\forall \left( i, j \right)$ (其中 $0 \leq i \leq N; 0 \leq j &lt; 2^i$)，「$j$ 的 $i$ 位二进制展开式」在 $S$ 中，当且仅当 $X_i$ 的第 $j + 1$ 个字符为 $\texttt 1$。</p>
+			<p style="color: red">(ps: $j$ 的 $n$ 位二进制展开式的定义：在 $j$ 的二进制表示前面补前导 $0$，直到长度达到 $n$ 所得的串。特别地，定义 $0$ 的二进制表示为空串)</p></li>
+			<li><p>$S$ 中不包含任何长度超过 $N$ 的串。</p>
+		</ul>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $N, K$ ($0 \leq N \leq 20; 1 \leq K \leq \left| S \right|$)，表示 $\texttt 0/\texttt 1$ 串的长度上限和要求的子序列重数。</p>
+		<p>接下来 $N + 1$ 行，每行包含一个 $\texttt 0/\texttt 1$ 串 $X_i$ ($0 \leq i \leq N; \left| X_i \right| = 2^i$)，意义如题目描述所述。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个 $\texttt 0/\texttt 1$ 串，表示最长的满足条件的 $\texttt 0/\texttt 1$ 串，如果有多个，输出字典序最小者。</p>
+		<p style="color: red">(ps: 在题目的条件下，一定存在满足条件的 $\texttt 0/\texttt 1$ 串，比如<strong>空串</strong>。特别地，如果<strong>只有空串</strong>满足条件，则什么也不输出)</p>
+
+		<h3>题解</h3>
+		<p>首先来思考一下，对于一个模板串 $p$ 和文本串 $t$，如何有效地判定 $p$ 是否是 $t$ 的子序列。</p>
+		<p>一个比较好的方法是，<span class="text-muted">建立 $t$ 的序列自动机</span> (对于每个位置 $i$ 和字符集中的每个字符 $\sigma$，记录出 $t \left[ i .. n \right]$ 中第一次出现 $\sigma$ 的位置)，然后将 $p$ 在这个类似自动机的结构上跑就可以了，如果跑出来没有超出范围，说明 $p$ 是 $t$ 的子序列。</p>
+		<p>那么，对于这道计数题来说，整体思路已经明显了 —— 在这个自动机上去 DP。</p>
+		<p>具体的，用状态 $f_{s, t}$ 表示当前已经匹配了 $s$，剩下的后缀 (即前文中的 $t \left[ i .. n \right]$) 是 $t$ 的方案数。</p>
+		<p>初始状态下什么也没有匹配，因此只需要对每个 $t \in S$ 令 $f_{\epsilon, t} = 1$ 即可。</p>
+		<p>而在最终状态下，$f_{s, \epsilon}$ 就表示了 $s$ 是多少串的子序列了。这是因为，如果 $s$ 是 $t$ 的子序列，那么存在唯一的方案从状态 $\left( \epsilon, t \right)$ 转移到状态 $\left( s, \epsilon \right)$；如果 $s$ 不是 $t$ 的子序列，那么这样的方案不存在。</p>
+		<p>于是最终只需要确定一个转移顺序，不难发现转移构成的图自然就是 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，于是直接做就好了。</p>
+		<p>具体实现的时候，用 <code>f[x][i]</code> 表示 $s = x \left[ 1 .. i \right], t = x \left[ i + 1 .. \left| x \right| \right]$ 的状态，于是空间复杂度为 $O \left( 2^N \cdot N \right)$。</p>
+		<p>不过，有一种小技巧可以让空间降到 $O \left( 2^N \right)$：</p>
+		<p>由于字符集大小为 $2$，因此对于当前的 $t$，"序列自动机" 的两个转移中，其中必有一条是直接消去一个字符的，我们把这种情形称为 "小步"，消去多个字符的称为 "大步"。比如：$\left( \texttt{110}, \texttt{00011001} \right) \to \left( \texttt{1100}, \texttt{0011001} \right)$ 就是一个 "小步"，而 $\left( \texttt{110}, \texttt{00011001} \right) \to \left( \texttt{1101}, \texttt{1001} \right)$ 就是一个 "大步"。</p>
+		<p>于是考虑 $t \to \epsilon$ 的过程中，一定是若干个 "小步" 后接一个 "大步"。如果我们把这些 "小步" 看成一个整体处理出来，即将 "小小……小大" 看成一次整体转移，即枚举走了多少个小步，这样的转移就只有 "大步" 了。</p>
+		<p>于是只需要按照 $s$ 的偏序枚举字符串，空间复杂度就降到了 $O \left( 2^N \right)$ (具体详见代码)。</p>
+		<hr />
+		<p>在这些字符串的操作中，由于主要是对 $\texttt 0/\texttt 1$ 串进行处理，因此<del>必要的时候</del>可以使用位运算技巧来加速。</p>
+		<p>又如，在序列自动机中，经常需要用到寻找一个串的最低位的 $1$ 操作，可以使用预先打表或使用 <code>__builtin_ctz</code> 函数，来避免多出来的 $O \left( N \right)$。</p>
+		<p>最终时间复杂度 $O \left( 2^N \cdot N \right)$，空间复杂度 $O \left( 2^N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ctz __builtin_ctz
+
+const int N = 27, N2 = 2097154;
+
+int n, K;
+int f[N2];
+char s[N2];
+
+inline int next0(int v) {return v &amp; (v + 1) ? ctz(~v) : -1;}
+inline int next1(int v) {return v &amp; (v - 1) ? ctz(v) : -1;}
+int (*const next[2])(int) = {next0, next1};
+
+int main() {
+	int i, j, S, ALL, lo, hi;
+	scanf("%d%d", &amp;n, &amp;K), ALL = ~(-2 &lt;&lt; n);
+	for (i = 0; i &lt;= n; ++i)
+		for (scanf("%s", s + (j = 1 &lt;&lt; i)); j &lt; 2 &lt;&lt; i; ++j) f[j] = s[j] &amp; 1;
+	for (i = 0; i &lt; n; ++i)
+		for (S = 2 &lt;&lt; i; S &lt;= ALL; ++S) {
+			lo = S &amp; ~(-1 &lt;&lt; i), hi = S &gt;&gt; i, f[1 &lt;&lt; i | lo] += f[S];
+			if (~(j = next[~hi &amp; 1](hi))) f[hi &gt;&gt; j &lt;&lt; i | lo] += f[S];
+		}
+	for (i = n; i; --i)
+		for (j = 0; j &lt; 1 &lt;&lt; i; ++j)
+			if (f[1 &lt;&lt; i | j] &gt;= K) {for (; i; putchar((j &gt;&gt; --i &amp; 1) | 48)); return putchar(10), 0;}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>最后输出的时候不要忘记带上前导 $0$。</p>
+		<p><strong>坑2：</strong>在使用 <code>__builtin_ctz</code> 的时候注意一下自变量为 $0$ 的情况。</p>
+	</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4515,Grand30F]Permutation and Minimum</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一个长度为 $2 N$ 的排列 $A_1, A_2, \cdots, A_{2 N}$，定义长度为 $N$ 的序列 $\left\{ B_n \right\}_{1 \leq n \leq N}$ 满足 $B_i = \min \left\{ A_{2 i - 1}, A_{2 i} \right\}$，称为 $A$ 的 <em>"$B$ 序列"</em>。</p>
+		<p>现在，给定一个长度为 $2 N$ 的<strong>残缺的</strong>排列 (<em>残缺</em>指的是有 $k$ 个位置未知)，你需要求出对于这 $k !$ 种补充完整的排列，能对应到<strong>多少种不同的</strong> <em>"$B$ 序列"</em>。两个序列 $P, Q$ 不同，当且仅当存在一个下标 $i$，使得 $P_i \neq Q_i$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 300$)，表示排列的大小。</p>
+		<p>第二行包含 $2 N$ 个整数 $\tilde A_1, \tilde A_2, \cdots, \tilde A_n$ ($\tilde A_i \in \left\{ -1 \right\} \cup \left[ 1, 2 N \right]$)，表示这个残缺的排列。保证 $\left\{ \tilde A_n \right\}$ 所有正元素互不相同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示不同的 <em>"$B$ 序列"</em> 的数量模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>如果 $\min \left\{ \tilde A_{2 i - 1}, \tilde A_{2 i} \right\} \neq -1$，则 $B_i$ 是确定的，可以忽略它的影响。</p>
+		<p>因此下面不妨假设对 $\forall 1 \leq i \leq N$，均有 $\min \left\{ \tilde A_{2 i - 1}, \tilde A_{2 i} \right\} = -1$。</p>
+		<p>不难发现，对于<strong>给定的 $\tilde A$</strong>，$B$ 序列只和它们之间的<strong>配对方式</strong>有关。也就是说，你把 $\tilde A$ 中相邻两个元素看作一个 (固定的) 整体，那么，整个排列 $\tilde A$ 随便怎么换，对答案都不影响。</p>
+		<p>于是问题就转化为了：有 $N$ 个槽，每个槽中可以装两个元素，有若干个槽是空着的，若干个槽中已经添加了元素。我们把这两种槽分别叫做 <strong>0-槽</strong>和 <strong>1-槽</strong>。</p>
+		<p>现在你需要将剩下的元素加到槽中，询问每个槽的较小者构成的序列一共有多少种不同的情形。</p>
+		<hr />
+		<p>由于答案和这些 $A_i$ 的大小关系有关，因此根据<a href="../index.html?redirect=814" target="_blank">这道题</a>的经验，依次考虑<strong>值域中的数</strong>。</p>
+		<p>首先尝试从小到大考虑，发现这不太方便，因为后填的那个数是较大的数，无法直接决定贡献是多少。</p>
+		<p>于是开始从大到小考虑，相比之下更容易一点：因为在填完一个数时它的贡献就是它本身。</p>
+		<p>这样就可以 DP 了。大概类似<a href="../index.html?redirect=347" target="_blank">这种括号序列 DP</a> 的思路，用 $f_{i, c_0, c_1}$ 表示当前填到 $i$，有 $c_0$ 个 0-槽已经填了一个数 (即需要等待下一个数)，$c_1$ 个 1-槽已经填了一个数 (即原先那个数，现在还没动，需要等待下一个数) 的方案数。</p>
+		<p>首先，由经验 $i$ 这一维可以被滚动掉。于是下面就把一层的旧状态和新状态记作 $f_{c_0, c_1}$ 和 $f'_{c_0, c_1}$。</p>
+		<p>考虑 $i$ 是否在 $\tilde A$ 中出现，分为两种情况：</p>
+		<ol>
+			<li><p>$i$ 在 $\tilde A$ 中出现。换句话说，$i$ 在某个 1-槽中。</p>
+			<p>那么，它有如下两种方式：</p>
+			<ul>
+				<li><p>这个 1-槽中剩下的一个数比 $i$ 小。</p>
+				<p>于是，就会<strong>多出来</strong>一个「已经填了一个数的 1-槽」，于是 $\color {fuchsia} {f'_{c_0, c_1 + 1}} \gets_+ f_{c_0, c_1}$。</p></li>
+				<li><p>这个 1-槽中剩下的一个数比 $i$ 大。</p>
+				<p>因此，我们在考虑与它配对的数中，它会落入一个 0-槽。这就是说，我们可以消除一个 0-槽，从而转移到 $\color {fuchsia} {f'_{c_0 - 1, c_1}}$。</p></li>
+			</ul></li>
+			<li><p>$i$ 不在 $\tilde A$ 中出现。换句话说，$i$ 是 0-槽的元素。</p>
+			<p>那么，它会有三种方式；</p>
+			<ul>
+				<li><p>它会新开一个 0-槽，并加入它。</p>
+				<p>此时，「已经填了一个数的 1-槽」会多出来一个，从而会转移到 $\color {fuchsia} {f'_{c_0 + 1, c_1}}$。</p></li>
+				<li><p>它会找到一个已经有一个元素的槽，并与之匹配。如果它匹配的是 1-槽：</p>
+				<p>那么它将有 $c_1$ 种方式找到一个待匹配的 1-槽，于是转移为 $\color {fuchsia} {f'_{c_0, c_1 - 1}} \gets_+ c_1 \cdot f_{c_0, c_1}$。</p>
+				</li>
+				<li><p>它匹配了另一个 0-槽。</p>
+				<p>和 1. 中情况类似，转移为 $\color {fuchsia} {f'_{c_0 - 1, c_1}} \gets_+ f_{c_0, c_1}$。</p></li>
+			</ul></li>
+		</ol>
+		<p style="color: red">(ps: 这里并不需要考虑 0-槽的顺序，因为所有的 0-槽对序列来说是<strong>等价的</strong> (上面已经提到过)，因此我们只关心 0-槽的<strong>数量</strong>而不是<strong>具体位置</strong>，最后再乘上 $n_0 !$ 即可 [其中 $n_0$ 表示 0-槽的总数量])</p>
+		<p>最后答案自然就是 $n_0 ! \cdot f_{0, 0}$ 了。由于 DP 的每一维状态数是 $O \left( N \right)$ 的，因此时间复杂度为 $O \left( N^3 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 324, mod = 1000000007;
+
+int n;
+int tag[N * 2];
+int dp_[2][N][N], (*cur)[N] = *dp_, (*nxt)[N] = dp_[1];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+int main() {
+	int i, c, u, v, unk = 0, ans;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i)
+		scanf("%d%d", &amp;u, &amp;v), ~u &amp;&amp; ~v ? tag[u] = tag[v] = -1 : ~(u &amp; v) ? tag[u &amp; v] = 1 : ++unk;
+	**nxt = 1;
+	for (i = n * 2; i; --i) if (~tag[i]) {
+		std::swap(cur, nxt), memset(nxt, 0, sizeof *dp_);
+		for (u = 0; u &lt;= n; ++u)
+			for (v = 0; v &lt;= n; ++v) if (c = cur[u][v]) {
+				add(tag[i] ? nxt[u][v + 1] : nxt[u + 1][v], c);
+				if (u) add(nxt[u - 1][v], c);
+				if (!tag[i] &amp;&amp; v) add(nxt[u][v - 1], (ll)c * v % mod);
+			}
+	}
+	for (ans = **nxt; unk; --unk) ans = (ll)ans * unk % mod;
+	printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>具体实现的时候可以只转移有效状态 (比如 <a href="../index.html?redirect=544" target="_blank">[WC2017]挑战</a> 的任务三)，从而减小常数。</p>
+		<p><strong>坑2：</strong>转移时不要忘记判断 $u &gt; 0$ (或 $v &gt; 0$)，防止数组越界。</p>
+	</body>
+</html>

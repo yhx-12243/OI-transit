@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4504,Grand29E]Wandering TKHS</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个 $N$ 个顶点的树 $T$，你需要对于每个点 $v$ ($v \neq 1$) 求出：</p>
+		<blockquote><p>如果你现在在点 $v$ <del>迷路了</del>，你需要回到顶点 $1$，但你并不知道该怎么走。</p>
+		<p>你现在会选择一个<strong>你当前尚未访问的，但与<em>你访问过的某个点</em>相邻的点</strong>中，<strong>编号最小</strong>的点，并访问它。</p>
+		<p>求当回到顶点 $1$ 时，一共经过了多少条<strong>不同的</strong>边。</p></blockquote>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 2 \times 10^5$)，表示树的点数。</p>
+		<p>接下来 $N - 1$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq N; a_i \neq b_i$)，描述一条树边。保证这 $N - 1$ 条边恰好构成一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $N - 1$ 个整数，第 $i - 1$ ($2 \leq i \leq N$) 个整数表示当 $v = i$ 时的答案 (经过的不同边数)。</p>
+
+		<h3>题解</h3>
+		<p>首先，容易发现你经过的点构成树上的一个连通块 (广义的 "子树")，因此边数等于点数减 $1$，从而我们只需要求出经过的点数。</p>
+		<p>把顶点 $1$ 作为原树的根，从而转化为一棵有根树。</p>
+		<p>于是，从一个点 $v$ 想要走到 $1$，必然要经过路径 $v \leadsto 1$ 上的所有顶点，设 $S_v$ 表示从 $v$ 出发直到走到 $1$，经过的点的集合。</p>
+		<p>根据走路方式可知，对于任意一个顶点 $v$ ($v \neq 1$)，$S_{p_v} \subseteq S_v$。也就是说，如果从 $v$ 的父节点出发要经过 $u$，那么从 $v$ 出发也必定要经过 $u$。</p>
+		<p>于是，我们转而考虑求 $S_v \setminus S_{p_v}$，分析它的性质。</p>
+		<hr />
+		<p>设 $M_v$ 表示路径 $v \leadsto 1$ 上标号最大的顶点 (的标号)。一个顶点 $v$ 被称为<strong>极大点</strong>当且仅当 $M_v = v$。</p>
+		<p>首先，如果 $p_v$ 是<em>极大点</em>，而它本身不是<em>极大点</em>，那么考虑 $v$ 子树中，所有 $M_u = p_v$ 的顶点 $u$ (它一定是一个连通块)，它都会被访问到。</p>
+		<p>将这些点访问完毕后，才会开始访问 $p_v$，然后剩下的部分就转化为了 $v$ 自己是极大点的情况了。</p>
+		<p>更一般地，对于<strong>非极大点</strong> $v$，由定义知，路径 $v \leadsto 1$ 上遇到的第一个极大点就是 $M_v$。</p>
+		<p>于是，考虑 $M_v$ 在 $v$ 方向上的子树，对于这棵子树，它内部所有满足 $M_u = M_v$ 的顶点 $u$ (当然也包含 $v$) 都会被访问到。</p>
+		<p>然后类似地，将这些点访问完毕后，就会开始访问 $M_v$ 了，接下来就转化为 $v$ 是极大点的情形了。</p>
+		<p>综上分析可知，<strong style="color: green">若 $v$ 和 $p_v$ 都不是极大点，则 $S_v = S_{p_v}$</strong>。</p>
+		<hr />
+		<p>接下来考虑 $v$ 本身是极大点的情形。</p>
+		<p>这个分析比较孤(jian)立(dan)，容易发现，由于 $v$ 是路径 $v \leadsto 1$ 上<strong>最大的</strong>点，因此 $p_v$ 在游走时不会包含<strong>以 $v$ 为根的子树中的任一顶点</strong>。</p>
+		<p>而此时我们在 $v$，相当于 "开拓了一片新天地"，因此，我们在整体分析的时候需要考虑 $v$ 子树内部的点了。</p>
+		<p>设 $p_v \leadsto 1$ 上遇到的第一个极大点是 $M_{p_v}$。于是，$v$ 子树中<strong>所有 $&lt; M_{p_v}$ 的顶点都会被访问到</strong>，它一定会在访问 $M_{p_v}$ 之前访问，不然就无法访问顶点 $M_{p_v}$ 喽。</p>
+		<p>于是，对于一个<strong>极大点</strong> $v$，我们记集合 $B_v = \left\{ u \mid u \in subtree \left( v \right) \wedge \max \left\{ u, p_u, p_{p_u}, \cdots, \$ \right\} &lt; M_{p_v} \right\}$ ($\$$ 表示 $v$ 在 $u$ 方向上的子节点，上面的结论就表示<strong style="color: green">若 $v$ 为极大点，则 $S_v = S_{p_v} \cup B_v$</strong> (显然 $B_v$ 是一个连通块，且 $S_{p_v} \cap B_v = \varnothing$)。</p>
+		<hr />
+		<p>还剩下最后一种情形：$v$ 不是极大点，但 $p_v$ 是极大点。</p>
+		<p>由第一段的分析可知，$v$ 子树中所有 $M_u = p_v$ 的顶点 $u$ 都会被访问到。</p>
+		<p>于是定义集合 $A_v = \left\{ u \mid u \in subtree \left( v \right) \wedge M_u = v \right\}$，容易证明<strong>对于极大点 $v$</strong>，有 $B_v \subseteq A_v$。</p>
+		<p>一旦访问到 $p_v$ 后，剩下的事情就和 $v$ 为极大点 (第二段) 一样了，对于其它子树，访问的就是 $B$ 中的元素。</p>
+		<p>综上，<strong style="color: green">若 $v$ 不是极大点，$p_v$ 是极大点，则 $S_v = S_{p_v} \cup \left( A_{p_v} \cap subtree \left( v \right) \right)$</strong>。</p>
+		<p>然而这次两个集合的并就是<strong>不交并</strong>了，直接相加就会挂掉，该怎么计算呢？</p>
+		<p>不过注意到 $B_{p_v} \subseteq A_{p_v}$，从而由交的单调性知，$B_{p_v} \cap subtree \left( v \right) \subseteq A_{p_v} \cap subtree \left( v \right)$，于是 $\left( \overline{B_{p_v} \cap subtree \left( v \right)} \right) \cup \left( A_{p_v} \cap subtree \left( v \right) \right) = U$，从而 \begin{align*}
+&amp; S_{p_v} \cup \left( A_{p_v} \cap subtree \left( v \right) \right) \\
+=&amp; \left( S_{p_v} \cup \left( A_{p_v} \cap subtree \left( v \right) \right) \right) \cap \left( \left( \overline{B_{p_v} \cap subtree \left( v \right)} \right) \cup \left( A_{p_v} \cap subtree \left( v \right) \right) \right) \\
+=&amp; \left( S_{p_v} \cap \left( \overline{B_{p_v} \cap subtree \left( v \right)} \right) \right) \cup \left( A_{p_v} \cap subtree \left( v \right) \right) \\
+=&amp; \left( S_{p_v} \setminus \left( B_{p_v} \cap subtree \left( v \right) \right) \right) \cup \left( A_{p_v} \cap subtree \left( v \right) \right) \\
+\end{align*}</p>
+		<p>而 $S_{p_v} \setminus \left( B_{p_v} \cap subtree \left( v \right) \right) = S_{p_v} \setminus subtree \left( v \right)$，从而它和 $A_{p_v} \cap subtree \left( v \right)$ <strong>不相交</strong>，于是可以直接相加。</p>
+		<p>又 $B_{p_v} \cap subtree \left( v \right) \subseteq S_{p_v}$，因此计算 $S_{p_v} \setminus \left( B_{p_v} \cap subtree \left( v \right) \right)$ 时可以直接相减。</p>
+		<hr />
+		<p>综上，我们只需要计算出对于每个<strong>极大点</strong> $v$，$B_v$ 的大小，以及它的每个子节点 $s$，$A_v \cap subtree \left( s \right)$ 和 $B_v \cap subtree \left( s \right)$ 的大小。</p>
+		<p>而这是容易的，直接 dfs 1 ~ 2 遍就可以了，<del>深度优先搜索入门练习题</del>。</p>
+		<p>总时间复杂度 $O \left( N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 200054, M = N * 2;
+
+int n, E = 0;
+int to[M], first[N], next[M];
+int p[N], S1[N], S2[N];
+int pmax[N], f[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y, z = pmax[x]; S1[x] = S2[x] = 1;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x]) {
+			p[y] = x, up(pmax[y], z), dfs(y);
+			if (y &lt; z) S1[x] += S1[y];
+			if (y &lt; pmax[p[z]]) S2[x] += S2[y];
+		}
+	if (x != z &amp;&amp; x &gt;= pmax[p[z]]) S2[x] = 0;
+}
+
+void solve(int x) {
+	int i, y;
+	if (pmax[x] == x) f[x] += S2[x];
+	else if (pmax[ p[x] ] == p[x]) f[x] += S1[x] - S2[x];
+	for (i = first[x]; i; i = next[i])
+		if (p[y = to[i]] == x) f[y] = f[x], solve(y);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	std::iota(pmax, pmax + (n + 1), 0), dfs(1);
+	S2[1] = 0, solve(1);
+	for (i = 2; i &lt;= n; ++i) printf("%d%c", f[i], i == n ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>最终答案不要忘记减 $1$，以及对根节点对应的集合的处理 (可以直接令 $S_1 = \left\{ 1 \right\}$)</p>
+		<p><del><strong>坑2：</strong>不要看错题目，题目说的是与<strong>你访问过的某个点</strong>相邻的点中……，而不是<strong>当前点</strong>相邻的点中……。</del></p>
+	</body>
+</html>

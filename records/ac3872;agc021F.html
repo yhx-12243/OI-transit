@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder3872,Grand21F]Trinity</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张 $N \times M$ 的方格表，第 $i$ 行第 $j$ 列的格子记为 $\left( i, j \right)$ ($1 \leq i \leq N; 1 \leq j \leq M$)。现在需要将这些方格中的<strong>一部分</strong>染成黑色 (可以一格都不染黑)，其余格子都染成白色。</p>
+		<p>接下来我们将定义三个长度分别为 $N, M, M$ 的序列 $A, B, C$：</p>
+		<ul>
+			<li><p>$A_i$ ($1 \leq i \leq N$) 为<strong>最小</strong>的 $j$，满足 $\left( i, j \right)$ 是黑色，如果这样的 $j$ 不存在，则 $A_i = M + 1$；</p></li>
+			<li><p>$B_j$ ($1 \leq j \leq M$) 为<strong>最小</strong>的 $i$，满足 $\left( i, j \right)$ 是黑色，如果这样的 $i$ 不存在，则 $B_j = N + 1$；</p></li>
+			<li><p>$C_j$ ($1 \leq j \leq M$) 为<strong>最大</strong>的 $i$，满足 $\left( i, j \right)$ 是黑色，如果这样的 $i$ 不存在，则 $C_j = 0$。</p></li>
+		</ul>
+		<p>你需要求出，有多少种不同的<strong>有序三元组</strong> $\left( A, B, C \right)$。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $N, M$ ($N \leq 8000; M \leq 200$)，表示方格表的行数和列数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示不同的有序三元组的数量数模 $998244353$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>由于每一列有最小行标和最大行标，因此按照行从上往下处理并不方便；相反，每一行<strong>只有最小列标<em>没有</em>最大列标</strong>，于是这提示我们<strong>按列从左往右</strong>处理会相对方便一些。</p>
+		<p>我们考虑从左往右，<em>逐列 DP</em>：</p>
+		<p>用 $f_{c, r}$ 表示当前考虑<strong>共 $c$ 列</strong>，有 $r$ 个<strong>非空行</strong>，对应有序三元组 $\left( A, B, C \right)$ 的数量。</p>
+		<p>边界比较显然：$f_{0, 0} = 1$。</p>
+		<p>先考虑知道 DP 值后如何计算答案：我们枚举有 $r$ 个<strong>非空行</strong>，从而共有 $\dbinom Nr$ 种选择方案，对应每种确定的方案共有 $f_{M, r}$ 种不同的三元组。由基本计数原理可知，答案就等于 $$ \sum_{r=0}^N \binom Nr \cdot f_{M, r} $$</p>
+		<p>接下来考虑如何转移。我们考虑从右边插入新列，考虑非空行个数的变化：</p>
+		<ol>
+			<li><p>非空行个数没有增加。</p>
+			<p>此时，这一列能对三元组产生贡献的只有<strong>该列最上面 (行标最小) 的格子</strong>以及<strong>最下面 (行标最大) 的格子</strong>。</p>
+			<p>于是相当于从 $r$ 个格子中选取<strong>不超过 $2$ 个</strong>，共 $1 + r + \dbinom r2 = \dfrac {r^2 + r + 2} 2$ 种方案，从而转移方程为 $$ f_{c + 1, r} \gets_+ f_{c, r} \cdot \dfrac {r^2 + r + 2} 2 $$</p></li>
+			<li><p>非空行个数增加了 $\Delta r$。</p>
+			<p>由于我们添加了非空行，因此这些行的<strong>最小列标</strong>恰等于 $c + 1$，同时，第 $c + 1$ 列的<strong>最小行标</strong>和<strong>最大行标</strong>也必须存在。</p>
+			<p>从而，我们根据第 $c + 1$ 的最小行标和最大行标，将问题再分为三种子情况：</p>
+			<ul>
+				<li><p>最小行标和最大行标都来自新插入的行 (后简称 "<strong>新行</strong>")。</p>
+				<p>此时，我们只需要将 $r + \Delta r$ 个行拆分成 $r$ 个已经存在的行 (后简称 "<strong>旧行</strong>") 和 $\Delta r$ 个 "新行"，因此方案共有 $\dbinom {r + \Delta r} r$ 种。</p></li>
+				<li><p>最小行标来自 "新行"，最大行标来自 "旧行"。</p>
+				<p>我们把所有 $\Delta r$ 个行和拥有最大行标的 "旧行" 放在一起，得到 $\Delta r + 1$ 个行。</p>
+				<p>由最大列标的性质知，那个 "旧行" 是这 $\Delta r + 1$ 个行中行标最大的一个，进一步，任何一个 $r + \Delta r$ 行的 $\Delta r + 1$ 元子集都可唯一确定 $\Delta r$ 个 "新行" 和一个表示最大行标的 "旧行"。</p>
+				<p>因此方案数还是一个二项式系数，$\dbinom {r + \Delta r} {r - 1}$。</p>
+				<li><p>最小行标来自 "旧行"，最大行标来自 "新行"。</p>
+				<p>这种情况和上面那种 (Case #2) 类似，方案数也是 $\dbinom {r + \Delta r} {r - 1}$。</p></li>
+				<li><p>最小行标和最大行标都来自 "旧行"。</p>
+				<p>通过和上面类似的分析，可以得到最终的方案数为 $\dbinom {r + \Delta r} {r - 2}$。</p></li>
+			</ul>
+			<p>综上，经过一些<del>简单的</del>组合数推导，最终总方案数就等于 $$ \binom {r + \Delta r} r + 2 \binom {r + \Delta r} {r - 1} + \binom {r + \Delta r} {r - 2} = \binom {r + \Delta r + 2} r $$</p>
+			<p style="color: red">(ps: 当然，这个式子也可以通过一些奇特的组合意义直接得到，具体方法可以见官方题解等)</p>
+			<p>于是转移方程就是 $$ f_{c + 1, r + \Delta r} \gets_+ f_{c, r} \cdot \binom {r + \Delta r + 2} r $$</p></li>
+		</ol>
+		<p>综合一下上述两种情形，可知 $$ f_{c + 1, r} = f_{c, r} \cdot \dfrac {r^2 + r + 2} 2 + \sum_{i=0}^{r-1} f_{c, i} \cdot \binom {r + 2} i \tag 1 \label 1 $$</p>
+		<p>暴力转移 (一层) 是 $O \left( N^2 \right)$ 的，总时间复杂度 $O \left( N^2 M \right)$，这貌似有点慢。</p>
+		<p>不过我们观察这个转移的形式 ($\eqref 1$ 式)，不难发现它<del class="text-muted">和二项式变换很像</del>是一个卷积形式！</p>
+		<p>具体地，我们将右边的二项式系数展开，即得到 $$ f_{c + 1, r} = f_{c, r} \cdot \dfrac {r^2 + r + 2} 2 + \sum_{i=0}^{r-1} f_{c, i} \cdot \frac {\left( r + 2 \right) !} {i ! \left( r + 2 - i \right) !} = f_{c, r} \cdot \dfrac {r^2 + r + 2} 2 + \left( r + 2 \right) ! \cdot \sum_{i=0}^{r-1} \frac {f_{c, \color {fuchsia} i}} {\color {fuchsia} i !} \cdot \frac 1 {\left( \color {blue} {\left( r - 1 \right) - i} + 3 \right) !} $$</p>
+		<p>它确实是两个序列的卷积！因此我们可以使用 NTT 优化上述过程。</p>
+		<p>最终时间复杂度 $O \left( N M \log N \right)$，可以通过此题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+
+typedef long long ll;
+const int N = 16400, mod = 998244353, root = 31;
+typedef int vec[N], *pvec;
+
+vec fact, finv;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (*fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	--i, finv[i] = PowerMod(fact[i], mod - 2);
+	for (; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		DNTT(a, c), DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c), std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+}
+
+int R, C;
+vec f, g, h;
+vec tr, tr_ntt;
+
+int main() {
+	int i, j, ans = 0; ll iv; init();
+	scanf("%d%d", &amp;R, &amp;C), *f = 1;
+	if (R == 1) return printf("%d\n", (int)PowerMod(2, C)), 0;
+	for (i = 0; i &lt; R; ++i) tr[i] = finv[i + 3];
+	Poly::NTT_init(lg2(R - 1) + 2), iv = mod - (mod - 1) / Poly::n;
+	Poly::DNTT(tr, tr_ntt);
+	for (j = 0; j &lt; C; ++j) {
+		Poly::DNTT(f, g);
+		for (i = 0; i &lt; Poly::n; ++i) g[i] = g[i] * (ll)tr_ntt[i] % mod;
+		Poly::DNTT(g, h), std::reverse(h + 1, h + Poly::n);
+		for (i = 0; i &lt; R; ++i) h[i] = h[i] * iv % mod;
+		for (i = 1; i &lt;= R; ++i)
+			f[i] = ((i * (i + 1ll) + 2ll) / 2 * f[i] + (i + 1ll) * (i + 2ll) * h[i - 1]) % mod;
+	}
+	for (i = 0; i &lt;= R; ++i) ans = (ans + (ll)f[i] * finv[R - i]) % mod;
+	printf("%d\n", int((ll)ans * fact[R] % mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在卷积过程中可以发现其中一个序列是固定的，因此可以预先存储它的 NTT 值，不过要注意阶乘的逆是有偏移量的 ($\dfrac 1 {\left( i + 3 \right) !}$)。</p>
+		<p><strong>坑2：</strong>在实现的过程中可以存储 $\dfrac {f_{c, r}} {r !}$，从而减小常数。</p>
+	</body>
+</html>

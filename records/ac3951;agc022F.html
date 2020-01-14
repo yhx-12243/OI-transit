@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder3951,Grand22F]Checkers</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>令 $X = 10^{100}$，现有 $N$ 个整数 $X, X^2, X^3, \cdots, X^{N-1}, X^N$。</p>
+		<p>每一秒，你可以进行如下操作：</p>
+		<ul>
+			<li>取其中的两个不同的数 $A, B$ (有序)，删去 $A$ 和 $B$，插入 $2 B - A$。</li>
+		</ul>
+		<p>经过 $N - 1$ 次操作后，只会剩下一个数 $V$，你需要回答，$V$ 能取到多少个不同的值。</p>
+		<p class="text-muted">可以证明，在题目所给的条件下，任何时刻不会出现两个相同的数。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $N$ ($N \leq 50$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $V$ 能取到的不同的值的种数模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>由于 $X$ 太大了，因此可以把每个点的坐标看成一个 $N$ 次多项式，或者说 $N$ 维向量。</p>
+		<p>只需要求最终有多少种不同的多项式/向量。</p>
+		<p>首先，对于一次操作 $A, B$，我们将 $A$ 设为 $B$ 的父节点 (看成一个 <strong style="color: green">"跳跃"</strong> 的过程)，这样可以得到一棵 $N$ 个顶点的树，其中最终存在的点就是根节点。</p>
+		<p>这样以来有一个好处：设根节点的深度为 $0$，则每个深度为 $d$ 的点 $i$ 在最终向量中的贡献 (最终向量中第 $i$ 维的值) 一定是 $\pm 2^d$。</p>
+		<p>那剩下的问题就是正负号了：怎么确定正负号呢？</p>
+		<p>首先，直接确定那显然是比较麻烦的，我们考虑<strong>间接确定每一项的符号</strong>。</p>
+		<p>比如说，对于点 $i$，它的子节点为 $c_1, c_2, \cdots, c_k$，我们知道了点 $i$ 的符号 ($+$/$-$)，观察这 $k$ 个子节点的符号与 $i$ 的关系。</p>
+		<p>首先，一旦当某个子节点 $c_i$ 与 $i$ 进行 "跳跃" (连上边) 后，它们俩就<del>同生共死</del><ins style="color: fuchsia">合并在一起</ins>了，你变号我也变号，<del>形影不离</del>，因此它们的相对关系就不再改变。</p>
+		<p>于是我们考虑 $c_i$ 在和 $i$ 连接之前的情形。</p>
+		<p>可以发现，每当<strong>它的一个直接子节点</strong>和它一起 "跳跃" 的时候，它会被变一次号；当它与 $i$ "跳跃" 时，它的实质是 $\times 2$，并不变号。</p>
+		<p>因此由下述结论：<strong style="color: green">当且仅当一个顶点 $v$ 有奇数个子节点时，它和父节点具有不同的符号</strong>。</p>
+		<hr />
+		<p>接下来不考虑 $c_i$ 的子节点 (即不妨假设 $c_1, c_2, \cdots, c_k$ 都是<strong>叶节点</strong>)，然后，我们按照 $c_1, c_2, \cdots, c_k$ 的顺序与 $i$ "跳跃"，可以发现，$c_1, c_3, c_5, \cdots$ 是<strong>变号</strong>的，$c_2, c_4, c_6, \cdots$ 是<strong>不变号</strong>的。</p>
+		<p>而这些操作和它们内部和子节点的操作之间互不影响，因此可以把这个过程抽象成：将 $k$ 个子节点一起合并，然后再挑选其中 $\left \lceil \dfrac k2 \right \rceil$ 个点进行<strong>变号</strong>。</p>
+		<p style="color: red">(ps: 事实上，我们也只关系这 $\left \lceil \dfrac k2 \right \rceil$ 个点构成的<strong>集合</strong>，和操作顺序关系并不大，比如把 $c_1$ 和 $c_3$ 换个位置，最终得到的结果是相同的)</p>
+		<hr />
+		<p>有了上面的准备工作，接下来就<del>进入正题</del>开始计算了。</p>
+		<p>首先，我们要数的，无非就是一系列的<strong>系数向量</strong>。当然，如果我们不关系其中的顺序的话，它也可以被看成一个<strong>系数的可重集</strong>，如 $\left\{ -1, -2, -2, 2, -4, -4, -4, -4, 4, 8, 8, -16, 16 \right\}$，即一堆 $\pm 2^d$ 构成的集合。</p>
+		<p>我们的目标是，把所有<strong>合法的系数集合</strong>拉出来，然后乘上一个类似组合数的玩意儿，就得到了总方案数。</p>
+		<p>那怎样的系数集合是 "合法的" 呢？一个朴实的结论是：<strong style="color: blue">能建出对应树的系数集合就是合法的</strong>。</p>
+		<p>这句话看似是废话，实则不废。一方面，如果已经建出了树，说明它存在对应原题的操作序列，从而得到的系数集合一定合法；反之，合法的系数集合存在操作序列，从而通过上面的描述可以建树。</p>
+		<p>于是，我们就把「系数合法性」与「能否建出树」之间做了一个对应。</p>
+		<p>那么，接下来我们利用最上面的两段性质，先来<strong>判断一个系数集合是否合法</strong>。</p>
+		<hr />
+		<p>首先，它有且仅有一个绝对值为 $1$ 的元素，作为树根 $r$。</p>
+		<p>然后，如果是 $+ 1$，说明 $r$ 有偶数个子节点；反之，$r$ 有奇数个子节点。</p>
+		<p>接着，考虑深度为 $1$ 的点，这些点都要作为 $r$ 的直接儿子，从而先假设它们是叶子，从而会有若干个 $+2$ 和 $-2$。</p>
+		<p>将理论上的 ${+2}/{-2}$ 数目和实际上的 ${+2}/{-2}$ 比较，通过第一段所讲的，可以得到它的 "<strong>有奇数个子节点的子节点</strong>" (下简称<strong style="color: blue">奇度点</strong>，同理定义<span style="color: teal">偶度点</span>) 的个数下界。</p>
+		<p>再考虑深度为 $2$ 的点，我们同样也可以得到对应的<span style="color: blue">奇度点</span>的数量……</p>
+		<p>不过，由于最终我们需要的叶子中都不能是<span style="color: blue">奇度点</span>，因此我们希望这个数尽可能小。</p>
+		<p>经过分析可知，我们只需要在每一步中取其下界就可以了，我们暂且将其称为<strong style="color: red">最小奇原则</strong>，具体说明见<a href="#minoddprin">此处</a>。</p>
+		<p>定性的过程已经完成，接下来是定量的分析：</p>
+		<blockquote>
+			<p>考虑现在一共有 $d$ 层，当前共有 $i$ 个点，其中第 $d$ 层共有 $j$ 个<span style="color: blue">奇度点</span>。</p>
+			<p>先假设我们最下面一层加的都是叶子，由第二段所讲，对于一个<span style="color: blue">奇度点</span>，<strong>变号子节点数</strong>等于<strong>不变号子节点数</strong>再加上 $1$；而对于一个<span style="color: teal">偶度点</span>，<strong>变号子节点数</strong>等于<strong>不变号子节点数</strong>。</p>
+			<p>综上，下一层的<strong>变号子节点数</strong> (记为 $o$) 等于<strong>不变号子节点数</strong> (记为 $e$) 再加上 $j$。</p>
+			<p>枚举 $\left( o, e \right)$ 二元组，满足 $o - e = j$ (实质就是枚举 $o$ 或枚举 $e$)，从而下一层一共有 $c = o + e$ 个子节点。</p>
+			<p>接着，再枚举下一层<strong>实际上</strong>有 $E$ 个<strong>不变号子节点</strong>和 <strong>$O$</strong> 个变号子节点，其中 $O + E = c$。</p>
+			<p>为什么会有 $O \neq o, E \neq e$ 呢？由第一段所讲，<em>这些子节点中存在<span style="color: blue">奇度点</span>，从而导致它们继续变号</em>。</p>
+			<p>那在这 $c$ 个顶点中，至少有多少个<span style="color: blue">奇度点</span>呢？</p>
+			<p>通过简单的奇偶分析可知，这样的点至少有 $tr_\min = \left| O - o \right| = \left| E - e \right|$。</p>
+		</blockquote>
+		<p>这就是定量计算的过程。下面来举一个例子，来总结刚才那个算法：</p>
+		<ol>
+			<li><p>考虑集合 $\left\{ -1, -2, -2, 2, -4, -4, -4, -4, 4, 8, 8, -16, 16 \right\}$。</p></li>
+			<li><p>首先，有一个绝对值为 $1$ 的元素，作为树根 $r$。由前述知，它有奇数个子节点，即<strong style="color: fuchsia">深度为 $0$ 的点中，有 $1$ 个<span style="color: blue">奇度点</span>和 $0$ 个<span style="color: teal">偶度点</span>，且<span style="color: blue">奇度点</span>集合为 $\left\{ -1 \right\}$</strong>。</p></li>
+			<li><p>$r$ 会产生 $3$ 个子节点，其中 $2$ 个变号，$1$ 个不变号。即如果下一层加的都是叶子，那么系数集合为 $\left\{ -1, \color {lime} {-2, 2, 2}, \cdots \right\}$。</p>
+			<p>而实际上，系数集合为 $\left\{ -1, \color {lime} {-2, -2, 2}, \cdots \right\}$，说明这一层<strong>至少有一个<span style="color: blue">奇度点</span></strong> (当然也可以是 $3$ 个)。不过，由<strong style="color: red">最小奇原则</strong>知，<strong style="color: fuchsia">深度为 $1$ 的点中，有 $1$ 个<span style="color: blue">奇度点</span>和 $2$ 个<span style="color: teal">偶度点</span>，且<span style="color: blue">奇度点</span>集合为 $\left\{ -2 \right\}$</strong>。</p></li>
+			<li><p>考虑第 $2$ 层 (深度为 $2$)，由上一层有 $1$ 个<span style="color: blue">奇度点</span>可知，<strong>变号子节点数</strong> $o$ 等于<strong>不变号子节点数</strong> $e + 1$，结合 $o + e = 5$ 知 $o = 3, e = 2$。从而，理论上第 $2$ 层的系数集合应为 $\left\{ -1, -2, -2, 2, \color {lime} {-4, -4, 4, 4, 4}, \cdots \right\}$ <em class="text-muted">(到这里，熟练的同学已经发现，<strong>理论系数集合</strong>总是向着系数集合的部分和为 $1$ 的趋势发展)</em>。</p>
+			<p>而实际上，系数集合为 $\left\{ -1, -2, -2, 2, \color {lime} {-4, -4, -4, -4, 4} \right\}$，说明这一层<strong>至少有两个<span style="color: blue">奇度点</span></strong> (当然也可以是 $4$ 个)。由<strong style="color: red">最小奇原则</strong>知，<strong style="color: fuchsia">深度为 $2$ 的点中，有 $2$ 个<span style="color: blue">奇度点</span>和 $3$ 个<span style="color: teal">偶度点</span>，且<span style="color: blue">奇度点</span>集合为 $\left\{ -4, -4 \right\}$</strong>。</p></li>
+			<li><p>考虑第 $3$ 层 (深度为 $3$)，由上一层有 $2$ 个<span style="color: blue">奇度点</span>，$o = e + 2$。结合 $o + e = 2$ 知 $o = 2, c = 0$。从而，理论上第 $3$ 层的系数集合应为 $\left\{ -1, -2, -2, 2, -4, -4, -4, -4, 4, \color {lime} {8, 8} \right\}$。</p>
+			<p>而实际上，系数集合为 $\left\{ -1, -2, -2, 2, -4, -4, -4, -4, 4, \color {lime} {8, 8} \right\}$，说明这一层<strong>至少有零个<span style="color: blue">奇度点</span></strong> (当然也可以是 $2$ 个)。由<strong style="color: red">最小奇原则</strong>知，<strong style="color: fuchsia">深度为 $3$ 的点中，有 $0$ 个<span style="color: blue">奇度点</span>和 $2$ 个<span style="color: teal">偶度点</span>，且<span style="color: blue">奇度点</span>集合为 $\varnothing$</strong>。</p></li>
+			<li><p>考虑第 $4$ 层 (深度为 $4$)，由上一层有 $0$ 个<span style="color: blue">奇度点</span>，$o = e$。结合 $o + e = 2$ 知 $o = 1, c = 1$。从而，理论上第 $4$ 层的系数集合应为 $\left\{ -1, -2, -2, 2, -4, -4, -4, -4, 4, 8, 8, \color {lime} {-16, 16} \right\}$。</p>
+			<p>而实际上，系数集合为 $\left\{ -1, -2, -2, 2, -4, -4, -4, -4, 4, 8, 8, \color {lime} {-16, 16} \right\}$，说明这一层<strong>至少有零个<span style="color: blue">奇度点</span></strong> (当然也可以是 $2$ 个)。由<strong style="color: red">最小奇原则</strong>知，<strong style="color: fuchsia">深度为 $4$ 的点中，有 $0$ 个<span style="color: blue">奇度点</span>和 $2$ 个<span style="color: teal">偶度点</span>，且<span style="color: blue">奇度点</span>集合为 $\varnothing$</strong>。</p></li>
+		</ol>
+		<p>综上，对于整个集合，存在最终<span style="color: blue">奇度点</span>个数为 $0$ 的方案 (叶子只能是<span style="color: teal">偶度点</span>)，从而这个集合是合法的。</p>
+		<p>相反，可以验证集合 $\left\{ -1, -2, -2, -2, -2, -2, 4, 8 \right\}$ 是不合法的，大家可以自行验证。</p>
+		<hr id="minoddprin" />
+		<p>接下来是一个小插曲，说明<strong style="color: red">最小奇原则</strong>的正确性。</p>
+		<p>反之，我们插入了多余的<span style="color: blue">奇度点</span>，则这些奇度点一定是 $\left\{ -2^d, 2^d \right\}$ 成对出现的，从而在决定下一层的<em>理论系数集合</em>的时候不产生实质性改变。</p>
+		<p>因为事实上，<span style="color: red">最小奇原则</span>保证了所有的<span style="color: blue">奇度点</span>的符号均相同，从而 $o - e$ 就表示下一层的两种符号数之差。</p>
+		<hr />
+		<p>最后，通过 DP，将这种判定的算法转化为计数。</p>
+		<p>用 $f_{i, j}$ 表示当前共有 $i$ 个，最深的层中，共有 $j$ 个奇度点的 (带标号) <strong>系数集合</strong>数。</p>
+		<p>边界是 $f_{1, 0} = 1$ ($\left\{ 1 \right\}$) 和 $f_{1, 1} = 1$ ($\left\{ -1 \right\}$)，答案就是 $f_{N, 0}$。</p>
+		<p>考虑转移 (加入一层)，首先枚举 $\left( o, e \right)$ 二元组满足 $o - e = j$，然后枚举 $O + E = o + e = c$，由<strong style="color: red">最小奇原则</strong>，令 $j' = \left| O - o \right| = \left| E - e \right|$。</p>
+		<p>最后不要忘记带标号，因此乘上三项式系数 $\dbinom {i + O + E} {i, O, E}$。</p>
+		<p>综上，转移方程为 $$ f_{i + c, \left| O - o \right|} \gets_+ f_{i, j} \cdot \binom {i + O + E} {i, O, E} $$</p>
+		<p>时间复杂度 $O \left( N^4 \right)$ (枚举 $i, j, o, O$)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 54, mod = 1000000007;
+
+int n;
+int C[N][N], f[N][N];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void fma(int &amp;x, const int y, const int z) {x = (x + (ll)y * z) % mod;}
+
+void init(int n) {
+	int i, j;
+	for (*C[0] = i = 1; i &lt;= n; ++i)
+		for (*C[i] = j = 1; j &lt;= i; ++j)
+			add(C[i][j] = C[i - 1][j], C[i - 1][j - 1]);
+}
+
+inline int C3(int a, int b, int c) {return (ll)C[a + b + c][a] * C[b + c][b] % mod;}
+
+int main() {
+	int i, j, c, r, o, e, O, E;
+	scanf("%d", &amp;n), init(n);
+	f[1][0] = f[1][1] = 1;
+	for (i = 1; i &lt; n; ++i)
+		for (j = 0; j &lt;= i; ++j) if (r = f[i][j])
+			for (c = o = j, e = 0; i + c &lt;= n; c += 2, ++o, ++e) if (c)
+				for (O = 0, E = c; O &lt;= c; ++O, --E)
+					fma(f[i + c][abs(O - o)], r, C3(i, O, E));
+	printf("%d\n", f[n][0]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>如果枚举的是 $c$ 而不是 $o, e$ 等，记得判一下 $c$ 和 $j$ 同奇偶。</p>
+		<p class="text-muted"><strong>坑2：</strong>当然，如果你的 DP 太慢，注意到题目是值域极小的单变量函数，可以考虑打表。</p>
+	</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder3981,Regular93F]Dark Horse</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一棵深度为 $N$ (共有 $2^N$ 个叶节点) 的满二叉树，所有叶节点的权值为 $1 \sim 2^N$ 的一个排列，每个分支节点的权值为它的两个直接子节点的 "优胜者"，其中，两个数 $x, y$ 的 "优胜者" 定义如下：</p>
+		<ul>
+			<li><p>题目会给定一个 $\left\{ 1, 2, \cdots, 2^N \right\}$ 的 $M$ 元子集 $A$。</p></li>
+			<li><p>若 $y \in A$，则 $1$ 和 $y$ 的 "优胜者" 为 $y$。</p></li>
+			<li><p>若 $y \notin A$，则 $1$ 和 $y$ 的 "优胜者" 为 $1$。</p></li>
+			<li><p>若 $2 \leq x &lt; y \leq 2^N$，则 $x$ 和 $y$ 的 "优胜者" 为 $x$。</p></li>
+		</ul>
+		<p>求有多少棵不同的二叉树，满足根节点的权值为 $1$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $N, M$ ($1 \leq N \leq 16; 0 \leq M \leq 16$)，分别表示满二叉树的深度以及集合 $A$ 的大小。</p>
+		<p>第二行包含 $M$ 个正整数 $A_1, A_2, \cdots, A_M$ ($2 \leq A_i &lt; A_{i+1} \leq 2^N$)，表示 $A = \left\{ A_1, A_2, \cdots, A_M \right\}$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示根节点的权值为 $1$ 的二叉树的数量模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>固定满二叉树的形态，可以不妨假设 $1$ 在最左边的叶节点上，最后答案再乘以 $2^N$。</p>
+		<p>考虑按照 dfs 序将叶节点编号为 $a_1 = 1, a_2, a_3, \cdots, a_{2^N}$，则欲使 $1$ 变为根，它需要 "<strong>打败</strong>" $a_2, \min \left\{ a_3, a_4 \right\}, \min \left\{ a_5, a_6, a_7, a_8 \right\}, \cdots, \min \left\{ a_{2^{N-1} + 1}, a_{2^{N-1} + 2}, \cdots, a_{2^N - 1}, a_{2^N} \right\}$。</p>
+		<p>换句话说，<strong>一个 $a_2, a_3, \cdots, a_N$ 的排列合法，当且仅当 $\color {fuchsia} {a_2, \min \left\{ a_3, a_4 \right\}, \min \left\{ a_5, a_6, a_7, a_8 \right\}, \cdots, \min \left\{ a_{2^{N-1} + 1}, a_{2^{N-1} + 2}, \cdots, a_{2^N - 1}, a_{2^N} \right\} \notin A}$</strong>。</p>
+		<p>因此整个问题和二叉树就没关系了，就变成了一道计数题。</p>
+		<p>下面为了方便，记 $c_i = \min \left\{ a_{2^{i-1} + 1}, a_{2^{i-1} + 2}, \cdots, a_{2^i - 1}, a_{2^i} \right\}$ ($1 \leq i \leq N$)。</p>
+		<p>由于让 $\min$ <strong>不等于</strong>某个数比较麻烦，况且 $A$ 又比较小，$c_i$ 的个数也很少，因此我们尝试使用<strong>容斥原理</strong>来计算 —— 即指定一个 $S \subseteq \left\{ 1, 2, \cdots, N \right\}$，求有多少个 $a$ 的排列，满足 $i \in S \Rightarrow c_i \in A$。</p>
+		<p>为了方便，我们只统计 $i \in S$ 中这些 $c_i$ 涉及到的元素，即我们<strong>只讨论 $\displaystyle w \left( S \right) = \sum_{i \in S} 2^i$ 个元素的一个排列</strong>。</p>
+		<p>在统计答案的时候，这一项前的系数即为 $\pm 1$ (容斥系数) 乘上<strong>未涉及到的 $a_i$ 数的阶乘</strong> ($\left( \left( 2^N - 1 \right) - w \left( S \right) \right) !$) 即可。</p>
+		<hr />
+		<p>现在考虑如何对于所有的 $S$ 求出方案数。</p>
+		<p>还是考虑状压 DP，由于我们要取 $\min$，因此需要从大到小考虑元素，不妨设 $\color {fuchsia} {A_0 &gt; A_1 &gt; \cdots &gt; A_{M-1}}$。</p>
+		<p>设 $f_{i, S}$ 表示当前考虑了前 $i$ 个元素，$S$ 中的 $c_j$ 已经 "挂了" (即 $c_j \in A$) 的方案数。</p>
+		<p>首先，这个 $A_i$ 可以不干坏事，不作为任何 $c_j$ 的最小值，转移比较平凡：$f_{i + 1, S} \gets_+ f_{i, S}$。</p>
+		<p>然后，$A_i$ 也可以考虑干干坏事，即把它作为 $\color {red} {c_j}$ 的最小值 (当然此时需要保证 $j \notin S$)。</p>
+		<p>考虑 $\left( A_i, 2^N \right]$ 中剩下的没有填充的数的个数 —— 它应该等于 $2^N - A_i - w \left( S \right)$，然后，从中取 $2^j - 1$ 个作为它的<strong>帮手</strong> (使得 $c_j = a_i$)，共 $\dbinom {2^N - A_i - w \left( S \right)} {2^j - 1}$ 种方案，最后这 $2^j$ 个元素内部还能构成一个排列，因此还要乘上 $2^j !$。故这部分的转移为 $$ f_{i + 1, S \cup \left\{ j \right\}} \gets_+ f_{i, S} \cdot \binom {2^N - A_i - w \left( S \right)} {2^j - 1} \cdot 2^j ! $$
+		<p>最终 $f_{M, S}$ 就是对于特定的 $S$ 的 $w \left( S \right)$ 个元素的排列方案数。</p>
+		<p>总时间复杂度 $O \left( 2^N \cdot N \cdot K \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define parity __builtin_parity
+
+typedef long long ll;
+const int N = 20, N2 = 65554, mod = 1000000007;
+
+int n, K, ALL;
+int k[N], f[N][N2];
+int fact[N2], finv[N2];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void fma(int &amp;x, const int y, const int z) {x = (x + (ll)y * z) % mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(int n) {
+	int i;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+inline ll A(int n, int r) {return n &lt; r ? 0 : (ll)fact[n] * finv[n - r] % mod;}
+
+int main() {
+	int i, j, c, r, ans = 0;
+	scanf("%d%d", &amp;n, &amp;K), ALL = ~(-1 &lt;&lt; n), init(ALL + 1);
+	for (i = 0; i &lt; K; ++i) scanf("%d", k + i), --k[i];
+	std::reverse(k, k + K), **f = 1;
+	for (i = 0; i &lt; K; ++i)
+		for (j = 0; j &lt;= ALL; ++j) if (r = f[i][j]) {
+			add(f[i + 1][j], r);
+			for (c = 0; c &lt; n; ++c) if (!(j &gt;&gt; c &amp; 1))
+				fma(f[i + 1][j | 1 &lt;&lt; c], r, (A(ALL - j - k[i], ~(-1 &lt;&lt; c)) &lt;&lt; c) % mod);
+		}
+	for (i = 0; i &lt;= ALL; ++i)
+		ans = (ans + ll(parity(i) ? -f[K][i] : f[K][i]) * fact[ALL &amp; ~i]) % mod;
+	ans = ((ll)ans &lt;&lt; n) % mod;
+	printf("%d\n", ans + (ans &gt;&gt; 31 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>转移中二项式系数 $\dbinom nr$ 中可能出现 $n &lt; r$ 甚至 $n &lt; 0$ 的情形，计算时需要注意。</p>
+	</body>
+</html>

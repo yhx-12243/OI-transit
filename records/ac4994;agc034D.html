@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4994,Grand34D]Manhattan Max Matching</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在一个二维平面上，有 $N$ 组红球和 $N$ 组蓝球。其中第 $i$ 组红球在坐标点 $\left( RX_i, RY_i \right)$ 上，共有 $RC_i$ 个；第 $i$ 组蓝球在坐标点 $\left( BX_i, BY_i \right)$ 上，共有 $BC_i$ 个，保证 $\displaystyle \sum_{i=1}^N RC_i = \sum_{i=1}^N BC_i = S$。</p>
+		<p>Snuke 想让这些球<strong>两两配对</strong>，每一对需要恰好包含一个红球和一个蓝球。定义一个球对的权值为它们在平面上的 Manhattan 距离，形式化地，红球 $\left( rx, ry \right)$ 和蓝球 $\left( bx, by \right)$ 组成的对的权值为 $\left| rx - bx \right| + \left| ry - by \right|$。</p>
+		<p>定义<em>总分</em>为所有 $S$ 个对的权值总和。Snuke 想最大化她所得到的<em>总分</em>，请你帮他求出<em>总分</em>的最大可能值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 1000$)，表示红球的组数，也等于蓝球的组数。</p>
+		<p>接下来 $N$ 行，每行三个非负整数 $RX_i, RY_i, RC_i$ ($0 \leq RX_i, RY_i \leq 10^9; 1 \leq RC_i \leq 10$)，描述一个位于 $\left( RX_i, RY_i \right)$ 的，包含 $RC_i$ 个红球的组。</p>
+		<p>接下来 $N$ 行，每行三个非负整数 $BX_i, BY_i, BC_i$ ($0 \leq BX_i, BY_i \leq 10^9; 1 \leq BC_i \leq 10$)，描述一个位于 $\left( BX_i, BY_i \right)$ 的，包含 $BC_i$ 个红球的组。</p>
+		<p>保证 $\displaystyle \sum_{i=1}^N RC_i = \sum_{i=1}^N BC_i$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示<em>总分</em>的最大可能值。</p>
+
+		<h3>题解</h3>
+		<p>容易建立起「二分图最大权匹配」的模型，即对每一<strong>个</strong>红球 $\left( rx, ry \right)$ 和蓝球 $\left( bx, by \right)$，连接一条边权为 $\left| rx - bx \right| + \left| ry - by \right|$ 的边，则最终图的最大<strong>权</strong>匹配就是我们所要求的答案。</p>
+		<p>不过，这样做显然会 TLE 的，因为总的球数可以达到 $10000$，边数会达到 $10^8$ 级别。</p>
+		<p>那该怎么优化呢？</p>
+		<p>考虑如何刻画 Manhattan 距离：参考 <a href="../index.html?redirect=227" target="_blank">[Codeforces491B]New York Hotel</a> 可以发现，可以将 Manhattan 距离看成四条直线围起来的框 (当然你要把它理解成 Chebyshev 距离也行)，然后就可以忽略绝对值了 —— 因为如果这里面绝对值取的不是正的，则这一种权值一定不是最大的，从而不是最优的。</p>
+		<p>将绝对值去掉，得到 $w = \color {red} \pm \left( rx - bx \right) \color {blue} \pm \left( ry - by \right) = \begin{cases} \left( \color {red} + rx \color {blue} + ry \right) + \left( \color {red} - bx \color {blue} - by \right) \\ \left( \color {red} + rx \color {blue} - ry \right) + \left( \color {red} - bx \color {blue} + by \right) \\ \left( \color {red} - rx \color {blue} + ry \right) + \left( \color {red} + bx \color {blue} - by \right) \\ \left( \color {red} - rx \color {blue} - ry \right) + \left( \color {red} + bx \color {blue} + by \right) \end{cases}$，可见一共有 $4$ 种情形，每种情形相互之间有配对关系。</p>
+		<p>于是，我们可以对两个球 $\left( rx, ry \right), \left( bx, by \right)$ 之间连接 $4$ 条边：边权分别为 $\left( \color {red} + rx \color {blue} + ry \right) + \left( \color {red} - bx \color {blue} - by \right), \left( \color {red} + rx \color {blue} - ry \right) + \left( \color {red} - bx \color {blue} + by \right), \left( \color {red} - rx \color {blue} + ry \right) + \left( \color {red} + bx \color {blue} - by \right), \left( \color {red} - rx \color {blue} - ry \right) + \left( \color {red} + bx \color {blue} + by \right)$，则最后图的最大权匹配仍为答案。</p>
+		<p>那为什么要<del>吃饱了撑着</del>加那么多条边呢？关键是有利于建图优化啊！</p>
+		<p>容易发现，对于这里面的每条边，它的权值的表达式中，$r$ (红球) 和 $b$ (蓝球) 是<strong>分离的</strong>！</p>
+		<p>因此，我们可以像 <a href="../index.html?redirect=539" target="_blank">[loj536]花札</a> 一样，建立一个中转点，然后通过它向两侧顶点连边。</p>
+		<p>当然，由于有 $4$ 类边，自然就需要 <strong>$4$ 个中转点</strong>。具体地，比如说对<strong>第 2 种边权</strong>，可以对于每个红球，连接一条到中转点的<strong>权值为 $+ rx - ry$</strong> 的边，然后从它向对应蓝点连接一条<strong>权值为 $- bx + by$</strong> 的边，最后使用<strong>最大费用最大流</strong>代替<strong>二分图最大权匹配</strong>。</p>
+		<p>不过这样点数与边数还是 $10000$ 级别的，还是比较慢，能进一步压缩到 $O \left( N \right)$ 吗？</p>
+		<p>是可以的。考虑相同位置的不同球，我们发现我们连接了多条<strong>相同费用的容量为 $1$ 的边</strong>，因此只需要将其压缩为对应费用<strong>但容量为 $RC_i$ (或 $BC_i$) 的边</strong>，自然就解决问题了。</p>
+		<p>于是最终图的点数和边数分别为 $2 N + O \left( 1 \right), 10 N + O \left( 1 \right)$，使用最大费用最大流即可。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+
+namespace CF {
+	#define ad(x) ((x - 1 ^ 1) + 1)
+
+	const int N = 2054, M = 8000054;
+	const ll INF = 0x3f3f3f3f3f3f3f3fll;
+
+	struct edge {
+		int u, v, c, f;
+		edge (int u0 = 0, int v0 = 0, int c0 = 0, int f0 = 0): u(u0), v(v0), c(c0), f(f0) {}
+	} e[M];
+
+	int V, E, si = 1, ti = 2; ll flow, cost;
+	int first[N], next[M];
+	int cur[N], que[M &lt;&lt; 1];
+	ll dep[N];
+	bool in_que[N], used[N];
+
+	inline void addedge(int u, int v, int c, int f) {
+		e[++E] = edge(u, v, c, f), next[E] = first[u], first[u] = E;
+		e[++E] = edge(v, u, -c), next[E] = first[v], first[v] = E;
+	}
+
+	bool bfs() {
+		int h = M, t = h + 1, i, x, y;
+		memset(dep, 127, sizeof dep);
+		que[h] = ti, dep[ti] = 0, in_que[ti] = true;
+		for (; h &lt; t; ) {
+			x = que[h++], in_que[x] = false;
+			for (i = first[x]; i; i = next[i])
+				if (dep[y = e[i].v] &gt; dep[x] - e[i].c &amp;&amp; e[ad(i)].f) {
+					dep[y] = dep[x] - e[i].c;
+					if (!in_que[y])
+						in_que[y] = true, (dep[y] &gt;= dep[que[h]] ? que[t++] : que[--h]) = y;
+				}
+		}
+		return dep[si] &lt; INF;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		used[x] = true;
+		for (int &amp;i = cur[x]; i; i = next[i])
+			if (dep[e[i].v] == dep[x] - e[i].c &amp;&amp; e[i].f &amp;&amp; !used[e[i].v]) {
+				a = std::min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c, e[ad(i)].f += c;
+				if ((f += c) == lim) return f;
+			}
+		return f;
+	}
+
+	int Dinic() {
+		int f;
+		for (cost = flow = 0; bfs(); ) {
+			memcpy(cur, first, sizeof cur);
+			memset(used, 0, sizeof used);
+			flow += f = dfs(si, INF);
+			cost += dep[si] * f;
+		}
+		return cost;
+	}
+}
+
+int main() {
+	int i, n, w, x, y;
+	scanf("%d", &amp;n);
+	for (i = 3; i &lt; 3 + n; ++i) {
+		scanf("%d%d%d", &amp;x, &amp;y, &amp;w);
+		CF::addedge(1, i, 0, w);
+		CF::addedge(i, 3 + n * 2,  x + y, w);
+		CF::addedge(i, 4 + n * 2,  x - y, w);
+		CF::addedge(i, 5 + n * 2, -x + y, w);
+		CF::addedge(i, 6 + n * 2, -x - y, w);
+	}
+	for (; i &lt; 3 + n * 2; ++i) {
+		scanf("%d%d%d", &amp;x, &amp;y, &amp;w);
+		CF::addedge(i, 2, 0, w);
+		CF::addedge(3 + n * 2, i, -x - y, w);
+		CF::addedge(4 + n * 2, i, -x + y, w);
+		CF::addedge(5 + n * 2, i,  x - y, w);
+		CF::addedge(6 + n * 2, i,  x + y, w);
+	}
+	printf("%lld\n", -CF::Dinic());
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>还是要注意网络流常数及复杂度，尤其是费用流。</p>
+		<p><strong>坑2：</strong>注意答案可能超过 <code>int</code>，因此需要使用 <code>long long</code>。</p>
+	</body>
+</html>
