@@ -101,7 +101,7 @@
 			'时间戳线段树' : ['线段树分治'],
 			'最小生成树' : ['MST', 'MINIMUM SPANNING TREE', '最小支撑树'],
 			'最小表示' : ['最小表示法'],
-			'最小费用最大流' : ['费用流'],
+			'最小费用最大流' : ['费用流', '最小费用流', '最大费用最大流'],
 			'最短路' : ['SP', 'SHORTEST PATH'],
 			'最近公共祖先' : ['LCA', 'LOWEST COMMON ANCESTOR'],
 			'最长公共前缀' : ['LCP', 'LONGEST COMMON PREFIX'],

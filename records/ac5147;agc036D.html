@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder5147,Grand36D]Negative Cycle</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $N$ 个顶点的带边权有向图 $G$，顶点标号为 $1, 2, \cdots, N$。</p>
+		<p>$G$ 中初始时有 $N - 1$ 条边，第 $i$ ($1 \leq i \leq N - 1$) 条边连接顶点 $i$ 和 $i + 1$，边权为 $0$。</p>
+		<p>现在，Snuke 会对每一对 $i, j$ ($1 \leq i, j \leq N; i \neq j$)，额外连接一条边 (可能与原来的边形成<strong>重边</strong>)，边权为 $\begin{cases} -1 &amp; i &lt; j \\ 1 &amp; i &gt; j \end{cases}$。</p>
+		<p>Ringo 是一个女孩子，她不喜欢图中的<strong>负圈</strong>。她希望删除若干条 <strong>Snuke 加的边</strong>，使得图中不再包含<strong>负圈</strong>。删除边 $i \to j$ 的代价为 $A_{i, j}$，她不能删除初始时边权为 $0$ 的边。</p>
+		<p>请最小化 Ringo 所花的代价。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($3 \leq N \leq 500$)，表示图的点数。</p>
+		<p>接下来 $N$ 行，每行 $N - 1$ 个整数 $A_{i, 1}, A_{i, 2}, \cdots, A_{i, i-2}, A_{i, i-1}, A_{i, i+1}, A_{i, i+2}, \cdots, A_{i, N-1}, A_{i, N}$ ($1 \leq A_{i, j} \leq 10^9$)，$A_{i, j}$ 表示删除边 $i \to j$ 的代价。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 Ringo 所花的代价的最小值。</p>
+
+		<h3>题解</h3>
+		<p>考虑使用<del>贝尔福特曼</del> Bellman-Ford 算法求解判定负圈的过程，<strong>松弛超过 $N - 1$ 次 &#8660; 存在负圈</strong>，若 $G$ 无负圈，则最终松弛的结果就得到了一个<strong>最短路数组</strong> $d \left[ \, \right]$，其中 $d_i = \operatorname{dist} \left( 1, i \right)$。</p>
+		<p>这个最短路数组由定义，应该满足基本的<strong>三角不等式</strong>：对于任意边 $i \to j$，有 $d_j \leq d_i + w \left( i \to j \right)$。</p>
+		<p>反之，若 $G$ 有负圈，容易证明 (满足三角不等式的) <strong>最短路数组不存在</strong>。因为，我们只需要将<strong>负圈</strong>中的所有边的对应的三角不等式相加，即得 $0 \leq \text{negative number}$，矛盾。</p>
+		<p>于是，我们将无负圈的条件，就转化为了<strong>存在最短路数组</strong>的条件。</p>
+		<p>设最短路数组为 $d \left[ \, \right] = \left[ d_1, d_2, \cdots, d_N \right]$，其中 $d_i = \operatorname{dist} \left( 1, i \right)$。</p>
+		<p>我们对三种边分别应用三角不等式，得：</p>
+		<ol>
+			<li><p>$w \left( i, i + 1 \right) = 0$：</p>
+			<p>得 $d_{i+1} \leq d_i$，即 <strong>$d$ 数组单调不升</strong>。</p></li>
+			<li><p>$w \left( i, j \right) = -1$ ($i &lt; j$)：</p>
+			<p>得 $d_j \leq d_i - 1$。</p></li>
+			<li><p>$w \left( j, i \right) = 1$ ($i &lt; j$)：</p>
+			<p>得 $d_i \leq d_j + 1$。</p></li>
+		</ol>
+		<p>我们对它做一个 (反向) <strong>差分</strong>：$\Delta d_i = d_i - d_{i+1}$，三个条件转化为了：</p>
+		<ol>
+			<li><p>$\Delta d_i \geq 0$。</p></li>
+			<li><p>$\Delta d_i + \Delta d_{i+1} + \cdots + \Delta d_{j-2} + \Delta d_{j-1} \geq 1$。</p></li>
+			<li><p>$\Delta d_i + \Delta d_{i+1} + \cdots + \Delta d_{j-2} + \Delta d_{j-1} \leq 1$。</p></li>
+		</ol>
+		<p>由最短路的性质知，$d_i \in \mathbb Z$，于是 $\Delta d_i \in \mathbb N$。</p>
+		<p>因此，我们的目标是：<span style="color: fuchsia">删除代价总和尽可能小的条件，使得存在一组 $\Delta d_i \in \mathbb N$，满足上述不等式组</span>。</p>
+		<p>首先，若某个 $\Delta d_i \geq 2$ 且满足条件，将其换为 $1$ 后仍满足条件。因此只需要讨论 $\Delta d_i \in \left\{ 0, 1 \right\}$ 的情形。</p>
+		<p>由于限制是总和与 $1$ 的关系，因此我们考虑逐次填 $1$，看看会产生多少 "不满足的条件"，从而将它们的代价减掉即可。</p>
+		<p>不妨设 $\Delta d_i = 1$ 的位置为 $1 \leq o_1 &lt; o_2 &lt; \cdots &lt; o_k \leq N - 1$。</p>
+		<p>先考虑条件 2，如果它不满足，说明 $\Delta d_i + \Delta d_{i+1} + \cdots + \Delta d_{j-2} + \Delta d_{j-1} = 0$，于是 $\color {blue} {\Delta d_i = \Delta d_{i+1} = \cdots = \Delta d_{j-2} = \Delta d_{j-1} = 0}$，从而有 $\color {fuchsia} {o_r &lt; i \leq j \leq o_{r+1}}$。</p>
+		<p>再考虑条件 3，如果它不满足，说明 $\Delta d_i + \Delta d_{i+1} + \cdots + \Delta d_{j-2} + \Delta d_{j-1} \geq 2$，于是 $\left[ i, j \right)$ 之间应<strong>至少有两个 $o_r$</strong>。固定 $i \in \left( o_{r-1}, o_r \right]$，则 $\color {fuchsia} {o_{r+1} &lt; j \leq N - 1}$。</p>
+		<hr />
+		<p>最后考虑 DP 来求代价最小值。</p>
+		<p>由上面的条件 3，可知我们在同一时刻<strong>应至少知道三个 $o_i$ 的值</strong>，从而需要记录<strong>当前最后两个 $o_i$ 的位置</strong>，转移时才可以计算。</p>
+		<p>那么，就用 $f_{i, j}$ 表示当前<em>差分序列中</em>最后一个 $1$ 在 $i$ 位置处 (同时也是我们已考虑序列的长度)，倒数第二个 $1$ 在 $j$ 位置处的最小代价和。</p>
+		<p>转移时只需要枚举下一个 $1$ 出现在哪个位置 ($k$)，然后通过上面的<span style="color: fuchsia">粉色</span>式子计算即可。</p>
+		<p>可以发现满足条件的 $i, j$ 恰好是一个<strong>区间</strong>，因此可以对两种条件分别进行<strong>前缀和优化</strong>，时间复杂度 $O \left( N^3 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 540;
+const ll INF = 0x3f3f3f3f3f3f3f3fll;
+
+int n;
+ll L[N][N], R[N][N], f[N][N];
+
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+
+inline void sum2D(ll (*a)[N]) {
+	int i, j;
+	for (i = 1; i &lt;= n; ++i) for (j = 1; j &lt;= n; ++j) a[i][j] += a[i][j - 1];
+	for (i = 1; i &lt;= n; ++i) for (j = 1; j &lt;= n; ++j) a[i][j] += a[i - 1][j];
+}
+
+inline ll sum(ll (*a)[N], int r1, int r2, int c1, int c2) {return a[r2][c2] - a[r2][c1] - a[r1][c2] + a[r1][c1];} // (r1, r2] X (c1, c2]
+
+int main() {
+	int i, j, k;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) {
+		for (j = 1; j &lt; i; ++j) scanf("%lld", L[i] + j);
+		for (; ++j &lt;= n; ) scanf("%lld", R[i] + j);
+	}
+	sum2D(L), sum2D(R), memset(f, 63, sizeof f);
+	for (i = 1; i &lt; n; ++i) f[i][0] = R[i][i];
+	for (i = 1; i &lt; n; ++i)
+		for (j = 0; j &lt; i; ++j) if (f[i][j] &lt; INF)
+			for (k = i + 1; k &lt;= n; ++k)
+				down(f[k][i], f[i][j] + sum(R, i, k, i, k) + sum(L, k, n, j, i));
+	printf("%lld\n", *std::min_element(f[n], f[n] + n));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于最后一个 $1$ 不一定出现在 $N - 1$，因此最后需要枚举这个位置，或像代码一样<strong>建立一个 $\Delta_n = 1$ 的虚点</strong>来处理。</p>
+		<p><strong>坑2：</strong>DP 时的边界是 $f_{i, 0} = \eta_i$，其中 $\eta_i$ 表示 $1 \leq u \leq v \leq i$ 的 $A_{u, v}$ 之和。</p>
+	</body>
+</html>

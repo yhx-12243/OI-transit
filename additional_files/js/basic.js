@@ -47,6 +47,7 @@ const
 			'memset0c' : 'https://memset0.cn/',
 			'miaom' : 'https://mioam.github.io/',
 			'mrsrz' : 'https://mrsrz.github.io/',
+			'msuwakow' : 'https://www.cnblogs.com/suwakow/',
 			'nbdhhzh' : '',
 			'ouuan' : 'https://ouuan.github.io/',
 			'qiqi20021026' : 'https://bomb-chicken.github.io/',

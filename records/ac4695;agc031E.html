@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4695,Grand31E]Snuke the Phantom Thief</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>博物馆有 $N$ 个宝石，编号为 $1, 2, \cdots, N$，第 $i$ 个宝石在坐标 $\left( x_i, y_i \right)$ 处，价值为 $v_i$。</p>
+		<p><del>你是一个小偷，需要从那里偷宝石</del>，但需要满足下列 $M$ 个限制条件，共有如下 $4$ 种形式：</p>
+		<ul>
+			<li><p>$\left( t_i = \texttt L, a_i, b_i \right)$，你所偷的所有宝石中，<strong>横坐标 $\leq a_i$</strong> 的不超过 $b_i$ 个。</p></li>
+			<li><p>$\left( t_i = \texttt R, a_i, b_i \right)$，你所偷的所有宝石中，<strong>横坐标 $\geq a_i$</strong> 的不超过 $b_i$ 个。</p></li>
+			<li><p>$\left( t_i = \texttt D, a_i, b_i \right)$，你所偷的所有宝石中，<strong>纵坐标 $\leq a_i$</strong> 的不超过 $b_i$ 个。</p></li>
+			<li><p>$\left( t_i = \texttt U, a_i, b_i \right)$，你所偷的所有宝石中，<strong>纵坐标 $\geq a_i$</strong> 的不超过 $b_i$ 个。</p></li>
+		</ul>
+		<p>求在满足所有条件下，所偷的宝石的<strong>价值总和</strong>的最大值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 80$)，表示宝石的总数。</p>
+		<p>接下来 $N$ 行，每行三个正整数 $x_i, y_i, v_i$ ($1 \leq x_i, y_i \leq 100; 1 \leq v_i \leq 10^{15}$)，表示第 $i$ 个宝石的坐标和价格。</p>
+		<p>第 $N + 2$ 行包含一个正整数 $M$ ($M \leq 320$)，表示限制条件的个数。</p>
+		<p>接下来 $M$ 行，每行包含由空格隔开的一个大写字符和两个非负整数 $t_i, a_i, b_i$ ($t_i \in \left\{ \texttt L, \texttt R, \texttt U, \texttt D \right\}; 1 \leq a_i \leq 100; 0 \leq b_i \leq N - 1$)，描述一个限制条件，格式见题目描述。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示在满足所有条件下，所有宝石的价值总和的最大可能值。</p>
+
+		<h3>题解</h3>
+		<p><del>对于这种题意和数据范围，是不是一看就一种 "流" 的感觉呢~，况且 $N$ 非常小，因此多加几个 $N$ 也毫无压力是不是~</del></p>
+		<p>首先，由于坐标不大，因此我们可以将每一个横坐标 $x$ 以及每一个纵坐标 $y$ 都看成一个点，记为 $X_x, Y_y$。</p>
+		<p>根据以往<a href="../index.html?redirect=815" target="_blank">方格表转二分图的套路</a>，我们将一个位于 $\left( x, y \right)$，价值为 $v$ 的宝石看成一条<strong>连接点 $X_x$ 和 $Y_y$ 的边权为 $v$ 的边</strong>。</p>
+		<p>现在，我们考虑如何刻画「$x \leq a$ 的宝石数量不超过 $b$ 个」这个限制条件。</p>
+		<p>如果<strong>只有这一个</strong>条件，那么我们可以将表示横坐标的前 $a$ 个顶点 "合流" 成一个顶点，然后对其进行限流 ($b$)。</p>
+		<p>但是，现在这些条件会有相交 (因为还要考虑到 $x \geq a'$ 的宝石的数量)，又该怎么办呢？</p>
+		<p>那么我们无妨转换一下思维 —— 原先是考虑一个数组中<strong>有多少个值不超过 $x$</strong>，现在可以尝试考虑一下<strong>第 $k$ 大的值至少是多少</strong>。</p>
+		<p>我们将所有的宝石按照横坐标排序，设为 $x_0 \leq x_1 \leq x_2 \leq \cdots$。</p>
+		<p>于是，条件「$x \leq a$ 的宝石数量不超过 $b$ 个」就等价于「$x_b \geq a + 1$」。</p>
+		<p>那么，条件「$x \geq a$ 的宝石数量不超过 $b$ 个」又该怎么办呢？我们好像并不知道宝石的总数！</p>
+		<p><del>没关系，反正 $N$ 这么小</del>，那就枚举一下呗！</p>
+		<hr />
+		<p>好了，设我们<del>偷</del>了 $n$ ($1 \leq n \leq N$) 个宝石，它的横、纵坐标<strong>分别</strong>排序后的结果依次为 $x_0 \leq x_1 \leq x_2 \leq \cdots \leq x_{n-2} \leq x_{n-1}, y_0 \leq y_1 \leq y_2 \leq \cdots \leq y_{n-2} \leq y_{n-1}$，则：</p>
+		<ul>
+			<li><p>「$x \leq a$ 的宝石数量不超过 $b$ 个」&#8660;「$x_b \geq a + 1$」。</p>
+			<li><p>「$x \geq a$ 的宝石数量不超过 $b$ 个」&#8660;「$x_{n-1-b} \leq a - 1$」。</p>
+			<li><p>「$y \leq a$ 的宝石数量不超过 $b$ 个」&#8660;「$y_b \geq b + 1$」。</p>
+			<li><p>「$y \leq a$ 的宝石数量不超过 $b$ 个」&#8660;「$y_{n-1-b} \leq b - 1$」。</p>
+		</ul>
+		<p>再根据 $x, y$ 的单调性，我们就可以得到每个 $x_i, y_i$ 的一个上下界，不妨设 $x_i$ 的界为 $\left[ xl_i, xu_i \right]$，$y_i$ 的界为 $\left[ yl_i, yu_i \right]$ (由定义可知 $xl_i \leq xl_{i+1}$ 等四式)。</p>
+		<p>那现在考虑满足 $x_i \in \left[ xl_i, xu_i \right], y_i \in \left[ yl_i, yu_i \right]$ 的<em>任意一组解</em>，容易证明它也满足原题的所有 $M$ 个条件。也就是说，这是一个<em>等价转换</em>。</p>
+		<p>现在再用网络流建模，就容易多了：不管顺序，我们可以得到：<strong>有一个</strong>宝石的横坐标在 $\left[ xl_0, xu_0 \right]$，<strong>有一个</strong>宝石的横坐标在 $\left[ xl_1, xu_1 \right]$，……，<strong>有一个</strong>宝石的横坐标在 $\left[ xl_{n-1}, xu_{n-1} \right]$。</p>
+		<p>于是，只需要对 $\forall 0 \leq i \leq n - 1$，建立点 $pX_i$，然后从源点向它连容量为 $1$ 的边，然后从它向 $xl_i, xl_i + 1, \cdots, xu_i$ 所对应的 $X$ 点各连一条容量为 $1$ 的边，$Y$ 部分对称同理。</p>
+		<p>将 $X - Y$ 部分之间的边权看成<strong>费用</strong>，对整张图跑<strong>最大费用最大流</strong>，如果最大流恰为 $n$，则最大费用就是这种情况下可行的价值总和。</p>
+		<p>最后对所有的 $n$ 取答案的最大值即可，时间复杂度 $O \left( N M + N^5 \right)$ (不严格)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 108, M = 324;
+
+struct jewel {
+	int x, y; ll v;
+	jewel * read() {return scanf("%d%d%lld", &amp;x, &amp;y, &amp;v), this;}
+} a[N];
+
+struct condition {
+	char ty;
+	int pos, lim;
+	condition * read() {static char _[4]; return scanf("%s%d%d", _, &amp;pos, &amp;lim), ty = *_, this;}
+} c[M];
+
+int n, m;
+int xl[N], xu[N], yl[N], yu[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+
+namespace CF {
+	#define ad(x) ((x - 1 ^ 1) + 1)
+
+	const int N = 400, M = 100000;
+	const ll INF = 0x7f7f7f7f7f7f7f7fll;
+
+	struct edge {
+		int u, v, f; ll c;
+		edge (int u0 = 0, int v0 = 0, ll c0 = 0, int f0 = 0) : u(u0), v(v0), f(f0), c(c0) {}
+	} e[M];
+
+	int V = 2, E = 0, si = 1, ti = 2, flow;
+	ll cost;
+	int first[N], next[M];
+	int cur[N], que[M &lt;&lt; 1];
+	ll dep[N];
+	bool in_que[N], used[N];
+
+	inline void addedge(int u, int v, ll c, int f) {
+		e[++E] = edge(u, v, c, f), next[E] = first[u], first[u] = E;
+		e[++E] = edge(v, u, -c), next[E] = first[v], first[v] = E;
+	}
+
+	bool bfs() {
+		int h = M, t = h + 1, i, x, y;
+		memset(dep, 127, sizeof dep);
+		que[h] = ti, dep[ti] = 0, in_que[ti] = true;
+		for (; h &lt; t; ) {
+			x = que[h++], in_que[x] = false;
+			for (i = first[x]; i; i = next[i])
+				if (dep[y = e[i].v] &gt; dep[x] - e[i].c &amp;&amp; e[ad(i)].f) {
+					dep[y] = dep[x] - e[i].c;
+					if (!in_que[y])
+						in_que[y] = true, (dep[y] &gt;= dep[que[h]] ? que[t++] : que[--h]) = y;
+				}
+		}
+		return dep[si] &lt; INF;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		used[x] = true;
+		for (int &amp;i = cur[x]; i; i = next[i])
+			if (dep[e[i].v] == dep[x] - e[i].c &amp;&amp; e[i].f &amp;&amp; !used[e[i].v]) {
+				a = std::min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c, e[ad(i)].f += c;
+				if ((f += c) == lim) return f;
+			}
+		return f;
+	}
+
+	inline void reset() {E = 0, memset(first, 0, sizeof first);}
+
+	void Dinic() {
+		int f;
+		for (cost = flow = 0; bfs(); ) {
+			memcpy(cur, first, sizeof cur);
+			memset(used, 0, sizeof used);
+			flow += f = dfs(si, INT_MAX);
+			cost += dep[si] * f;
+		}
+	}
+}
+
+ll solve(int num) {
+	int i, j;
+	std::fill(xl, xl + num, 1), std::fill(xu, xu + num, 100);
+	std::fill(yl, yl + num, 1), std::fill(yu, yu + num, 100);
+	for (i = 0; i &lt; m; ++i) if (c[i].lim &lt; num)
+		switch (c[i].ty) {
+			case 76: up(xl[ c[i].lim ], c[i].pos + 1); break;
+			case 68: up(yl[ c[i].lim ], c[i].pos + 1); break;
+			case 82: down(xu[ num - c[i].lim - 1 ], c[i].pos - 1); break;
+			case 85: down(yu[ num - c[i].lim - 1 ], c[i].pos - 1); break;
+		}
+	for (i = 1; i &lt; num; ++i) up(xl[i], xl[i - 1]), up(yl[i], yl[i - 1]);
+	for (i = num - 2; i &gt;= 0; --i) down(xu[i], xu[i + 1]), down(yu[i], yu[i + 1]);
+	CF::reset();
+	for (i = 0; i &lt; num; ++i) {
+		CF::addedge(1, 203 + i, 0, 1), CF::addedge(203 + num + i, 2, 0, 1);
+		for (j = xl[i]; j &lt;= xu[i]; ++j) CF::addedge(203 + i, 2 + j, 0, 1);
+		for (j = yl[i]; j &lt;= yu[i]; ++j) CF::addedge(102 + j, 203 + num + i, 0, 1);
+	}
+	for (i = 0; i &lt; n; ++i) CF::addedge(2 + a[i].x, 102 + a[i].y, -a[i].v, 1);
+	CF::Dinic();
+	return CF::flow == num ? -CF::cost : 0;
+}
+
+int main() {
+	int i; ll ans = 0;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) a[i].read();
+	scanf("%d", &amp;m);
+	for (i = 0; i &lt; m; ++i) c[i].read();
+	for (i = 1; i &lt;= n; ++i) up(ans, solve(i));
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在确定完 $xl, xu, yl, yu$ 时，别忘记做类似 $xl_{i+1} \uparrow xl_i$ 等操作，以保持 $x_i$ 的单调性。</p>
+		<p><strong>坑2：</strong>不要忘记判断流是否是满流，否则这个费用是无效的。</p>
+	</body>
+</html>
