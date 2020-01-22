@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4169,Regular100F]Colorful Sequences</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定正整数 $N, K$ 和一个长度为 $M$ 的序列 $A$。</p>
+		<p>对于一个取值为 $\left[ 1, K \right]$ 中整数的序列，它被称为<em>多彩的</em>，如果序列中存在一个<strong>长度为 $K$ 的 (连续) 子段</strong>，恰包含 $1 \sim K$ 中的数各一次。</p>
+		<p>你需要对所有的长度为 $N$ 的<em>多彩的</em>序列，统计 $A$ 作为 (连续) <strong>子段</strong>的出现次数 (可重叠) 之和。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $N, K, M$ ($1 \leq M \leq N \leq 25000; 1 \leq K \leq 400$)，分别表示目标序列的长度，值域大小以及 $A$ 序列的长度。</p>
+		<p>第二行包含 $M$ 个正整数 $A_1, A_2, \cdots, A_M$ ($1 \leq A_i \leq K$)，描述序列 $A$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有长度为 $N$ 的<em>多彩的</em>序列中，$A$ 的出现次数之和模 $10^9 + 7$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>首先，如果没有 <em>"多彩的"</em> 这一限制，那么答案是非常容易求的：</p>
+		<p>只需要交换求和次序，枚举<strong>每个位置上的 $A$</strong>，剩下 $N - M$ 个位置自然就有 $K^{N - M}$ 种不同填法。而 $A$ 的不同位置有 $N - M + 1$ 个，因此总数就是 $K^{N - M} \cdot \left( N - M + 1 \right)$。</p>
+		<p>那现在有 <em>"多彩的"</em> 这一限制又该怎么办呢？我们使用减法原理，去考虑<strong>非<em>多彩的</em>序列产生的贡献</strong>，然后用总数相减。这样的一个好处是，我们将<strong>存在一个长度为 $K$ 的子段</strong>满足……，转化为了<strong>对任意一个长度为 $K$ 的子段，都不能是 $1 \sim K$ 的全排列</strong>，从而更容易处理。</p>
+		<p>下面我们就开始统计，对于所有长度为 $N$ 的非<em>多彩的</em>序列，$A$ 的出现次数之和，我们记作 $Ans$。</p>
+		<ol>
+			<li><p>首先，如果 $A$ 是<em>多彩的</em>，那么 $Ans = 0$ —— 因为如果一个序列包含 $A$，那么它一定包含长度为 $K$ 的子段为 $1 \sim K$ 全排列，从而它是<em>多彩的</em>。</p>
+			<p>于是我们下面只需要讨论 $A$ 非<em>多彩的</em>情形。</p></li>
+			<li><p>如果 $A$ 非<em>多彩的</em>，那么根据是否存在跨越 $A$ 的多彩子段，又分为两种情形：</p>
+			<p><strong style="color: fuchsia">存在某种方案，使得存在一个长度为 $K$ 的序列，跨越了整个 $A$，且它是 $1 \sim K$ 的排列。</strong></p>
+			<p>从而容易推得，<strong style="color: green">$A$ 中的 $M$ 个数一定互不相同，且 $M \leq K$</strong>。</p>
+			<p>由对称性知，此时的答案只和 $M$ 有关，而和具体是哪 $M$ 个数无关。</p>
+			<p>我们的所求等价于：<strong style="color: red">对所有的非<em>多彩的</em>序列，长度为 $M$ 的值互不相同的子段个数之和</strong>，设这个值为 $U$。</p>
+			<p>又因为长度为 $M$ 的值互不相同的序列共有 $A_K^M = K^\underline M$ 个，于是 $\color {blue} {Ans = \dfrac U {K^\underline M}}$，问题转化为了求 $U$。</p>
+			<p>在这之前，我们需要一个小小的前置技能：求非<em>多彩的</em>序列总数。<del>这其实是一个 DP 入门练习题</del>。</p>
+			<div class="panel panel-info">
+				<div class="panel-heading">求非<em>多彩的</em>序列总数</div>
+				<div class="panel-body">
+					<p>寻着自动机的本质去看 DP，我们尝试去寻找本质不同的状态。</p>
+					<p>如果按照 "在后面加字符/数" 的思想来看待，状态 (等价类) 可以按照<strong>最长的满足元素互不相同的后缀的长度</strong>来划分。</p>
+					<p>于是，本质不同的状态 (等价类) 就只有 $K - 1$ 个了：$P = 1, P = 2, \cdots, P = K - 1$，其中 $P$ 表示最长的满足元素互不相同的后缀长度 (下简称<strong style="color: olive">最长多彩后缀</strong>，先不考虑空序列)。</p>
+					<p>举个例子吧：$\left[ \cdots, \color {fuchsia} 3, \color {fuchsia} 3 \right]$ 就属于状态 $1$，$\left[ \cdots, \color {fuchsia} 2, \color {fuchsia} 2, 5 \right]$ 和 $\left[ \cdots, 1, \color {fuchsia} 4, 1, \color {fuchsia} 4 \right]$ 就属于状态 $2$，……，$\left[ \cdots, \color {fuchsia} 1, 3, \color {fuchsia} 1, 0, 7, 2 \right]$ 属于状态 $5$。</p>
+					<p>我们考虑状态之间的转移边：</p>
+					<p>假设起点为 $s$。那么终点 $t$ 显然 $\leq s + 1$。</p>
+					<p>如果 $t \leq s$，那么可以发现转移边其实是唯一的 —— 就是倒数第 $t$ 个字符，剩下的 $K - s$ 条边全部转移到状态 $s + 1$。</p>
+					<p>于是，我们就得到了一个 $K - 1$ 个点的 <abbr title="Deterministic Finite-state Automaton, 确定性有限状态自动机">DFA</abbr>，从而就可以在这个 <abbr title="Deterministic Finite-state Automaton, 确定性有限状态自动机">DFA</abbr> 上 DP 了：只需要用 $f_i$ 表示在状态 $i$ 的串的个数即可，转移时沿着转移边转移就行了。</p>
+				</div>
+			</div>
+			<p>考虑统计长度为 $M$ 的值的序列个数，和 <a href="../index.html?redirect=252" target="_blank">[SimpleOJ288]掘地求升</a> 类似，考虑从<strong>魔法</strong>的角度去理解。</p>
+			<p>具体地，我们每经过一个「<strong>$\geq M$ 的状态</strong>」，可以选择使用一次魔法，然后转移到底。注意魔法必须恰好使用一次。</p>
+			<p>这样，我们就将一个非<em>多彩的</em>序列的单位 "$1$"，转化为了它里面<strong>长度为 $M$ 的值互不相同的序列总数</strong>，从而就达到了目的。</p>
+			<p>也就是说，在实现时，我们外面再记一维布尔 ($0/1$) 状态，表示是否使用 "魔法" (下面代码中用 <code>c[]</code> 表示未使用魔法，用 <code>d[]</code> 表示已使用魔法)。</p>
+			<p>从而这一部分的问题我们已经解决。</p></li>
+			<li><p><strong style="color: fuchsia">不可能存在一个长度为 $K$ 的序列，包含了整个 $A$，且它是 $1 \sim K$ 的排列。</strong></p>
+			<p>等价地，<strong style="color: green">$A$ 中存在相同元素</strong>。</p>
+			<p>从而多彩子段只有三种情形：与 $A$ 不交，外面的一段 $\cdot$ $A$ 的前缀，$A$ 的后缀 $\cdot$ 外面的一段。</p>
+			<p>首先，可以在 $A$ 中找到<strong>最长多彩前缀</strong>的长度 $pre$，以及<strong>最长多彩后缀</strong>的长度 $suf$，然后分别进行 DP。</p>
+			<p>不妨设我们已经固定了 $A$ 的位置，那么在考虑后缀以后的部分 (设长度为 $l_s$)，可以先将自动机调整到状态 $suf$，然后 DP $l_s$ 的长度 (即转移 $l_s$ 遍)；对于前缀，可以将整个串<em>翻转过来</em>，然后就相当于将自动机调整到状态 $pre$，然后 DP $l_p$ 的长度。由乘法原理，将两边乘起来就是 ($A$ 在这个位置上的) 答案。</p>
+			<p>最后只需将不同 $A$ 的位置上的答案都加起来。由于 $pre$ 和 $suf$ 是固定的，因此我们可以预先对其都直接 DP $N - M$ 的长度，然后做个卷积状物就可以了。</p></li>
+		</ol>
+		<p>考虑单次转移，由于自动机的状态数为 $K - 1$，因此朴素转移是 $O \left( K^2 \right)$ 的。不过，可以对 DP 进行<strong>前缀和优化</strong>来优化到 $O \left( K \right)$。</p>
+		<p>又转移次数为 $O \left( N \right)$，因此总时间复杂度 $O \left( N K \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 25400, K = 432, mod = 1000000007;
+
+int n, m, R;
+int a[N], c[K], d[K];
+int f[N], g[N];
+int fact[K], finv[K];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(int n) {
+	int i;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+inline ll iA(int n, int r) {return (ll)finv[n] * fact[n - r] % mod;}
+
+namespace DP {
+	int B1[K];
+
+	inline void step(int *f) {
+		int i, g = mod - f[R - 1];
+		memcpy(B1, f, R &lt;&lt; 2), *B1 = B1[1];
+		for (i = R - 1; i; --i) f[i] = (B1[i - 1] * (R - i + 1ll) + g) % mod;
+	}
+
+	inline void init(int *f) {
+		int i; f[R] = 0;
+		for (i = R - 1; i; --i) add(f[i], f[i + 1]);
+	}
+
+	inline void trans(int len, int *f, int *g) {
+		int i; *g = f[1];
+		for (i = 1; i &lt;= len; ++i) step(f), g[i] = f[1];
+	}
+}
+
+int main() {
+	int i, j, l = 0, r = 0, x, kinds = 0, ans = 0, I;
+	scanf("%d%d%d", &amp;n, &amp;R, &amp;m), init(K);
+	I = PowerMod(R, n - m, n - m + 1);
+	for (i = 0; i &lt; m + R; ++i) {
+		if (i &lt; m) {
+			scanf("%d", a + i), kinds += !c[ x = a[i] ]++;
+			if (c[x] == 2) l || (l = i);
+		}
+		if (i &gt;= R) {
+			kinds -= !--c[ x = a[i - R] ];
+			if (c[x] == 1) r = m - (i - R) - 1;
+		}
+		if (kinds == R) return printf("%d\n", I), 0;
+	}
+	assert(R &gt; 1), memset(c, 0, (R + 1) &lt;&lt; 2);
+	if (l) {
+		assert(l &lt; R &amp;&amp; r &lt; R);
+		c[l] = 1, DP::init(c), DP::trans(n - m, c, f);
+		d[r] = 1, DP::init(d), DP::trans(n - m, d, g);
+		for (i = 0; i &lt;= n - m; ++i) ans = (ans + (ll)f[i] * g[n - m - i]) % mod;
+	} else {
+		assert(m &lt; R);
+		c[1] = R, DP::init(c);
+		d[1] = (m == 1 ? R : 0), DP::init(d);
+		for (i = 1; i &lt; n; ++i) {
+			DP::step(c), DP::step(d);
+			for (j = 0; j &lt; m; ++j) add(d[j], c[m]);
+			for (; j &lt; R; ++j) add(d[j], c[j]);
+		}
+		ans = d[1] * iA(R, m) % mod;
+	}
+	ans = I - ans;
+	printf("%d\n", ans + (ans &gt;&gt; 31 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>DP 时可以适当使用滚动数组或直接压缩，防止 $O \left( N K \right)$ 的空间引起的 MLE。</p>
+		<p><strong>坑2：</strong>在前缀和优化的时候注意 "施魔法" 转移的方程，不要写漏了。</p>
+	</body>
+</html>

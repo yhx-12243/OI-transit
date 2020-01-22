@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4163,Regular99F]Eating Symbols Hard</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个无限长的纸带，分为了无穷多个格子，标号分别为 $\cdots, -2, -1, 0, 1, 2, \cdots$，每个格子写有一个数，标号为 $i$ 的格子上的数为 $A_i$，还有一个指针 (读写头) $P$。</p>
+		<p>初始时，$P = 0$，所有的 $A_i = 0$。</p>
+		<p>现在给定一段 <del>Brainfuck 语言的</del>代码，由 <code>+</code>, <code>-</code>, <Code>&gt;</Code>, <code>&lt;</code> 四种字符构成，它们的含义分别如下：</p>
+		<ul>
+			<li><p><code>+</code>：令 $A_P \gets A_P + 1$。</p></li>
+			<li><p><code>-</code>：令 $A_P \gets A_P - 1$。</p></li>
+			<li><p><code>&gt;</code>：令 $P \gets P + 1$。</p></li>
+			<li><p><code>&lt;</code>：令 $P \gets P - 1$。</p></li>
+		</ul>
+		<p>现在给定一段长度为 $N$ 的代码 $S$。Takahashi 想要选择一个子串 $S \left[ i .. j \right]$ ($1 \leq i \leq j \leq N$) 并执行它。</p>
+		<p>已知，执行完后的纸带和执行<strong>整段代码</strong>后的纸带是<strong>完全相同的</strong> (忽略指针位置)，问一共有多少种可行的有序对 $\left( i, j \right)$ (包括 $\left( 1, n \right)$)？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($1 \leq N \leq 2.5 \times 10^5$)，表示代码的长度。</p>
+		<p>第二行包含一个由 <code>+</code>, <code>-</code>, <Code>&gt;</Code>, <code>&lt;</code> 构成的字符串 $S$ ($\left| S \right| = N$)，描述这段 <del>Brainfuck</del> 代码。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的有序对的个数。</p>
+
+		<h3>题解</h3>
+		<p>直接模拟这个过程显然不是非常合理，我们考虑如何刻画一个子串产生的 "纸带"。</p>
+		<p>经过少许思考后可以发现，<strong>多项式</strong>是一个比较明智的选择：我们用 $\left[ x^i \right]$ 项系数来表示标号为 $i$ 的格子上的数 (即 $A_i$)。当然，这里需要做一点扩展：允许这个多项式可以由负指数。</p>
+		<p>那么，如何将一个操作序列 (代码) 转换为一个结果多项式呢？</p>
+		<p>首先，从前往后添加字符显然是不行的，因为你无法记录指针的状态。</p>
+		<p>那就只能从后往前添加字符了：我们设<strong>原来的多项式</strong>为 $F \left( x \right)$，<strong>最终的多项式</strong>为 $G \left( x \right)$，<strong>第一个字符</strong>为 $c$，分两种情况讨论：</p>
+		<ol>
+			<li><p>$c = \texttt +/\texttt -$。</p>
+			<p>由于<strong>初始状态</strong>满足 $P = 0$，因此 $G \left( x \right) = F \left( x \right) \pm 1$，具体是 $+ 1$ 还是 $- 1$，取决于 $c = \texttt +$ 还是 $\texttt -$。</p></li>
+			<li><p>$c = \texttt &gt;/\texttt &lt;$。</p>
+			<p>以 $c = \texttt &gt;$ 为例，此时我们将指针向右移动了一格，于是后缀代码中对 $A_i$ 的影响其实就是<strong>原代码中对 $A_{i+1}$ 的影响</strong>。从而，有 $G \left( x \right) = x \cdot F \left( x \right)$。</p>
+			<p>类似地，如果 $c = \texttt &lt;$，则 $G \left( x \right) = x^{-1} \cdot F \left( x \right)$。</p></li>
+		</ol>
+		<p>于是，每个字符 $S_i$ 可以对应到一个<em>自变量和函数值均为多项式的函数</em> $F_i$，而代码 $S \left[ l .. r \right]$ 运行的结果就是这些函数<strong>从右到左依次复合的结果</strong>：$$ \left( F_l \circ F_{l+1} \circ F_{l+2} \circ \cdots \circ F_{r-1} \circ F_r \right) \left( 0 \right) $$</p>
+		<p>而现在的条件就转化为了 $$ \left( F_l \circ F_{l+1} \circ F_{l+2} \circ \cdots \circ F_{r-1} \circ F_r \right) \left( 0 \right) = \left( F_1 \circ F_2 \circ F_3 \circ \cdots \circ F_{N-1} \circ F_N \right) \left( 0 \right) \tag 1 \label 1 $$</p>
+		<p>等式右边是<strong>确定的多项式</strong> (可以类比 "常数")，记作 $in \left( x \right)$，于是 $\eqref 1 \Leftrightarrow$ $$ \left( F_l \circ F_{l+1} \circ F_{l+2} \circ \cdots \circ F_{r-1} \circ F_r \right) \left( 0 \right) = in \left( x \right) $$</p>
+		<p>两端左<del>乘</del>复合上函数 $\left( F_1 \circ F_2 \circ \cdots \circ F_{l-1} \right)$，得 $$ \left( F_1 \circ F_2 \circ F_3 \circ \cdots \circ F_{r-1} \circ F_r \right) \left( 0 \right) = \left( F_1 \circ F_2 \circ F_3 \circ \cdots \circ F_{l-2} \circ F_{l-1} \right) \left[ in \left( x \right) \right] \tag 2 \label 2 $$</p>
+		<p>于是我们只需要统计满足 $\eqref 2$ 式且 $l \leq r$ 的 $\left( l, r \right)$ 有序对的个数即可。</p>
+		<p>而满足 $\eqref 2$ 式中形式 ($\left( F_1 \circ F_2 \circ \cdots \circ F_k \right) \left( 0 \right)$ 或 $\left( F_1 \circ F_2 \circ \cdots \circ F_k \right) \left[ in \left( x \right) \right]$) 的多项式一共只有 $2 N$ 个，于是只需要判断这 $2 N$ 个多项式的相等关系。</p>
+		<p>具体地，令 $i \gets 1$ 到 $N$，对每个 $k$，先在集合中查询有多少个 $k &lt; i$ 满足 $\left( F_1 \circ F_2 \circ \cdots \circ F_i \right) \left( 0 \right) = \left( F_1 \circ F_2 \circ \cdots \circ F_k \right) \left[ in \left( x \right) \right]$，然后再在集合中插入 $\left( F_1 \circ F_2 \circ \cdots \circ F_i \right) \left[ in \left( x \right) \right]$ 即可。</p>
+		<hr />
+		<p>于是，最后的问题是，如何用快速地方法计算函数的复合，以及比较它们<strong>是否相等</strong>？</p>
+		<p>这里不难想到使用 <strong>Hash</strong> 算法。我们挑选若干个底数 $x_i$ 和模数 $mod_i$，计算出若干组 $F \left( x_i \right) \bmod mod_i$ 的结果，来代表这个多项式。</p>
+		<p>首先，每个函数 $F_i$ 就变成了<strong>一次函数</strong>，容易在 $O \left( 1 \right)$ 时间内完成复合。</p>
+		<p>其次，两个多项式相等的<strong>必要条件</strong>就是这些代表元 ($F \left( x_i \right) \bmod mod_i$) 均相等。不过由于这是必要条件，因此有一定的概率满足代表元相等但是多项式不相等 (Hash 碰撞)。我们来简单分析一下 Hash 碰撞的概率。</p>
+		<p>如果两个多项式不恒等但计算结果相等，说明我们选取的底数 $x_i$ 是这个模多项式的<strong>根</strong>。而事实上，这个多项式的根不会超过 $2 N$ 个 (将负指数乘上来，不妨假设 $mod$ 是素数)，因此单次碰撞的概率不超过 $\dfrac {2 N} {mod}$。</p>
+		<p>从而，如果我们选取了 $k$ 个 (底数, 模数) 对，碰撞概率就不超过 $\left( \dfrac {2 N} {mod} \right)^k$，从而所有 $N^2$ 对候选多项式，<strong>至少一对</strong>发生碰撞的概率<strong>严格小于</strong> $N^2 \left( \dfrac {2 N} {mod} \right)^k$，若取 $mod \approx 10^9$，取 $k = 5 \sim 6$ 就足够了 (前者概率约为 $2 \times 10^{-6}$，后者概率约为 $10^{-9}$)。</p>
+		<p>总时间复杂度 $O \left( k \cdot N \right)$，需要注意常数。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 254000;
+
+namespace hasher {
+	typedef std::array &lt;int, 6&gt; num;
+	const int mod[6] = {900000011, 998244353, 1000000007, 1000000009, 1004535809, 1100000009};
+
+	inline void add(int &amp;x, const int y, const int mod) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+	inline void sub(int &amp;x, const int y, const int mod) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+	inline void mul(int &amp;x, const int y, const int mod) {x = (ll)x * y % mod;}
+	#define DEF_OPERATOR(op, func) inline num operator op (const num &amp;A, const num &amp;B) {num C(A); return func(C[0], B[0], mod[0]), func(C[1], B[1], mod[1]), func(C[2], B[2], mod[2]), func(C[3], B[3], mod[3]), func(C[4], B[4], mod[4]), func(C[5], B[5], mod[5]), C;}
+	DEF_OPERATOR(+, add)
+	DEF_OPERATOR(-, sub)
+	DEF_OPERATOR(*, mul)
+
+	struct _hash_ {inline size_t operator () (const num &amp;x) const {return x[0] + 20030731ull * x[1] + 401230184394361ull * x[2] + 12600220620188154931ull * x[3] + 12293446969008436529ull * x[4] + 17407636028038340123ull * x[5];}};
+
+	num X, Xi, _0, _1, in;
+	std::mt19937 gen;
+
+	ll PowerMod(ll a, int n, ll mod, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+	inline int uniform(int l, int r) {return std::uniform_int_distribution &lt;int&gt; (l, r) (gen);}
+
+	inline void init() {
+		char *_ = new char; gen.seed(time(NULL) + (size_t)_),delete _;
+		_0.fill(0), _1.fill(1);
+		for (int i = 0, S; i &lt; 6; ++i)
+			S = sqrt(mod[i]), X[i] = uniform(S, mod[i] - S),
+			Xi[i] = PowerMod(X[i], mod[i] - 2, mod[i]);
+	}
+}
+using namespace hasher;
+
+typedef std::unordered_map &lt;num, int, _hash_&gt; map;
+
+struct linear {
+	num k, b;
+	linear () {}
+	linear (const num &amp;_k, const num &amp;_b) : k(_k), b(_b) {}
+	inline linear operator * (const linear &amp;B) const {return linear(k * B.k, k * B.b + b);}
+	inline num operator () (const num &amp;x) const {return k * x + b;}
+};
+
+int n;
+char s[N];
+linear f[N];
+map M;
+
+int query(const num &amp;x) {
+	map::iterator it = M.find(x);
+	return it == M.end() ? 0 : it-&gt;second;
+}
+
+int main() {
+	int i; ll ans = 0; num in(_0);
+	init(), scanf("%d%s", &amp;n, s + 1);
+	for (i = 1; i &lt;= n; ++i)
+		switch (s[i]) {
+			case 43: f[i] = linear(_1, _1); break;
+			case 45: f[i] = linear(_1, _0 - _1); break;
+			case 60: f[i] = linear(Xi, _0); break;
+			case 62: f[i] = linear(X, _0); break;
+		}
+	for (in = _0, i = n; i; --i) in = f[i](in);
+	linear t(_1, _0); M.reserve(n + 1), M.rehash(20030731);
+	for (i = 0; i &lt;= n; t = t * f[++i]) ans += query(t(_0)), ++M[t(in)];
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>具体实现时可以使用 <code>unordered_map</code> 来代替 <code>map</code> 来减小常数。当然有条件也可以使用 <code>std::sort</code>。</p>
+		<p class="text-muted"><strong>坑2：</strong>Hash 的时候尽量随机底数，防止被 Hack。</p>
+	</body>
+</html>

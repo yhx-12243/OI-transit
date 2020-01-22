@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4144,Regular98F]Donation</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张 $N$ 个点 $M$ 条边的连通无向简单图，顶点标号为 $1, 2, \cdots, N$。每个点有两个参数 $A_i, B_i$。你需要在图上玩如下一个 "游戏"：</p>
+		<p>首先，你选择一个点 $s$ 作为起点，并带好 $W$ 元钱，你需要保证 $A_s \leq W$。然后，你可以按任意顺序重复下列两种操作若干次：</p>
+		<ul>
+			<li><p>选择与当前顶点 $v$ 相邻的点 $u$ ($u \in N \left( v \right)$)，并走到 $u$，前提条件是你需要满足<strong>你当前剩余的钱数 $\geq A_u$</strong>。</p></li>
+			<li><p>给当前点 $v$ 做一次 $B_v$ 元的<em>捐款</em>。</p></li>
+		</ul>
+		<p>当你<strong>对每个顶点<em>捐款</em>至少一次后</strong>，你就赢得了游戏。求如果要赢得游戏，$W$ 的最小值是多少。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $N, M$ ($1 \leq N \leq 10^5; N - 1 \leq M \leq 10^5$)，表示图的点数和边数。</p>
+		<p>接下来 $N$ 行，每行两个正整数 $A_i, B_i$ ($1 \leq A_i, B_i \leq 10^9$)，表示每个点的两个参数。</p>
+		<p>最后 $M$ 行，每行两个正整数 $U_i, V_i$ ($1 \leq U_i &lt; V_i \leq N$)，描述图中的一条边。</p>
+		<p>保证图是连通的无向简单图。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $W$ 的最小可能值。</p>
+
+		<h3>题解</h3>
+		<p>首先，如果一个点被经过了多次，我们可以将捐款移动到<strong>最后一次</strong>进行，而不影响可行性。</p>
+		<p>于是，如果 $A_i &lt; B_i$，则由于我们移动到这个点的时候肯定是没有捐款的，因此我们可以令 $A'_i \gets B_i$</p>
+		<p>因此，下面定义 $C_i = A'_i - B_i \geq 0$，它表示这个点捐款完毕后至少有的钱数，同时也等于<strong>要离开这个点时，至少所需的钱数</strong>。</p>
+		<p>设 $v$ 是 $C$ 最大的点 ($C_v = \max \left\{ C_1, C_2, \cdots, C_N \right\}$)，考察最后一次经过点 $v$ 时，我们做了一次 $B_v$ 的捐款。</p>
+		<p>于是，<span style="color: fuchsia">在<strong>这次捐款</strong>之前，<strong>所有点是可以随意进出的</strong></span>：因为其它点的 $C$ 都比这个小。</p>
+		<p>因此在<strong>最后一次</strong>对 $v$ 捐款完毕后，$v$ 这个点就再也不会回来了，因此可以将它删掉。</p>
+		<p>设将 $v$ 删掉后，原图分成了若干个 (可以为 $1$ 个) 连通分量 $G_1, G_2, \cdots, G_k$。</p>
+		<p>那么，我们还是<strong>只能选择一个连通分量进去</strong>，然后就无法出来了 (这针对 $k &gt; 1$ 的情形，此时 $v$ 是当前图的<em>割点</em>)。</p>
+		<p>于是，整个过程一定是这样的：在离开 $v$ 之前，我们已经对 $k - 1$ 个连通分量捐款完毕了，然后进入最后一个连通分量 $G_i$。</p>
+		<p>而事实上，<span style="color: fuchsia">粉色</span>性质保证了，<strong style="color: blue">在前面的过程中，我们不会开小差地去给 $G_i$ 中的点捐款</strong> —— 因为我们可以完全移到 $v$ 捐款完毕后再捐。<span class="text-muted">(因为 $v$ 的 $C$ 是<strong>最大</strong>的，你用顺序 $w \to v$ 都能保证最后的钱数 $\geq C_v$，那么你用顺序 $v \to w$ 更能保证最后的钱数 $\geq C_w$ 了)</span></p>
+		<p>然后可以发现，接下来在那个连通分量 $G_i$ 中干的事情，可以看成原问题的一个<strong>子问题</strong>，从而就能递归求解。</p>
+		<hr />
+		<p>我们考虑这整个递归过程，如果我们把每个 $G_i$ 都去搜一下，就可以搜出一个树形结构 (类似 Kruskal 重构树的一种东西)。</p>
+		<p>我们的操作过程是这样的：设根节点 $r$ 有 $c$ 棵子树，考虑最后一次到达 $r$，则它的 $c - 1$ 棵子树已经访问完毕，然后对 $r$ 捐款，进入最后一棵子树，转化为原问题的一个子问题。</p>
+		<p>由于整个问题有着明显的最优子结构性质，因此考虑使用 (树形) DP。</p>
+		<p>设 $f_i$ 表示以 $i$ 为根的子树的捐款完毕，至少需要准备的钱数。那么答案显然就是 $f_r$。</p>
+		<p>我们设最后一次进入的子树为 $c$，则<strong>在离开 $i$ 正要进入 $c$ 时</strong>，你的钱数的下界应是 $\max \left\{ C_i, f_c \right\}$，由 DP 的定义知，这个下界也是可以达到的。</p>
+		<p>设 $\mathcal B_v$ 表示以 $v$ 为根的子树的 $B$ 之和 (子树总捐款额)，于是前面 $\mathcal B_i - \mathcal B_c$ 元的捐款，必须在过程「在离开 $i$ 正要进入 $c$ 时」之前完成，从而此时有 $\color {fuchsia} {f_i = \max \left\{ C_i, f_c \right\} + \left( \mathcal B_i - \mathcal B_c \right)}$。</p>
+		<p>对所有子树取 $\min$，即得转移方程 $$ f_i = \min_{c \in child \left( i \right)} \left( \max \left\{ C_i, f_c \right\} + \left( \mathcal B_i - \mathcal B_c \right) \right) $$</p>
+		<hr />
+		<p>于是我们只需要构建出整棵树就可以了呢。</p>
+		<p>考虑类似 Kruskal 重构树的写法，不过这回我们不是对边排序，而是对<strong>顶点</strong>进行排序，排序方式是<strong>按照 $c_i$ 升序排序</strong>。</p>
+		<p>具体地，每加入一个点 $v$，我们枚举当前剩下的点 (连通块)，看看哪些能作为它的子节点。其实就是遍历它的邻域，如果有已经存在的<strong>子树的根节点</strong> $r_0$ (代表一个 $C$ 比它小的连通块)，则令 $p_{r_0} = v$ 即可。</p>
+		<p>用并查集维护连通性，顺便维护 $B_i$ 的总和 $\mathcal B_i$。由于在连完所有边后才能知道 $\mathcal B_i$，因此转移时可以先 $f_i \downarrow \max \left\{ C_i, f_c \right\} - \mathcal B_c$，最后再 $f_i \gets f_i + \mathcal B_i$ 即可。</p>
+		<p>时间复杂度 $O \left( N \cdot \alpha \left( N \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 100054, M = N * 2;
+
+int V, E, Es = 0;
+int a[N], d[N], o[N];
+int to[M], first[N], next[M];
+int p[N];
+bool used[N];
+ll D[N], f[N];
+
+inline int doz(int x) {return ~(x &gt;&gt; 31) &amp; x;}
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+inline ll max(const ll x, const ll y) {return x &lt; y ? y : x;}
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+inline void addedge(int u, int v) {
+	to[++Es] = v, next[Es] = first[u], first[u] = Es;
+	to[++Es] = u, next[Es] = first[v], first[v] = Es;
+}
+
+int main() {
+	int i, j, u, v; ll c;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 1; i &lt;= V; ++i) scanf("%d%d", a + i, d + i), a[i] = doz(a[i] - d[i]), D[i] = d[i];
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	std::iota(p, p + (V + 1), 0), std::iota(o, o + V, 1);
+	std::sort(o, o + V, [] (const int x, const int y) {return a[x] &lt; a[y];});
+	for (i = 0; i &lt; V; ++i) {
+		used[u = o[i]] = true, c = a[u];
+		for (j = first[u]; j; j = next[j])
+			if (used[to[j]] &amp;&amp; (v = ancestor(to[j])) != u)
+				p[v] = u, D[u] += D[v], down(c, max(f[v], a[u]) - D[v]);
+		f[u] = D[u] + c;
+	}
+	printf("%lld\n", f[u]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在合并时记一个 <code>used[]</code> 标记，不要将 $C$ 较大的点设为子节点了。</p>
+		<p><strong>坑2：</strong>$\mathcal B_i$ 和 $f_i$ 会超过 <code>int</code>，别忘了使用 <code>long long</code>。</p>
+	</body>
+</html>

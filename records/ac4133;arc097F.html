@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder4133,Regular97F]Monochrome Cat</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $N$ 个顶点的有根树，顶点标号为 $1, 2, \cdots, N$，每个点初始有一个为黑或白的颜色。</p>
+		<p>现在，有一只猫<del class="text-muted">锟</del>在树上的某个顶点出发，按照下列步骤进行若干次操作 (设当前猫所在的顶点为 $v$)：</p>
+		<ul>
+			<li><p>选择顶点 $u \in N \left( v \right)$，<strong>反转点 $u$ 的颜色</strong>，然后移动到顶点 $u$。</p></li>
+			<li><p><strong>反转点 $v$ 的颜色</strong>。</p></li>
+		</ul>
+		<p>猫希望所有顶点的颜色均为黑色。她可以从任何一个顶点出发，到任何一个顶点结束。问她至少需要操作多少次，才能完成他的目的？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 10^5$)，表示树的点数。</p>
+		<p>接下来 $N - 1$ 行，每行两个正整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq N; x_i \neq y_i$)，描述树上的一条边。保证这 $N - 1$ 条边恰好构成一棵树。</p>
+		<p>第 $N + 1$ 行包含一个由 $\texttt W$ 和 $\texttt B$ 构成的字符串 $c$ ($\left| c \right| = N$)，其中 $c_i = \texttt B$ 当且仅当第 $i$ 个顶点在初始时为黑色。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所需操作次数的最小值。</p>
+
+		<h3>题解</h3>
+		<p>首先，如果一棵子树中的点全是黑的，那么容易证明，在最优策略中，这棵子树是<strong>一定不会被经过的</strong>。</p>
+		<p>于是，我们可以将完整的黑色子树去掉，从而得到一棵更 "简单" 的树，满足<strong>所有叶节点都是白色的</strong>。(这样做的一个目的是为了后面分析时的方便，具体实现的方法很多，比如说可以使用 dfs 或类似拓扑排序的方法)</p>
+		<p>当然，如果剩下的白点数为 $0$ 或 $1$，那么答案显然是 $0$ 或 $1$，这可以先特判掉。因此，接下来考虑如何处理一棵 "正常" 的所有叶子都是白色的树。</p>
+		<p>首先我们加强条件：规定起点和终点相同。于是，这只猫走的是一个<strong>回路</strong>。</p>
+		<p>第一个结论是：<strong style="color: green">在最优解中，一条<em>有向边</em>至多被经过 $1$ 次</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>反设 $u \to v$ 被经过了两次，于是 $C = u \to v \overset 1 \leadsto v \to u \overset 2 \leadsto u \to v \overset 3 \leadsto v \to u \overset 4 \leadsto u$，它可以被简化为 $C' = u \to v \overset 1 \leadsto v \overset 3 \leadsto v \to u \overset 2 \leadsto u \overset 4 \leadsto u$，且如果颜色不对了可以通过操作 2「反转当前点颜色」来平衡。</p>
+			</div>
+		</div>
+		<p>既然现在每条有向边经过至多 $1$ 次，那么不难想到整个路径就是树上一个子连通块的 Euler 回路 (因为所有的回路都是 $2-$边连通的，而基图又是树，因此每条边必须走过 $2$ 次)。</p>
+		<p>那这个 "子连通块" 到底是什么呢？我们刚才的假设就有用了：</p>
+		<p>由于所有的叶子都是白色，因此如果这个回路没有经过某个叶子，那么它的颜色就不可能得到修改，从而它就不可能变黑。于是，<strong>这个 Euler 回路需要经过所有的叶子</strong>，那它必须是<strong>整棵树的 Euler 环游序列</strong> (而至于外面的黑色子树，它是一定不会经过的。也就是说，这个方案就是<strong>回路</strong>意义下的最优方案了)。</p>
+		<p>考虑计算对于这个回路，总的操作次数是多少。</p>
+		<p>首先，设最终的 "白叶树" 为 $T = \left( V, E \right)$，则操作 1「移动并反转」的次数只能是 $2 \left| E \right| = 2 \left| V \right| - 2$，至于操作 1「移动并反转」的次数，我们就需要分析如果一个点不做，它会变成什么颜色。</p>
+		<p>我们用 $0$ 表示黑色，$1$ 表示白色。设一个点 $v$ 在 $T$ 中的度数为 $d \left( v \right)$，则这个点最终的颜色将会是 $c_v + d \left( v \right) \pmod 2$。从而，我们需要额外花 $\left( c_v + d \left( v \right) \right) \bmod 2$ 次操作 2「反转当前点颜色」来将 $v$ 变为黑色。</p>
+		<p>综上，回路的答案表达式就是 $$ 2 \left| V \right| - 2 + \sum_{v \in V} \left( \left( c_v + d \left( v \right) \right) \bmod 2 \right) $$</p>
+		<hr />
+		<p>接下来考虑走的是迹的情形。</p>
+		<p>设最终的迹为 $s \leadsto t$，我们最终往后接一段 $t \leadsto s$ 的<strong>最短路</strong>，将会得到树上的一个<strong>回路</strong>。</p>
+		<p>由上分析知，这个回路经过树上所有的边各两次，以及所有的点、</p>
+		<p>于是原迹可以看成完整的 <strong>Euler 环游序列</strong>去除一条<strong>简单路径</strong> ($t \leadsto s$) 的结果。</p>
+		<p>下面证明，在最优解中，$s, t$ 是叶节点。</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>若 $t$ 不是叶节点，那么设 $P = s \overset 1 \leadsto t \to v \overset 2 \leadsto v \to t$ (由前面的性质知 $v$ 不在路径 $s \leadsto t$ 上)，于是它可以被简化为 $P' = s \overset 1 \leadsto t \to v \overset 2 \leadsto v$，其中 $t$ 的颜色至多在额外花 $1$ 次操作进行调整。</p>
+				<p>若 $s$ 不是叶节点，类似设 $P = s \to u \overset 1 \leadsto u \to s \overset 2 \leadsto v$，类似可得到 $P' = u \overset 1 \leadsto u \to s \overset 2 \leadsto v$ 序列比 $P$ 不劣。</p>
+			</div>
+		</div>
+		<p>于是，我们只需要找到一个两个叶节点之间的路径 $t \leadsto s$，使得将 Euler 环游序列去掉它后，操作次数最小 (即<strong>操作次数的减少量</strong>最大)。具体地，分四类情况讨论：</p>
+		<ol>
+			<li><p>$s$。</p>
+			<p>原先 $c_s + d \left( s \right) = 1 + 1 \equiv 0 \pmod 2$，现在它少了一次操作 1「移动并反转」，却多了一次操作 2「反转当前点颜色」，从而减小量为 $0$。</p></li>
+			<li><p>$t$。</p>
+			<p>原先 $c_t + d \left( t \right) = 1 + 1 \equiv 0 \pmod 2$，现在它两种操作的使用次数都不变。</p></li>
+			<li><p>路径 $s \leadsto t$ 之外的点。</p>
+			<p>显然不变。</p></li>
+			<li><p>路径 $s \leadsto t$ 上的点 $v$。</p>
+			<p>若 $c_t + d \left( t \right) \equiv 0 \pmod 2$，则现在少了一次操作 1「移动并反转」，多了一次操作 2「反转当前点颜色」，减小量为 $0$。</p>
+			<p>若 $c_t + d \left( t \right) \equiv 1 \pmod 2$，则现在少了一次操作 1「移动并反转」，同时也少了一次操作 2「反转当前点颜色」，减小量为 $2$。</p></li>
+		</ol>
+		<p>综上，<strong style="color: green">对于路径 $s \leadsto t$ 上所有满足 $c_t + d \left( t \right) \equiv 1 \pmod 2$ 的点 $v$，可以使操作的总次数减少 $2$，其余情况均不影响</strong>。(特别地，$s$ 和 $t$ 一定满足 $c_t + d \left( t \right) \equiv 0 \pmod 2$，从而也不影响，这再次印证了我们最初的假设)</p>
+		<p>于是，我们将每个点的权值赋为 $\left( c_v + d \left( v \right) \right) \bmod 2$，然后求出树的<strong>带权直径</strong> (因为直径的两端自然就是叶子)，最终用回路的答案减去直径的 $2$ 倍，就是我们最终所要的 "迹" 的答案。</p>
+		<p>树的带权直径当然可以两遍 dfs，不过也可以像下面代码一样 <a href="../index.html?redirect=593" target="blank">DP 求解</a>，<del>显得更优雅些</del>。</p>
+		<p>最后，整个问题的时间复杂度仍然是 $O \left( N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 100054, M = N * 2;
+
+int n, V, E = 0, diam;
+int to[M], first[N], next[M];
+int deg[N], que[N], p[N], f[N];
+bool ban[N], val[N];
+char c[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E, ++deg[u];
+	to[++E] = u, next[E] = first[v], first[v] = E, ++deg[v];
+}
+
+void dfs(int x, int px = 0) {
+	int i, y; f[x] = val[x];
+	for (i = first[x]; i; i = next[i])
+		if (!ban[y = to[i]] &amp;&amp; y != px)
+			dfs(y, x), up(diam, f[x] + f[y]), up(f[x], f[y] + val[x]);
+}
+
+int main() {
+	int i, u, v, h, t = 0, ans, root; bool flag = false;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	for (scanf("%s", c + 1), i = 1; i &lt;= n; ++i) flag |= c[i] &amp;= 1;
+	if (!flag) return putchar(48), putchar(10), 0;
+	for (i = 1; i &lt;= n; ++i) if (!c[i] &amp;&amp; deg[i] == 1) que[t++] = i;
+	for (h = 0; h &lt; t; ++h)
+		for (ban[u = que[h]] = true, i = first[u]; i; i = next[i])
+			if (--deg[v = to[i]] == 1 &amp;&amp; !c[v]) que[t++] = v;
+	V = n - t, ans = 2 * (V - 1);
+	for (i = 1; i &lt;= n; ++i) if (!ban[i]) ans += val[i] = (deg[i] ^ c[i]) &amp; 1, root = i;
+	assert(root), dfs(root);
+	printf("%d\n", ans - diam * 2);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>记得特判只有 $0$ 或 $1$ 个白点的情况，前者可能导致拓扑排序无法正常结束，后者可能导致 "叶子" 不满足 $c_t + d \left( t \right) \equiv 0 \pmod 2$。</p>
+		<p><strong>坑2：</strong>注意 DP 求直径的写法，转移不要写反了。</p>
+	</body>
+</html>
