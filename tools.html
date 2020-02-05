@@ -133,22 +133,15 @@
 					$('#rankTable>tbody').empty().append(Rows);
 				});
 
-				$.ajax('https://codeforces.com/api/user.info?handles=' + persons.join(';'), {
-					type: 'GET',
-					crossDomain: true,
-					dataType: 'jsonp',
-					jsonp: 'jsonp',
-					success: parseRanklist,
-					error: () =>
-						$.ajax('https://codeforc.es/api/user.info?handles=' + persons.join(';'), {
-							type: 'GET',
-							crossDomain: true,
-							dataType: 'jsonp',
-							jsonp: 'jsonp',
-							success: parseRanklist,
-							error: () => $('#rankTable>tbody>tr>td').html('Network failed. Please check your network or refresh this page.')
-						})
-				});
+				const cf_url_candidates = ['codeforces.com', 'codeforc.es', 'codeforces.ml'];
+				let recent = getStorage('ranklist-recent');
+				recent = (recent ? JSON.parse(recent) : cf_url_candidates.map((x, i) => i));
+
+				const cf_succ = r => {
+					recent.splice(recent.indexOf(r.id), 1), recent.unshift(r.id);
+					setStorage('ranklist-recent', JSON.stringify(recent));
+					parseRanklist(r.data);
+				}, cf_fail = () => $('#rankTable>tbody>tr>td').html('Network failed. Please check your network or refresh this page.');
 
 				if (getStorage('marquee') === 'on') {
 					$('#status-marquee').html('on').css('color', '#090');
@@ -158,6 +151,43 @@
 				if (getStorage('speed') === 'on') {
 					$('#status-speed').html('on').css('color', '#090');
 					$('#toggle-speed').html('关闭');
+				}
+
+				if (getStorage('ranklist-mode') === 'serial') {
+					$('#status-ranklist-mode').html('顺序请求').css('color', '#090');
+					let f, p = null;
+					for (let i of recent) {
+						f = () => new Promise((fulfill, reject) => {
+							$.ajax('https://' + cf_url_candidates[i] + '/api/user.info?handles=' + persons.join(';'), {
+								type: 'GET',
+								crossDomain: true,
+								dataType: 'jsonp',
+								jsonp: 'jsonp',
+								success: result => fulfill({id : i, data : result}),
+								error: reject
+							});
+						});
+						p = (p ? p.catch(f) : f());
+					}
+					p.then(cf_succ, cf_fail);
+				} else {
+					new Promise((fulfill, reject) => {
+						let error_cnt = 0, handle_err = () => {
+							if (++error_cnt === cf_url_candidates.length)
+								reject();
+						};
+
+						for (let i = 0; i < cf_url_candidates.length; ++i) {
+							$.ajax('https://' + cf_url_candidates[i] + '/api/user.info?handles=' + persons.join(';'), {
+								type: 'GET',
+								crossDomain: true,
+								dataType: 'jsonp',
+								jsonp: 'jsonp',
+								success: result => fulfill({id : i, data : result}),
+								error: handle_err
+							});
+						}
+					}).then(cf_succ, cf_fail);
 				}
 
 				$('#ctrl-marquee').click(function () {
@@ -183,6 +213,16 @@
 						$('#status-speed').html('on').css('color', '#090');
 						$('#toggle-speed').html('关闭');
 						setStorage('speed', 'on');
+					}
+				});
+
+				$('#toggle-ranklist-mode').click(function () {
+					if (getStorage('ranklist-mode') === 'serial') {
+						$('#status-ranklist-mode').html('并行请求').css('color', '#09f');
+						setStorage('ranklist-mode', 'parallel');
+					} else {
+						$('#status-ranklist-mode').html('顺序请求').css('color', '#090');
+						setStorage('ranklist-mode', 'serial');
 					}
 				});
 			});
@@ -263,6 +303,7 @@
 						<p>更多设置 <span style="color: transparent">(将鼠标移到标题栏下方空白处的两端有惊喜哦！)</span></p>
 						<p><label>当前字幕状态：<strong id="status-marquee" style="color: #09f">off</strong></label> <button class="big-button" id="toggle-marquee">开启</button></p>
 						<p><label>极速浏览模式 (敬请期待)：<strong id="status-speed" style="color: #09f">off</strong></label> <button class="big-button" id="toggle-speed">开启</button></p>
+						<p><label>Codeforces rating 排行榜渲染方式：<strong id="status-ranklist-mode" style="color: #09f">并行请求</strong></label> <button class="big-button" id="toggle-ranklist-mode">切换</button><br /><span style="color: #090; font-size: smaller">具体区别可以在开发者模式 (F12) 的「网络」(Network) 中看到。</span></p>
 					</div>
 				</fieldset>
 			</div>

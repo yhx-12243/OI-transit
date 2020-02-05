@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1290F]Making Shapes</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n$ 个两两不共线的向量 $\mathbf v_1, \mathbf v_2, \cdots, \mathbf v_n$，你需要通过它们去组成一个<strong>凸</strong>多边形，具体步骤如下：</p>
+		<ol>
+			<li><p>令 $P = \left( 0, 0 \right)$。</p></li>
+			<li><p>在 $\mathbf v_1, \mathbf v_2, \cdots, \mathbf v_n$ 中选择一个向量 (可以是已经使用过的) $\mathbf v_i$，然后画一条连接 $P$ 和 $P + \mathbf v_i$ 的线段，令 $P \gets P + \mathbf v_i$。</p>
+			</li>
+			<li><p>重复操作 2，直到 $P$ 再次回到原点，不过你需要保证 $P$ 的轨迹构成一个凸多边形。</p></li>
+		</ol>
+		<p>定义两个凸多边形不同，当且仅当不能通过将其中一个平移得到另一个。</p>
+		<p>询问一共能构成多少个不同的凸多边形 $C$，使得 <strong>$C$ 能只通过平移来嵌入到一个边长为 $m$ 的正方形中</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 5; m \leq 10^9$)，表示向量的个数和正方形的边长。</p>
+		<p>接下来 $n$ 行，每行两个整数 $x_i, y_i$ ($-4 \leq x_i, y_i \leq 4; \left( x_i, y_i \right) \neq \left( 0, 0 \right)$)，表示向量 $\mathbf v_i$。保证这些向量两两不共线 (外积不为 $0$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所能构成的不同凸多边形的数量模 $998244353$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>由于这些向量两两不共线 (平行)，因此确定向量的可重集合后，所能构成的凸多边形如果存在，那么一定是唯一的：<strong>即将向量按照极角排序后首尾相接</strong>。</p>
+		<p>于是，我们只需要考虑有多少个使得存在凸多边形的向量可重集 $S$。</p>
+		<p>不难证明，$S$ 中所有向量能构成凸多边形的充要条件是 $S$ 非空且所有向量之和为 $\mathbf 0$。</p>
+		<p>那对于条件<strong>「平移后能嵌入到边长为 $m$ 的正方形中」</strong>又该怎么处理呢？</p>
+		<p>其实不难，它就等价于<strong>所有横坐标为正的向量的横坐标之和 $\leq m$，且所有纵坐标为正的向量纵坐标之和 $\leq m$</strong>。</p>
+		<p>形式化地，我们用每个向量的出现次数 $c_i$ 来表示这个可重集，则 $S$ <strong>满足题目条件</strong>当且仅当下列四个条件成立：</p>
+		<ol>
+			<li><p>$\max \left\{ c_1, c_2, \cdots, c_n \right\} \geq 0$；</p></li>
+			<li><p>$c_1 \mathbf v_1 + c_2 \mathbf v_2 + \cdots + c_n \mathbf v_n = 0$；</p>
+			<li><p>$\displaystyle \sum_{1 \leq i \leq n \wedge x_i \geq 0} c_i x_i \leq m$；</p></li>
+			<li><p>$\displaystyle \sum_{1 \leq i \leq n \wedge y_i \geq 0} c_i y_i \leq m$。</p></li>
+		</ol>
+		<p>条件 1 容易处理，只需要最后求出来后把空集去掉即可；条件 2 又等价于 $$ \sum_{1 \leq i \leq n \wedge x_i &lt; 0} - c_i x_i = \sum_{1 \leq i \leq n \wedge x_i \geq 0} c_i x_i \wedge \sum_{1 \leq i \leq n \wedge y_i &lt; 0} - c_i y_i = \sum_{1 \leq i \leq n \wedge y_i \geq 0} c_i y_i \tag 1 \label 1 $$</p>
+		<p>为了叙述方便，我们用 $X^-, X^+, Y^-, Y^+$ 分别表示 $\eqref 1$ 中的四个和式。</p>
+		<p>于是，我们的目标就是<strong style="color: blue">寻找满足 $X^- = X^+ \leq m \wedge Y^- = Y^+ \leq m$ 的 $c$ 数组个数</strong>。</p>
+		<p>既然是统计不等式限制下的数组个数，又 $m$ 还那么大，那当然使用数位 DP 喽。</p>
+		<p>为了方便，使用二进制下的数位 DP。从低位向高位依次考虑 $\left( c_1, c_2, \cdots, c_n \right)$ 的每一位，那么第 $i$ 位的 $\left( c_1, c_2, \cdots, c_n \right)$ 可以看成一个 $n$ 维 $0/1$ 向量，对于每个向量，我们可以预处理出它对 $X^-, X^+, Y^-, Y^+$ 的贡献分别是多少。</p>
+		<p>于是可以这样设计状态：用 $f_{i, cX^-, cX^+, cY^-, cY^+, bX, bY}$ 表示当前考虑了 (从低到高) $0 \sim i$ 位，$X^-, X^+, Y^-, Y^+$ 向前面的进位分别为 $cX^-, cX^+, cY^-, cY^+$，$bX, bY$ 则表示 $X^+, Y^+$ 与 $m \bmod 2^i$ 的大小关系。</p>
+		<p style="color: red">(ps: 有木有发现，其实这个状态设计和 <a href="../index.html?redirect=397" target="_blank">[uoj140]被粉碎的数字</a> 非常像，只是多了几维而已 [因为变量有 $4$ 个])</p>
+		<p>于是，边界为 $f_{0, 0, 0, 0, 0, 0, 0} = 1$，答案为 $f_{L, 0, 0, 0, 0, 0, 0}$，转移的话，设当前的 $c$ 对 $X^-, X^+, Y^-, Y^+$ 的贡献分别为 $sX^-, sX^+, sY^-, sY^+$，则 $$ i \gets i + 1, cX^- \gets \left \lfloor \frac {cX^- + sX^-} 2 \right \rfloor \text{等三式}, bX \gets \begin{cases} 0 &amp; dX &lt; m_i \\ bX &amp; dX = m_i \\ 1 &amp; u &gt; m_i \end{cases} \text{等一式} $$</p>
+		<p style="color: red">(ps: $m_i$ 表示 $M$ 在二进制下从低到高第 $i$ 位 [0-indexed]，$dX = \left( cX^- + sX^- \right) \bmod 2 = \left( cX^+ + sX^+ \right) \bmod 2$，<strong>且当且仅当 $\left( cX^- + sX^- \right) \bmod 2 = \left( cX^+ + sX^+ \right) \bmod 2 \wedge \left( cY^- + sY^- \right) \bmod 2 = \left( cY^+ + sY^+ \right) \bmod 2$，即 $dX, dY$ 存在时才能进行转移</strong>)</p>
+		<p>最后分析一下时间复杂度，七维的大小上界分别是 $\left \lfloor \log_2 m \right \rfloor + 1, \sum \left| x_i \right|, \sum \left| x_i \right|, \sum \left| y_i \right|, \sum \left| y_i \right|, 2, 2$，单次转移复杂度 $O \left( 2^n \right)$，所以总时间复杂度是为 $O \left( \log m \cdot \left( \sum \left| x_i \right| \right)^2 \left( \sum \left| y_i \right| \right)^2 \cdot 2^n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 32, L = 20, mod = 998244353;
+
+int n, R, ALL;
+int spx[N], snx[N], spy[N], sny[N];
+int dp[2][L][L][L][L][2][2], (*cur)[L][L][L][2][2] = *dp, (*nxt)[L][L][L][2][2] = dp[1];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+int main() {
+	int i, c, d, x, y, v, ox, oy;
+	int cpx, cnx, cpy, cny, ncpx, ncnx, ncpy, ncny;
+	scanf("%d%d", &amp;n, &amp;R), ALL = ~(-1 &lt;&lt; n);
+	for (i = 0; i &lt; n; ++i)
+		scanf("%d%d", &amp;x, &amp;y),
+		x &gt;&gt; 31 ? snx[1 &lt;&lt; i] -= x : spx[1 &lt;&lt; i] += x,
+		y &gt;&gt; 31 ? sny[1 &lt;&lt; i] -= y : spy[1 &lt;&lt; i] += y;
+	for (i = 3; i &lt;= ALL; ++i)
+		spx[i] = spx[i &amp; (i - 1)] + spx[i &amp; -i],
+		snx[i] = snx[i &amp; (i - 1)] + snx[i &amp; -i],
+		spy[i] = spy[i &amp; (i - 1)] + spy[i &amp; -i],
+		sny[i] = sny[i &amp; (i - 1)] + sny[i &amp; -i];
+	******nxt = 1;
+	for (; R; R &gt;&gt;= 1) {
+		c = R &amp; 1, std::swap(cur, nxt), memset(nxt, 0, sizeof *dp);
+		for (cpx = 0; cpx &lt;= spx[ALL]; ++cpx) for (cnx = 0; cnx &lt;= snx[ALL]; ++cnx)
+		for (cpy = 0; cpy &lt;= spy[ALL]; ++cpy) for (cny = 0; cny &lt;= sny[ALL]; ++cny)
+		for (ox = 0; ox &lt; 2; ++ox) for (oy = 0; oy &lt; 2; ++oy)
+			if (v = cur[cpx][cnx][cpy][cny][ox][oy])
+				for (d = 0; d &lt;= ALL; ++d) {
+					ncpx = cpx + spx[d], ncnx = cnx + snx[d];
+					ncpy = cpy + spy[d], ncny = cny + sny[d];
+					if (((ncpx ^ ncnx) | (ncpy ^ ncny)) &amp; 1) continue;
+					add(nxt[ncpx &gt;&gt; 1][ncnx &gt;&gt; 1][ncpy &gt;&gt; 1][ncny &gt;&gt; 1][(ncpx ^ c) &amp; 1 ? !c : ox][(ncpy ^ c) &amp; 1 ? !c : oy], v);
+				}
+	}
+	printf("%d\n", reduce(--******nxt));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1；</strong>具体实现时可以使用滚动数组及非零值优化，因为这个上界实际上非常松。</p>
+		<p><strong>坑2：</strong>转移时不要忘记必要条件 $\left( cX^- + sX^- \right) \bmod 2 = \left( cX^+ + sX^+ \right) \bmod 2 \wedge \left( cY^- + sY^- \right) \bmod 2 = \left( cY^+ + sY^+ \right) \bmod 2$ (为了满足 $X^- = X^+, Y^- = Y^+$)。</p>
+	</body>
+</html>

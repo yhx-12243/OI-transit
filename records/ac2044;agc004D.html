@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2044,Grand4D]Teleporter</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $N$ 座城市，标号为 $1, 2, \cdots, N$，其中 $1$ 号城市是首都。</p>
+		<p>每个城市上有一个传送器，城市 $i$ 上的传送器能将人从城市 $i$ 传送的城市 $a_i$。</p>
+		<p>保证对于 $\forall 1 \leq i \leq N$，存在 $k \in \mathbb N$，使得 $a^\left( k \right)_i = 1$ ($a^\left( k \right)_i$ 表示迭代：$a^\left( 0 \right)_i = i, a^\left( k \right)_i = a \left[ a^\left( k - 1 \right)_i \right]$)。</p>
+		<p>现在给定正整数 $K$，你需要修改若干个 $a_i$，使得对于 $\forall 1 \leq i \leq N$，均满足 $a^\left( K \right)_i = 1$。</p>
+		<p>你希望 $a_i$ 被修改的城市的<strong>数量</strong>尽可能得少，请求出<strong>至少要修改多少个 $a_i$，才能满足上面的条件</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $N, K$ ($2 \leq N \leq 10^5; 1 \leq K \leq 10^9$)，表示城市的数量和给定的传送 (迭代) 次数。</p>
+		<p>第二行包含 $N$ 个正整数 $a_1, a_2, \cdots, a_N$ ($1 \leq a_i \leq N$)，表示每个城市的传送目标。</p>
+		<p>保证对于 $\forall 1 \leq i \leq N$，存在 $k \in \mathbb N$，使得 $a^\left( k \right)_i = 1$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示被修改的 $a_i$ 的数量的最小可能值。</p>
+
+		<h3>题解</h3>
+		<p>将城市看成顶点，传送关系看成有向边，建立有向图 $G$。</p>
+		<p>由于每个点最终都能到达 $1$ 号顶点，说明 $G$ 是一棵<strong>基环内向树</strong>，其中 $1$ 在环上。</p>
+		<p>但是，当然，这里的基环内向树也有退化的情况：环是一个<strong>自环</strong>。此时，把它去掉，就相当于一棵普通的有根树。</p>
+		<p>而所有的基环树一定不满足题目<em>所需性质</em> —— 因为如果环长 $\geq 2$，则对于 $\forall K \in \mathbb N$，它们迭代 $K$ 次 (走 $K$ 条出边) 的结果仍然是这个环的一个排列。</p>
+		<p>于是必然有环长 $= 1$，即这个基环树退化成树。</p>
+		<p>因此，如果 $a_i \neq 1$，我们将最终的答案 $+ 1$ 后，转而讨论 $a_i = 1$ 的情形 —— 即有根树。</p>
+		<p>而一个有根树满足题目<em>所需性质</em>的充要条件是：树上所有顶点的深度不超过 $K$ (因为对 $i$ $K$ 次迭代相当于求 $i$ 的 $\min \left\{ dep_i, K \right\}$ 级祖先，而所有祖先都为 $1$ 说明不存在深度超过 $K$ 的顶点)。</p>
+		<p>设 $f_i$ 表示 $i$ 到 $i$ 子树中的点的最长路径 (即以 $i$ 为根的子树深度)，转移 $f_i = \max\limits_{c \in child \left( i \right)} f_c + 1$ 不用解释了吧。</p>
+		<p>考虑最深的满足 $f_i \geq K - 1$ 的点，记为 $v$，此时必有 $f_i = K - 1$。如果此时 $v$ 不存在或 $v = 1$ 或 $a_v = 1$，说明已经完成目标 (原树深度 $\leq K$)。</p>
+		<p>否则，设 $p_v \neq 1$。则这棵子树中<strong>至少有一个点的 $a_i$ 需要被修改</strong> —— 否则这棵子树中最深的点在 $i$ 步内就只能跳到 $a_v \neq 1$。</p>
+		<p>我们<strong style="color: red">将这棵子树删掉</strong>，对剩下的 "残树" 重复这个过程。我们找到了几棵这样的子树，就说明答案的下界是多少。</p>
+		<p>而这个下界显然可以达到：我们只需<strong>令每棵这样的子树的根的 $a$ 值为 $1$</strong> 就可以了。</p>
+		<p>因此这个下界就是答案，于是我们只需要求出这样的子树个数，dfs 扫一遍即可。</p>
+		<p>时间复杂度 $O \left( N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 100054;
+
+int n, K, ans;
+int p[N], fc[N], nc[N], f[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void link(int x, int px) {nc[x] = fc[px], fc[px] = x;}
+
+void dfs(int x, int dep = 0) {
+	for (int y = fc[x]; y; y = nc[y]) dfs(y, dep + 1), up(f[x], f[y] + 1);
+	if (dep &gt; 1 &amp;&amp; f[x] &gt;= K - 1) ++ans, f[x] = -1;
+}
+
+int main() {
+	scanf("%d%d%d", &amp;n, &amp;K, &amp;ans), ans = ans != 1;
+	for (int i = 2; i &lt;= n; ++i) scanf("%d", p + i), link(i, p[i]);
+	dfs(1), printf("%d\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>记得一棵子树 $v$ 处理完毕后，令 $f_v = - \infty$ (即 <strong>"删掉" 这棵子树</strong>)，以免影响后续的计算。</p>
+	</body>
+</html>

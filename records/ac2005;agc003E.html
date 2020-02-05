@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2005,Grand3E]Sequential operations on Sequence</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个长度为 $N$ 的序列 $A = \left[ 1, 2, \cdots, N \right]$，有 $Q$ 次操作，每次操作通过一个参数 $q_i$ 来描述，具体过程如下：</p>
+		<ul>
+			<li><p>令 $A \gets A^\infty \left[ 1 .. q_i \right]$。即让 $A$ 复制无穷多次，然后取前 $q_i$ 个数。</p>
+		</ul>
+		<p>求 $Q$ 次操作后，$1 \sim N$ 中每个数在最终序列中的出现次数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $N, Q$ ($1 \leq N \leq 10^5; 0 \leq Q \leq 10^5$)，表示序列的长度和操作的次数。</p>
+		<p>接下来 $Q$ 行，每行一个正整数 $q_i$ ($1 \leq q_i \leq 10^{18}$)，依次表示各个操作的参数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $N$ 个整数，第 $i$ 个整数表示 $i$ 在最终序列中的出现次数。</p>
+
+		<h3>题解</h3>
+		<p>首先，容易发现，如果 $q_i &gt; q_{i+1}$，则操作 $i$ 是没有用的。</p>
+		<p>我们不断删去这样的操作，于是可以最终就能得到一个 $q_i$ (严格) 递增的序列，使得最终序列不变。</p>
+		<p>冷静分析后发现，这些 $q_i$ 其实就是原序列的所有<strong>后缀最小值</strong>。</p>
+		<p>于是，我们容易使用<strong>单调栈</strong>来找到这个子序列 $q_i$，于是我们把问题转化为了 $q_i$ 递增的情况。</p>
+		<p>首先，考虑一个特殊的元素 $q_1$。它决定了最终的 "字符集" 是哪些字符。因此，我们可以取 $N \gets \min \left\{ N, q_1 \right\}$ (后面的全部取 $0$ 好了)。</p>
+		<p>于是，整个过程就变得 (相对) 简单了：</p>
+		<p>初始时有一个简单的序列 $\left[ 1, 2, \cdots, n \right]$，每次将一个序列复制若干份 (当然可能最后一个周期是不完整的)，求最终序列每个数的出现次数。</p>
+		<hr />
+		<p>容易想到一个智障 DP：设 $f_{i, j}$ 表示操作 $i$ 次后的序列中，$j$ 的出现次数。特别地，记 $q_0 = N$。</p>
+		<p>则有边界 $f_{0, j} = \left[ 1 \leq j \leq n \right]$ 及转移 $$ f_{i, j} = f_{i-1, j} \cdot \left \lfloor \dfrac {q_i} {q_{i-1}} \right \rfloor + \left( \text{前 $q_i \bmod q_{i-1}$ 个元素中 $j$ 的出现次数} \right) \tag 1 \label 1 $$</p>
+		<p>答案很明显，就是 $f_{Q, j}$ ($j = 1, 2, \cdots, N$)。而这样暴力做复杂度是 $O \left( N \cdot Q \right)$ 的。</p>
+		<p>因此，我们考虑优化这个过程。考虑 $\eqref 1$ 式，如果只看前面部分，是大家都一致的全局乘，而后面 <strong>"前 $q_i \bmod q_{i-1}$ 个元素中 $j$ 的出现次数" 这一部分是较为复杂的</strong>。</p>
+		<p>设 $r = q_i \bmod q_{i-1}$，我们首先尝试找到这样一个下标 $\alpha$，使得 $q_\alpha \leq r &lt; q_{\alpha + 1}$。</p>
+		<p>如果 $N &lt; q_0$，说明这一段是一个前缀 $+ 1$ 操作，还是 hold 住的。</p>
+		<p>否则，我们对于 "前 $r$ 个元素中 $j$ 的出现次数"，我们可以将这个增量 (贡献) 数组其转化为若干个 $f_{\alpha, j}$ 加上 <span style="color: red">"前 $r \bmod q_j$ 个元素中 $j$ 的出现次数"</span>。</p>
+		<p>不难发现，这就得到了原问题的一个<strong>子问题</strong>，于是，我们就考虑<strong>递归处理</strong>。</p>
+		<p>那这样会递归多少层呢？不难发现，我们每次，都将 $r$ 对一个<strong>不超过 $r$ 的数</strong>取模，于是它至少减半，因此至多递归 $\log q_i + O \left( 1 \right)$ 层。</p>
+		<p>接下来考虑一下具体实现，<del>因为数据结构维护这种东西还是有点恶心的</del>。</p>
+		<hr />
+		<p>既然顺着考虑不方便，我们不妨<strong>倒着考虑</strong>。比如说，我们将 $f_{i, j}$ 看成一个向量 $\mathbf f_i = \left( f_{i, 1}, f_{i, 2}, \cdots, f_{i, n} \right)$，于是先考虑 $\mathbf f_n$ (就是答案)，由上面的结论可知，它等于 $\log q_i$ 个前面的向量 $\mathbf f_i$ 的<strong>线性组合</strong>，那么就不妨将这些系数 "<strong>贡献到它们的头上</strong>" (即使它们还没有被计算)。</p>
+		<p>当然，当 $r &lt; q_0$ 时，这一个区间加 (前缀加) 还是得做的。</p>
+		<p>接下来，依次考虑 $\mathbf f_{n-1}, \mathbf f_{n-2}$，每次都将计算它的 "锅" 甩给前面一些小向量，转化成它们的线性组合，直到 $r &lt; q_0$，转化为一个区间加。</p>
+		<p>最后，直到 $\mathbf f_1, \mathbf f_0$ 都处理完毕后，我们所得到的序列就是答案啦。</p>
+		<p>由于我们只做了若干次区间加 (前缀加)，因此使用差分就可以了，避免了这些冗杂的数据结构。</p>
+		<p>至于时间复杂度，由于递归有 $\log q_i + O \left( 1 \right)$ 层 (事实上可以改写成循环)，递归 (循环) 的每一步中有一个二分找 $\alpha$ (可用 <code>std::lower_bound</code>/<code>std::upper_bound</code> 完成)，于是总时间复杂度 $O \left( Q \log Q \log q_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 100054;
+
+int n, q, top = 1;
+ll s[N], coef[N], ans[N];
+
+int main() {
+	int i, j; ll x; lldiv_t z;
+	scanf("%d%d", &amp;n, &amp;q), s[1] = n;
+	for (; q; s[++top] = x, --q)
+		for (scanf("%lld", &amp;x); top &amp;&amp; s[top] &gt;= x; --top);
+	coef[top] = 1;
+	for (i = top; i; ans[x] += coef[i], --i)
+		for (x = s[j = i]; (j = std::upper_bound(s + 1, s + j, x) - s - 1) &gt; 0; x = z.rem)
+			z = lldiv(x, s[j]), coef[j] += z.quot * coef[i];
+	for (i = n - 1; i; --i) ans[i] += ans[i + 1];
+	for (i = 1; i &lt;= n; ++i) printf("%lld\n", ans[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>递归的过程可以改成循环 <del>(以使代码紧凑)</del>，不过同时不要忘记给相关变量赋初值。</p>
+	</body>
+</html>

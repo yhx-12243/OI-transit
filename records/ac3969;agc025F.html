@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder3969,Grand25F]Addition and Andition</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定两个正整数 $X, Y$，你需要对它们进行 $K$ 次操作，每次操作内容如下：</p>
+		<ul>
+			<li><p>令 $Z \gets X \mathbin{\&amp;} Y$ ($\&amp;$ 为二进制<strong>按位与</strong>运算)
+			<li><p>令 $X \gets X + Z, Y \gets Y + Z$。</p></li>
+		</ul>
+		<p>求 $K$ 次操作结束后，$X, Y$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>由于题目涉及到<strong>按位与</strong>，本题采用二进制 IO。</p>
+		<p>第一行包含三个正整数 $N, M, K$ ($N, M, K \leq 10^6$)，分别表示 $X, Y$ 在二进制下的位数，以及操作次数。</p>
+		<p>第二行包含一个 $\texttt 0/\texttt 1$ 串 $S$ ($\left| S \right| = N; S_1 = \texttt 1$)，表示 $X$ 的二进制展开式。</p>
+		<p>第三行包含一个 $\texttt 0/\texttt 1$ 串 $T$ ($\left| T \right| = M; T_1 = \texttt 1$)，表示 $Y$ 的二进制展开式。</p>
+
+		<h3>输出格式</h3>
+		<p>输出两行，第一行表示最终的 $X$ 的二进制展开式，第二行表示最终的 $Y$ 的二进制展开式。</p>
+		<p>输出的格式和输入一样，即你需要保证你的输出只包含 $\texttt 0$ 或 $\texttt 1$ 且无前导 $\texttt 0$。</p>
+
+		<h3>题解</h3>
+		<p>考虑暴力做法，它大概是这样一个过程：</p>
+		<ol>
+			<li><p>设 $X$ 和 $Y$ 中，值为 $1$ 的位的下标集合分别为 $S_X, S_Y$，$X_i$ 表示 $X$ 中位权为 $2^i$ 的位的值。</p></li>
+			<li><p>重复 $K$ 次下列过程：</p>
+			<ol>
+				<li><p>令 $S = S_X \cap S_Y$。</p></li>
+				<li><p>从高到低枚举 $i \in S$，令 $X_i \gets 0, Y_i \gets 0$，令 $X_{i+1} \gets X_{i+1} + 1, Y_{i+1} \gets Y_{i+1} + 1$。</p></li>
+				<li><p>从低到高处理进位：对 $X_i = 2$，令 $X_i \gets 0, X_{i+1} \gets X_{i+1} + 1$，对 $Y_i = 2$，令 $Y_i \gets 0, Y_{i+1} \gets Y_{i+1} + 1$。</p></li>
+				<li><p>如果没有进位，则跳出循环。</p></li>
+			</ol></li>
+		</ol>
+		<p>不难发现，对于一次操作的情况下，$S$ 中不同元素对整个进位的贡献是独立的 (只需要注意到高位操作后，这一位上 $X, Y$ 都是 $\texttt 0$，从而低位过来的时候不可能再这一位产生进位)。</p>于是，对于<strong>内层循环</strong>，可以改写如下：</p>
+		<ol>
+			<li><p>从高到低考虑每个 $i \in S_X \cap S_Y$。</p></li>
+			<li style="color: fuchsia"><p>令 $X_i \gets 0, Y_i \gets 0, X_{i+1} \gets X_{i+1} + 1, Y_{i+1} \gets Y_{i+1} + 1$。</p></li>
+			<ol>
+				<li><p>对每个 $j = i + 1, i + 2, i + 3, \cdots$，依次执行下列过程：</p></li>
+				<li><p>若 $X_j = 2$，则令 $X_j \gets 0, X_{j+1} \gets X_{j+1} + 1$。</p></li>
+				<li><p>若 $Y_j = 2$，则令 $Y_j \gets 0, Y_{j+1} \gets Y_{j+1} + 1$。</p></li>
+				<li><p>若 2., 3. 两条均未执行，则跳出循环 <span class="text-muted">(并考虑下一个 $i$)</span>。</p></li>
+			</ol>
+		</ol>
+		<p>注意到最外面还有一层关于 $K$ 的循环，因此暴力实现还是 $O \left( \left( N + M + K \right) \cdot K \right)$ 的 (考虑两个全 $\texttt 1$ 串)，因此该怎么优化呢？</p>
+		<hr />
+		<p>我们观察我们刚才那一步干了什么？我们将 $S$ 中所有元素的进位分解，转而为<strong>每个元素</strong>的进位，从而得到了方便，换句话说，我们<strong>把「枚举 $i \in S$」这层循环从最里面移到了中间</strong>。</p>
+		<p>那么，这层循环是否还能移到最外面呢 (即枚举每个 $i \in S$，考虑 $K$ 次操作，再枚举下一个 $i$)？可以的，下面给出证明。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>考虑<span style="color: fuchsia">粉色</span>步骤，执行完后必有 $X_i = Y_i = 0$。</p>
+				<p>设 $i = \max S$，经过一次 "操作" 后，关键位 (即 $X, Y$ 均为 $1$ 的位，这样的位至多一个) 为 $j$。</p>
+				<p>设 $i' = \max \left( S \setminus \left\{ i \right\} \right)$，它经过一次 "操作" 后，最终的关键位至多到达 $i$ (注意 $X_i = Y_i = 0$)。</p>
+				<p>因此 <span style="color: blue">$i'$ 的操作和 $j$ <strong>后续的</strong>操作<strong>互不相干</strong></span>。</p>
+				<p>重复此过程 (对 $K$ 归纳)，可知结论成立。</p>
+			</div>
+		</div>
+		<p>于是，整个过程变成了这样：</p>
+		<ol>
+			<li><p>从高到低考虑每个 $i \in S_X \cap S_Y$。</p></li>
+			<li><p>令 $k \gets K$。</p></li>
+			<ol>
+				<li><p>对每个 $j = i + 1, i + 2, i + 3, \cdots$，依次执行下列过程：</p></li>
+				<li><p>若 $X_j = Y_j = 1 \wedge k &gt; 0$，则令 $X_j \gets 0, Y_j \gets 0, X_{j+1} \gets X_{j+1} + 1, Y_{j+1} \gets Y_{j+1} + 1, k \gets k - 1$。</p></li>
+				<li><p>若 $X_j = 2$，则令 $X_j \gets 0, X_{j+1} \gets X_{j+1} + 1$。</p></li>
+				<li><p>若 $Y_j = 2$，则令 $Y_j \gets 0, Y_{j+1} \gets Y_{j+1} + 1$。</p></li>
+				<li><p>若 2., 3., 4. 三条均未执行，则跳出循环 <span class="text-muted">(并考虑下一个 $i$)</span>。</p></li>
+			</ol>
+		</ol>
+		<p>不过，如果纯暴力跑，它仍然是 $O \left( \left( N + M + K \right) \cdot K \right)$ 的，原因就是 $j$  循环特别 "<strong>浪费</strong>"。那怎样才能不 "浪费" 呢？我们来考虑一个小小的优化：</p>
+		<p>对于 $X_j = Y_j = 0$ 的情形，我们要么是 <code>break</code> 了，要么相当于将两个 $1$ "齐头并进" 了一下，是非常 simple 的。</p>
+		<p>于是，我们可以尝试着，只处理 (handle) 下标为 $i + 1, i + 2, i + 3, \cdots$ 的位中，<strong>满足 $X_j + Y_j &gt; 0$ 的位</strong>。</p>
+		<p>具体地，拿一个栈来存储当前满足 $X_j + Y_j &gt; 0$ 的所有 $j$。</p>
+		<p>用一个 2-bit 整数 $carry$ 来表示进位标记 —— $X$ 的进位与 $Y$ 的进位。初始时，由于 $X_i = Y_i = 1$，因此传过来的就是 $\texttt 1_X \texttt 1_Y$。</p>
+		<p>整个流程如下：</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">流程</div>
+			<div class="panel-body">
+				<p>先令 $X_i \gets 0, Y_i \gets 0, k \gets K$，然后对栈中的每一个元素，执行一个循环，称为 "<strong>栈循环</strong>"：</p>
+				<ol>
+					<li><p>若 $carry = \texttt 0_X \texttt 0_Y$，直接跳出<strong>栈循环</strong>。</p></li>
+					<li><p>若 $carry = \texttt 1_X \texttt 1_Y$，设当前位为 $pos$，栈顶元素为 $nxt$。</p>
+					<ul>
+						<li><p>若 $pos + k &lt; nxt$，则说明这次进位是全 $\texttt 0$，直接令 $X_{pos + k} \gets 1, Y_{pos + k} \gets 1$，跳出<strong>栈循环</strong>。</p></li>
+						<li><p>若 $pos + k \geq nxt$，令 $k \gets k - \left( nxt - pos \right), pos \gets nxt$。</p>
+						<p>此时，若 $X_{pos} = 1, Y_{pos} = 0$，则令 $\color {fuchsia} {X_{pos} \gets 0, Y_{pos} \gets 1}, carry = \texttt 1_X \texttt 0_Y$，反之同理。</p></li>
+						</li>
+					</ul></li>
+					<li><p>若 $carry = \texttt 1_X \texttt 0_Y$，设当前位为 $pos$，栈顶元素为 $nxt$。</p>
+					<ul>
+						<li><p>若 $pos + 1 &lt; nxt$，令 $pos \gets pos + 1, \color {fuchsia} {X_{pos} \gets 1, Y_{pos} \gets 0}$，跳出<strong>栈循环</strong>。</p></li>
+						<li><p>若 $pos + 1 = nxt$，令 $pos \gets pos + 1$，再分两种情况讨论：</p>
+						<ul>
+							<li><p>$X_{pos} = 1, Y_{pos} = 0$。</p>
+							<p>令 $X_{pos} \gets 0, Y_{pos} \gets 0, carry = \texttt 1_X \texttt 0_Y$，继续栈循环。</p></li>
+							<li><p>$X_{pos} = 0, Y_{pos} = 1$。</p>
+							<p>令 $X_{pos} \gets 0, Y_{pos} \gets 0, carry = \texttt 1_X \texttt 1_Y$，继续栈循环。</p></li>
+						</ul></li>
+					</ul></li>
+					<li><p>若 $carry = \texttt 0_X \texttt 1_Y$，情况与 $\texttt 1_X \texttt 0_Y$ 对称，这里就不展开了。</p></li>
+				</ol>
+				<p>栈循环结束后，你需要对于 (在循环中记录下) $X_j + Y_j = 1$ 的位置，重新压入栈。</p>
+				<p>不过，这些 $j$ 需要<strong>小于</strong>上面所说的 "关键位" (即 $X_j = Y_j = 1$ 的位)，因为这些位是后面无法企及的。</p>
+			</div>
+		</div>
+		<p>最后来分析一下上述算法的时间复杂度。</p>
+		<p>我们考虑初始栈中的元素，它是 $O \left( N \right)$ (这里的 $N$ 表示 $N + M$) 的。考虑什么时候元素会入栈呢，事实上，只有<span style="color: fuchsia">粉色</span>过程中，才会有新的元素压入栈。</p>
+		<p>首先，对于后者，入栈后马上就<strong>跳出了栈循环</strong>，而<strong>栈循环</strong>只会进行 $O \left( N \right)$ 轮，于是后者入栈至多 $O \left( N \right)$ 次。</p>
+		<p>而对于前者，一旦被压入栈，则它在栈循环中的下一步<strong>一定不会再次将新元素压入栈</strong> (刚刚讨论的栈循环结束时的不算)，于是它在这两步中，弹出了两个元素，压入了一个元素，<strong>平均每次弹出 $\dfrac 12$ 个元素</strong>。</p>
+		<p>同样可以证明，无论是什么情形，在均摊意义下，碳循环中每一次均会<strong>弹出 $\dfrac 12$ 个元素</strong>。</p>
+		<p>于是总时间复杂度就等于入栈的元素总数，即 $O \left( N + K \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 2000054;
+
+int A, B, D, n, top = 0, top2 = 0;
+int stack[N], stack2[N];
+char a[N], b[N];
+
+inline void init(char *s) {char *p; for (p = s; *p; ++p) *p &amp;= 1; std::reverse(s, p);}
+
+inline void print(char *s) {
+	char *p = s + N;
+	for (; !*--p; ); for (; putchar(*p | 48), p-- != s; ); putchar(10);
+}
+
+void andition(int pos) {
+	int remain = n, type = 3, nxt; bool alive = true;
+	for (a[pos] = b[pos] = 0; alive &amp;&amp; top; )
+		switch (alive = false, nxt = stack[top - 1], type) {
+			case 1:
+				if (pos + 1 &gt;= nxt) a[pos = nxt] || (type = 3), a[pos] = b[pos] = 0, --top, alive = true;
+				break;
+			case 2:
+				if (pos + 1 &gt;= nxt) b[pos = nxt] || (type = 3), a[pos] = b[pos] = 0, --top, alive = true;
+				break;
+			case 3:
+				if (pos + remain &gt;= nxt)
+					remain -= nxt - pos, pos = nxt,
+					type = a[pos] | b[pos] &lt;&lt; 1, a[pos] ^= 1, b[pos] ^= 1;
+					stack2[top2++] = pos, --top, alive = true;
+				break;
+		}
+	switch (type) {
+		case 1: stack2[top2++] = ++pos, a[pos] = 1, b[pos] = 0; break;
+		case 2: stack2[top2++] = ++pos, a[pos] = 0, b[pos] = 1; break;
+		case 3: pos += remain, a[pos] = b[pos] = 1; break;
+	}
+	for (; top2; stack[top++] = stack2[--top2]);
+}
+
+int main() {
+	int i;
+	scanf("%d%d%d%s%s", &amp;A, &amp;B, &amp;n, a, b);
+	init(a), init(b), D = std::max(A, B);
+	for (i = D - 1; i &gt;= 0; --i)
+		if (a[i] &amp;&amp; b[i]) andition(i);
+		else if (a[i] || b[i]) stack[top++] = i;
+	print(a), print(b);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意最终答案会达到 $2 \times 10^6$ 位，数组不要开小了。</p>
+		<p><strong>坑2：</strong>在栈循环中，不要忘记一开始先令 $X_i \gets 0, Y_i \gets 0$。同时，由于欲压入栈的元素的下标 $i$ 是<strong>单调递增</strong>的，因此需要<strong>翻转</strong>后才能入栈。</p>
+	</body>
+</html>

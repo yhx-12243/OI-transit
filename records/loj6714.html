@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[loj6714]Stupid Product</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>我们定义一个长度为 $m$ 的正整数序列 $\left\{ a_i \right\}$ ($\forall i \geq 1 : a_i \geq 1$) 的权值为 $\displaystyle \prod_{i=1}^m a_i$；特别地，定义空序列的权值为 $1$。</p>
+		<p>记权值为 $x$ 的序列个数为 $f \left( x \right)$。</p>
+		<p>给定正整数 $n$，你需要求出 $\displaystyle \left( \sum_{i=1}^n f \left( i \right) \right) \bmod 998244353$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 10^{10}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $\displaystyle \sum_{i=1}^n f \left( i \right)$ 对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>由于 $a_i &gt; 1$，因此权值为 $1$ 的序列只有空序列 $\left[ \, \right]$，从而 $f \left( 1 \right) = 1$。</p>
+		<p>对于权值为 $n &gt; 1$ 的序列，那么它显然不能是空序列，因此我们假设序列中第一个元素为 $d \mid n$，那么剩下的部分就构成了一个权值为 $\dfrac nd$ 的子序列。</p>
+		<p>于是，对于 $n &gt; 1$，有如下递推关系成立：$$ f \left( n \right) = \sum_{d \mid n; d &lt; n} f \left( d \right) $$</p>
+		<p>考虑从 Dirichlet 卷积的角度来刻画，则可以构造 $g \left( n \right) = 2 \epsilon - \mathbf 1 = \begin{cases} 1 &amp; n = 1 \\ -1 &amp; n &gt; 1 \end{cases}$，于是 $g$ 就是 $f$ 的 Dirichlet 逆，即 $f \ast g = \epsilon$。</p>
+		<p>而我们现在要求 $f$ 的部分和。注意到 $\epsilon$ 的部分和以及 $g$ 的函数值是非常容易求得的，因此我们可以想到使用杜氏求和法 (杜教筛) 来加速整个过程。</p>
+		<p>由杜氏求和法的结论 (具体推导见 <a href="../index.html?redirect=279" target="_blank">[lydsy3944]Sum</a>)，可知 $$ F \left( n \right) = \frac 1 {g \left( 1 \right)} \left( H \left( n \right) - \sum_{b=2}^n g \left( b \right) F \left( \left \lfloor \frac nb \right \rfloor \right) \right) $$</p>
+		<p>代入对应的函数，得 $$ F \left( n \right) = 1 + \sum_{b=2}^n F \left( \left \lfloor \frac nb \right \rfloor \right) $$</p>
+		<p>直接递推计算即可，时间复杂度 $O \left( n^{3/4} \right)$。</p>
+		<p>当然，可以通过预处理前面一部分的函数来加速。设预处理前 $A$ 个正整数的函数值，<del>由于 $f \left( n \right)$ 不是积性函数<strong>且</strong>无法通过线性筛预处理</del>，因此需要花费 $O \left( A \log A \right)$ 时间。</p>
+		<p>经过简单的积分运算可知，当 $A = O \left( \left( \dfrac n {\log n} \right)^{2/3} \right)$ 时，总时间复杂度取得最小值 $O \left( \sqrt[3] {n^2 \log n} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 1054000, G = 200054;
+
+ll n, v[G];
+int cnt, srn;
+ll f[N], sf[N], F[G];
+
+inline int ID(ll x) {return x &lt;= srn ? x : cnt + 1 - n / x;}
+
+void init(int n) {
+	int i, ij; f[1] = 1;
+	for (i = 1; i &lt;= n; sf[i] = sf[i - 1] + f[i], ++i)
+		for (ij = i * 2; ij &lt;= n; ij += i) f[ij] += f[i];
+}
+
+void Dsum() {
+	int i, j, sq; ll k, l, n, _;
+	for (i = 1; i &lt;= cnt &amp;&amp; v[i] &lt; N; ++i) F[i] = sf[v[i]];
+	for (; i &lt;= cnt; ++i) {
+		ll &amp;s = F[i];
+		n = v[i], sq = sqrt(n), s = 1, l = n / (sq + 1);
+		for (j = sq; j; --j) {
+			_ = (k = n / j) - l, s += _ * sf[j], l = k;
+			if (j != 1 &amp;&amp; k &gt; sq) s += F[ID(k)];
+		}
+	}
+}
+
+int main() {
+	int i;
+	scanf("%lld", &amp;n), init(std::min(n, N - 1ll));
+	srn = sqrt(n), cnt = srn * 2 - (srn * (srn + 1) &gt; n);
+	for (i = 1; i &lt;= srn; ++i) v[i] = i, v[cnt - i + 1] = n / i;
+	Dsum(), printf("%d\n", int(F[cnt] % 998244353));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在杜教筛的过程中注意常数，不要常数过大而 TLE。</p>
+	</body>
+</html>

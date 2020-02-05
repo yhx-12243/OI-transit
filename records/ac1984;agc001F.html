@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder1984,Grand1F]Wide Swap</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个 $1 \sim N$ 的排列 $P_1, P_2, \cdots, P_N$，你可以对其进行如下操作：</p>
+		<ul>
+			<li><p>选择一对满足 $j - i \geq K \wedge \left| P_i - P_j \right| = 1$ 的下标 $i, j$ ($1 \leq i &lt; j \leq n$)，然后交换 $P_i$ 和 $P_j$。</p></li>
+		</ul>
+		<p>求通过有限次上述操作能达到的排列中，字典序最小的一个。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $N, K$ ($2 \leq N \leq 5 \times 10^5; 1 \leq K \leq N - 1$)，表示排列的大小以及交换的参数。</p>
+		<p>第二行包含 $N$ 个正整数 $P_1, P_2, \cdots, P_N$ ($1 \leq P_i \leq N$)，描述这个排列。保证所有 $P_i$ 互不相同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $N$ 个整数 $P'_1, P'_2, \cdots, P'_N$，表示所能达到的字典序最小的排列。</p>
+
+		<h3>题解</h3>
+		<p>注意到下标比较远但值比较近的交换不容易处理，因此我们就想到去这个排列的<strong>逆 (排列)</strong> —— 即满足 $Q_{P_i} = i$ 的排列。</p>
+		<p>于是，对于 $Q_i$ 这个排列，我们所能进行的操作就转化成了：</p>
+		<blockquote>交换两个相邻且值相差 $\geq K$ 的元素。</blockquote>
+		<p>这样，对 $Q$ 能达到哪些排列，就比 $P$ 要清晰了许多。</p>
+		<p>考虑两个数 $x, y$，其中 $\left| x - y \right| &lt; K$，则它们的相对顺序不会改变 —— <span class="text-muted">因为只能交换相邻两个元素，故如果它们的相对顺序改变，一定是 $x, y$ 在某一轮中被交换，与 $\left| x - y \right| &gt; K$ 矛盾</span>。</p>
+		<p>于是，我们就得到了若干条限制：对于 $\left| x - y \right| &lt; K$ 的所有无序对 $\left( x, y \right)$，它们的相对顺序不改变。</p>
+		<p>更加精细地，我们对于 $x &lt; y &lt; x + K$，就加入一条连接 $x, y$ 的<strong>有向边</strong>，方向为左边指向右边。则所得到的 $Q$ 一定是<strong>所得到的图 $G$ 的一个拓扑序</strong>。</p>
+		<p>这是排列 $Q$ 所要满足的一个必要条件。那这个条件是否充分 (即任意一个 $G$ 的拓扑序一定是可达的 $Q$) 呢？</p>
+		<p>事实上它也是充分的。证明只需要按照我们假设的拓扑序进行归纳即可，比较容易，这里就略去了。</p>
+		<p>于是，我们就要求 $G$ 的一个<strong>最 &#9632;&#9632; 的拓扑序</strong>，从而满足 $P$ 是字典序最小的。</p>
+		<p style="color: red">(ps: 对于一般的图，这里 $G$ 绝不是<strong>最小</strong>，因为一个排列小于另一个排列并不代表一个排列的逆也小于另一个排列的逆)</p>
+		<p>所以，这里 "&#9632;&#9632;" 的意思就是，满足 $P$ 是字典序最小的拓扑序。</p>
+		<p>这该怎么求呢？我们通常是用<strong>队列</strong>来进行拓扑排序，而把<em>队列</em>换成<strong>优先队列</strong>就可以求得字典序最小/大的拓扑序。</p>
+		<p>那如何求一个拓扑序，使得它的逆 (置换) 的字典序最小呢？</p>
+		<p>下面给出的<strong>字典拓扑原理</strong>，它就是用来解决这个问题的。</p>
+		<p><strong style="color: green">(字典拓扑原理) 对于任意一张 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> $G$ ($V \left( G \right) = \left\{ 1, 2, \cdots, n \right\}$) 和 $G$ 的一个拓扑序 $p$，则 $p$ 是字典序最大的，当且仅当 $p^{-1}$ 是字典序最大的</strong>。</p>
+		<p style="color: red">(ps: 将上面命题的两个 "大" 改成 "小"，则命题不一定成立：考虑只有 $G = \left( \left\{ 1, 2, 3 \right\}, \left\{ 3 \to 1 \right\} \right)$，它的字典序最小的拓扑序是 $\left[ 2, 3, 1 \right]$，但是逆最小的拓扑序为 $\left[ 3, 1, 2 \right]$)</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>对 $\left| V \right|$ 归纳证明，当 $V \leq 2$ 时结论平凡。</p>
+				<p>设命题对 $\left| V \right| = n - 1$ 成立，考虑 $\left| V \right| = n$。</p>
+				<p>设 $u = \left[ u_1, u_2, \cdots, u_n \right]$ 是 $G$ 的满足<strong>逆的字典序最大</strong>的拓扑序。</p>
+				<p>设 $\left( u^{-1} \right)_1 = k$，于是 $u_k = 1$。由最大性可知，对于 $G$ 的<strong>任意一个</strong>拓扑序，$1$ 出现的<strong>位置</strong> $\leq k$。</p>
+				<hr />
+				<p>此时，$2 \sim n$ 看作白点，$1$ 看作黑点，统计 $1$ (黑点) 能到达的白点个数，设为 $w$ ($0 \leq w \leq n - 1$)。</p>
+				<p>于是，对于任意一个拓扑序，$1$ 的位置必须 $\leq n - w$，同时，也存在这样一个拓扑序，$1$ 就在位置 $n - w$ <span class="text-muted">(只需在拓扑排序的时候将 $1$ 设为 "死点"，在 "万不得已"，即只有它的入度为 $0$ 了的时候再取它。在这个 "万不得已" 的时候，剩下的点一定是 $1$ 能到达的白点)</span>。</p>
+				<p>由 $k$ 的定义知，$k = n - w$。</p>
+				<p>现在考虑 $G$ 中字典序最大的拓扑序，可知，当某个位置是 $1$ 时，说明<strong>剩下的所有点</strong>都无法取它，即入度 $&gt; 0$，因而这个时候 $1$ 已经可以到达剩下的所有点了。</p>
+				<p>这说明，在字典序最大的拓扑序中，$1$ 也恰好出现在位置 $k$。</p>
+				<p>接下来我们将点 $1$ 删去，将 $2 \sim n$ <strong>重编号</strong>为 $1 \sim n - 1$ ($x \mapsto x - 1$)，则这两个拓扑序仍然满足<strong>字典序最大</strong>和<strong>逆字典序最大</strong>，由归纳假设便知结论成立。</p>
+			</div>
+		</div>
+		<p>由字典拓扑原理，我们可以得到如下三个推论 (用 $\operatorname{rev}$ 表示序列的<strong>翻转</strong>，即 $\operatorname{rev} \left[ a_1, a_2, \cdots, a_{n-1}, a_n \right] = \left[ a_n, a_{n-1}, \cdots, a_2, a_1 \right]$)：</p>
+		<p><strong style="color: orange">(字典拓扑原理 - 推论 1) 条件同字典拓扑原理，则 $p$ 是字典序最小的，当且仅当 $\operatorname{rev} \left( p^{-1} \right)$ 是字典序最大的</strong>。</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>将图的顶点重标号为 $n \sim 1$ ($x \mapsto n + 1 - x$)，则字典序最小的排列就变成了字典序最大的排列。</p>
+				<p>由字典拓扑原理，那个排列的逆是字典序最大的，即 $[1$ 的出现位置 $, 2$ 的出现位置 $, \cdots, n$ 的出现位置 $]$ 是字典序最大的。</p>
+				<p>对应到原图，即 $[n$ 的出现位置 $, n - 1$ 的出现位置 $, \cdots, 1$ 的出现位置 $]$ 是字典序最大的，而这就说明 $\operatorname{rev} \left( p^{-1} \right)$ 是字典序最大的。</p>
+			</div>
+		</div>
+		<p>下面两个推论的证明和推论 1 类似，这里就留作练习了。</p>
+		<p><strong style="color: orange">(字典拓扑原理 - 推论 2) 条件同字典拓扑原理，则 $\operatorname{rev} \left( p \right)$ 是字典序最大的，当且仅当 $p^{-1}$ 是字典序最小的</strong>。</p>
+		<p><strong style="color: orange">(字典拓扑原理 - 推论 3) 条件同字典拓扑原理，则 $\operatorname{rev} \left( p \right)$ 是字典序最小的，当且仅当 $\operatorname{rev} \left( p^{-1} \right)$ 是字典序最小的</strong>。</p>
+		<hr />
+		<p>回到原题。我们现在希望 $P = Q^{-1}$ 的字典序最小，由推论 2 可知，我们希望 $\operatorname{rev} \left( Q \right)$ 的字典序最大。</p>
+		<p>诶我们怎么控制一张图<strong>翻转</strong>的字典序呢？</p>
+		<p>这有什么好怕的，由拓扑序的基本性质，若 $p$ 是 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> $G$ 的拓扑序，则 $\operatorname{rev} \left( p \right)$ 也是 $\operatorname{rev} \left( G \right)$ 的拓扑序，其中 $\operatorname{rev} \left( G \right)$ 表示将 $G$ 的每条有向边<strong>反向</strong>后的结果。</p>
+		<p>于是，我们只需要建出 $\operatorname{rev} \left( G \right)$ <em style="color: blue">(即右边指向左边)</em>，然后对其进行拓扑排序就可以啦！</p>
+		<hr />
+		<p>等等，怎么建图？你确定这样建图不是 $O \left( N^2 \right)$ 的？</p>
+		<p>这已经不是难点了，考虑对于一个 $Q_i = x$，只考虑它向左边所连的边，它需要连向所有值在 $\left( x - K, x + K \right)$ 中的顶点。</p>
+		<p>将这些顶点分为两组：一类是对应数在 $\left( x - K, x \right)$ 中，一类是在 $\left( x + K, x \right)$。</p>
+		<p>对于第一类，如果这样的顶点有多个，则它们必定两两之间有边，从而我们只需要连向最右边的那个即可。第二类的情况完全同理。</p>
+		<p>于是我们需要实现：对于每个 $i$，给定 $l, r$，你需要找到最大的 $j$，使得 $b_j \in \left( l, r \right)$。</p>
+		<p>使用线段树维护每个值的出现下标，取 $\max$ 就可以了。</p>
+		<p>由于整个过程中需要用到线段树和堆，因此时间复杂度 $O \left( N \log N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+
+const int N = 500054, M = N * 2;
+
+int n, K, E = 0;
+int a[N], b[N];
+int to[M], first[N], next[M], deg[N];
+int x[N * 4];
+std::priority_queue &lt;int&gt; pq;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+inline void addedge(int u, int v) {to[++E] = v, next[E] = first[u], first[u] = E, ++deg[v];}
+
+void adj(int id, int L, int R, int h, int v) {
+	if (L == R)	{x[id] = v; return;}
+	segc; h &lt;= M ? adj(lc, L, M, h, v) : adj(rc, M + 1, R, h, v);
+	x[id] = max(x[lc], x[rc]);
+}
+
+int range(int id, int L, int R, int ql, int qr) {
+	if (ql &gt; qr) return 0;
+	if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id];
+	segc, s = 0;
+	if (ql &lt;= M) up(s, range(lc, L, M, ql, qr));
+	if (qr &gt; M) up(s, range(rc, M + 1, R, ql, qr));
+	return s;
+}
+
+int main() {
+	int i, j, x, y;
+	scanf("%d%d", &amp;n, &amp;K), --K;
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i), b[a[i]] = i;
+	for (i = 1; i &lt;= n; ++i) {
+		if (x = range(1, 1, n, max(b[i] - K, 1), b[i] - 1)) addedge(b[i], b[x]);
+		if (x = range(1, 1, n, b[i] + 1, min(b[i] + K, n))) addedge(b[i], b[x]);
+		adj(1, 1, n, b[i], i);
+	}
+	for (i = 1; i &lt;= n; ++i) if (!deg[i]) pq.emplace(i);
+	for (i = n; i; --i) {
+		b[i] = x = pq.top(), pq.pop();
+		for (j = first[x]; j; j = next[j])
+			if (!--deg[y = to[j]]) pq.emplace(y);
+	}
+	for (i = 1; i &lt;= n; ++i) a[b[i]] = i;
+	for (i = 1; i &lt;= n; ++i) printf("%d\n", a[i]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意建出来的图的边数是 $2 N$ 级别的，数组不要开小了。</p>
+		<p><strong>坑2：</strong>由于这道题的 (可能有) 其它性质，导致一些<strong>错误的转化方式</strong> (如 $Q$ 的字典序最小) 也可以通过此题。但是<strong>为了对一般的 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> 做准备</strong>，还是尽量写规范的版本 (即 $\operatorname{rev} \left( Q \right)$ 的字典序最大)。</p>
+	</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder1983,Grand1E]BBQ Hard</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $N$ 种食材，第 $i$ 种食材包含一根编号为 $i$ 的棍子，$A_i$ 块牛肉和 $B_i$ 块青椒。</p>
+		<p>现在需要制作一根烤串，由于一根烤串需要两个棍子<del>以稳定</del>，所以你需要选择 $1 \leq i &lt; j \leq N$，然后使用编号为 $i$ 和 $j$ 的棍子，同时，你需要将第 $i$ 种食材和第 $j$ 种食材的所有牛肉和青椒按照<strong>一定顺序</strong>串在一起。</p>
+		<p>注意，棍子之间是由区别的，而牛肉、青椒相互之间是无区别的。求一共能制作出多少种不同的烤串。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 2 \times 10^5$)，表示食材的种数。</p>
+		<p>接下来 $N$ 行，每行两个正整数 $A_i, B_i$ ($1 \leq A_i, B_i \leq 2000$)，表示各食材包含的牛肉数和青椒数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示能制成不同的烤串数量模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>由组(er)合(xiang)数(shi)学(xi)的(shu)基(de)本(ding)技(yi)巧，易知使用食材 $i, j$ ($i &lt; j$) 的烤串众数为 $\dbinom {A_i + A_j + B_i + B_j} {A_i + A_j}$，于是答案就等于 $$ \sum_{1 \leq i &lt; j \leq n} \binom {A_i + A_j + B_i + B_j} {A_i + A_j} $$</p>
+		<p>显然 $O \left( N^2 \right)$ 的暴力计算是不可取的，那又该怎么优化呢？</p>
+		<p>根据初中数学的技巧，我们尝试着把上述式子中的 $i$ 和 $j$ 分离开来。</p>
+		<p>我们先来考虑这样的式子：$\dbinom {\left( A_i + B_i \right) - \left( C_j + D_j \right)} {A_i - C_j}$ ($C_j \leq A_i, D_j \leq B_i$)，它会等于什么呢？</p>
+		<p>对于这种情况，不难想到<strong>格路计数</strong>的模型 —— 设坐标平面上有两个点 $\left( A_i, B_i \right), \left( C_j, D_j \right)$，则 $\dbinom {\left( A_i + B_i \right) - \left( C_j + D_j \right)} {A_i - C_j}$ 就等于从 $\left( C_j, D_j \right)$ 到 $\left( A_i, B_i \right)$ 的 $\texttt{HV}$ 格路数量。</p>
+		<p>那对于现在是加法的情况也是类似的，无非就是<strong style="color: green">从点 $\left( - A_j, - B_j \right)$ 到 $\left( A_i, B_i \right)$ 的 $\texttt{HV}$ 格路数量</strong>。</p>
+		<p>于是，我们就把式子中的 $i$ 和 $j$ 分离开来了。</p>
+		<p>但是这样没有对称性，我们不妨将原式乘以 $2$，变成 $\displaystyle \sum_{1 \leq i, j \leq n; i \neq j} \binom {A_i + A_j + B_i + B_j} {A_i + A_j}$，这样，从 $\left( - A_i, - B_i \right)$ 到 $\left( A_j, B_j \right)$ 的格路数量也就包含在内了。</p>
+		<p>于是问题就转化成了：有 $n$ 个源点和 $n$ 个汇点，你需要对于求出所有从某个源点到某个汇点的 $\texttt{HV}$ 格路数量。</p>
+		<p>这是可以 DP 解决的。和多源最短路的想法类似，我们用 $f_{x, y}$ 表示所有源点到 $\left( x, y \right)$ 的格路数量之和，于是初始状态就是 $f_{- A_i, - B_i} = 1$，转移时只需要按照一般格路/杨辉三角的方法，按照一定的顺序令 $f_{x, y} \gets_+ f_{x, y - 1} + f_{x - 1, y}$ 即可，注意这里是 $\gets_+$ (<code>+=</code>) 而不是赋值 (<code>=</code>)。</p>
+		<p>最终，格路的总数量就等于 $\displaystyle \sum_{i=1}^N f_{A_i, B_i}$。当然，这会将 $\left( - A_i, - B_i \right)$ 到 $\left( A_i, B_i \right)$ 的格路多算一遍，因此我们需要将它减掉，于是预处理组合数/再做一次普通的格路 DP 即可。</p>
+		<p>时间复杂度 $O \left( N + \left( \max A_i \right) \left( \max B_i \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 200054, M = 4054, mod = 1000000007, iv2 = (mod + 1) / 2;
+
+int n, A, B;
+int a[N], b[N];
+int f[M][M], g[M][M];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+int main() {
+	int i, j; ll s = 0;
+	scanf("%d", &amp;n);
+	for (i = 0; i &lt; n; ++i) scanf("%d%d", a + i, b + i), up(A, a[i]), up(B, b[i]);
+	for (i = 0; i &lt; n; ++i) ++f[A - a[i]][B - b[i]];
+	for (**g = 1, i = 0; i &lt;= 2 * A; ++i)
+		for (j = 0; j &lt;= 2 * B; ++j)
+			add(f[i][j + 1], f[i][j]), add(f[i + 1][j], f[i][j]),
+			add(g[i][j + 1], g[i][j]), add(g[i + 1][j], g[i][j]);
+	for (i = 0; i &lt; n; ++i) s += f[A + a[i]][B + b[i]] - g[a[i] * 2][b[i] * 2];
+	s = s % mod * iv2 % mod;
+	printf("%d\n", int(s + (s &gt;&gt; 63 &amp; mod)));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>如果在最后是预处理阶乘而不是再做一遍格路 DP 的话，记得处理到 $2 \max \left( A_i + B_i \right)$ 的级别 (大约是 $8000$ 左右)。</p>
+	</body>
+</html>

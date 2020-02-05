@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[loj6713][CodeforcesGym102471C]Dirichlet k-th root</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style>
+			dfn {font-weight: bold; color: fuchsia}
+		</style>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义两个函数 $f, g : \left\{ 1, 2, \cdots, n \right\} \to \mathbb Z$ 的狄利克雷卷积 $f \ast g$ 为：$$ \left( f \ast g \right) \left( n \right) = \sum_{d \mid n} f \left( d \right) g \left( \frac nd \right) $$</p>
+		<p>我们定义 $g = f^k$ 即 $k$ 次幂为：$$ f^k = \underbrace {f \ast \cdots \ast f}_{k \text{ 个}} $$</p>
+		<p>本题中，我们想要解决这个问题的逆问题：给你 $g$ 和 $k$，你需要找到一个函数 $f$ 使得 $g = f^k$。</p>
+		<p>另外，保证 $g \left( 1 \right) = 1$，你需要保证 $f \left( 1 \right) = 1$。所有的运算在 $\mathbb F_p$ 上进行，其中 $p = 998244353$，这意味着狄利克雷卷积为 $\displaystyle \left( f \ast g \right) \left( n \right) = \left( \sum_{d \mid n} f \left( d \right) g \left( \frac nd \right) \right) \bmod p$。
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($2 \leq n \leq 10^6; 1 \leq k &lt; 998244353$)。</p>
+		<p>第二行包含 $n$ 个非负整数 $g \left( 1 \right), g \left( 2 \right), \cdots, g \left( n \right)$ ($0 \leq g \left( i \right) &lt; 998244353$)，保证 $g(1) = 1$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n$ 个整数 $f \left(1 \right), f \left( 2 \right), \cdots, f \left( n \right)$ ($0 \leq f \left( i \right) &lt; 998244353$)，你需要保证 $f \left( 1 \right) = 1$。</p>
+		<p class="text-muted">可以证明，在给定条件下，答案唯一存在。</p>
+
+		<h3>题解</h3>
+		<p>首先，这道题有一个看起来比较搞笑的 (但是实际上是正确的) 算法：</p>
+		<p>打表发现 "Fermat 小定理"：对于素数 $p$ 和定义域为 $\left[ 1, p \right)$ 的数列/数论函数 $f$ ($f_1 = 1$)，有 $\left( f^p \right)_n \equiv \left[ n = 1 \right] \pmod p$ (即单位函数)。</p>
+		<p style="color: red">(ps: 和<a href="../index.html?redirect=404" target="_blank">这里</a>一样，我们仍旧把数列和数论函数看成同一个东西)</p>
+		<p>于是，设 $k$ 在 $\hspace{-0.444em} \pmod p$($p = 998244353$) 意义下的逆元为 $k^{-1}$，则 $g = f^k \Rightarrow g^{k^{-1}} = \left( f^k \right)^{k^{-1}} \Leftrightarrow g^{k^{-1}} = f^{k \cdot k^{-1}} \Leftrightarrow g^{k^{-1}} = f$。</p>
+		<p>这样，我们就得到了 $f$ 的表达式：$f = g^{k^{-1}}$。又这里面函数的定义域为 $\left[ 1, n \right] \in \left[ 1, p \right)$，由 Dirichlet 卷积的交换、结合律即可直接运行 "Dirichlet 卷积快速幂" 算法即可。</p>
+		<p>这样做的时间复杂度是 $O \left( n \log n \log {mod} \right)$，常数优秀便可通过。</p>
+		<hr />
+		<p>那这个算法为什么是正确的呢？或者有没有像一般的多项式/普通卷积一样用 $\ln/\exp$ 来达到 $O \left( n \log n \right)$ 呢？</p>
+		<p>下面我们通过引入数论函数的 Dirichlet 生成函数以及相关的操作，来证明这一点，顺便给出一个更高效的做法。</p>
+		<p><strong style="color: green">定义一个数列/数论函数 $\left\{ a_n \right\}_{n \geq 1}$ 的 <dfn>Dirichlet 生成函数 (也叫 Dirichlet 级数)</dfn> 为：$\displaystyle A \left( s \right) = \sum_{n \geq 1} a_n \cdot n^{-s}$。当然，如果不考虑收敛性的话，也可以定义为 $\displaystyle A \left( s \right) = \sum_{n \geq 1} a_n \cdot n^s$。</strong></p>
+		<p>采用第一种定义主要是方便可以使用 <dfn>Riemann $\zeta$ 函数</dfn> $\displaystyle \zeta \left( s \right) = \sum_{n \geq 1} n^{-s}$ 来表示，而本题和 Riemann 函数关系不太大，因此<strong>采用第二种定义</strong>。</p>
+		<p>首先它既然是一种<strong>生成函数</strong>，那么它就应该由基本的加减乘除等性质：加减就不用说了，对于 "乘"，不难验证 Dirichlet 生成函数的乘法就是 <strong>Dirichlet 卷积</strong>：</p>
+		<p>设 $\left\{ a_n \right\}, \left\{ b_n \right\}$ 的 Dirichlet 生成函数分别为 $A \left( s \right), B \left( s \right)$，则 $$ A \left( s \right) \cdot B \left( s \right) = \left( \sum_{n \geq 1} a_n \cdot n^s \right) \left( \sum_{n \geq 1} b_n \cdot n^s \right) = \sum_{i, j \geq 1} a_i b_j \cdot i^s \cdot j^s = \sum_{i, j \geq 1} a_i b_j \cdot \left( i j \right)^s = \sum_{n \geq 1} \left( \sum_{d \mid n} a_d \cdot b_{n/d} \right) n^s $$
+		<p>于是，<strong>Dirichlet 生成函数</strong>是一种对 Dirichlet 卷积非常好的刻画，它取到了将序列 "<strong>浓缩</strong>" 到一个函数的作用。当然，它只是一个形式幂级数，因为它几乎对 $s \geq 0$ 不收敛。</p>
+		<p>接下来，我们还是可以定义它的<dfn>形式导数 (Formal derivative)</dfn> (微商) 和<dfn>形式积分 (Formal integral)<dfn>：</p>
+		<p>对于 $x^n$，我们有 $\dfrac {\mathrm dx^n} {\mathrm dx} = n \cdot x^{n-1}$。想想你们是怎么对<strong>指数函数</strong>求导的？</p>
+		<p>没错，对指数函数 $n^s$，有 $\dfrac {\mathrm dn^s} {\mathrm ds} = n^s \cdot \ln n$。于是，我们就定义完了 Dirichlet 生成函数的<strong>形式导数</strong>：</p>
+		<p>$$ A' \left( s \right) = \sum_{n \geq 1} \ln n \cdot a_n \cdot n^s \tag 1 \label 1 $$</p>
+		<p>你看看，此时的 $a_1$ 像极了普通生成函数中的 "常数项" $a_0$，在求导后就 "消失了"。</p>
+		<p>形式积分同理，除掉一个 $\ln n$ 即可，然后可以增加一个 $C \cdot 1^s$ (其实就是 $C$)。</p>
+		<p>不难验证，在这个定义下，导数的所有运算法则 (加减乘除以及链式法则) 对于 Dirichlet 生成函数仍然成立。</p>
+		<hr />
+		<p>定义完导数后，就要开始定义<dfn>对数 (Logarithms)</dfn> 和<dfn>指数 (Exponents)</dfn> 了。</p>
+		<p>和普通的对数类似，我们需要它的常数项 (这里为 $a_1$) 为 $1$。从而我们可以这么定义：</p>
+		<p>$$ \ln A \left( s \right) = - \sum_{n \geq 1} \frac {\left( 1 - A \left( s \right) \right)^n} n \tag 2 \label 2 $$</p>
+		<p>它的收敛性显然没有问题，因为 $1 - A \left( s \right)$ 的常数项为 $0$，因此这个函数的 $K$ 次方中，非零下标至少拥有 $K$ 个素因子 (计重数)。</p>
+		<p>于是，两边求导，由链式法则有 $$ \ln' A \left( s \right) = - \sum_{n \geq 1} \frac {n \cdot \left( 1 - A \left( s \right) \right)^{n-1} \cdot \left( - A' \left( s \right) \right)} n = A' \left( s \right) \cdot \sum_{n \geq 0} \left( 1 - A \left( s \right) \right)^n = A' \left( s \right) \cdot \frac 1 {1 - \left( 1 - A \left( s \right) \right)} = \frac {A' \left( s \right)} {A \left( s \right)} \tag 3 \label 3 $$</p>
+		<p>和通常的性质类似。同样，定义指数时，需要满足常数项 $a_1 = 0$：</p>
+		<p>$$ \exp A \left( s \right) = \sum_{n \geq 0} \frac {A^n \left( s \right)} {n !} \tag 4 \label 4 $$</p>
+		<p>同样收敛性没有问题。两边求导，得 $$ \exp' A \left( s \right) = \sum_{n \geq 1} \frac {n \cdot A^{n-1} \left( s \right) \cdot A' \left( s \right)} {n !} = A' \left( s \right) \cdot \sum_{n \geq 0} \frac {A^n \left( s \right)} {n !} = A' \left( s \right) \cdot \exp A \left( s \right) \tag 5 \label 5 $$</p>
+		<p>由 $\eqref 3 \eqref 5$ 知，$\ln$ 和 $\exp$ 互为反函数。</p>
+		<p>而对于 $\exp$ 函数，容易验证 $\exp \left( A \left( s \right) + B \left( s \right) \right) = \exp A \left( s \right) \cdot \exp B \left( s \right)$ (二项式展开即可)，从而两边取对数并换元可知 $\ln U \left( s \right) + \ln V \left( s \right) = \ln \left( U \left( s \right) \cdot V \left( s \right) \right)$。</p>
+		<p>从而，对于 $B \left( s \right) = A^k \left( s \right)$，就有 $\ln B \left( s \right)= k \ln A \left( s \right)$。</p>
+		<p>也就是说，如果我们可以对一个 Dirichlet 生成函数求出<strong>对数</strong>和<strong>指数</strong>，那么 $k$ 次幂问题自然就迎刃而解了。</p>
+		<hr />
+		<p style="color: red">这里，我们就可以回答第一个问题了：为什么一开始的那个<del>搞笑</del>算法是正确的？</p>
+		<p>考虑 Dirichlet 生成函数 $f \left( s \right)$，再令 $g \left( s \right) = f^p \left( s \right)$。若 $\deg f, \deg g &lt; p$，则在 $\eqref 2 \eqref 4$ 式中分母为 $p$ 的倍数的项就不产生贡献。</p>
+		<p>而分母不是 $p$ 的倍数的情况，由于 $\ln g \left( s \right) = p \cdot \ln f \left( s \right)$，于是 $p$ <strong>只出现在分子上</strong>，从而 $\ln g \left( s \right) \equiv 0 \pmod p \Rightarrow g \left ( s \right) \equiv 1 \pmod p$。从而 "Fermat 小定理" 正确。</p>
+		<hr />
+		<p>接下来考虑如何快速地求 $\ln$ 和 $\exp$。</p>
+		<p>注意到我们只能够存储整数，因此如果是求导的话那就直接 GG 了 (你这边还有乱七八糟的 $\ln n$)，但是对于整个生成函数的对数/指数，如果照着<strong>定义式</strong>去做的话，这貌似不会产生 $\ln n$ 这项啊。</p>
+		<p>的确，你设 $B \left( s \right) = \ln A \left( s \right)$，$\eqref 3 \eqref 5$ 都表明 $\color {fuchsia} {A' \left( s \right) = B' \left( s \right) \cdot A \left( s \right)}$，对，<strong>两边都有导数</strong>！</p>
+		<p>然而我们在 Dirichlet 卷积的时候，这些系数都是<strong>整数</strong>，退一步说，<strong>有理数</strong>。而你这边 $\ln n$ 可是<strong>无理数啊</strong>！</p>
+		<p>更进一步讲，所有正整数的自然对数都可以表达成<strong>素数的自然对数</strong>的线性组合，而在有理数系数下，<big><strong style="color: red">所有素数的自然对数是线性无关的</strong></big>！(唯一分解定理！)</p>
+		<p>这又说明了什么？想想你初中时把带根号的放到一边，不带根号的放到一边，变成 $A \cdot \sqrt D = B$ ($A, B$ 都是有理数，$\sqrt D$ 是无理数)，然后大喊：<strong>其实 $A, B$ 都是 $0$</strong>！</p>
+		<p>这其实是一个道理。既然素数的自然对数是线性无关的，因此，我们把<span style="color: fuchsia">粉色</span>式子 $\color {fuchsia} {A' \left( s \right) = B' \left( s \right) \cdot A \left( s \right)}$ 中的每个 $\ln$ 拆成素数的乘积 (如 $\ln 12 = 2 \ln 2 + \ln 3$)，然后提取每个 $\ln p$，它都应该是个<strong>恒等式</strong>！</p>
+		<p>如果有人掉线了，我们现在举一个例子：</p>
+		<p>设 \begin{align*}
+A \left( s \right) &amp;= 1 \cdot 1^s + a_2 \cdot 2^s + a_3 \cdot 3^s + a_4 \cdot 4^s + a_5 \cdot 5^s + a_6 \cdot 6^s + a_7 \cdot 7^s + a_8 \cdot 8^s + a_9 \cdot 9^s + a_{10} \cdot 10^s + a_{11} \cdot 11^s + a_{12} \cdot 12^s + \cdots \\
+B \left( s \right) &amp;= 0 \cdot 1^s + b_2 \cdot 2^s + b_3 \cdot 3^s + b_4 \cdot 4^s + b_5 \cdot 5^s + b_6 \cdot 6^s + b_7 \cdot 7^s + b_8 \cdot 8^s + b_9 \cdot 9^s + b_{10} \cdot 10^s + b_{11} \cdot 11^s + b_{12} \cdot 12^s + \cdots
+\end{align*}</p>
+		<p>且满足 $B \left( s \right) = \ln A \left( s \right)$。</p>
+		<p>由 $\eqref 3 \eqref 5$，$A' \left( s \right) = B' \left( s \right) \cdot A \left( s \right)$。</p>
+		<p>两边取 $12^s$ 项系数，得 $$ a_{12} \cdot \ln 12 = 1 \cdot b_{12} \cdot \ln 12 + a_2 \cdot b_6 \cdot \ln 6 + a_3 \cdot b_4 \cdot \ln 4 + a_4 \cdot b_3 \cdot \ln 3 + a_6 \cdot b_2 \cdot \ln 2 $$ ($\ln 1 = 0$ 已经把它删了)</p>
+		<p>将对数<strong>展开</strong>，得 $$ a_{12} \cdot \left( 2 \ln 2 + \ln 3 \right) = b_{12} \cdot \left( 2 \ln 2 + \ln 3 \right) + a_2 \cdot b_6 \cdot \left( \ln 2 + \ln 3 \right) + a_3 \cdot b_4 \cdot 2 \ln 2 + a_4 \cdot b_3 \cdot \ln 3 + a_6 \cdot b_2 \cdot \ln 2 \tag 6 \label 6 $$</p>
+		<p>移项整理，得 $$ \left( 2 a_{12} - 2 b_{12} - a_2 b_6 - a_3 b_4 - a_6 b_2 \right) \ln 2 + \left( a_{12} - b_{12} - a_2 b_6 - a_4 b_3	\right) \ln 3 = 0 $$</p>
+		<p><strong style="color: red">由 $\ln 2, \ln 3$ 的线性无关性</strong>，知 $2 a_{12} - 2 b_{12} - a_2 b_6 - a_3 b_4 - a_6 b_2 = a_{12} - b_{12} - a_2 b_6 - a_4 b_3 = 0$。</p>
+		<p><del class="text-muted">(可以手动验证，这两个等式的确都正确)</del></p>
+		<p>那有这么多等式，该用哪个好算呢？</p>
+		<p>这里有一个小技巧：由于 $\ln 2$ 和 $\ln 3$ 线性无关，则我们可以将 $\eqref 6$ 式中的 $\ln 2$ 和 $\ln 3$ 看成<strong>形式变元</strong> $x, y$ (当然 $\ln 5$ 或其它就相当于 $z, \alpha, \beta, \cdots$)。由于 $\ln 2, \ln 3$ 前的系数都是 $0$，因此实际上 $x, y$ 前的系数也是 $0$，这是一个恒等式。</p>
+		<p>这样，$\eqref 6$ 就变成了 $$ a_{12} \cdot \left( 2 x + y \right) = b_{12} \cdot \left( 2 x + y \right) + a_2 \cdot b_6 \cdot \left( x + y \right) + a_3 \cdot b_4 \cdot 2 x + a_4 \cdot b_3 \cdot y + a_6 \cdot b_2 \cdot x \tag 7 \label 7 $$</p>
+		<p>最后再骚一步，代入 $x = y = \cdots = 1$，则 $\eqref 7 \Rightarrow$ $$ a_{12} \cdot 3 = b_{12} \cdot 3 + a_2 \cdot b_6 \cdot 2 + a_3 \cdot b_4 \cdot 2+ a_4 \cdot b_3 \cdot 1 + a_6 \cdot b_2 \cdot 1 \tag 8 \label 8 $$</p>
+		<p>于是原来每个数后附带的 $\ln n$ 就变成了 $\Omega \left( n \right)$ (计重数素因子个数)！我们就再也不用受<del>辣鸡</del><em>无理数</em>的干扰啦，能愉快地计算啦！</p>
+		<p>因此，我们对 $b$ 序列中每个数预乘一个 $\Omega \left( n \right)$，再用类似 Dirichlet 逆的方法 (取某项系数得到递推式) 就能完成计算了。</p>
+		<p style="color: red">(ps: 这个 $\Omega \left( n \right)$ 虽然它<strong>不是</strong>导数，但它在实际计算中却起到了 $\ln n$ (即导数) 的作用，原因就是 $\ln p$ 的<strong>线性无关性</strong>)</p>
+		<hr />
+		<p>注意最终的 $\eqref 8$ 式，既可以顺着推 $\exp$，又可以移项来推 $\ln$，<del>一举两得</del>。</p>
+		<p>当然，在实际计算的时候，可以采用恰当的枚举顺序，从而只枚举倍数，不用枚举因数，来减小常数。</p>
+		<p>于是，做一次 $\ln$ 和 $\exp$ 的时间各为 $O \left( \log n \right)$，总时间复杂度 $O \left( n \log n \right)$ <del>(的确比搞笑的算法优秀呢！)</del></p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 1000054, mod = 998244353;
+typedef int vec[N], *pvec;
+
+int n, K;
+vec f, g, B1;
+int pn = 0, c[N], O[N], p[78540];
+int inv[64];
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void sieve(int n) {
+	int i, j, v;
+	memset(c, -1, sizeof c);
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i]) p[pn] = i, c[i] = pn++, O[i] = 1;
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt;= c[i]; ++j) c[v] = j, O[v] = O[i] + 1;
+	}
+	for (inv[1] = 1, i = 2; i &lt; 64; ++i) inv[i] = ll(mod - mod / i) * inv[mod % i] % mod;
+}
+
+void Dln(int n, pvec a, pvec b) {
+	int i, j, ij; assert(a[1] == 1), b[1] = 0;
+	for (i = 2; i &lt;= n; ++i) b[i] = (ll)a[i] * O[i] % mod;
+	for (j = 2; j &lt;= n; ++j) {
+		for (i = 2, ij = j * 2; ij &lt;= n; ++i, ij += j)
+			b[ij] = (b[ij] - (ll)a[i] * b[j]) % mod;
+		reduce(b[j] = (ll)b[j] * inv[O[j]] % mod);
+	}
+}
+
+void Dexp(int n, pvec a, pvec b) {
+	int i, j, ij; assert(a[1] == 0), b[1] = 1;
+	for (i = 2; i &lt;= n; ++i) b[i] = B1[i] = (ll)a[i] * O[i] % mod;
+	for (j = 2; j &lt;= n; ++j) {
+		b[j] = (ll)b[j] * inv[O[j]] % mod;
+		for (i = 2, ij = j * 2; ij &lt;= n; ++i, ij += j)
+			b[ij] = (b[ij] + (ll)B1[i] * b[j]) % mod;
+	}
+}
+
+int main() {
+	int i;
+	scanf("%d%d", &amp;n, &amp;K), sieve(n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", f + i);
+	Dln(n, f, g), K = PowerMod(K, mod - 2);
+	for (i = 1; i &lt;= n; ++i) g[i] = (ll)g[i] * K % mod;
+	Dexp(n, g, f);
+	for (i = 1; i &lt;= n; ++i) printf("%d%c", f[i], i == n ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>$\ln, \exp$ 时注意一下对 $1$ 位置的特判，因为 $\Omega \left( 1 \right)$ 没有逆元。</p>
+		<p><strong>坑2：</strong>虽然 $\Omega \left( n \right)$ 不是积性函数，但还是非常容易使用线性筛预处理的。</p>
+	</body>
+</html>
