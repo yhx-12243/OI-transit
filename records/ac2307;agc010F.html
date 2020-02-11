@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2307,Grand10F]Tree Game</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $N$ 个顶点的树，顶点 $i$ 上有 $A_i$ 枚石子。</p>
+		<p>Alice 和 Bob 在玩游戏。首先，Alice 可以选择树上的一个顶点并在其上放一枚棋子，然后，Alice 先手交替进行如下操作：</p>
+		<ul>
+			<li><p>设棋子当前在点 $v$。若当前点 $v$ 上已经没有棋子了，则当前玩家输。否则，移除点 $v$ 上的一枚棋子。</p></li>
+			<li><p>选择 $u \in N \left( v \right)$，将棋子移到点 $u$。</p></li>
+		</ul>
+		<p>请找出所有的点 $v$，使得当 Alice 开局时将棋子放到点 $v$ 时，她有必胜策略。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 3000$)，表示树的点数。</p>
+		<p>第二行包含 $N$ 个非负整数 $A_1, A_2, \cdots, A_N$ ($0 \leq A_i \leq 10^9$)，表示顶点 $i$ 上初始的石子数。</p>
+		<p>接下来 $N - 1$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq N$)，描述树上的一条边。保证这 $N - 1$ 条边恰好构成一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含若干个整数，表示所有满足条件的 $v$，从小到大输出。若不存在满足条件的 $v$，则什么也不输出。</p>
+
+		<h3>题解</h3>
+		<p>考虑对树上每一个顶点进行判断。</p>
+		<p>下面证明一个结论：<strong style="color: green">任何时刻，任何人都不会往 $A_u \geq A_v$ 的点 $u$ 移动</strong> (设当前棋子在点 $v$)。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>不妨设 Alice 这么移动了，即将棋子从 $v$ 移动到 $u$。</p>
+				<p>将原树看作以 $v$ 为根的有根树，那么考虑以 $u$ 为根的子树：
+				<ol>
+					<li><p>若 Bob 有必胜策略，那他显然就赢了。</p>
+					<p>这是因为，树是二分图，因此当棋子在点 $u$ 时，一定是轮到 Bob 操作，而他可以控制使得棋子不走出这棵子树。</p></li>
+					<li><p>若 Bob 无必胜策略，那么 Bob 此时的最优策略显然是逃出这棵<del>毒瘤</del>子树 $u$。</p>
+					<p>于是此时 Bob 会将棋子从 $u$ 移动到 $v$。</p>
+					<p>而 $A_u \geq A_v$，因此这样反复循环必为 Alice 先失去策略，</p>
+					</li>
+				</ol>
+				<p>于是 Alice 使用这条策略<strong>不可能取胜</strong>，所以她不会这样走。</p>
+			</div>
+		</div>
+		<p>于是每个人只会向满足 $A$ 更小的地方走 —— 此时，按照上述分析可知，如果子树 Bob 赢，那么原树 Alice 输；反之如果子树 Bob 输，那么原树 Alice 就赢了 <del>(因为 $A$ 更小，Bob 是无法 "逃" 回去的)</del>。</p>
+		<p>这样，就转化为了一般的博弈问题：</p>
+		<ol>
+			<li><p>若一个状态 (点) 为 N 状态 (必胜态)，当且仅当它可以走到一个状态 (子树)，使得其为 P 状态。</p></li>
+			<li><p>若一个状态 (点) 为 P 状态 (必败态)，当且仅当它无路可走，或走到的所有状态 (子树) 均为 N 状态。</p></li>
+		</ol>
+		<p>通过上述两条博弈的基本性质递归计算即可，注意时刻需要满足<span style="color: green">绿色</span>性质，因为不满足的子树会<strong>对你产生 "立即失败"</strong> 的效果，谁走都不讨好。</p>
+		<p>单次判定只需 dfs 一遍，是 $O \left( N \right)$ 的，总时间复杂度 $O \left( N^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 3054, M = N * 2;
+
+int n, E = 0;
+int to[M], first[N], next[M];
+int a[N];
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+bool dfs(int x, int px = 0) {
+	int i, y; bool r = true;
+	for (i = first[x]; i &amp;&amp; r; i = next[i])
+		if ((y = to[i]) != px &amp;&amp; a[y] &lt; a[x]) r &amp;= dfs(y, x);
+	return !r;
+}
+
+int main() {
+	int i, u, v; bool first = true;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	for (i = 1; i &lt;= n; ++i) if (dfs(i)) first ? first = false : putchar(32), printf("%d", i);
+	return putchar(10), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意失败条件是 $A_u \geq A_v$ 而不是 $A_u &gt; A_v$。</p>
+	</body>
+</html>

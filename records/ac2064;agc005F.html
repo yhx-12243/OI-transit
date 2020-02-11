@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2064,Grand5F]Many Easy Problems</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $N$ 个顶点的树 $T = \left( V, E \right)$，其中 $V = \left\{ 1, 2, \cdots, N \right\}$。</p>
+		<p>对于非空子集 $S \subseteq V$，定义 $f \left( S \right)$ 为<strong>包含 $S$ 中所有点的连通块大小的最小值</strong>，形式化地，$f \left( S \right) = \min \left\{ \left| U \right| \mid S \subseteq U \subseteq V, T \left[ U \right] \text{是连通图} \right\}$。</p>
+		<p>请对 $K = 1, 2, \cdots, V$，分别求出 $\displaystyle \sum_{S \subseteq V, \left| S \right| = K} f \left( S \right)$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 2 \times 10^5$)，表示树的点数。</p>
+		<p>接下来 $N - 1$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq N; a_i \neq b_i$)，描述树上的一条边。保证这 $N - 1$ 条边恰好构成一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $N$ 行，每行一个整数，第 $i$ 行的整数表示 $\displaystyle \left( \sum_{S \subseteq V, \left| S \right| = i} f \left( S \right) \right) \bmod 924844033$ ($3^2 \times 7^2 \times 2^{21} + 1$，一个质数) 的值。</p>
+
+		<h3>题解</h3>
+		<p>类似 <a href="../index.html?redirect=582" target="_blank">[Local #15]Tree</a> 的<strong>思想</strong>，我们尝试对于每个顶点的贡献 —— 即对于每个 $r \in V$，统计有多少个集合，满足这个<strong>最小的包含它的连通块</strong> (下简称<dfn><strong>连通闭包</strong></dfn>) 包含 $r$。</p>
+		<p>为了方便，我们对于顶点 $r$，去统计有多少个 $V$ 的 $K$ 元子集 $S$，它的<em>连通闭包</em><strong>不包含</strong> $r$。</p>
+		<p>这说明，设将 $r$ 去掉后，$T$ 分裂成了子树 $T_1, T_2, \cdots, T_k$，<strong style="color: green">$S$ 一定完整地包含于一个 $T_i$ 中</strong>。</p>
+		<p>而这样的集合 $S$ 的个数是容易计算的：即 $\dbinom {\left| T_1 \right|} K + \dbinom {\left| T_2 \right|} K + \cdots + \dbinom {\left| T_k \right|} K$。</p>
+		<p>从而，连通闭包包含顶点 $r$ 的 $K$ 元子集数量就等于 $$ ans_{r, K} = \binom nK - \left( \binom {\left| T_1 \right|} K + \binom {\left| T_2 \right|} K + \cdots + \binom {\left| T_k \right|} K \right) $$。</p>
+		<p>于是，对于一个给定的 $K$，对应的答案就是 \begin{align*}
+ans_K &amp;= \sum_{r \in V} \left( \binom nK - \left( \binom {\left| T_1 \right|} K + \binom {\left| T_2 \right|} K + \cdots + \binom {\left| T_k \right|} K \right) \right) \\
+&amp;= n \cdot \binom nK - \sum_{r \in V} \left( \binom {\left| T_1 \right|} K + \binom {\left| T_2 \right|} K + \cdots + \binom {\left| T_k \right|} K \right) \tag 1 \label 1
+\end{align*}
+		<p>考察这些 $T_i$，不难发现，任取一个点为根后，对于每棵不等于 $T$ 的子树 $T_S$，它恰好会被 $T_i$ 贡献两次 —— 一次是 $T_S$，一次是 $T \setminus T_S$。</p>
+		<p>因此我们可以通过一遍 dfs 求出 (有根树的) <code>size[]</code> 数组，然后统计出每棵子树的贡献。具体地，设在 $\eqref 1$ 式中有 $C_s$ 个 $i$ 满足 $T_i = s$。</p>
+		<p>代入 $\eqref 1$ 式可得 $$ ans_K = n \cdot \binom nK - \sum_{s=K}^n C_s \cdot \binom sK $$</p>
+		<p>而我们要对<strong>所有的 $K$ 求出 $ans_K$</strong>，而暴力计算却是 $O \left( N^2 \right)$ 的。</p>
+		<p>不过，事实上，我们只考虑后面的和式 (带 $\sum$ 的那部分)，令 $i = n - s$ 后不难发现它其实就是一个卷积：</p>
+		<p>$$ ans_K = n \cdot \binom nK - \frac 1 {K !} \cdot \sum_{i=0}^{n-K} C_{n - \color {red} i} \cdot \frac {\left( n - \color {red} i \right) !} {\left( \color {blue} {\left( n - K \right) - i} \right) !} $$</p>
+		<p>于是只需对其使用 NTT 优化，即可在 $O \left( N \log N \right)$ 时间内解决问题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+
+typedef long long ll;
+const int N = 530000, mod = 924844033, root = 3597;
+typedef int vec[N], *pvec;
+
+vec fact, finv;
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(int n) {
+	int i;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+inline ll C(int n, int r) {return (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (21 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		DNTT(a, c), DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c), std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+}
+
+int n, E = 0;
+int to[N], first[N], next[N];
+vec f, g;
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+int dfs(int x, int px = 0) {
+	int i, y, S = 1;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px) S += dfs(y, x);
+	return ++f[S], ++f[n - S], S;
+}
+
+int main() {
+	int i, u, v, ans;
+	scanf("%d", &amp;n), init(n);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1), *f = f[n] = 0;
+	for (i = 1; i &lt; n; ++i) f[i] = (ll)fact[n - i] * f[i] % mod;
+	Poly::Mul(2 * n - 1, f, finv, g);
+	for (i = 1; i &lt;= n; ++i)
+		ans = (n * C(n, i) - (ll)finv[i] * g[n - i]) % mod,
+		printf("%d\n", ans + (ans &gt;&gt; 31 &amp; mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意模数不是熟悉的 $998244353$ 了，因此最小二幂单位根不再是 $31$ 了，而是 $3597$。</p>
+		<p><strong>坑2：</strong>统计 $C_s$ 的时候注意对称性，因此不需要 <code>std::reverse</code>，不过需要注意不要把 $0$ 和 $N$ 的贡献算上。</p>
+	</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2167,Grand6F]Blackout</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个 $N$ 行 $N$ 列的方格表，用 $\left( i, j \right)$ 表示第 $i$ 行第 $j$ 列的小方格。</p>
+		<p>初始时，方格表中有 $M$ 个位置是黑色的，其余位置均为白色。</p>
+		<p>你需要不断执行如下操作，直到找不到对应到有序三元组 $\left( x, y, z \right)$：</p>
+		<ul>
+			<li>对于有序三元组 $\left( x, y, z \right)$，若 $\left( x, y \right)$ 和 $\left( y, z \right)$ 均为黑色，则将 $\left( z, x \right)$ 涂黑。</li>
+		</ul>
+		<p>求最终操作结束后黑色方格的个数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $N, M$ ($N, M \leq 10^5$)，表示方格表的大小和初始时黑色方格的数量。</p>
+		<p>接下来 $M$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq N$)，表示一个黑色方格的位置。保证所有的有序对 $\left( a_i, b_i \right)$ 互不相同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示操作结束时黑色方格的数量。</p>
+
+		<h3>题解</h3>
+		<p>容易建立图论模型：如果 $\left( x, y \right)$ 为黑色，在连接一条由 $x$ 指向 $y$ 的有向边 (允许自环)。</p>
+		<p>则题目条件等价于：若边 $x \to y, y \to z$ 均存在，则边 $z \to x$ 也需要存在。</p>
+		<p>显然这样连边不影响弱连通性，因此我们只需讨论一个连通块中的边数即可。</p>
+		<p>首先注意到这种连边方式形成了一个<strong>三元环</strong>的结构。这引导我们对图进行 $3-$染色。</p>
+		<p>设颜色列表为 $\left\{ 0, 1, 2 \right\}$，规定连边方式为：若 $x \to y$，在 $c \left( x \right) + 1 \equiv c \left( y \right) \pmod 3$。即将所有点分为三个等价类：$0, 1, 2$。</p>
+		<p>当然，也有可能因为一些特殊的边导致这样的染色不能成功。具体地，我们根据一个连通块的染色情况将它们大致分为三类：</p>
+		<ol>
+			<li><p>所有的点只用了 $\leq 2$ 种颜色，<span class="text-muted">且染色成功</span>。</p>
+			<p>由定义，若要出现新的边，则 $x, y, z$ 颜色必须互不相同。因此这种情况不会出现新的边，最终的边数 $\left| E' \right|$ 等于原边数 $\left| E \right|$。</p></li>
+			<li><p>所有的点用了 $3$ 种颜色，且染色成功。</p>
+			<p>此时，$G$ 有着类似 "三分图" 的结构。我们证明，最终会得到一个 <strong>"完全三分图"</strong>。</p>
+			<div class="panel panel-success">
+				<div class="panel-heading">证明</div>
+				<div class="panel-body">
+					<p>用 $\bar 0, \bar 1, \bar 2$ 表示三个等价类。</p>
+					<p>对总点数 $\left| V \right|$ 进行归纳。</p>
+					<p>当 $\left| V \right| = 3$ 时，不难手动验证结论成立。</p>
+					<p>考虑结论对 $\left| V \right| &lt; n$ 成立，则对于 $\left| V \right| = n$ 的情形，考虑原图的基图，可知它至少有两个点 $u, v$ 不是割点。</p>
+					<ol>
+						<li><p>若 $u, v$ 所在等价类中，至少一个等价类有 $&gt;$ 个点，不妨设 $u$ 所在等价类有 $\geq 2$ 个点，则取 $G' = G \setminus \left\{ v \right\}$。</p></li>
+						<li><p>若 $u, v$ 所在等价类都只有它本身，且 $u, v$ 之间有边，那么但对于第三个等价类，由连通性可直接得到结论成立。</p></li>
+						<li><p>若 $u, v$ 所在等价类都只有它本身，且 $u, v$ 之间无边，则 $u, v$ 必有公共邻点 (三分图)，从而转化为情况 2.，可直接得到结论成立。</p></li>
+					</ol>
+					<p>对于情况 1，我们对 $G'$ 使用归纳假设，得到一个完全三分图。</p>
+					<p>考虑 $v$，由于连通性，于是 $v$ 必有至少一条边连向这个完全三分图。不妨设 $v$ 是 $\bar 0$ 型点。</p>
+					<ol>
+						<li><p>若 $v \to \bar 1$，则 $v \to \bar 1 \to \bar 2 \Rightarrow \bar 2 \to v$。</p></li>
+						<li><p>若 $\bar 2 \to v$，则 $\bar 1 \to \bar 2 \to v \Rightarrow v \to \bar 1$。</p></li>
+					</ol>
+					<p>重复操作可知结论成立。</p>
+				</div>
+			</div>
+			<p>于是，在这种情况下，总边数等于<strong style="color: fuchsia">各个部分的大小的两两乘积之和</strong>。</p></li>
+			<li><p>染色失败。</p>
+			<p>我们证明，$G$ 为有向完全图，且带 $n$ 个自环。</p>
+			<div class="panel panel-info">
+				<div class="panel-heading">证明</div>
+				<div class="panel-body">
+					<p>设加入边 $u, v$ 时染色失败。</p>
+					<p>于是加入这条边之前，$u, v$ 已经连通。于是考虑它们所在的连通分量，由上证明知可得一个完全三分图。</p>
+					<p>考虑染色失败的类型：</p>
+					<ol>
+						<li><p>$\bar 1 \to \bar 0$ ($\bar 2 \to \bar 1, \bar 0 \to \bar 2$ 均属此类)。</p>
+						<p>于是由 $\bar 0 \to \bar 1 \to \bar 0$ 知存在自环。</p></li>
+						<li><p>$\bar 0 \to \bar 0$ ($\bar 1 \to \bar 1, \bar 2 \to \bar 2$ 均属此类)。</p>
+						<p>由 $\bar 0 \to \bar 0 \to \bar 1$ 知有边 $\bar 1 \to \bar 0$，由 1. 知存在自环。</p></li>
+					</ol>
+					<p>综上，图 $G$ 存在自环 $s \to s$。</p>
+					<p>于是，容易归纳证明所有与 $s$ 连通的点 $u$，$s, u$ 之间均有 "重边" 相连 (即既存在 $s \to u$ 又存在 $u \to s$)，从而对于 $\forall u, v$，由 $v \to s \to u$ 知 $u \to v$ 均存在。</p>
+					<p>从而，$G$ 为有向 "完全图"。</p>
+				</div>
+			</div>
+			<p>于是，在这种情况下，总边数等于<strong style="color: fuchsia">该连通分量大小的平方</strong>。</p></li>
+		</ol>
+		<p>最后只需要对每个连通分量的答案相加即可。染色可以使用 dfs 完成，时间复杂度 $O \left( N + M \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 100054, M = 200054;
+
+int V, E, Es = 0;
+int to[M], first[N], next[M];
+int C[3], CE, col[N];
+
+inline void addedge(int u, int v) {
+	to[++Es] = v, next[Es] = first[u], first[u] = Es;
+	to[++Es] = u, next[Es] = first[v], first[v] = Es;
+}
+
+inline bool dfs(int x) {
+	int i, y, c; bool result = true; ++C[col[x]];
+	for (i = first[x]; i; i = next[i])
+		c = (col[x] + 2 - (i &amp; 1)) % 3, ++CE,
+		result &amp;= (~col[y = to[i]] ? col[y] == c : (col[y] = c, dfs(y)));
+	return result;
+}
+
+int main() {
+	int i, u, v; ll ans = 0;
+	scanf("%d%d", &amp;V, &amp;E);
+	for (i = 0; i &lt; E; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	memset(col, -1, sizeof col);
+	for (i = 1; i &lt;= V; ++i) if (!~col[i]) {
+		C[0] = C[1] = C[2] = CE = col[i] = 0;
+		if (!dfs(i)) ans += ll(C[0] + C[1] + C[2]) * (C[0] + C[1] + C[2]);
+		else if (C[0] &amp;&amp; C[1] &amp;&amp; C[2]) ans += (ll)C[0] * C[1] + ll(C[0] + C[1]) * C[2];
+		else ans += CE / 2;
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意染色失败的时候不能直接 <code>return</code>，因为还需统计该连通块的总点数。</p><p><strong>坑2：</strong>计算答案的时候别忘了使用 <code>long long</code>。</p>
+	</body>
+</html>

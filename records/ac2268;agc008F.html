@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2268,Grand8F]Black Radius</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $N$ 个顶点的树，顶点标号为 $1, 2, \cdots, N$，每条边的长度均为 $1$。</p>
+		<p>Snuke 喜欢这棵树的某些顶点，不喜欢其余的顶点。设她喜欢的顶点的集合为 $S$，保证 $S \neq \varnothing$。</p>
+		<p>起初，所有顶点的颜色均为白色。Snuke 可以执行下述操作<strong>恰好一次</strong>：</p>
+		<ul>
+			<li>选择顶点 $v \in S$ 和整数 $d \in \mathbb N$。将所有满足 $\operatorname{dist} \left( v, u \right) \leq d$ 的顶点 $u$ 染成黑色。</li>
+		</ul>
+		<p>求最终能得到多少棵形态不同的树。两棵树形态不同当且仅当存在一个顶点，它们在对应树上的颜色不同。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 2 \times 10^5$)，表示树的点数。</p>
+		<p>接下来 $N - 1$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq N$)，描述树上的一条边。保证这 $N - 1$ 条边恰好构成一棵树。</p>
+		<p>最后一行包含一个 $\texttt 0/\texttt 1$ 串 $s$ ($\left| s \right| = N; s \neq \texttt 0^N$)，描述集合 $S$，其中 $i \in S \Leftrightarrow s_i = \texttt 1$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最终所能得到的不同形态的树的个数。</p>
+
+		<h3>题解</h3>
+		<p>先考虑 $S$ 为全集的情况，即每个顶点都能以它为 "操作中心" 进行操作。</p>
+		<p>显然，无论怎么操作，最终黑色的顶点形成了树上的一个连通块。</p>
+		<p>然而，我们要统计的是<strong>连通块</strong>的个数，而不是操作方案的个数。而这并不是一个单射 —— 一个连通块可以对应到多种不同的操作方案。</p>
+		<p>那我们怎么才能构造一个一一映射，将某个连通块唯一地对应到一种操作方案呢？</p>
+		<p>考虑到操作具有<em>距离</em>，且连通块一定是树，因此我们可以想到取树的<strong>中心</strong> (直径中点)。</p>
+		<p>对于每个连通块，我们都将它看成以<strong>「该连通块的中心」</strong>为操作中心的操作，这样同时 $d$ 也能达到最小。</p>
+		<p>这里要注意树的中心是一条边的情形，此时如果这个连通块是合法的 (可以染出来的) 树的一侧一定是整个子树 (即包含所有叶子)，从而我们可以规定用这条边的 "靠近叶子的顶点" 来当作操作中心，同样可以证明这是使得 $d$ 最小的方案。</p>
+		<p>当然，这个分析对整棵树并不适用 —— 因为可能两侧都是完整的子树，因此我们还需要规定不允许计入完整的子树，最后再将答案 $+ 1$ (完整的子树) 即可。</p>
+		<hr />
+		<p>那有多少个满足上述条件的操作方案呢？</p>
+		<p>我们考虑对于每个顶点 $v$，分别计算。以 $v$ 为操作中心的操作个数。</p>
+		<p>固定 $v$ 后，我们只需要确定有多少个 $d$ 能满足即可。</p>
+		<p>对于 $S$ 为全集的情况，有 $v \in S$，从而满足条件的 $d$ 一定是一个区间 $\left[ 0, \sup \right]$。</p>
+		<p>现在考虑 $d$ 所需要满足的约束。首先，将树看成以 $v$ 为根的有根树。若整棵树的深度为 $f_v$，那么必须有 $d &lt; f_v$，否则最终所有点都会被染黑 —— 这是我们所要排除的。</p>
+		<p>其次，在什么情况下，染出来的集合中，$v$ <strong>不是</strong>中心呢？</p>
+		<p>那考虑中心在某棵子树中，那么朝着这个方向走，黑色顶点的「最大深度」是严格递减的。因此，我们还需要满足，对于 $\forall c \in child \left( v \right)$，有 $\color {fuchsia} {\left\{ u \mid \operatorname{dist} \left( c, u \right) \leq d - 1 \right\} \neq \left\{ u \mid \operatorname{dist} \left( v, u \right) \leq d \right\}}$。</p>
+		<p>考虑什么时候粉色式子能成立，对于 $u \in subtree \left( c \right)$，显然 $\operatorname{dist} \left( c, u \right) \leq d - 1 \Leftrightarrow \operatorname{dist} \left( v, u \right) \leq d$，对于其它的子树，有 $\operatorname{dist} \left( c, u \right) \leq d - 1 \Leftrightarrow \operatorname{dist} \left( v, u \right) \leq d - 2$。</p>
+		<p>于是，在其它子树中，<strong>不能存在深度 $\geq d - 1$ 的顶点</strong>，那么粉色式子不成立只需满足<strong style="color: blue">在其它子树中存在深度 $\geq d - 1$ 的顶点</strong>即可。</p>
+		<p>也就是说，需要至少两棵子树存在深度 $\geq d - 1$ 的顶点才可以，从而，设以 $child \left( v \right)$ 中的点为根的所有子树中，<strong>最大深度第二大的为 $g_v$</strong>，则需要有 $d - 1 \leq g_v \Leftrightarrow d \leq g_v + 1$。</p>
+		<p>综上，$d \leq \min \left\{ f_v - 1, g_v + 1 \right\}$，由上述推导过程知，这个条件也是充分的，从而 $\sup = \min \left\{ f_v - 1, g_v + 1 \right\}$。</p>
+		<p>于是，我们只需要求出以每个点为根时，$f_v, g_v$ 的值就可以了，这是容易树形 DP 的。</p>
+		<p>而对 $v$ 有多个的情况下，只需套一层换根 DP 即可，具体过程<del>略</del>可以见代码。</p>
+		<hr />
+		<p>下面考虑有些顶点不在 $S$ 中的情况。</p>
+		<p>注意到 $v \notin S$ 并不代表没有以 $v$ 为 "操作中心" 的操作 —— 因为有可能有某些合法操作在以 $v$ 为操作中心时恰好 $d$ 达到最小。</p>
+		<p>这就相当于，对于每个 $v \notin S$，满足条件的 $d$ 是一个有上下界的区间 $\left[ \inf, \sup \right]$ (当然也有可能是空区间)。</p>
+		<p>对于上界 $\sup$，和刚才的分析一样，也等于 $\min \left\{ f_v - 1, g_v + 1 \right\}$。</p>
+		<p>考虑它的下界 $\inf$，不妨设 $v$ 为树根。由于这个操作可以被以 $u$ 为操作中心的操作 $\left( u, d' \right)$ 来代替，其中 $u$ 是以 $c \in child \left( v \right)$ 为根的子树中的某个点。那么必有 $d' \geq d +\operatorname{dist} \left( v, u \right) &gt; d$。</p>
+		<p>从而，子树 $subtree \left( c \right)$ 中不能存在深度 $\geq d$ 的顶点 —— 亦即操作 $\left( v, d \right)$ 至少覆盖了它的一个子节点的子树 $subtree \left( c \right)$。</p>
+		<p>这说明，$d$ 至少要大于它的所有子树的深度最大值的最小值，当然，需要保证这里的子树中<strong>至少有一个 $S$ 中的点</strong>，否则你是找不到这样的 $v$ 的。</p>
+		<p>这也可以通过树形 DP + 换根 DP 完成，无非就是多记一个 <code>size[]</code> 罢了。</p>
+		<p>时间复杂度 $O \left( N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 200054, M = N * 2;
+
+int n, E = 0;
+int to[M], first[N], next[M];
+int p[N], size[N];
+int f[N], g[N], inf[N];
+char s[N];
+ll ans = 1;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y; size[x] = s[x] &amp;= 1;
+	inf[x] = (s[x] - 1) &amp; INT_MAX;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x]) {
+			p[y] = x, dfs(y), size[x] += size[y];
+			f[x] &lt;= f[y] ? (g[x] = f[x], f[x] = f[y] + 1) : (up(g[x], f[y] + 1), 0);
+			if (size[y]) down(inf[x], f[y] + 1);
+		}
+}
+
+void dfs2(int x, int fy = -1) {
+	int i, y, sup;
+	f[x] &lt;= fy ? (g[x] = f[x], f[x] = fy + 1) : (up(g[x], fy + 1), 0);
+	if (size[x] &lt; size[1]) down(inf[x], fy + 1);
+	if (inf[x] &lt;= (sup = min(f[x] - 1, g[x] + 1))) ans += sup - inf[x] + 1;
+	for (i = first[x]; i; i = next[i])
+		if (p[y = to[i]] == x)
+			dfs2(y, f[y] + 1 == f[x] ? g[x] : f[x]);
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	scanf("%s", s + 1), dfs(1), dfs2(1);
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $\inf &gt; \sup$ 的情况，此时区间为空，而不能加上一个负数。</p>
+		<p><strong>坑2：</strong>换根 DP 判断上方子树是否为空时要用 <code>size[x] &lt; size[1]</code> 而不是 <code>size[x] &lt; n</code>。因为 <code>size[1]</code> 不一定等于 <code>n</code>。</p>
+	</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1299E]So Mean</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>这是一道交互题。</p>
+		<p>有一个隐藏的 $n$ 元排列 $p_1, p_2, \cdots, p_n$，其中 $n$ 为偶数，你需要通过若干次询问来得到它。</p>
+		<p>你可以进行如下询问：</p>
+		<blockquote>选择 $\left\{ 1, 2, \cdots, n \right\}$ 的一个非空子集 $S$，并询问 $\displaystyle \frac 1 {\left| S \right|} \sum_{i \in S} a_i$ 是否为整数。</blockquote>
+		<p>你可以进行至多 $18 n$ 次这样的询问。</p>
+		<p>注意到排列 $p_1, p_2, \cdots, p_n$ 和 $n + 1 - p_1, n + 1 - p_2, \cdots, n + 1 - p_n$ 是无法区分的，因此，你需要保证输出时 $p_1 \leq \dfrac n2$。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($2 \leq n \leq 800; 2 \mid n$)，表示排列的大小。</p>
+
+		<h3>输出格式</h3>
+		<p>如果要进行询问，设 $S = \left\{ a_1, a_2, \cdots, a_k \right\}$，请输出 <code>? <em>k</em> <em>a</em><sub>1</sub> <em>a</em><sub>2</sub> ... <em>a<sub>k</sub></em></code>。你需要保证 $1 \leq a_i \leq n$，且所有 $a_i$ 互不相同。询问完毕后别忘了换行并刷新输出缓存。</p>
+		<p>此时，交互库会向标准输出中输出一个整数 $c$ ($c \in \left\{ 0, 1 \right\}$)，如果 $c = 1$，表示 $\displaystyle \frac 1 {\left| S \right|} \sum_{i \in S} a_i$ 是整数，反之则不是整数。</p>
+		<p>若你已经确定了排列 $p_1, p_2, \cdots, p_n$，则向标准输出输出 <code>! <em>p</em><sub>1</sub> <em>p</em><sub>2</sub> ... <em>p<sub>n</sub></em></code>，刷新缓存后<strong>立即退出程序</strong>。</p>
+
+		<h3>题解</h3>
+		<p>首先 $k = 1, n$ 的询问显然没有意义。那我们来考虑 $k = 2$ 和 $k = n - 1$ 的询问。</p>
+		<ol>
+			<li><p>对于 $k = n - 1$ 的询问，我们来观察什么时候 $n - 1$ 个数之和为 $n - 1$ 的倍数。</p>
+			<p>考虑所有数之和 $S = \dfrac {n \left( n + 1 \right)} 2$，它等于 $S \equiv \dfrac {1 \cdot 2} 2 = 1 \pmod {n - 1}$ (由 $n - 1$ 是奇数知 $2$ 存在乘法逆)，从而 $$ n - 1 \mid S - a_i \Leftrightarrow a_i \equiv 1 \pmod {n - 1} \Leftrightarrow a_i = 1 \vee a_i = n $$</p>
+			<p>这说明，通过 $O \left( n \right)$ 次询问，我们可以得到 $1, n$ 所在位置。由对称性，随便设一个为 $1$ 即可 (如果不对最后再翻转)。</p>
+			<p>注意到，剩下的数 $2, 3, \cdots, n - 1$ 可以看成是原问题 (在 $n - 2$ 时) 的一个子问题，所以只需要重复上述操作就做完啦？</p>
+			<p>非常抱歉的是，这个做法的询问次数是 $O \left( n^2 \right)$，会超出询问限制。因此我们还需要考虑其它的技巧。</p></li>
+			<li><p>对于 $k = 2$ 的询问，相当于判定 $a + b$ 是否为偶数，这等价于判断 $a, b$ 的奇偶性是否相同。</p>
+			<p>又刚才我们已经询问出了 $1$ 和 $n$，从而我们就可以知道每个位置上的数是奇数还是偶数。</p>
+			<p>如果你想把 $1, 3, 5, \cdots, n - 1$ 看成一个子问题，$2, 4, 6, \cdots, n$ 看成另一个子问题 (即分治的思想)，那么很不幸，这也是办不到的。因为数的总数可能是奇数，而且数的总数 $- 1$ 可能和公差不互素，而导致会出现 "假整除"。</p></li>
+		</ol>
+		<p>那分治也不行了，该怎么处理呢？</p>
+		<p>考虑我们既然已经得到了 $p_i \bmod 2$ 的值了，那能不能多得到几个模数，譬如 $p_i \bmod 3, p_i \bmod 5, \cdots$？</p>
+		<p>如果可以的话，设我们得到了 $p_i \bmod m_1, m_2, \cdots, m_k$ 的值，不妨设 $m_1, m_2, \cdots, m_k$ 两两互素。由孙子定理，我们就能得到 $p_i \bmod \left( m_1 m_2 \cdots m_k \right)$ 的值。如果 $m_1 m_2 \cdots m_k &gt; n$，我们就完成了目标。</p>
+		<p>我们希望 $m_i$ 尽量小点，经过适当斟酌，我们取 $m = \left[ 3, 5, 7, 8 \right]$ (此时 $\prod m_i = 3 \times 5 \times 7 \times 8 = 840 &gt; 800 \geq n$)。</p>
+		<hr />
+		<p>考虑得到 $p_i \bmod 3$，最好的情况当然是 $p_i$ 和两个已知数 $a, b$ 放在一起询问，看结果是否整除，如果整除，那么说明 $p_i \equiv - \left( a + b \right) \bmod 3$。</p>
+		<p>那么这样的 $a, b$ 只有一组显然不够的，我们希望由三组，且 $a + b$ 互不相同 (即它们构成一个<strong>完全剩余系</strong>)。那么三次询问中至少有一次就能成功，就可以真正得到 $\bmod 3$ 的余数。</p>
+		<p>同理，对于 $\bmod 5, \bmod 7$ 也是这样的，寻找五 (七) 个四 (六) 元组，满足所有数之和模 $5$ ($7$) 互不同余，然后分别检验即可。</p>
+		<p>而对于 $\bmod 8$，由于 $8 = 2^3$，我们就不需要如此暴力 —— 考虑先计算 $p_i \bmod 4$，注意到我们已经得到了 $p_i \bmod 2$ 的值，因此下面只需要 1 bit 的信息 (不妨设 $p_i \equiv 1 \pmod 2$，那么我们只需要判断 $p_i \equiv 1 \pmod 4$ 是否成立即可)，那么假设一组成立，找到剩下的三个数和它放在一起询问即可，如果成立说明假设正确，否则假设不正确 (即反面成立)。</p>
+		<p>从 $\bmod 4 \Rightarrow \bmod 8$ 的情况完全同理，这里就略去了。</p>
+		<p>于是现在的任务是怎么找这些二、四、六元组。</p>
+		<p>我们使用最前面的方法，分别找到 $\left( 2, n - 1 \right), \left( 3, n - 2 \right), \left( 4, n - 3 \right)$ 的位置。注意此时他们能唯一确定而不相互混淆，因为每个数的奇偶性是已知的，而这三组数中每组的两个数的奇偶性是不同的。</p>
+		<ol>
+			<li><p>对于 $\bmod 3$ 的完全剩余系，构造如下：\begin{align*}
+0 &amp;\equiv 1 + 2 &amp; \pmod 3 \\
+1 &amp;\equiv 1 + 3 &amp; \pmod 3 \\
+2 &amp;\equiv 2 + 3 &amp; \pmod 3
+\end{align*}</p></li>
+			<li><p>对于 $\bmod 5$ 的完全剩余系，构造如下：\begin{align*}
+n &amp;\equiv 1 + 2 + 3 + \left( n - 1 \right) &amp; \pmod 5 \\
+1 + n &amp;\equiv 1 + 2 + 3 + n &amp; \pmod 5 \\
+2 + n &amp;\equiv 1 + 2 + 4 + n &amp; \pmod 5 \\
+3 + n &amp;\equiv 1 + 2 + 3 + \left( n - 3 \right) &amp; \pmod 5 \\
+4 + n &amp;\equiv 1 + 2 + 3 + \left( n - 2 \right) &amp; \pmod 5
+\end{align*}</p></li>
+			<li><p>对于 $\bmod 7$ 的完全剩余系，构造如下：\begin{align*}
+3 n &amp;\equiv 1 + 2 + 3 + \left( n - 3 \right) + \left( n - 2 \right) + \left( n - 1 \right) &amp; \pmod 7 \\
+1 + 3 n &amp;\equiv 1 + 2 + 3 + \left( n - 3 \right) + \left( n - 2 \right) + n &amp; \pmod 7 \\
+2 + 3 n &amp;\equiv 1 + 2 + 3 + \left( n - 3 \right) + \left( n - 1 \right) + n &amp; \pmod 7 \\
+3 + 3 n &amp;\equiv 1 + 2 + 3 + \left( n - 2 \right) + \left( n - 1 \right) + n &amp; \pmod 7 \\
+4 + 3 n &amp;\equiv 1 + 2 + 4 + \left( n - 2 \right) + \left( n - 1 \right) + n &amp; \pmod 7 \\
+5 + 3 n &amp;\equiv 1 + 3 + 4 + \left( n - 2 \right) + \left( n - 1 \right) + n &amp; \pmod 7 \\
+6 + 3 n &amp;\equiv 2 + 3 + 4 + \left( n - 2 \right) + \left( n - 1 \right) + n &amp; \pmod 7
+\end{align*}</p></li>
+		</ol>
+		<p>于是我们就成功得到每个数模 $3, 5, 7, 8$ 的值，从而可以通过 <abbr title="Chinese Remainder Theorem, 孙子定理">CRT</abbr> 计算出每个数的具体值。</p>
+		<p>分析一下<del>时间复杂度</del><ins style="color: red">询问次数</ins>，前面找 $\left( 1, n \right), \left( 2, n - 1 \right), \left( 3, n - 2 \right), \left( 4, n - 3 \right)$，加上判定奇偶性，询问次数为 $5 n + O \left( 1 \right)$。</p>
+		<p>对于 $\bmod 3$，看起来每个数需要询问 $3$ 次，但实际上有 $\dfrac 13 \times 100 \%$ 的数只需询问 $1$ 次，$\dfrac 23 \times 100 \%$ 的数只需询问 $2$ 次，于是期望次数为 $\dfrac 53 n + O \left( 1 \right)$。</p>
+		<p>同理，对于 $\bmod 5, \bmod 7$，期望次数分别为 $\dfrac {14} 5 n + O \left( 1 \right)$ 和 $\dfrac {27} 7 n + O \left( 1 \right)$。</p>
+		<p>最后 $\bmod 4, \bmod 8$ 个需要一个 $n$。于是总次数 $\leq$ $$ 5 n + \dfrac 53 n + \dfrac {14} 5 n + \dfrac {27} 7 n + 2 n &lt; \left( 15 + \dfrac 13 \right) n + O \left( 1 \right) $$</p>
+		<p>于是就可以通过所有测试点了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define solve(expr) \
+		for (cnt_buf = 0, i = 1; i &lt;= n; ++i) if (!a[i]) buf[cnt_buf++] = i; \
+		for (tmp.clear(), i = 1; i &lt; cnt_buf; ++i) tmp.EB(buf[i]); \
+		for (i = 0; i &lt; cnt_buf; ++i) { \
+			if (ask(tmp)) c = (expr), a[ buf[i] ] = c, pos[c] = buf[i]; \
+			if (i &lt; cnt_buf - 1) tmp[i] = buf[i]; \
+		}
+using std::cin;
+using std::cout;
+using std::endl;
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 810;
+
+int n;
+int a[N], pos[N];
+int cnt_buf = 0, buf[N];
+int m2[N], m3[N], m5[N], m7[N], m8[N];
+
+inline vector concat(const vector &amp;u, const vector &amp;v) {vector ret(u); return ret.insert(ret.end(), v.begin(), v.end()), ret;}
+
+bool ask(const vector &amp;v) {
+	int r; cout &lt;&lt; '?' &lt;&lt; ' ' &lt;&lt; v.size();
+	for (int x : v) cout &lt;&lt; ' ' &lt;&lt; x;
+	return cout &lt;&lt; endl, cin &gt;&gt; r, r;
+}
+
+int finish() {
+	cout &lt;&lt; '!';
+	for (int i = 1; i &lt;= n; ++i) cout &lt;&lt; ' ' &lt;&lt; (a[1] &lt;= n / 2 ? a[i] : n - a[i] + 1);
+	return cout &lt;&lt; endl, 0;
+}
+
+int main() {
+	int i, j, c, e = 0; vector tmp, z[8];
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+
+	solve(++e == 1 ? 1 : n) assert(e == 2); // solve 1, n
+	if (n &lt;= 2) return finish();
+
+	for (i = 1; i &lt;= n; ++i) if (!a[i]) m2[i] = ask({pos[1], i}); // modulo 2
+
+	solve(m2[ buf[i] ] ? n - 1 : 2) // solve 2, n - 1
+	if (n &lt;= 4) return finish();
+
+	solve(m2[ buf[i] ] ? 3 : n - 2) // solve 3, n - 2
+	if (n &lt;= 6) return finish();
+
+	solve(m2[ buf[i] ] ? n - 3 : 4) // solve 4, n - 3
+	if (n &lt;= 8) return finish();
+
+	// modulo 3
+	z[0] = {pos[1], pos[2]};
+	z[1] = {pos[1], pos[3]};
+	z[2] = {pos[2], pos[3]};
+	for (i = 1; i &lt;= n; ++i) if (!a[i])
+		for (j = 0; j &lt; 3; ++j)
+			if (ask(concat(z[j], {i}))) {m3[i] = (3 - j) % 3; break;}
+
+	// modulo 5
+	z[(0 + n) % 5] = {pos[1], pos[2], pos[3], pos[n - 1]};
+	z[(1 + n) % 5] = {pos[1], pos[2], pos[3], pos[n]};
+	z[(2 + n) % 5] = {pos[1], pos[2], pos[4], pos[n]};
+	z[(3 + n) % 5] = {pos[1], pos[2], pos[3], pos[n - 3]};
+	z[(4 + n) % 5] = {pos[1], pos[2], pos[3], pos[n - 2]};
+	for (i = 1; i &lt;= n; ++i) if (!a[i])
+		for (j = 0; j &lt; 5; ++j)
+			if (ask(concat(z[j], {i}))) {m5[i] = (5 - j) % 5; break;}
+
+	// modulo 7
+	z[(0 + 3 * n) % 7] = {pos[1], pos[2], pos[3], pos[n - 3], pos[n - 2], pos[n - 1]};
+	z[(1 + 3 * n) % 7] = {pos[1], pos[2], pos[3], pos[n - 3], pos[n - 2], pos[n]};
+	z[(2 + 3 * n) % 7] = {pos[1], pos[2], pos[3], pos[n - 3], pos[n - 1], pos[n]};
+	z[(3 + 3 * n) % 7] = {pos[1], pos[2], pos[3], pos[n - 2], pos[n - 1], pos[n]};
+	z[(4 + 3 * n) % 7] = {pos[1], pos[2], pos[4], pos[n - 2], pos[n - 1], pos[n]};
+	z[(5 + 3 * n) % 7] = {pos[1], pos[3], pos[4], pos[n - 2], pos[n - 1], pos[n]};
+	z[(6 + 3 * n) % 7] = {pos[2], pos[3], pos[4], pos[n - 2], pos[n - 1], pos[n]};
+	for (i = 1; i &lt;= n; ++i) if (!a[i])
+		for (j = 0; j &lt; 7; ++j)
+			if (ask(concat(z[j], {i}))) {m7[i] = (7 - j) % 7; break;}
+
+	// modulo 4, 8
+	for (i = 1; i &lt;= n; ++i) if (!a[i])
+		switch (m2[i] ? (ask({pos[1], pos[2], pos[4], i}) ? 1 : 3)
+					  : (ask({pos[1], pos[2], pos[3], i}) ? 2 : 0)) {
+			case 0: m8[i] = (ask({pos[1], pos[2], pos[3], pos[n - 3], pos[n - 2], pos[n - 1], pos[n], i}) ? 0 : 4); break;
+			case 1: m8[i] = (ask({pos[2], pos[3], pos[4], pos[n - 3], pos[n - 2], pos[n - 1], pos[n], i}) ? 5 : 1); break;
+			case 2: m8[i] = (ask({pos[1], pos[3], pos[4], pos[n - 3], pos[n - 2], pos[n - 1], pos[n], i}) ? 6 : 2); break;
+			case 3: m8[i] = (ask({pos[1], pos[2], pos[4], pos[n - 3], pos[n - 2], pos[n - 1], pos[n], i}) ? 7 : 3); break;
+		}
+
+	for (i = 1; i &lt;= n; ++i) if (!a[i])
+		a[i] = (m3[i] * 280 + m5[i] * 336 + m7[i] * 120 + m8[i] * 105 - 1) % 840 + 1;
+
+	return finish();
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>询问时注意搞清楚值和下标的关系，可以使用两个数组来记录。</p>
+		<p><strong>坑2：</strong>在询问 $\left( 1, n \right), \left( 2, n - 1 \right), \left( 3, n - 2 \right), \left( 4, n - 3 \right)$ 的时候注意 $n \leq 8$ 的情形，在适当的是时候 <code>break</code> (<code>return</code>)。</p>
+	</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2292,Grand9C]Division into Two</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $N$ 个互不相同的整数，构成集合 $S = \left\{ S_1, S_2, \cdots, S_N \right\}$，求 $S$ 有多少种不同的<strong>划分</strong> $X, Y$ ($X \cup Y = S; X \cap Y = \varnothing$)，满足</p>
+		<ul>
+			<li><p>$\forall u, v \in X, u \neq v$，有 $\left| u - v \right| \geq A$。</p></li>
+			<li><p>$\forall u, v \in Y, u \neq v$，有 $\left| u - v \right| \geq B$。</p></li>
+		</ul>
+		<p>注意 $X, Y$ 可以为空集。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $N, A, B$ ($1 \leq N \leq 10^5; 1 \leq A, B \leq 10^{18}$)，表示整数的个数，$X$ 集合的限制和 $Y$ 集合的限制。</p>
+		<p>接下来 $N$ 行，每行一个非负整数 $S_i$ ($0 \leq S_i &lt; S_{i+1} \leq 10^{18}$)，从小到大给出集合 $S$ 中的元素。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的划分的个数模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>不妨假设 $A = \left\{ S_{a_1}, S_{a_2}, \cdots, S_{a_k} \right\}$ ($a_1 &lt; a_2 &lt; \cdots &lt; a_k$)，那么 $\left( A, S \setminus A \right)$ 满足条件当且仅当</p>
+		<ol>
+			<li><p>$\forall 1 \leq i &lt; k$，有 $S_{a_{i+1}} - S_{a_i} \geq A$；</p></li>
+			<li><p>$\forall 0 \leq i \leq k, a_i &lt; u &lt; a_{i+1} - 1$，有 $S_{u+1} - S_u \geq B$；</p></li>
+			<li><p>$\forall 1 \leq i \leq j \leq k$，且 $a_i, a_{i+1}, \cdots, a_j$ 为连续段，有 $S_{a_j + 1} - S_{a_i - 1} \geq B$。</p></li>
+		</ol>
+		<p style="color: red">(ps: 如果上面表达式中出现下标越界，则规定 $a_0 = 0, a_{k + 1} = N + 1, S_0 = - \infty, S_{N + 1} = + \infty$)</p>
+		<p>于是我们尝试使用 DP 去求解集合 $A$ 的个数。不难想到用 $f_i$ 表示 $A$ 中最后一个元素为 $S_i$ 时的方案数。</p>
+		<p>考虑从 $j$ 转移到 $i$，则 $j$ 需要满足：</p>
+		<ol>
+			<li><p>$S_{a_j} \leq S_{a_i} - A$；</p></li>
+			<li><p>$\forall a_j &lt; u &lt; a_{i+1} - 1$，有 $S_{u+1} - S_u \geq B$；</p></li>
+			<li style="color: teal"><p>第三个条件看起来不是很好处理，还需要记什么连续段长度等等。</p></li>
+		</ol>
+		<p>既然条件 3. 不好处理，那么我们能不能把它变成<strong>恒成立</strong>的呢？</p>
+		<p>我们考虑极端情况，即 $i = j$，此时要求是最严苛的 —— $S_{k + 1} - S_{k - 1} \geq B$。</p>
+		<p>思考：如果这个条件不成立会发生什么？</p>
+		<p>说明 $S_{k + 1} - S_{k - 1} &lt; B$，从而 $S_{k + 1} - S_k &lt; B; S_k - S_{k - 1} &lt; B$。因此，<strong style="color: fuchsia">$S_{k - 1}, S_k, S_{k + 1}$ 它们三个至多一个在 $B$ 中</strong>。</p>
+		<p>要是我们能再得到「$S_{k - 1}, S_k, S_{k + 1}$ 它们三个至多一个在 $A$ 中」这个条件，那我们就 win 了啊！三个数中只有至多两个数在集合中，由抽屉原理就得到矛盾了！</p>
+		<p>那怎样才能满足呢？很简单，<big><strong>不妨设</strong></big> $B \leq A$，由不等式的传递性就完事啦。</p>
+		<p>因此，我们在一开始，由集合的对称性，可以不妨设 $A \geq B$ (代码中用<strong>大写</strong> <code>M</code> 表示 $A, B$ 中的<strong>较大者</strong>，<strong>小写</strong> <code>m</code> 表示 $A, B$ 中的<strong>较小者</strong>)。</p>
+		<p>这下，如果遇到 $\forall 1 &lt; k &lt; N$，满足 $S_{k+1} - S_{k-1} &lt; B$，由上面的分析可以直接得到矛盾，于是直接 pass 掉 (输出 $0$)。</p>
+		<p>于是我们在 DP 中就只需要考虑前两个条件了。</p>
+		<ol>
+			<li><p>对于条件 1.，由 $\left\{ S_n \right\}$ 的单调性易知可以转化为 $j \leq J \left( i \right)$，并可以使用<em>双指针</em>维护 $J \left( i \right)$。</p></li>
+			<li><p>对于条件 2.，容易预处理出每个 $u$ 是否满足条件，如果遇到一个<strong>不满足条件的 $u$</strong>，则需要让 $j$ 的下界 $\jmath \uparrow u$ 即可。</p></li>
+		</ol>
+		<p>从而最终满足条件的 $j$ 是一个区间 $\left[ l, r \right]$，然后 $\displaystyle f_i = \sum_{l \leq j \leq r} f_j$，使用前缀和优化即可。</p>
+		<p>时间复杂度 $O \left( N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 100054, mod = 1000000007;
+
+int n;
+ll m, M;
+ll a[N];
+int f[N], F[N];
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+int main() {
+	int i, l = 0, r = 1;
+	scanf("%d%lld%lld", &amp;n, &amp;m, &amp;M);
+	if (m &gt; M) std::swap(m, M);
+	for (i = 1; i &lt;= n; ++i) scanf("%lld", a + i);
+	for (i = 2; i &lt; n; ++i) if (a[i + 1] - a[i - 1] &lt; m) return putchar(48), putchar(10), 0;
+	a[0] = -M, a[n + 1] = a[n] + m + M, ++n;
+	for (F[1] = *f = i = 1; i &lt;= n; ++i) {
+		for (; a[r] &lt;= a[i] - M; ++r);
+		if (l &lt; r) reduce(f[i] = F[r] - F[l]);
+		add(F[i + 1] = F[i], f[i]);
+		if (a[i - 1] &gt; a[i] - m) l = i - 1;
+	}
+	printf("%d\n", f[n]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $l$ 可能大于 $r$，此时不能直接相减，否则会产生负数。</p>
+	</body>
+</html>

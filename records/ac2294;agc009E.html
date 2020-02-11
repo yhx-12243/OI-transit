@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2294,Grand9E]Eternal Average</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>黑板上有 $N$ 个 $0$ 和 $M$ 个 $1$。给定 $K \geq 2$，且 $N + M \equiv 1 \pmod {K - 1}$。</p>
+		<p>你需要不断执行下述操作，直到最终只剩下一个数：</p>
+		<blockquote>选取黑板上的 $K$ 个整数，将它们替换为它们的平均数。</blockquote>
+		<p>求最终所得到的数有多少种可能的取值。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含三个正整数 $N, M, K$ ($1 \leq N, M \leq 2000; 2 \leq K \leq 2000; K - 1 \mid N + M - 1$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最终所得到的数的不同取值个数模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p><del>(Hmm，这看起来非常像一棵 $k$ 叉 Huffman 树……)</del></p>
+		<p>考虑建出严格 $k$ 叉树，设所有 $0$ 的深度为 $a_1, a_2, \cdots, a_N$，所有 $1$ 的深度为 $b_0, b_1, \cdots, b_M$，则最终所得到的数就等于 $\displaystyle B = \sum_{i=1}^M k^{-b_i}$。</p>
+		<p>由整个过程，不难发现，如果再设 $\displaystyle A = \sum_{i=1}^N k^{-a_i}$ (即将 $0$ 和 $1$ 颠倒着看)，则有 $A + B = 1$。</p>
+		<p>我们将 $B$ 以 $k$ 进制数呈现。那么，怎样的数才能表示成形如 $\displaystyle \sum_{i=1}^M k^{-b_i}$ 的数呢？</p>
+		<p><del>由小学学的「弃九法」可知</del>，在进位过程中，数码和 $\bmod {K - 1}$ 的值是一个不变量，于是一个必要条件就是数码和 $\equiv M \pmod {K - 1}$，还有一个显然的必要条件是数码和不超过 $M$。</p>
+		<p>而这两个条件显然是充分的 —— 只要 "以 $1$ 换 $k$" 不停迭代回去就好了呢。</p>
+		<hr />
+		<p>于是原问题就转化成了这样：<strong style="color: teal">求有多少个有理数对 $\left( A, B \right)$，满足 $A + B = 1$，且 $\color {fuchsia} {S_k \left( A \right) \equiv N \pmod {K - 1}} \wedge \color {fuchsia} {S_k \left( A \right) \leq N} \wedge S_k \left( B \right) \equiv M \pmod {K - 1} \wedge S_k \left( B \right) \leq M$</strong>，其中 $S_k \left( x \right)$ 表示 $x$ 在 $k$ 进制下的数码和。</p>
+		<p>由 $N + M \equiv 1 \pmod {K - 1}$ 知，$S_k \left( A \right) \equiv N \pmod {K - 1} \Leftrightarrow S_k \left( B \right) \equiv M \pmod {K - 1}$，于是只需考虑前者成立即可。</p>
+		<p>同时，由于 $A + B = 1$，因此设 $A, B$ 是 $i$ 位小数 (无后缀 $0$)，由进位规则知，前面 $i - 1$ 位都是 $K - 1$ (十进制中的 $9$)，最后一位是 $K$ (十进制中的 $10$)，于是 $S_k \left( A \right) + S_k \left( B \right) = \left( i - 1 \right) \left( K - 1 \right) + K = i \cdot \left( K - 1 \right) + 1$。</p>
+		<p>于是，$S_k \left( B \right) \leq M \Leftrightarrow \color {fuchsia} {S_k \left( A \right) \geq i \cdot \left( K - 1 \right) + 1 - M}$。</p>
+		<p>好喔！<strong style="color: olive">所有条件都只和 $S_k \left( A \right)$ 有关了</strong>！</p>
+		<p>最后上一个简单的数位 DP —— 用 $f_{i, j}$ 表示 $i$ 位小数，$S_k \left( A \right) = j$ 的方案数。不过要注意我们规定的 $A, B$ 是不能有后缀 $0$ 的，因此我们需要加一维状态表示当前 $A$ 的最后一位是否为 $0$ (代码中用 $f_{i, j}$ 表示最后一位为 $0$，$g_{i, j}$ 表示最后一位非 $0$)。</p>
+		<p>边界记为 $f_{0, 0} = 1$，统计答案时只需要将所有满足上面三个<span style="color: fuchsia">粉色</span>条件的 $j$ 所对应的 $\color {red} g_{i, j}$ 计入答案即可。</p>
+		<p>转移时可以使用前缀和优化，总时间复杂度 $O \left( \dfrac {N + M} {K - 1} \cdot \min \left\{ N, M \right\} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 2054, mod = 1000000007;
+
+int A, B, K;
+int f[N * 2][N], g[N * 2][N];
+
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; add(int &amp;x, const int y) {return x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+int main() {
+	int i, j, l, r, limit; ll ans = 0;
+	scanf("%d%d%d", &amp;A, &amp;B, &amp;K);
+	if (A &gt; B) std::swap(A, B); limit = (A + B - 1) / --K;
+	for (**f = i = 1; i &lt;= limit; ++i) {
+		for (j = 0; j &lt;= A; ++j)
+			add(g[i][j + 1] = g[i][j], add(f[i][j] = f[i - 1][j], g[i - 1][j]));
+		for (j = A; j &gt;= K; --j) reduce(g[i][j] -= g[i][j - K]);
+		for (l = max(A % K, i * K - B + 1), r = i * K - l + 1; l &lt;= A &amp;&amp; r &gt;= 0; l += K, r -= K)
+			 ans += g[i][l];
+	}
+	printf("%d\n", int(ans % mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意最大位数 (上界为 $\dfrac {N + M} {K - 1}$) 可以达到 $N + M$，因此数组别开小了。</p>
+		<p><del><strong>坑2：</strong>具体实现时可以使用 $\min \left\{ A, B \right\}$ 代替 $A$ 以加速。</del></p>
+	</body>
+</html>

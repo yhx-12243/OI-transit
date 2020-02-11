@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2062,Grand5D]~K Perm Counting</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定正整数 $N, K$，求有多少个 $1 \sim N$ 的排列 $a_1, a_2, \cdots, a_N$，满足对 $\forall 1 \leq i \leq N$，均有 $\left| a_i - i \right| \neq K$。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $N, K$ ($2 \leq N \leq 2000; 1 \leq K \leq N - 1$)，表示排列的长度以及禁止的差数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的排列数量模 $924844033$ ($3^2 \times 7^2 \times 2^{21} + 1$，一个质数) 的结果。</p>
+
+		<h3>题解</h3>
+		<p>注意到 "$\neq$" 比较难算，而 "$=$" 比较好算，因此我们考虑使用容斥原理进行转化。</p>
+		<p>设 $\Gamma_c$ 表示有<strong>已知的 $c$ 对 "$=$"，其余位置任意</strong>的排列数量。</p>
+		<p>由于 "其余位置任意" 本质上就是剩下 $N - c$ 个元素做一个全排列，因此由乘法原理，确定完 $c$ 对 "$=$" 后，它对 $\Gamma_c$ 的贡献是 $\left( N - c \right) !$。</p>
+		<p>所以问题转化为<strong>能选出多少个 $\left( i, a_i \right)$ 的 $c$ 元组，使得 $\left| a_i - i \right| = K$ 且所有的 $i$ 互不相同，所有的 $a_i$ 也互不相同</strong>，设这个数为 $\gamma_c$，则 $\Gamma_c = \gamma_c \cdot \left( N - c \right) !$。</p>
+		<p>注意到右边这条件非常像 "匹配" 的定义，因此我们将其转化为一个图论模型：</p>
+		<p>有一张二分图 $G = \left( V_1, V_2; E \right)$，其中 $V_1 = \left\{ L_1, L_2, \cdots, L_N \right\}, V_2 = \left\{ R_1, R_2, \cdots, R_N \right\}, E = \left\{ \left( L_i, R_j \right) \mid \left| i - j \right| = K \right\}$，求 $E$ 有多少个大小为 $K$ 的<strong>匹配</strong> (matching)。</p>
+		<hr />
+		<p>我们来探究一下图 $G$ 的结构：</p>
+		<p>首先，每个顶点的度数不超过 $2$，因为 $L_i$ 至多和 $R_{i - K}, R_{i + K}$ 相连，而它们有可能不存在。对于 $R_i$ 也是同理的。</p>
+		<p>于是 $G$ 为若干个链和圈的并。</p>
+		<p>接下来，我们证明 $G$ 中没有圈。</p>
+		<p>反设有圈，则圈中元素对应的数必有最小者 $min$，若这个顶点是 $L_{min}$，则和它相连的两个顶点 (如果存在) $L_{min - K}, L_{min + K}$ 中，$L_{min - K}$ 就不能在圈中，那么它在圈中的度数不超过 $1$，矛盾。</p>
+		<p>因此，问题就被转化为如下：</p>
+		<blockquote>给定 $G$ 为若干条链的<a href="../memos/14.html" target="_blank">和</a>，求 $G$ 的大小为 $K$ 的匹配个数。</blockquote>
+		<p>考虑将这些链 "首位相接"，不过衔接出的边称为 "坏边"，它的实际意义是<strong>强制不能被加入匹配</strong>。</p>
+		<p>于是问题转化为一条链，简单做一个线性 DP：用 $f_{i, j}, g_{i, j}$ 表示考虑前 $i$ 条边，当前的匹配大小为 $j$，最后一条有没有匹配 (匹配了为 $g$，没匹配为 $f$) 的方案数。然后转移时就讨论是不是 "坏边"，以及相邻两条边不能同时出现在匹配就完事了。</p>
+		<p>具体的转移方程<del>大家都会</del>，这里就不写了，可以见代码。</p>
+		<p>最后的答案表达式就是 $$ \sum_{c=0}^N \left( -1 \right)^c \cdot \Gamma_c = \sum_{c=0}^N \left( -1 \right)^c \cdot \left( N - c \right) ! \cdot \gamma_c $$</p>
+		<p>时间复杂度 $O \left( N^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 4054, mod = 924844033;
+
+int n, K, L = 0;
+int sp[N], fact[N];
+int f[N][N], g[N][N];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+int main() {
+	int i, j, c; ll ans = 0;
+	scanf("%d%d", &amp;n, &amp;K);
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	for (i = 0; i &lt; K; ++i)
+		sp[++L] = 1, L += (n - i - 1) / K,
+		sp[++L] = 1, L += (n - i - 1) / K;
+	assert(L == 2 * n);
+	for (**f = i = 1; i &lt;= L; ++i)
+		for (*f[i] = j = 1; j &lt;= (i + 1) / 2; ++j)
+			add(f[i][j] = f[i - 1][j], g[i - 1][j]),
+			g[i][j] = (sp[i] ? 0 : f[i - 1][j - 1]);
+	for (i = 0; i &lt;= n; ++i)
+		c = ll(f[L][i] + g[L][i]) * fact[n - i] % mod,
+		i &amp; 1 ? ans -= c : ans += c;
+	ans %= mod, printf("%d\n", int(ans + (ans &gt;&gt; 63 &amp; mod)));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意图 $G$ 的大小 (点数) 为 $2 N$，因此 DP 时数组不要开小了。</p>
+		<p><strong>坑2：</strong>计算每条子链的长度的时候注意取整方向。</p>
+	</body>
+</html>

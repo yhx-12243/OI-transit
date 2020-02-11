@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2063,Grand5E]Sugigma: The Showdown</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>$\sigma$ 和 $\varsigma$ 在玩游戏。</p>
+		<p>给定 $N$ 个顶点构成的点集 $V = \left\{ 1, 2, \cdots, N \right\}$，在点集 $V$ 上定义两棵树 $T_1 = \left( V, E_1 \right), T_2 = \left( V, E_2 \right)$。</p>
+		<p>$\sigma$ 和 $\varsigma$ 各有一枚棋子，初始时 $\sigma$ 的棋子在点 $X$，$\varsigma$ 的棋子在点 $Y$。</p>
+		<p>$\sigma$ 先手，双方轮流操作，每到一个玩家操作时，她<em style="color: red">或者什么都不干</em>，或者将她的棋子从 $v$ 移动到 $N_T \left( v \right)$ 中一点。其中，当 $\sigma$ 操作时，$T = T_1$；当 $\varsigma$ 操作是，$T = T_2$。</p>
+		<p>若 $m$ 次移动完毕时，两个人的棋子位于同一点，则游戏立即结束，并称 $m$ 为这次游戏的分数。</p>
+		<p>现在，$\sigma$ 想要最大化游戏的分数，$\varsigma$ 想要最小化游戏的复数。假设她们足够聪明，请求出<del>纳什平衡点</del>在双方最优策略下游戏的分数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $N, X, Y$ ($2 \leq N \leq 2 \times 10^5; 1 \leq X, Y \leq N; X \neq Y$)，分别表示点集的大小和双方的起点。</p>
+		<p>接下来 $N - 1$ 行，每行两个正整数 $a_1, b_1$ ($1 \leq a_i, b_i \leq N; a_i \neq b_i$)，描述 $T_1$ 的一条边。保证这 $N - 1$ 条边恰好构成一棵树。</p>
+		<p>接下来 $N - 1$ 行，以同样的方式给出 $T_2$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示在最优策略下游戏的分数。如果分数可以大于任意值，输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>一个显然的事实是，如果答案不是 $-1$，那么答案一定是偶数 —— 即想要最小化的 $\varsigma$ 去抓 $\sigma$ 的。因为 $\sigma$ 不会自寻死路，如果能到 $2 k - 1$ 分，那么就一定能 "撑" 到 $2 k$ 分。</p>
+		<p>现在，考虑 $\left( u, v \right) \in T_1$，若 $\operatorname{dist}_{T_2} \left( u, v \right) \geq 3$：</p>
+		<p>此时，一旦 $\sigma$ 走到了 $u, v$ 中的其中一点 (不妨设为 $u$)，且 $\varsigma$ 不能在下一步<strong>立即</strong>抓到它，则 $\sigma$ 只需使用如下策略，即可保证得到 $+ \infty$ 分：</p>
+		<ul>
+			<li><p>如果 $\varsigma$ 的点在 $N_{T_2} \left( u \right)$，则 $\sigma$ 跑到 $v$ (如果本来就在 $v$ 则静止不动)。</p></li>
+			<li><p>如果 $\varsigma$ 的点在 $N_{T_2} \left( v \right)$，则 $\sigma$ 跑到 $u$ (如果本来就在 $u$ 则静止不动)。</p></li>
+		</ul>
+		<p>由 $\operatorname{dist}_{T_2} \left( u, v \right) \geq 3$ 知，$N_{T_2} \left( u \right) \cap N_{T_2} \left( v \right) = \varnothing$，因此这个策略可行，容易验证此时 $\varsigma$ 不可能抓到 $\sigma$。</p>
+		<p>于是，我们称这样的 $u, v$ 为<strong>关键点</strong> —— 形式化地，一个点 $v$ 被称为关键点，当且仅当存在一条在 $T_1$ 中与它关联的边 $\left( v, u \right)$，使得 $\operatorname{dist}_{T_2} \left( v, u \right) \geq 3$。</p>
+		<p>而一旦 $\sigma$ 走到了一个<strong>关键点</strong>，她将立即取得游戏的 "胜利"，因为分数已经是 $+ \infty$ 了。</p>
+		<hr />
+		<p>现在我们就不需要考虑这些 "长" 边了，只用考虑这些 "短" 边 —— 即 $T_1$ 中边的两个端点，使得它们在 $T_2$ 中的距离 $\leq 2$。</p>
+		<p>如果将 $T_2$ 看成以 $Y$ 为根的有根树，并记 $X_c$ 是 $Y$ 的子节点，满足 $X_c$ 是 $X$ 的祖先 (说白了就是 $X_c$ 是 $Y$ 在 $X$ 方向上的子节点)。</p>
+		<p>则 $\sigma$ 是不会逃出 $X_c$ 这棵子树的 —— 因为这些边的长度都不超过 $2$，如果 $\sigma$ 逃出了，$\sigma$ 马上就被抓到，还不如原地乖乖呆着。</p>
+		<p>现在考虑子树 $X_c$ 中的一点，它是否一定会被达到呢？不一定。具体看 $\sigma$ 和 $\varsigma$ 谁先到。</p>
+		<p>这句话又是什么意思呢？对于 $v \in V$，我们定义点 $v$ 是 <strong>"危险的"</strong>，如果 $\operatorname{dist}_{T_2} \left( Y, v \right) \leq \operatorname{dist}_{T_1} \left( X, v \right)$。</p>
+		<p>由定义可知，任何情况下，$\sigma$ 都不会去 "危险的" 点 —— 即使它是<strong>关键点</strong>。<span class="text-muted">(这是因为如果它到达了，在下一步或之前就会被 $\varsigma$ 抓到，还不如乖乖地原地不动，就算它是个<strong>关键点</strong>，也无法使 $\sigma$ 获得 $+ \infty$ 分)</spanp></p>
+		<p>于是，我们将所有的关键点去掉，考虑剩下的点 (可能不连通) 在 $T_1$ 中导出的子图，此时 <strong>$X$ 所在的连通块</strong>就是 "安全的"。这也是容易证明的，因为 $\varsigma$ 无论如何也抓不到。</p>
+		<p>那么我们的算法就明确了 —— 先计算出 <strong>"安全的"</strong> 点的集合，如果其中有<strong>关键点</strong>，则答案就是 $+ \infty$，否则，设 $v$ 是 "安全的" 点中，(在 $T_2$ 上) 距离 $Y$ 最远的点，则 $\sigma$ 径直跑向那儿，然后在 $2 \operatorname{dist}_{T_2} \left( Y, v \right)$ 轮后被 $\varsigma$ 抓获，答案就是 $2 \operatorname{dist}_{T_2} \left( Y, v \right)$。</p>
+		<hr />
+		<p>最后一个问题就是如何求 "关键点" 和 "安全点"。</p>
+		<p>至于关键点，我们只需要依次检验 $T_1$ 中的每条边的两个端点在 $T_2$ 中的距离是否 $\geq 3$。</p>
+		<p>注意这不需要求出 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>，事实上只需要判断是否有 $p_{T_2} \left( u \right) = v \vee p_{T_2} \left( v \right) = u \vee p_{T_2} \left( p_{T_2} \left( u \right) \right) = v \vee p_{T_2} \left( p_{T_2} \left( v \right) \right) = u \vee p_{T_2} \left( u \right) = p_{T_2} \left( v \right)$ 即可。</p>
+		<p>至于安全点，由定义，我们只要能快速判定 "危险点"，然后从 $Y$ 开始做一次 dfs/bfs 即可，只要保证我们不经过危险点即可。</p>
+		<p>而一个点是危险点需要用到两次距离函数 —— 哦不，两次<strong>深度函数</strong>，于是也是非常容易实现的。</p>
+		<p>因此，整个问题可以在 $O \left( N \right)$ 时间内解决。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define AL(n) new int [(n) + 1]
+#define FR(x) if (x) delete [] x;
+
+struct tree {
+	int V, E, root;
+	int *to, *first, *next, *p, *dep;
+
+	tree () : V(0), E(0), root(0), to(NULL), first(NULL), next(NULL), p(NULL), dep(NULL) {}
+	~tree () {FR(to) FR(first) FR(next) FR(p) FR(dep)}
+
+	inline int dmin(const int x, const int y) {return dep[x] &lt; dep[y] ? x : y;}
+
+	inline void addedge(int u, int v) {
+		to[++E] = v, next[E] = first[u], first[u] = E;
+		to[++E] = u, next[E] = first[v], first[v] = E;
+	}
+
+	void dfs(int x) {
+		int i, y;
+		for (i = first[x]; i; i = next[i])
+			if ((y = to[i]) != p[x]) p[y] = x, dep[y] = dep[x] + 1, dfs(y);
+	}
+
+	inline bool check_two(int x, int y) {return p[x] == y || p[y] == x || p[p[x]] == y || p[p[y]] == x || p[x] == p[y];}
+
+	void init(int V_, int root_) {
+		int i, u, v; V = V_, E = 0, root = root_;
+		to = AL(2 * (V - 1)), first = AL(V), next = AL(2 * (V - 1));
+		memset(first, 0, (V + 1) &lt;&lt; 2);
+		for (i = 1; i &lt; V; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+		p = AL(V), dep = AL(V), p[root] = dep[root] = 0, dfs(root);
+		for (i = 1; i &lt;= V; ++i)
+			for (to[ u = first[i] ] == p[i] &amp;&amp; (u = first[i] = next[u]); u; u = next[u])
+				if (to[ next[u] ] == p[i]) next[u] = next[ next[u] ];
+	}
+} R, B;
+
+const int N = 200054;
+
+int n, X, Y, ans = 0;
+bool key[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+void play(int x, int lim) {
+	if (B.dep[x] &lt;= lim) return;
+	up(ans, key[x] ? INT_MAX : B.dep[x]);
+	for (int i = R.first[x]; i; i = R.next[i])
+		play(R.to[i], lim + 1);
+}
+
+int main() {
+	int i;
+	scanf("%d%d%d", &amp;n, &amp;X, &amp;Y);
+	R.init(n, X), B.init(n, Y);
+	for (i = 1; i &lt;= n; ++i)
+		if (!(i == X || B.check_two(i, R.p[i]))) key[i] = key[R.p[i]] = true;
+	play(X, 0);
+	printf("%d\n", ans &lt; INT_MAX ? ans * 2 : -1);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 "危险点" 是不能经过的，即使它是个关键点。</p>
+		<p><strong>坑2：</strong>这道题中树根不一定是 $1$，因此搜索或枚举的时候需要注意一下。</p>
+	</body>
+</html>

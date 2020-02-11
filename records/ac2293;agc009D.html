@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2293,Grand9D]Uninity</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵树 $T$，求其点分树深度的最小值。</p>
+		<p>形式化地，递归定义一棵树是否为 $k-$可点分的：</p>
+		<ul>
+			<li><p>包含 $1$ 个顶点的树是 $0-$可点分的。</p></li>
+			<li><p>对于 $k \in \mathbb N$ 和树 $T$，如果存在一个顶点 $v \in T$，满足将 $v$ 去掉后剩下的所有子树均为 $k-$可点分的，则 $T$ 为 $\left( k + 1 \right)-$可点分的。</p></li>
+		</ul>
+		<p>求最小的 $k$，使得 $T$ 是 $k-$可点分的。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 2 \times 10^5$)，表示树的点数。</p>
+		<p>接下来 $N - 1$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq N$)，描述树上的一条边。保证这 $N - 1$ 条边恰好构成一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示使得 $T$ 是 $k-$可点分的 $k$ 的最小值。</p>
+
+		<h3>题解</h3>
+		<p>考虑点分治的过程 (或 $k-$可点分的定义)，我们可以对一棵树进行<strong>标号</strong> (表示点分治的深度)，满足如下性质：</p>
+		<p>一棵 $k-$点分治的树的标号中只包含整数 $0 \sim k$。</p>
+		<p>若两个顶点 $u, v$ 的标号相同，则连接它们的路径上存在一个顶点的标号比它们俩都大。</p>
+		<p>事实上，这种标号的存在就是 $T$ 是 $k-$可点分的充要条件。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>必要性显然。下证充分性：</p>
+				<p>使用数学归纳法，当 $k = 0$ 时结论显然成立，考虑 $k \geq 1$。</p>
+				<p>首先，不妨设 $k$ 就是最大标号。则 $k$ 出现且仅出现一次。<span class="text-muted">(否则两个 $k$ 之间没有比它们更大的数)</span></p>
+				<p>考虑以 $k$ 作为点分中心进行点分治，则所得到的每棵子树均满足上述性质 (标号只包含 $0 \sim k - 1$，任意两个标号相同的顶点之间的路径上存在标号更大的顶点)，于是使用归纳假设，它们都是 $\left( k - 1 \right)-$可点分的，从而由定义知 $T$ 是 $k-$可点分的。</p>
+			</div>
+		</div>
+		<hr />
+		<p>于是，接下来的任务就是，找到一种标号 $a_1, a_2, \cdots, a_N$ ($a_i \in \mathbb N$)，使得满足上述条件的同时，$\max\limits_{1 \leq i \leq N} a_i$ 最小。</p>
+		<p>容易想到一个贪心策略 —— 自底而上对所有点进行标数，每个点标它所能标的最小的数。正确性使用调整法不难证明。</p>
+		<p>那么，对于当前的点 $v$，它最小能标到多少呢？</p>
+		<p>考虑树形 DP。用集合 $S_v$ 表示以 $v$ 为根的子树中，"危险" 标号 $k$ 的集合 —— 即满足存在 $subtree \left( v \right)$ 中存在一个标号为 $k$ 的顶点，到 $v$ 的路径中没有一个标号 $&gt; k$ 的顶点。</p>
+		<p>于是，$v$ 的标号需要满足如下两条限制：</p>
+		<ol>
+			<li><p>对于 $c \in child \left( v \right), k \in S_c$，有 $a_v \neq k$ (否则存在一对不满足条件的 $k$ 数对)；</p></li>
+			<li><p>对于 $c_1, c_2 \in child \left( v \right), k \in S_{c_1} \cap S_{c_2}$，有 $a_v &gt; k$ (否则这两棵子树的 $k$ 就不满足条件)。</p></li>
+		</ol>
+		<p>综上，设 $child \left( v \right) = \left\{ c_1, c_2, \cdots, c_n \right\}$，我们可以维护出集合 $\displaystyle Y = \bigcup_{1 \leq i &lt; j \leq n} \left( S_{c_i} \cap S_{c_j} \right)$，从而第 2 个条件就转化为 $a_v &gt; \max Y$。</p>
+		<p>第 1 个条件就等价于 $\displaystyle a_v \notin \bigcup_{i=1}^n S_i$。</p>
+		<p>于是我们找到了 $a_v$ 的值，最后一步就是确定 $S_v$ 为以后的标号做准备。</p>
+		<p>容易发现，$a_v \in S_v$。因为由定义知，它本身肯定是 "危险" 的。</p>
+		<p>而对于 $k &lt; a_v$，它就不再是 "危险" 的了，因为存在 $a_v &gt; k$。</p>
+		<p>而对于 $k &gt; a_v$，$a_v$ <strong>不影响</strong>它是不是危险的标号，从而原封不动的抄下来。</p>
+		<p>从而我们也成功地得到了 $S_v$ 的值。当整个树形 DP 跑完时，答案自然就出来了。</p>
+		<hr />
+		<p>对于时间复杂度，<del>由熟知结论</del>，点分治的时间复杂度是 $O \left( \log n \right)$ 的，从而答案不超过 $\left \lfloor \log_2 n \right \rfloor$，于是 $S_v$ 的值域就变得十分的小，于是可以使用 <del><code>std::bitset</code></del><ins style="color: fuchsia">一个 <code>int</code></ins> 来存储，并施以合适的位运算。</p>
+		<p>时间复杂度 $O \left( N \right)$ (确切地来说是 $O \left( \dfrac {N \log N} \omega \right)$，不过看成 $O \left( N \right)$ 也没什么问题)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+#define ctz __builtin_ctz
+
+const int N = 100054, M = N * 2;
+
+int n, E = 0;
+int to[M], first[N], next[M];
+int f[N], ans[N];
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x, int px = 0) {
+	int i, y, s = 0;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != px)
+			dfs(y, x), s |= f[x] &amp; f[y], f[x] |= f[y];
+	s = lg2(s &lt;&lt; 1 | 1), s += ctz(~(f[x] &gt;&gt; s));
+	f[x] = (f[x] &gt;&gt; s | 1) &lt;&lt; s, ans[x] = s;
+}
+
+int main() {
+	int i, u, v;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	dfs(1), printf("%d\n", *std::max_element(ans + 1, ans + (n + 1)));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在计算 $\displaystyle \bigcup_{1 \leq i &lt; j \leq n} \left( S_{c_i} \cap S_{c_j} \right)$ 的时候，可以利用 DP 求直径或<a href="../index.html?redirect=301" target="_blank">这里</a>的思想，即一边统计 <code>or</code> 和一边更新答案。</p>
+		<p><strong>坑2：</strong>寻找右起第一个 $0$ 位可以对其<em>按位取反</em>后使用 <code>__builtin_ctz</code> 函数，如果要从某一位开始找起，可以先对其右移，最后别忘了加回右移的位数。</p>
+	</body>
+</html>

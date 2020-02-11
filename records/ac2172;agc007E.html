@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2172,Grand7E]Shik and Travel</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个顶点的<strong>严格二叉树</strong> <span style="color: red">(ps: 一棵二叉树为<em>严格二叉树</em> [Strict binary tree] 当且仅当所有的非叶节点恰有 $2$ 个子节点)</span> $T$，每条边有一个边权 $v_i$。</p>
+		<p>你需要找到一条 (Euler 环游) 路径，从根节点出发，回到根节点，并使得每条边的两个方向恰好被经过一次。</p>
+		<p>设这条路径经过的叶节点按顺序依次为 $l_1, l_2, \cdots, l_n$，你需要最小化 $\max \left\{ \operatorname{dist} \left( l_1, l_2 \right), \operatorname{dist} \left( l_2, l_3 \right), \cdots, \operatorname{dist} \left( l_{n-1}, l_n \right) \right\}$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 ($3 \leq N \leq 131071; 2 \nmid N$)，表示二叉树的点数。</p>
+		<p>接下来 $N - 1$ 行，每行两个非负整数 $p_i, v_i$ ($2 \leq i \leq N; 1 \leq p_i \leq i - 1; 0 \leq v_i \leq 131072$)，分别表示点 $i$ 的父节点和连接 $i$ 和 $p_i$ 的边的边权。</p>
+		<p>保证所有 $N - 1$ 条边恰好构成一棵严格二叉树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示对于所有的 Euler 环游路径，$\max \left\{ \operatorname{dist} \left( l_1, l_2 \right), \operatorname{dist} \left( l_2, l_3 \right), \cdots, \operatorname{dist} \left( l_{n-1}, l_n \right) \right\}$ 的最小可能值。</p>
+
+		<h3>题解</h3>
+		<p>由于是最小化最大值，于是考虑二分答案，转化为判定性问题。</p>
+		<p>考虑如何判断一个 $v$ 是否可满足。</p>
+		<p>我们考察现在到了顶点 $i$，由 Euler 环游的性质，它必须选择两棵子树的一个访问顺序，不妨设为 $l, r$，然后依次递归访问 $l, r$，然后再走 $i \to p_i$。</p>
+		<p>注意到，<span style="color: teal">对于一条所有叶子到叶子的路径，设这两个叶子的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为 $x$，那么我们就可以在枚举到 $x$ 的时候对其进行限制</span>。</p>
+		<p>那么现在考虑 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为 $i$ 的情况，不难发现，由于树为二叉树，这样的点对<strong>恰有一个</strong> —— 即 $l$ "回来 (上来) 的一段" 加上 $r$ "进去的一段"。</p>
+		<p>我们将两者的长度分别记为 $\hat l$ (对应叶子到 $l$ 的长度) 和 $\check r$ (对应叶子到 $r$ 的长度)。</p>
+		<p>考虑从两棵子树进行递归，那么对于子树 $l$，我们可以得到所有可行的 $\left( \check l, \hat l \right)$ 对，对于 $r$ 同理，得到 $\left( \check r, \hat r \right)$ 对。</p>
+		<p>最后，如果 $\hat l + \check r + p_l + p_r \leq v$，则说明这种方案合法，然后将 $\left( \check l + p_l, \hat r + p_r \right)$ 加入到 $i$ 的合法点对中去，变为 $\left( \check i, \hat i \right)$。</p>
+		<p>这样做确实是一个可行的算法，不过它的状态数太多了，检验起来也特别麻烦 (至少是平方量级的)，于是我们需要考虑怎么优化它。</p>
+		<hr />
+		<p>我们考虑合法的条件：$\hat l + \check r + p_l + p_r \leq v$，反正 $p_l, p_r$ 也是常数，因此可以写成 $\hat l + \check r \leq C$。</p>
+		<p>这样一来，对于两个有序对 $\left( \check i_1, \hat i_1 \right)$ 和 $\left( \check i_2, \hat i_2 \right)$，如果 $\check i_1 \leq \check i_2 \wedge \hat i_1 \leq \hat i_2$，即前者<strong>偏序于</strong>后者，此时，前面这个有序对<del>在各方面都是吊打后者的</del>，从而我们可以只要前面这个有序对。</p>
+		<p>那么我们将这些点 "去重" 后，根据 <a href="../index.html?redirect=476" target="_blank">[IOI2016]aliens</a> 的经验，$\check i$ 和 $\hat i$ 是反向单调的 (即 $\check i_1 &lt; \check i_2 \Leftrightarrow \hat i_1 &gt; \hat i_2$)。</p>
+		<p>现在，对于 $\left( \check l, \hat l \right)$ 和 $\left( \check r, \hat r \right)$ 的合并，假如说我们固定了 $\hat l$，那么需要寻找 $\check r \leq v - \hat l$ 的 $\check r$。</p>
+		<p>显然，我们希望剩下的一项 $\hat r$ <strong>尽可能小</strong>，由上面提及的<strong>反向单调性</strong>可知，需要取<strong>尽可能大</strong>的 $\check r$。</p>
+		<p>因此，我们就需要在一个单调的序列中找到尽可能的 $\check r$，<del>这可以用二分解决</del>。</p>
+		<p>不过，我们可以按照单调递增的顺序来枚举 $\hat l$，然后所需的 $\check r$ 的上界就是单调递减的，于是双指针扫一遍就好啦，这样也省去了多余的 $O \left( \log N \right)$。</p>
+		<p>其次，考虑 "结算" 顶点 $i$ 的所有状态 —— 注意到 $l$ 和 $r$ 其实是<em>可交换的</em>，于是我们在插入有序对 $\left( \check l, \hat r \right)$ 的时候同时也需要将 $\left( \hat r, \check l \right)$ 加上。</p>
+		<p>这样好像又得再排一次序了呢！其实不用的，对于 $\left( \check l, \hat r \right), \left( \hat r, \check l \right)$ 中的每一种，由枚举的单调性知内部是有序的。</p>
+		<p>于是我们只需要进行一次<strong>有序表合并</strong> —— 就像归并排序一样，可以在线性时间内完成。</p>
+		<hr />
+		<p>最后分析一下时间复杂度。对于一棵以 $i$ 为根的子树，设左、右子节点分别有 $l, r$ 个状态，那么合并后的状态不超过 $2 \min \left\{ l, r \right\}$ 个，于是通过类似启发式合并的分析可知，单次判定的时间复杂度为 $O \left( N \log N \right)$，从而总时间复杂度为 $O \left( N \log N \log \sum v_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef long long ll;
+typedef std::pair &lt;ll, ll&gt; pr;
+const int N = 131154, L = 500000;
+
+int n;
+int p[N], lc[N], rc[N];
+ll dep[N];
+pr g[L], h[L], tmp[L];
+std::vector &lt;pr&gt; f[N];
+
+inline void link(int x, int px) {(lc[px] ? rc[px] : lc[px]) = x;}
+
+inline bool check(ll v) {
+	int i, j, x, l, r, L, R, cg, ch; ll lim;
+	for (x = n; x; --x) {
+		f[x].clear(), l = lc[x], r = rc[x];
+		if (!(l || r)) {f[x].EB(dep[x], dep[x]); continue;}
+		assert(l &amp;&amp; r);
+		L = f[l].size(), R = f[r].size(), lim = v + 2 * dep[x];
+		for (cg = ch = j = i = 0; i &lt; L; ++i) {
+			for (; j &lt; R &amp;&amp; f[l][i].first + f[r][j].second &gt; lim; ++j);
+			if (j == R) break;
+			g[cg++] = pr(f[l][i].second, f[r][j].first);
+			h[ch++] = pr(f[r][j].first, f[l][i].second);
+		}
+		std::reverse(g, g + cg), j = std::merge(g, g + cg, h, h + ch, tmp) - tmp;
+		if (!j) return false;
+		for (f[x].EB(*tmp), i = 1; i &lt; j; ++i)
+			if (tmp[i].second &lt; f[x].back().second) f[x].EB(tmp[i]);
+	}
+	return true;
+}
+
+int main() {
+	int i; ll L = 0, R = 0, M;
+	scanf("%d", &amp;n);
+	for (i = 2; i &lt;= n; ++i)
+		scanf("%d%lld", p + i, dep + i), link(i, p[i]), R += dep[i], dep[i] += dep[ p[i] ];
+	for (; L &lt; R; check(M = (L + R) / 2) ? R = M : (L = M + 1));
+	printf("%lld\n", L);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>合并的时候可以使用 <code>std::merge</code> <del>来偷懒</del>。当然，在用 <code>std::merge</code> 之前别忘了把其中一个数组翻转 (<code>std::reverse</code>) 一下。</p>
+		<p><strong>坑2：</strong>注意一个点的深度可以达到 $2^{34}$ 量级，因此如果使用深度的话别忘了开 <code>long long</code>。</p>
+	</body>
+</html>

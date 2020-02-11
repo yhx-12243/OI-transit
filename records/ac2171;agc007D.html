@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2171,Grand7D]Shik and Game</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在一个无限长的数轴上，有 $N$ 只小熊，分别位于坐标 $x_1, x_2, \cdots, x_N$ 处。</p>
+		<p>你初始时在坐标 $0$，你需要到坐标 $E$，假设你的速度为 $1$ 个单位，且小熊不会动。</p>
+		<p>当你移动到某个小熊的位置时，小熊会消失，然后自小熊消失的时刻起，$T$ 个单位时间后 $i$ 位置会出现一个金币，一个小熊只会产生一个金币，且当你移动到金币所在位置时可以获取它。</p>
+		<p>你的任务是，集齐所有 $N$ 枚金币并达到坐标 $E$ 处。求完成任务所需的最小时间。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $N, E, T$ ($N \leq 10^5; T, E \leq 10^9$)，表示小熊的个数，终点坐标以及一只小熊 "产生" 金币所需的时间。</p>
+		<p>第二行包含 $N$ 个正整数 $x_1, x_2, \cdots, x_N$ ($1 \leq x_i &lt; x_{i + 1} &lt; E$)，依次表示各个小熊所在坐标。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示完成任务所需时间的最小可能值。</p>
+
+		<h3>题解</h3>
+		<p>首先，由于你到达所有小熊的时间是递增的，因此产生金币的时间也是递增的 (即左边的金币一定比右边的金币先产生)。</p>
+		<p>从而，容易证明一个引理：<strong style="color: green">如果你在某个时刻<em>往回走</em> (即沿数轴负方向走)，则你一定会将你左边所有的硬币全部 "吃" 完再回头</strong>，证明使用反证法即可。</p>
+		<p>于是，整个过程可以被分为若干段：$\left[ 1, r_1 \right], \left[ r_1 + 1, r_2 \right], \cdots, \left[ r_{k-1} + 1, r_k = n \right]$，其中先走到 $x_{r_1}$，接着回到 $x_1$ 吃金币，然后走到 $x_{r_2}$，再回到 $x_{r_1 + 1}$ 吃金币，……，以此类推。</p>
+		<p>从而可以对 $r_i$ 建立 DP 模型：设 $f_i$ 表示当前的 "段" 的结尾为 $i$，总时间的最小值。则有边界 $f_0 = 0$ 和转移 $$ f_i = \min_{0 \leq j &lt; i} \left( f_j + x_i - x_j + \max \left\{ 2 \left( x_i - x_{j + 1} \right), T \right\} \right) \tag 1 \label 1 $$</p>
+		<p>而答案就是 $f_N$。</p>
+		<p>但是暴力转移是 $O \left( N^2 \right)$ 的，于是考虑优化。观察式子可以发现将 $\left( f_i - x_i \right)$ 看成一个整体，记为 $g_i$ (即定义 $\color {fuchsia} {g_i = f_i - x_i}$，规定 $x_0 = 0$)，于是 $\eqref 1 \Leftrightarrow$ $$ g_i = \min_{0 \leq j &lt; i} \left( g_j + \max \left\{ 2 \left( x_i - x_{j + 1} \right), T \right\} \right) \tag 2 \label 2 $$</p>
+		<p>考虑比较 $x_i - x_{j + 1}$ 和 $T$ 的大小关系。由 $\left\{ x_n \right\}$ 的单调性知，对于每个 $i$，存在 $J = J \left( i \right) \in \left[ 0, i \right)$，满足对于 $0 \leq j &lt; J \left( i \right)$，有 $x_i - x_{j + 1} &gt; \dfrac T2$，而对于 $J \left( i \right) \leq j &lt; i$，有 $x_i - x_{j + 1} \leq \dfrac T2$。</p>
+		<p>而两个部分的转移都比较简单：对于前者，$g_i \downarrow g_j + 2 x_i - 2 x_{j + 1}$，而对于后者，则为 $g_i \downarrow g_j + 2 T$。</p>
+		<p>由 $\eqref 2$ 不难得到 $g_n$ 是 (非严格) 单调递增的。从而对于后者的转移，直接取 $j = J \left( i \right)$ 即可。</p>
+		<p>而前者，可以看成求 $g_j - 2 x_{j + 1}$ 的区间最小值，哦不，<strong style="color: blue">前缀最小值</strong>，于是不需要使用单调队列，直接用一个<strong>变量</strong>维护即可。</p>
+		<p>再次由 $\left\{ x_n \right\}$ 的单调性知，$J \left( i \right)$ 关于 $i$ 单调递增，从而可以用双指针维护 $J \left( i \right)$。</p>
+		<p>综上所述，本题可以在 $O \left( N \right)$ 时间内解决。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 100054;
+
+int n, t;
+int x[N];
+ll f[N];
+
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+
+int main() {
+	int i, j = 0; ll ans, r = 0x3f3f3f3f3f3f3f3fll;
+	scanf("%d%lld%d", &amp;n, &amp;ans, &amp;t);
+	for (i = 1; i &lt;= n; ++i) {
+		for (scanf("%d", x + i); x[j + 1] &lt; x[i] - t / 2; ++j)
+			down(r, f[j] - 2 * x[j + 1]);
+		down(f[i] = r + 2 * x[i], f[j] + t);
+	}
+	printf("%lld\n", ans + f[n]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在维护 $g_j - 2 x_{j + 1}$ 的前缀最小值时，不要忘记赋初值 $+ \infty$，因为可能 $J \left( i \right) = 0$ 导致不存在满足要求的 $j$。</p>
+	</body>
+</html>

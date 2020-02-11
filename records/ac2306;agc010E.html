@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2306,Grand10E]Rearranging</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>黑板上有 $N$ 个数排成一行 $A_1, A_2, \cdots, A_N$。</p>
+		<p>Alice 和 Bob 在玩游戏。首先，Alice 可以指定<strong>这 $N$ 个数</strong>的一个排列 $P$。</p>
+		<p>然后 Bob 允许对排列 $P$ 进行若干次操作，每次操作如下：</p>
+		<ul>
+			<li>选择排列 $P$ 中相邻两个元素 $P_i, P_{i+1}$，且满足 $\gcd \left( P_i, P_{i+1} \right) = 1$，然后交换 $P_i$ 和 $P_{i+1}$ (即 $P_i \leftrightarrow P_{i+1}$)。</li>
+		</ul>
+		<p>Bob 会适当地操作，使得排列 $P$ 变成<strong>所有 Bob 能得到的排列中字典序最大者</strong>，记作 $B \left( P \right)$。</p>
+		<p>求 $\min\limits_{P \text{为数组} A \text{的排列}} B \left( P \right)$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 2000$)，表示数的个数。</p>
+		<p>第二行包含 $N$ 个正整数 $A_i$ ($1 \leq A_i \leq 10^8$)，表示黑板上的数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $N$ 个整数，表示排列 $\min\limits_{P \text{为数组} A \text{的排列}} B \left( P \right)$。</p>
+
+		<h3>题解</h3>
+		<p>考虑对一个固定的数组 $P$，如何求 $B \left( P \right)$。</p>
+		<p>不难发现这里的带限制交换过程和 <a href="../index.html?redirect=906" target="_blank">[AtCoder1984,Grand1F]Wide Swap</a> 中的很像，于是可以将那边的分析<del>复读</del>过来：</p>
+		<p>对于两个数 $x, y$，若 $\gcd \left( x, y \right) &gt; 1$，则加入一条连接 $x, y$ 的<strong>有向边</strong>，方向为左边指向右边，得到有向图 $G$。那么，<strong>一个排列能被 Bob 得到，当且仅当 $G$ 的一个拓扑序</strong>。</p>
+		<p>那么，$B \left( P \right)$ 就是 $G$ 的字典序最大的拓扑序。</p>
+		<hr />
+		<p>于是，现在 Alice 的任务就是，构造一个排列 $P$，去最小化「<strong>$P$ 构建出的图 $G$ 的最大拓扑序</strong>」。</p>
+		<p>考察 $G$ 的<strong>基图</strong>，不难发现它只和原来的数是否互素有关，$P$ 中元素的顺序仅仅是对这些边进行<strong>定向</strong>而已。<span style="color: red">(ps: 当然，Alice 的定向需要满足 $G$ 是一个 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，即存在拓扑序)</span></p>
+		<p>于是我们的问题转化为：对这些边定向，使得「$P$ 构建出的图 $G$ 的最大拓扑序」最小。</p>
+		<p>考虑如何求一张图的最大拓扑序，通常我们使用<strong>优先队列</strong>来代替<em>队列</em>进行拓扑排序。</p>
+		<p>我们在图 $G$ 中加入一个超级 "根"，与所有的顶点都连接一条边，这样图就连通了且不影响答案。</p>
+		<p>那怎么将这个拓扑序最小化呢？不难发现这个过程可以通过类似 dfs 树的方法来完成：</p>
+		<ol>
+			<li><p>对于每个点 $v$，将它的邻点从小到大排序，设为 $n_1, n_2, \cdots, n_d$。</p></li>
+			<li><p>依次考虑 $n_1, n_2, \cdots, n_d$，若 $n_i$ 未被访问过，则递归访问 $n_i$ (回到步骤 1)。</p></li>
+		</ol>
+		<p>这实际上就是一个无向图求 dfs 树的过程。</p>
+		<p>然后<span style="color: fuchsia">对于 dfs 树中的每条边 $\left( p_v, v \right)$，定向为 $p_v \to v$</span>。</p>
+		<p>那 Bob 的遍历过程无非就是将整棵树进行倒着 "搜索" 的过程 (这个 "搜索" 可以既不是 dfs，也不是 bfs)。</p>
+		<p>我们依次考虑 Bob 经过的每个点：设它第一次经过的点为 $v$，则我们证明<strong style="color: blue">无论 Alice 怎么定向，Bob 总能走向 $\geq v$ 的顶点</strong>。</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>由无向图 dfs 树的性质可知，这个定向后的图<strong>不存在横叉边</strong>，于是两个不同子树中的点不可能有边相连。</p>
+				<p>而 $v$ 子树内的点一定 $\geq v$ —— 不然从根开始遍历时不可能先走 $v$。</p>
+				<p>考虑对 <strong>Alice 定向出来的任何一张图 $G_A$</strong>，当 Bob 走完根后，考虑所有能到达点 $v$ 的点 —— 这些点都 $\geq v$。</p>
+				<p>于是 "堆" 里面最大的点 $\geq v$，从而 Bob 第一次走向的顶点 $\geq v$。</p>
+			</div>
+		</div>
+		<p>然后将 $v$ 删去，重复上述过程 (即套一层数学归纳法)，即可证明最优性。</p>
+		<p>于是在得到图中，我们可以通过 $O \left( \left| V \right| + \left| E \right| \right)$ 的搜索和 $O \left( \left| V \right| \log \left| V \right| + \left| E \right| \right)$ 的拓扑排序来得到 $\min\limits_{P \text{为数组} A \text{的排列}} B \left( P \right)$。</p>
+		<p>而 $\left| V \right| = N, \left| E \right| = N^2$，预处理时间为 $O \left( N^2 \log A_i \right)$，总时间复杂度即为 $O \left( N^2 \log A_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define gcd std::__gcd
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 2054, M = N * N;
+
+int n, E = 0;
+int a[N], to[M], first[N], next[M], deg[N];
+bool used[N];
+vector G[N];
+std::priority_queue &lt;int&gt; pq;
+
+inline void addedge(int u, int v) {to[++E] = v, next[E] = first[u], first[u] = E, ++deg[v];}
+inline void dfs(int x) {used[x] = true; for (int y : G[x]) if (!used[y]) addedge(x, y), dfs(y);}
+
+int main() {
+	int i, j, x, y;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i);
+	std::sort(a + 1, a + (n + 1));
+	for (i = 1; i &lt; n; ++i)
+		for (j = i + 1; j &lt;= n; ++j)
+			if (gcd(a[i], a[j]) &gt; 1) G[i].EB(j), G[j].EB(i);
+	for (i = 1; i &lt;= n; ++i) if (!used[i]) dfs(i);
+	for (i = 1; i &lt;= n; ++i) if (!deg[i]) pq.emplace(i);
+	for (i = 1; i &lt;= n; ++i) {
+		printf("%d%c", a[x = pq.top()], i == n ? 10 : 32), pq.pop();
+		for (j = first[x]; j; j = next[j])
+			if (!--deg[y = to[j]]) pq.emplace(y);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>对于处理这些点编号大小的问题，可以预先将所有 $A_i$ 排个序，然后 $i$ 和 $A_i$ 就同序了，从而更容易处理。</p>
+		<p><strong>坑2：</strong>边数是 $O \left( N^2 \right)$ 级别的，记得开大点。</p>
+	</body>
+</html>
