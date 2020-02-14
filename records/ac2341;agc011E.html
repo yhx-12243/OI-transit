@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2341,Grand11E]Increasing Numbers</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style>
+			dfn {font-weight: bold; color: fuchsia}
+		</style>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义一个正整数是<dfn>递增的</dfn>，如果它的十进制表示中从高到低各个数码是 (非严格) 递增的。</p>
+		<p>给定正整数 $N$，求最小的正整数 $k$，使得 $N$ 是 $k$ 个<em>递增的</em>数之和。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $N$ ($N \leq 10^{500000}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $k$ 的最小可能值。</p>
+
+		<h3>题解</h3>
+		<p>尝试寻找一个数是递增的数的充要条件。</p>
+		<p>我们定义一个数是<dfn>纯 1 数 (Repdigit)</dfn>，如果它的所有数码都是 $1$。</p>
+		<p>那么显然有，<strong style="color: green">一个正整数是递增的当且仅当它是不超过 $9$ 个<em>纯 1 数</em>之和</strong>。</p>
+		<p>注意到一个<em>纯 1 数</em>可以写成 $\dfrac 19 \left( 10^n - 1 \right)$ 的形式。</p>
+		<p>而 $0 = \dfrac 19 \left( 10^0 - 1 \right)$ 也具有这种形式，因此我们可以规定每个<em>纯 1 数</em>都表示为 $9$ 个形如 $\dfrac 19 \left( 10^n - 1 \right)$ 的数之和 ($n \in \mathbb N$)。</p>
+		<p>于是，$x = \dfrac 19 \left( 10^{n_1} - 1 \right) + \dfrac 19 \left( 10^{n_2} - 1 \right) + \cdots + \dfrac 19 \left( 10^{n_9} - 1 \right) \Leftrightarrow 9 x + 9 = 10^{n_1} + 10^{n_2} + \cdots + 10^{n_9}$。</p>
+		<p>从而 $S_{10} \left( 9 \left( x + 1 \right) \right) \leq 9$，即 $9 \left( x + 1 \right)$ 在十进制下的数码和不超过 $9$。</p>
+		<p>又 $9 \left( x + 1 \right)$ 是非 $0$ 的 $9$ 的倍数，因此有 $S_{10} \left( 9 \left( x + 1 \right) \right) = 9$。</p>
+		<p>反之，满足这样的数一定是递增的吗？</p>
+		<p>不难发现，将 $9 \left( x + 1 \right)$ 写成这样的表达式后，两边重新变形回去记得 $x$ 是不超过 $9$ 个<em>纯 1 数</em>之和，从而 $x$ 是递增的。</p>
+		<hr />
+		<p>现在我们需要判断 $N$ 是多少个递增数之和。根据上面的经验，我们需要算出 $9 N$，然后加上 $9 k$ —— 其中 $k$ 是答案。</p>
+		<p>那么我们不知道 $k$ 怎么办？先假设一个，观察所需要满足的性质。</p>
+		<p>假设 $N$ 是 $k$ 个递增数之和，那么 $9 \left( N + k \right)$ 就是不超过 $9 k$ 个 $10$ 的幂之和，从而数码和 $\leq 9 k$。</p>
+		<p>反之，若 $S_{10} \left( 9 \left( N + k \right) \right) \leq 9 k$，则将其中 $9$ 个 $9$ 个分组，可以分为不超过 $k$ 个数，每个数的九分之一再减一都是一个递增数，从而 $N$ 可以表示成 $k$ 个递增数之和。</p>
+		<p>从而，我们的问题转化为：<strong style="color: teal">给定 $N$，求最小的 $k$，使得 $S_{10} \left( 9 \left( N + k \right) \right) \leq 9 k$</strong>。</p>
+		<p>对于这种高精的题，我们尝试直接枚举，以利用均摊复杂度。</p>
+		<p>在这里，我们枚举 $k$，然后就需要的对 $9 N$ 每次加 $9$，然后在加法的过程中顺便维护数码和 (维护数码和的复杂度不超过加法的复杂度)，又答案显然不超过 $\lg N + O \left( 1 \right)$，容易均摊分析得时间复杂度为 $O \left( k + \lg N \right) = O \left( \log N \right)$。<del>可以通过压位减小常数</del>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 500054, BASE = 100000000;
+
+int n;
+int s[N], f[10000];
+char str[N];
+
+inline int digit_sum(int x) {return f[x / 10000] + f[x % 10000];}
+
+int main() {
+	int i, L, cur = 0, dsum = 0, ans;
+	char tok[9]; tok[8] = 0;
+	for (i = 1; i &lt; 10000; ++i) f[i] = f[i / 10] + i % 10;
+	scanf("%s", str), L = strlen(str);
+	for (i = 1; i * 8 &lt;= L; ++i)
+		memcpy(tok, str + (L - i * 8), 8), s[n++] = strtol(tok, NULL, 10);
+	if (L &amp; 7)
+		memcpy(tok, str, L &amp; 7), tok[L &amp; 7] = 0, s[n++] = strtol(tok, NULL, 10);
+	for (i = 0; i &lt; n + 2; ++i)
+		cur = s[i] * 9 + cur, s[i] = cur % BASE, cur /= BASE, dsum += digit_sum(s[i]);
+	for (ans = 1; ; ++ans) {
+		dsum -= digit_sum(*s), *s += 9;
+		for (i = 0; s[i] &gt;= BASE; ++i)
+			dsum += digit_sum(s[i] -= BASE) - digit_sum(s[i + 1]++);
+		dsum += digit_sum(s[i]);
+		if (dsum &lt;= 9 * ans) return printf("%d\n", ans), 0;
+	}
+	return -1;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在维护数码和的时候注意守恒，不要多加/减或漏加/减。</p>
+		<p class="text-muted"><strong>坑2：</strong>如果压位的话，每一位中的数码和可以分高低位打表 (具体实现见代码)。</p>
+	</body>
+</html>

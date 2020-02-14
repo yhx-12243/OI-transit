@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2370,Grand13D]Piling Up</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>盒子里有红色和蓝色的砖块共 $N$ 个，以及一个砖块序列 $B = \left[ \, \right]$。你可以进行如下 $M$ 次操作：</p>
+		<ol>
+			<li><p>先从盒子中任取一个砖块 $b$。令 $B = B \sqcup \left[ b \right]$。</p></li>
+			<li><p>往盒子中添加红色和蓝色的砖块<strong>各一个</strong>。</p></li>
+			<li><p>最后再从盒子中任取一个砖块 $b'$。令 $B = B \sqcup \left[ b' \right]$。</p></li>
+		</ol>
+		<p>$M$ 次操作完毕后，得到一个长度为 $2 M$ 的砖块序列 $B$，我们只关心它的<strong>颜色序列</strong> —— 即将这 $2 M$ 个砖块的颜色依次构成的序列。</p>
+		<p>如果初始砖块的颜色是任意的，求一共能得到多少种不同的颜色序列？</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $N, M$ ($N, M \leq 3000$)，表示砖块的个数和操作的次数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示能得到的不同颜色序列的数量模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>我们将一次操作 (两个砖块) 看成一个整体，不难发现这非常类似在自动机上跳的过程。</p>
+		<p>注意到任意时刻盒子中砖块的总数均为 $N$，因此我们可以建立 $N$ 个状态：$\bar 0, \bar 1, \cdots, \bar N$，分别表示当前盒子中有 $0$ 个红色砖块，$1$ 个红色砖块，……，$N$ 个红色砖块 (蓝色砖块的个数可以通过红色砖块数得到)。</p>
+		<p>每两个砖块有四种可能的情形，它们的转移边如下：</p>
+		<ol>
+			<li><p><span style="color: red">红红</span>。</p>
+			<p>此时对于 $\color {fuchsia} {i &gt; 0}$，有转移边 $\bar i \to \overline {i - 1}$。</p></li>
+			<li><p><span style="color: red">红</span><span style="color: blue">蓝</span>。</p>
+			<p>此时对于 $\color {fuchsia} {i &gt; 0}$，有转移边 $\bar i \to \bar i$。</p></li>
+			<li><p><span style="color: blue">蓝</span><span style="color: red">红</span>。</p>
+			<p>此时对于 $\color {fuchsia} {i &lt; N}$，有转移边 $\bar i \to \bar i$。</p></li>
+			<li><p><span style="color: blue">蓝蓝</span>。</p>
+			<p>此时对于 $\color {fuchsia} {i &lt; N}$，有转移边 $\bar i \to \overline {i + 1}$。</p></li>
+		</ol>
+		<p>那么，一种颜色序列 (可以将其看成文本串) 能够打成<strong>当且仅当存在一个初始状态使得该自动机从该状态开始跳可以跳到一个合法状态</strong>。</p>
+		<p>而题目中的计数就可以转化为在自动机上 DP <del>(DP 的本质是自动机上的规划)</del>。但是，这里有一个问题，它<strong>不是一个 DFA</strong> (确定性有限状态自动机)，因为它的<em>第一步</em> (选择起点) 就不确定了。</p>
+		<p style="color: red">(ps: <abbr title="Deterministic Finite-state Automaton, 确定性有限状态自动机">DFA</abbr> 要求初始状态唯一，因此这个自动机只能看成新加一个初始状态，然后向所有原来的点之间连一条 $\varepsilon$ 边)</p>
+		<p>这就显得比较麻烦了，因为 <abbr title="Non-deterministic Finite-state Automaton, 非确定性有限状态自动机">NFA</abbr> 上的 DP 是<del>指数级</del>比较麻烦的。</p>
+		<p>我们继续观察这个自动机的性质，尝试用巧妙的方式将其转化为 <abbr title="Deterministic Finite-state Automaton, 确定性有限状态自动机">DFA</abbr>。我们不妨将每个顶点作为起点的答案相加，于是未免由一些串会被计入多次。</p>
+		<p>那它会被计入多少次呢？怎么才能使其计入一次呢？</p>
+		<p>考虑对于一个固定的串，它在匹配过程中经过的状态序列<strong>的差分是固定的</strong> —— 如有一个状态序列是 $\left[ 2, 3, 3, 4, 5, 4 \right]$，那么其它的状态必定形如 $\left[ 1, 2, 2, 3, 4, 3 \right], \left[ 5, 6, 6, 7, 8, 7 \right], \left[ i - 1, i, i, i + 1, i + 2, i + 1 \right], \cdots$。</p>
+		<p>那么，满足这种情况的初始状态集合一定是一个<strong>区间</strong>。那么我们只需在每个区间中选一个<strong>代表元</strong>就可以了。</p>
+		<p>那么如何选一个 (离散) 区间的代表元呢？最小/大数原理呗！选一个最小的作为代表元。</p>
+		<p>考虑什么情况下这样的状态序列是最小的，即再它小 $1$ 是不可能的。</p>
+		<p>可以看出，<strong style="color: blue">当且仅当它经过或 "擦过" 状态 $\bar 0$</strong> <span style="color: red">(ps: 这里 "擦过" 的定义是在上述第 2 种转移边时，$\bar 1 \to \bar 1$ 的转移。因为这个时候 $\bar 0 \to \bar 0$ 是不允许的)</span>。</p>
+		<p>所以和之前大多数题一样，使用类似 "魔法" 的思想，额外记录一组状态表示是否已经经过或 "擦过" 状态 $\bar 0$。</p>
+		<p>于是这样每个合法状态的起点是唯一的，从而就得到了 $N$ 个互相独立的 $2 N + 2$ 个状态的 <abbr title="Deterministic Finite-state Automaton, 确定性有限状态自动机">DFA</abbr>，在每个 <abbr title="Deterministic Finite-state Automaton, 确定性有限状态自动机">DFA</abbr> 上 DP 后将答案相加即可。</p>
+		<p>在具体实现中，并不需要对每个 <abbr title="Deterministic Finite-state Automaton, 确定性有限状态自动机">DFA</abbr> 分别 DP，由线性性只需要将所有点的初始 DP 值设为 $1$ 后 DP 就行了。</p>
+		<p>时间复杂度 $O \left( N M \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+const int N = 3054, mod = 1000000007;
+
+int n, q;
+int dp[2][2][N], (*cur)[N] = *dp, (*nxt)[N] = dp[1];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+void step() {
+	int i;
+	std::swap(cur, nxt), memset(nxt, 0, sizeof *dp);
+	for (i = 0; i &lt;= n; ++i) {
+		// 00 (decrease)
+		if (i &gt; 1)
+			add(nxt[0][i - 1], cur[0][i]), add(nxt[1][i - 1], cur[1][i]);
+		else if (i == 1)
+			add(nxt[1][i - 1], cur[0][i]), add(nxt[1][i - 1], cur[1][i]);
+		// 01 (decrease - increase)
+		if (i &gt; 1)
+			add(nxt[0][i], cur[0][i]), add(nxt[1][i], cur[1][i]);
+		else if (i == 1)
+			add(nxt[1][i], cur[0][i]), add(nxt[1][i], cur[1][i]);
+		// 10 (increase - decrease)
+		if (i &lt; n)
+			add(nxt[0][i], cur[0][i]), add(nxt[1][i], cur[1][i]);
+		// 11 (increase)
+		if (i &lt; n)
+			add(nxt[0][i + 1], cur[0][i]), add(nxt[1][i + 1], cur[1][i]);
+	}
+}
+
+int main() {
+	int i;
+	scanf("%d%d", &amp;n, &amp;q);
+	std::fill(*nxt + 1, *nxt + (n + 1), 1), nxt[1][0] = 1;
+	for (; q; --q) step();
+	printf("%d\n", int(std::accumulate(nxt[1], nxt[1] + (n + 1), 0ll) % mod));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意第 2 种状态和第 3 种状态虽然均为 $i \bar i$，但是它们的转移条件却是不一样的 —— 前者是 $1 \leq i \leq N$，后者是 $0 \leq i \leq N - 1$。</p>
+	</body>
+</html>

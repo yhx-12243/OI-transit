@@ -22,9 +22,9 @@
 
 			nr(a, b) {return (+a.cells[0].innerText) - (+b.cells[0].innerText);},
 
-			p(a, b) {return nature(a.cells[1].innerText, b.cells[1].innerText);},
+			p(a, b) {return natcmp(a.cells[1].innerText, b.cells[1].innerText);},
 
-			pr(a, b) {return -nature(a.cells[1].innerText, b.cells[1].innerText);},
+			pr(a, b) {return -natcmp(a.cells[1].innerText, b.cells[1].innerText);},
 
 			c(a, b) {return (+b.cells[4].innerText) - (+a.cells[4].innerText);},
 
@@ -34,9 +34,9 @@
 
 			ir(a, b) {return (+a.cells[5].innerText) - (+b.cells[5].innerText);},
 
-			a(a, b) {return nature(a.cells[6].innerText, b.cells[6].innerText);},
+			a(a, b) {return natcmp(a.cells[6].innerText, b.cells[6].innerText);},
 
-			ar(a, b) {return -nature(a.cells[6].innerText, b.cells[6].innerText);},
+			ar(a, b) {return -natcmp(a.cells[6].innerText, b.cells[6].innerText);},
 
 			Ru(a, b) {
 				let A = trim(a.cells[0].innerText.toLowerCase()), B = trim(b.cells[0].innerText.toLowerCase());
@@ -67,7 +67,7 @@
 
 	function trim(x) {return x.substring(x.search(/[a-z]/));}
 
-	function nature(a, b) {
+	win.natcmp = function (a, b) {
 		let digitA, digitB, posA, posB, u, v;
 		if (a === b) return 0;
 		for (; ; ) {

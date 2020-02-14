@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2365,Grand12E]Camel and Oases</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>沙漠中有 $N$ 个绿洲，排成一条直线。用一个穿过它们的数轴表示，则左起第 $i$ 个绿洲的坐标为 $x_i$。</p>
+		<p>有一只骆驼想要走遍所有的绿洲。它的驼峰的容积为 $V$ 个单位，每走 $1$ 单位距离需要花费 $1$ 单位的水。</p>
+		<p>在绿洲上有足够多的水源，可以让驼峰的储水量重新变成 $V$。但在旅途中，水无法获得供给，必须保证储水量 $&gt; 0$。</p>
+		<p>在很多情况下，由于某些绿洲之间距离太远，骆驼无法走遍所有的绿洲。于是，骆驼便进化成了<em>跳跳骆驼</em> (雾)，它<strong>除了正常的行走外</strong>，还具备跳的功能：</p>
+		<blockquote>当<strong>容积</strong> $V &gt; 0$ 的时候，然后跳跳骆驼可以跳到数轴上<strong>任意一个绿洲</strong>。不过这非常消耗体力，于是在充分长的一段时间，它的驼峰的<strong>容积</strong> $V$ 会变成原来的一半下取整，形式化地，$V \gets \left \lfloor \dfrac V2 \right \rfloor$。</blockquote>
+		<p style="color: red">(ps: 如果跳完后 $V = 0$，这也是允许的，不过骆驼必须结束此次旅行<del>并在当地的兽医院疗养</del>)</p>
+		<p>求对于每个绿洲，如果以它作为起点，这只跳跳骆驼能否走遍所有的绿洲 (至少一次)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $N, V$ ($N, V \leq 2 \times 10^5$)，表示绿洲的数量和初始时跳跳骆驼的驼峰<strong>容积</strong>。</p>
+		<p>第二行包含 $N$ 个整数 $x_1, x_2, \cdots, x_N$ ($-10^9 \leq x_i &lt; x_{i+1} \leq 10^9$)，从小到大给出每个绿洲的坐标。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $N$ 行，每行一个字符串。如果跳跳骆驼能从左起第 $i$ 个绿洲出发走遍所有绿洲，则为 <code>Possible</code>；如果不能走遍，则为 <code>Impossible</code>。</p>
+
+		<h3>题解</h3>
+		<p>一个明显的策略是，能走显然走 (因为不消耗<strong>容积</strong>)，直到我们走到一个<strong>极长区间</strong> (相邻两个位置都不能走) 后再进行跳跃。</p>
+		<p>不难发现，对于一个固定的体积，我们可以将所有的绿洲分为若干个区间：每个区间中的绿洲可以相互到达，不同区间中的绿洲 (在不跳的情况下) 无法到达。这个区间划分的依据就是<span style="color: teal">相邻两点距离是否不超过容积</span>。</p>
+		<p>同时，注意到每次跳跃后 $V \gets \left \lfloor \dfrac V2 \right \rfloor$，于是这只骆驼至多可以跳跃 $\left \lfloor \log_2 V \right \rfloor + 1$ 次。于是，我们可以在可接受的时间内对这 $\left \lfloor \log_2 V \right \rfloor + 1$ 次跳跃后加上最初状态下的每种容积 (一共就 $\log_2 V + O \left( 1 \right)$ 种) 求出对应的区间划分。</p>
+		<p>设这些区间划分分别为 $\mathcal P_0, \mathcal P_1, \mathcal P_2, \cdots, \mathcal P_{n-1}, \mathcal P_n$。</p>
+		<p>现在给定了起点，就相当于<strong>给出了 $\mathcal P_0$ 中的一个区间</strong>，然后跳到一个点并<strong>充分行走</strong>，相当于<strong>选择了 $\mathcal P_1$ 的一个区间</strong>，然后再跳再走，即<strong>选择 $\mathcal P_2$ 中的一个区间</strong>，……，以此类推，最终选择了 $\mathcal P_n$ 的一个区间 (即单点)。</p>
+		<p>那么，骆驼走过的所有绿洲就是这所有 $n + 1$ 个区间<strong>并集</strong>。如果这个并集是全集 $\left\{ 1, 2, \cdots, N \right\}$，那么最初的选择区间是合法的。</p>
+		<hr />
+		<p>我们先不考虑最初固定区间的情况：即给定了这 $n + 1$ 个<strong>区间簇</strong> $\mathcal P_0, \mathcal P_1, \cdots, \mathcal P_n$，你需要计算是否能在每个区间簇中选择一个区间 $r_i$，使得 $r_0 \cup r_1 \cup \cdots \cup r_n = \left\{ 1, 2, \cdots, N \right\}$。</p>
+		<p>由于 $n$ 不超过 $18$，因此可以直接<strong>状态压缩 DP</strong>：用 $f_S$ 表示用 $S$ 中的区间簇从左边开始覆盖，能覆盖到最远的右端点。和<a href="../index.html?redirect=881" target="_blank">这里</a>有点像，转移时直接枚举 $i \notin S$，然后取 $\mathcal P_i$ 中起点 $\leq f_S + 1$ 的最靠右的区间，将其覆盖即可。</p>
+		<p>最后判断一下是否有 $f_U = N$ 即可。</p>
+		<hr />
+		<p>那考虑最初有固定的区间的情况：相当于我们只剩下了 $n$ 个<strong>区间簇</strong>，我们要从中选择 $n$ 个区间，询问能否<strong>同时覆盖一个前缀和一个后缀</strong>。</p>
+		<p>如果能的话，那么设所有区间簇的一个子集 $L \subseteq U$ 被用来覆盖前缀，那么剩下的 $R = U \setminus L$ 就被用来覆盖后缀。</p>
+		<p>于是我们可以对每个 $S \subseteq U$，不仅维护前缀最远右端点，同时也维护一下后缀最远左端点 $g_S$ (完全对称的)，于是我们对于 $\left[ l, r \right] \in \mathcal P_0$，只需判断是否存在 $L \subseteq U$ 使得 $f_L \geq l - 1 \wedge g_{U \setminus L} \leq r + 1$ 即可。</p>
+		<p>不过这样时间复杂度貌似还是会爆炸 —— 区间数量是 $O \left( N \right)$ 的，子集数量是 $O \left( V \right)$ 的，于是复杂度变为 $O \left( N \cdot V \right)$。</p>
+		<p>这里有两种解决方案：</p>
+		<ol>
+			<li><p>注意到当 $\mathcal P_i$ 实质上是 $\mathcal P_{i-1}$ 的<strong>细分</strong> (即将 $\mathcal P_{i-1}$ 的每个区间分为若干个小区间，不会有合并的过程)。</p>
+			<p>于是如果存在<span style="color: fuchsia">在每个区间簇中选一个区间覆盖原区间的方案</span>，那么<strong>一定存在<span style="color: red">在区间簇 $\mathcal P_0$ 中选 $n + 1$ 个区间覆盖原区间的方案</span></strong>。</p>
+			<p>这说明有解 (能遍历) 的一个<strong>必要条件是 $\left| \mathcal P_0 \right| \leq n + 1$</strong>，如果这个不成立，则无论选择哪个起点都是无解的。</p>
+			<p>而在成立的情况下，时间复杂度就是 $O \left( n \cdot V \right) = O \left( V \log V \right)$，总时间复杂度 $O \left( \left( N + V \right) \log V \right)$。</p></li>
+			<li><p>观察式子 $f_L \geq l - 1 \wedge g_{U \setminus L} \leq r + 1$，它实质上是一个<strong>二维数点</strong>问题：</p>
+			<p>即每次询问给定坐标 $\left( l - 1, r + 1 \right)$，询问是否有已知点 $\left( f_L, g_{U \setminus L} \right)$ 在已知点的<strong>右下方</strong>。</p>
+			<p>由于只是<strong>有没有</strong>，那么时容易处理的：建立出所有 $2^\left| U \right|$ 个点的<del>右下凸包</del> <strong style="color: olive">(这不是凸包，确切地来讲应该是一个单调集，可以参考<a href="../index.html?redirect=922" target="_blank">这里</a>)</strong>，每次询问时只需要判断这个单调集上有没有满足条件的点，那么只需简单地二分查找即可。</p>
+			<p>构造这个单调集可以使用排序 + 单调栈或直接排序，时间复杂度 $O \left( V \log V \right)$。总时间复杂度 $O \left( \left( N + V \right) \log V \right)$。</p></li>
+		</ol>
+		<p>综上，我们可以在 $O \left( \left( N + V \right) \log V \right)$ 时间内解决原问题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ctz __builtin_ctz
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 200054, LN = 20, LN2 = 262154;
+
+int n, V, ALL, cnt = 0;
+int x[N];
+int L[LN][N], R[LN][N];
+int f[LN2], g[LN2];
+pr seg[LN2], qry[LN2];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+int main() {
+	int i, j, S, layer;
+	scanf("%d%d", &amp;n, &amp;V);
+	for (i = 0; i &lt; n; ++i) scanf("%d", x + i);
+	for (layer = 0; ; V &gt;&gt;= 1, ++layer) {
+		int *l = L[layer], *r = R[layer];
+		for (*l = 0, i = 1; i &lt; n; ++i) l[i] = (x[i] &lt;= x[i - 1] + V ? l[i - 1] : i);
+		for (--i, r[i] = i; --i &gt;= 0; ) r[i] = (x[i] &gt;= x[i + 1] - V ? r[i + 1] : i);
+		if (!V) break;
+	}
+	ALL = ~(-1 &lt;&lt; layer);
+	std::fill(g, g + (ALL + 1), n - 1);
+	for (i = 0; i &lt;= ALL; ++i)
+		for (S = ALL ^ i; S; S &amp;= S - 1)
+			j = ctz(S),
+			up(f[i | 1 &lt;&lt; j], f[i] == n ? n : R[j + 1][f[i]] + 1),
+			down(g[i | 1 &lt;&lt; j], (~g[i] ? L[j + 1][g[i]] : 0) - 1);
+	for (i = 0; i &lt;= ALL; ++i) seg[i] = pr(g[i], -f[ALL ^ i]);
+	std::sort(seg, seg + (ALL + 1));
+	qry[cnt++] = pr(seg-&gt;first, -seg-&gt;second);
+	for (i = 1; i &lt;= ALL; ++i)
+		if (seg[i].second &lt; seg[i - 1].second) qry[cnt++] = pr(seg[i].first, -seg[i].second);
+	for (i = 0; i &lt; n; ) {
+		j = R[0][i], S = std::lower_bound(qry, qry + cnt, pr(j, INT_MAX)) - qry - 1;
+		if (S &gt;= 0 &amp;&amp; i &lt;= qry[S].second)
+			for (; i &lt;= j; ++i) puts("Possible");
+		else
+			for (; i &lt;= j; ++i) puts("Impossible");
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>二分时注意边界，以及是 <code>std::lower_bound</code> 还是 <code>std::upper_bound</code>。</p>
+		<p><strong>坑2：</strong>如果使用排序构造单调集，注意排序的第二关键字，避免多加入不在单调集上的点。</p>
+	</body>
+</html>

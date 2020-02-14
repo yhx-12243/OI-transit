@@ -10,6 +10,14 @@ const
 
 	'use strict';
 
+	win.getStorage = localStorage.getItem.bind(localStorage);
+	win.setStorage = localStorage.setItem.bind(localStorage);
+
+	let
+		AtCoderIDDict,
+		codeforces_flag = getStorage('codeforces-portal') === 'in-problemset',
+		atcoder_flag = getStorage('atcoder-portal') === 'minor';
+
 	const
 		DisplayDict = {'Luogu' : '洛谷', 'SPOJ' : 'Sphere OJ', 'SOJ' : 'Simple OJ/Stupid OJ', 'Local' : '本地', 'Unknown' : '一些看似不是很知名的 OJ，快去问一问大佬们吧'},
 		NormDict = {'lydsy' : 'Lydsy', 'lg' : 'Luogu', 'vijos' : 'Vijos', 'hdu' : 'HDU', 'poj' : 'POJ', 'uoj' : 'UOJ', 'loj' : 'LibreOJ', 'simpleoj' : 'SOJ', 'soj' : 'SOJ', 'cf' : 'Codeforces', 'gym' : 'Codeforces', 'cc' : 'Codechef', 'ac' : 'AtCoder', 'agc' : 'AtCoder', 'arc' : 'AtCoder', 'abc' : 'AtCoder', 'spoj' : 'SPOJ'},
@@ -23,13 +31,13 @@ const
 			'loj' : [/^(\d+)$/, x => `https://loj.ac/problem/${x}`],
 			'simpleoj' : [/^(\d+)$/, x => `http://10.49.27.23/problem?id=${x}`],
 			'soj' : [/^(\d+)$/, x => `http://10.49.18.71/problem/${x}`],
-			'cf' : [/^(\d+)([A-Z]\d*)$/, (x, y) => `https://codeforces.com/contest/${x}/problem/${y}`],
+			'cf' : [/^(\d+)([A-Z]\d*)$/, codeforces_flag ? (x, y) => `https://codeforces.com/problemset/problem/${x}/${y}` : (x, y) => `https://codeforces.com/contest/${x}/problem/${y}`],
 			'gym' : [/^(\d+)([A-Z]\d*)$/, (x, y) => `https://codeforces.com/gym/${x}/problem/${y}`],
 			'cc' : [/^(\w+)$/, x => `https://www.codechef.com/problems/${x}/`],
 			'ac' : [/^(\d+)$/, getAtCoderID],
-			'agc' : [/^(\d+)([A-Z])$/, (x, y) => `https://atcoder.jp/contests/agc${x}/tasks/agc${x}_${char_offset(y, 32)}`],
-			'arc' : [/^(\d+)([A-Z])$/, (x, y) => `https://atcoder.jp/contests/arc${x}/tasks/arc${x}_${char_offset(y, 30)}`],
-			'abc' : [/^(\d+)([A-Z])$/, (x, y) => `https://atcoder.jp/contests/abc${x}/tasks/abc${x}_${char_offset(y, 32)}`],
+			'agc' : [/^(\d+)([A-Z])$/, atcoder_flag ? (x, y) => `https://agc${x}.contest.atcoder.jp/tasks/agc${x}_${char_offset(y, 32)}` : (x, y) => `https://atcoder.jp/contests/agc${x}/tasks/agc${x}_${char_offset(y, 32)}`],
+			'arc' : [/^(\d+)([A-Z])$/, atcoder_flag ? (x, y) => `https://arc${x}.contest.atcoder.jp/tasks/arc${x}_${char_offset(y, 30)}` : (x, y) => `https://atcoder.jp/contests/arc${x}/tasks/arc${x}_${char_offset(y, 30)}`],
+			'abc' : [/^(\d+)([A-Z])$/, atcoder_flag ? (x, y) => `https://abc${x}.contest.atcoder.jp/tasks/abc${x}_${char_offset(y, 32)}` : (x, y) => `https://atcoder.jp/contests/abc${x}/tasks/abc${x}_${char_offset(y, 32)}`],
 			'spoj' : [/^(\w+)$/, x => `http://www.spoj.com/problems/${x}/`]
 		},
 		FLDict = {
@@ -53,19 +61,19 @@ const
 			'qiqi20021026' : 'https://bomb-chicken.github.io/',
 			'remember' : '',
 			'shaochengxi' : 'https://scx117.cnblogs.com/',
+			'skip1978' : 'https://www.cnblogs.com/skip1978/',
+			'skip2004' : '',
 			'skylee' : 'https://skylee03.cnblogs.com/',
+			'StudyingFather' : 'https://studyingfather.com/',
 			'suncongbo' : 'https://www.cnblogs.com/suncongbo/',
 			'wanglichao1121' : 'https://wanglichao1121.coding.me/',
 			'weng_233' : '',
-			'wzf2000' : 'https://wzf2000.top/'
+			'wzf2000' : 'https://wzf2000.top/',
+			'xpptsdy' : '',
+			'xymtxdy' : 'https://www.cnblogs.com/xuanyiming/'
 		};
 
-	let
-		AtCoderIDDict;
-
 	persons = Object.keys(FLDict);
-	win.getStorage = localStorage.getItem.bind(localStorage);
-	win.setStorage = localStorage.setItem.bind(localStorage);
 
 	win.dateFormat = function (date) {
 		let m = date.getMinutes(), s = date.getSeconds();
@@ -218,6 +226,24 @@ const
 		});
 
 		$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
+
+		if (getStorage('check-version') !== 'off') {
+			let local_ver = '7.0', prompt_str;
+			$.get('https://yhx-12243.github.io/OI-transit/additional_files/others/version', ver => {
+				if (natcmp(local_ver, ver = ver.trim()) < 0) {
+					prompt_str = 'Warning: 当前 OI-transit 版本 (' + local_ver + ') 非最新版本 (' + ver + ')，请去 https://github.com/yhx-12243/OI-transit 获取最新版。';
+					console.log(prompt_str);
+					if (confirm(prompt_str + '\n    (点击确定进入 GitHub，点击取消不再提醒)')) {
+						win.open('https://github.com/yhx-12243/OI-transit');
+					} else {
+						alert('Tip: 版本检查可以在「小工具」中「更多设置」里重新打开。');
+						setStorage('check-version', 'off');
+						$('#status-check-version').html('off').css('color', '#09f');
+						$('#toggle-check-version').html('开启');
+					}
+				}
+			});
+		}
 	}
 
 	function char_offset(x, y) {return String.fromCharCode(x.charCodeAt() + y);}
@@ -231,7 +257,7 @@ const
 			} else if (~x.indexOf('>')) {
 				[l, r] = x.split('>'), r = l + '_' + r;
 			} else return '';
-			return `https://atcoder.jp/contests/${l}/tasks/${r}`;
+			return atcoder_flag ? `https://${l}.contest.atcoder.jp/tasks/${r}` : `https://atcoder.jp/contests/${l}/tasks/${r}`;
 		});
 	}
 

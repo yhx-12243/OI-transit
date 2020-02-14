@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-cn">
 	<head>
-		<!-- version 6.0 -->
 		<meta charset="utf-8">
 		<link type="text/css" rel="stylesheet" href="additional_files/css/fonts.css">
 		<link type="text/css" rel="stylesheet" href="additional_files/css/sh_typical.min.css">
@@ -133,44 +132,54 @@
 					$('#rankTable>tbody').empty().append(Rows);
 				});
 
-				const cf_url_candidates = ['codeforces.com', 'codeforc.es', 'codeforces.ml'];
-				let recent = getStorage('ranklist-recent');
-				recent = (recent ? JSON.parse(recent) : cf_url_candidates.map((x, i) => i));
+				// ---------------- marquee ---------------- //
+				const marquee_on = () => {
+					$('#status-marquee').html('on').css('color', '#090');
+					$('#toggle-marquee').html('关闭');
+					return 'on';
+				}, marquee_off = () => {
+					$('#status-marquee').html('off').css('color', '#09f');
+					$('#toggle-marquee').html('开启');
+					return 'off';
+				};
 
-				const cf_succ = r => {
+				getStorage('marquee') === 'on' ? marquee_on() : marquee_off();
+				$('#ctrl-marquee').click(function () {$('#intro').is(':hidden') ? marquee_off() : marquee_on();});
+				$('#toggle-marquee').click(function () {$('#ctrl-marquee').click();});
+
+				// ---------------- speed ---------------- //
+				const speed_on = () => {
+					$('#status-speed').html('on').css('color', '#090');
+					$('#toggle-speed').html('关闭');
+					return 'on';
+				}, speed_off = () => {
+					$('#status-speed').html('off').css('color', '#09f');
+					$('#toggle-speed').html('开启');
+					return 'off';
+				};
+
+				getStorage('speed') === 'on' ? speed_on() : speed_off();
+				$('#toggle-speed').click(function () {setStorage('speed', getStorage('speed') === 'on' ? speed_off() : speed_on());});
+
+				// ---------------- ranklist ---------------- //
+				const cf_url_candidates = ['codeforces.com', 'codeforc.es', 'codeforces.ml'],
+				cf_succ = r => {
 					recent.splice(recent.indexOf(r.id), 1), recent.unshift(r.id);
 					setStorage('ranklist-recent', JSON.stringify(recent));
 					parseRanklist(r.data);
-				}, cf_fail = () => $('#rankTable>tbody>tr>td').html('Network failed. Please check your network or refresh this page.');
+				}, cf_fail = () => $('#rankTable>tbody>tr>td').html('Network failed. Please check your network or refresh this page.'),
+				ranklist_parallel = () => {
+					$('#status-ranklist-mode').html('并行请求').css('color', '#090');
+					return 'parallel';
+				}, ranklist_serial = () => {
+					$('#status-ranklist-mode').html('顺序请求').css('color', '#09f');
+					return 'serial';
+				};
+				let recent = getStorage('ranklist-recent');
+				recent = (recent ? JSON.parse(recent) : cf_url_candidates.map((x, i) => i));
 
-				if (getStorage('marquee') === 'on') {
-					$('#status-marquee').html('on').css('color', '#090');
-					$('#toggle-marquee').html('关闭');
-				}
-
-				if (getStorage('speed') === 'on') {
-					$('#status-speed').html('on').css('color', '#090');
-					$('#toggle-speed').html('关闭');
-				}
-
-				if (getStorage('ranklist-mode') === 'serial') {
-					$('#status-ranklist-mode').html('顺序请求').css('color', '#090');
-					let f, p = null;
-					for (let i of recent) {
-						f = () => new Promise((fulfill, reject) => {
-							$.ajax('https://' + cf_url_candidates[i] + '/api/user.info?handles=' + persons.join(';'), {
-								type: 'GET',
-								crossDomain: true,
-								dataType: 'jsonp',
-								jsonp: 'jsonp',
-								success: result => fulfill({id : i, data : result}),
-								error: reject
-							});
-						});
-						p = (p ? p.catch(f) : f());
-					}
-					p.then(cf_succ, cf_fail);
-				} else {
+				if (getStorage('ranklist-mode') === 'parallel') {
+					ranklist_parallel();
 					new Promise((fulfill, reject) => {
 						let error_cnt = 0, handle_err = () => {
 							if (++error_cnt === cf_url_candidates.length)
@@ -188,43 +197,68 @@
 							});
 						}
 					}).then(cf_succ, cf_fail);
+				} else {
+					let f, p = null;
+					ranklist_serial();
+					for (let i of recent) {
+						f = () => new Promise((fulfill, reject) => {
+							$.ajax('https://' + cf_url_candidates[i] + '/api/user.info?handles=' + persons.join(';'), {
+								type: 'GET',
+								crossDomain: true,
+								dataType: 'jsonp',
+								jsonp: 'jsonp',
+								success: result => fulfill({id : i, data : result}),
+								error: reject
+							});
+						});
+						p = (p ? p.catch(f) : f());
+					}
+					p.then(cf_succ, cf_fail);
 				}
 
-				$('#ctrl-marquee').click(function () {
-					if ($('#intro').is(':hidden')) {
-						$('#status-marquee').html('off').css('color', '#09f');
-						$('#toggle-marquee').html('开启');
-					} else {
-						$('#status-marquee').html('on').css('color', '#090');
-						$('#toggle-marquee').html('关闭');
-					}
-				});
+				$('#toggle-ranklist-mode').click(function () {setStorage('ranklist-mode', getStorage('ranklist-mode') === 'parallel' ? ranklist_serial() : ranklist_parallel());});
 
-				$('#toggle-marquee').click(function () {
-					$('#ctrl-marquee').click();
-				});
+				// ---------------- check-version ---------------- //
+				const check_version_on = () => {
+					$('#status-check-version').html('on').css('color', '#090');
+					$('#toggle-check-version').html('关闭');
+					return 'on';
+				}, check_version_off = () => {
+					$('#status-check-version').html('off').css('color', '#09f');
+					$('#toggle-check-version').html('开启');
+					return 'off';
+				};
 
-				$('#toggle-speed').click(function () {
-					if (getStorage('speed') === 'on') {
-						$('#status-speed').html('off').css('color', '#09f');
-						$('#toggle-speed').html('开启');
-						setStorage('speed', 'off');
-					} else {
-						$('#status-speed').html('on').css('color', '#090');
-						$('#toggle-speed').html('关闭');
-						setStorage('speed', 'on');
-					}
-				});
+				getStorage('check-version') === 'off' ? check_version_off() : check_version_on();
+				$('#toggle-check-version').click(function () {setStorage('check-version', getStorage('check-version') === 'off' ? check_version_on() : check_version_off());});
 
-				$('#toggle-ranklist-mode').click(function () {
-					if (getStorage('ranklist-mode') === 'serial') {
-						$('#status-ranklist-mode').html('并行请求').css('color', '#09f');
-						setStorage('ranklist-mode', 'parallel');
-					} else {
-						$('#status-ranklist-mode').html('顺序请求').css('color', '#090');
-						setStorage('ranklist-mode', 'serial');
-					}
-				});
+				// ---------------- codeforces-portal ---------------- //
+				const codeforces_portal_in_contest = () => {
+					$('#status-codeforces-portal').html('比赛内链接').css('color', '#09f');
+					$('#example-codeforces-portal').html('例：<a href="https://codeforces.com/contest/1/problem/A" target="_blank">https://codeforces.com/contest/1/problem/A</a>。');
+					return 'in-contest';
+				}, codeforces_portal_in_problemset = () => {
+					$('#status-codeforces-portal').html('题库内链接').css('color', '#090');
+					$('#example-codeforces-portal').html('例：<a href="https://codeforces.com/problemset/problem/1/A" target="_blank">https://codeforces.com/problemset/problem/1/A</a>。');
+					return 'in-problemset';
+				}
+
+				getStorage('codeforces-portal') === 'in-problemset' ? codeforces_portal_in_problemset() : codeforces_portal_in_contest();
+				$('#toggle-codeforces-portal').click(function () {setStorage('codeforces-portal', getStorage('codeforces-portal') === 'in-problemset' ? codeforces_portal_in_contest() : codeforces_portal_in_problemset());});
+
+				// ---------------- codeforces-portal ---------------- //
+				const atcoder_portal_major = () => {
+					$('#status-atcoder-portal').html('主站链接').css('color', '#09f');
+					$('#example-atcoder-portal').html('例：<a href="https://atcoder.jp/contests/agc001/tasks/agc001_a" target="_blank">https://atcoder.jp/contests/agc001/tasks/agc001_a</a>。');
+					return 'major';
+				}, atcoder_portal_minor = () => {
+					$('#status-atcoder-portal').html('副站链接').css('color', '#090');
+					$('#example-atcoder-portal').html('例：<a href="https://agc001.contest.atcoder.jp/tasks/agc001_a" target="_blank">https://agc001.contest.atcoder.jp/tasks/agc001_a</a>。');
+					return 'minor';
+				}
+
+				getStorage('atcoder-portal') === 'minor' ? atcoder_portal_minor() : atcoder_portal_major();
+				$('#toggle-atcoder-portal').click(function () {setStorage('atcoder-portal', getStorage('atcoder-portal') === 'minor' ? atcoder_portal_major() : atcoder_portal_minor());});
 			});
 		</script>
 	</head>
@@ -292,18 +326,24 @@
 							</thead>
 							<tbody>
 								<tr>
-									<td colspan="7" style="line-height: 2em">Waiting ...</td>
+									<td colspan="7" style="line-height: 2em">Loading ...</td>
 								</tr>
 							</tbody>
 						</table>
 						<p>ps: 要申请者请提供在 <strong>Codeforces</strong> 上的 ID (即 handle) 以及个人博客链接 (可选)，联系<a href="mailto:yhx0706@163.com">此处</a>。<span style="color: transparent">(Q<sup>2</sup> = 0x1af97fbd)</span></p>
 						<p>或者也可以来 <a href="https://github.com/yhx-12243/OI-transit" target="_blank">GitHub</a> 提交 Issue/Pull Request。</p>
 					</div>
+					<div class="border-tool padding-1" id="div-portal-settings">
+						<p>传送门 (跳转链接) 设置<br /><span style="color: #090; font-size: smaller">注：该功能对题解/便笺中出现的链接无效。</span></p>
+						<p><label>Codeforces 传送门：<strong id="status-codeforces-portal"></strong></label> <button class="big-button" id="toggle-codeforces-portal">切换</button><br /><span style="color: #090; font-size: smaller" id="example-codeforces-portal"></span></p>
+						<p><label>AtCoder 传送门：<strong id="status-atcoder-portal"></strong></label> <button class="big-button" id="toggle-atcoder-portal">切换</button><br /><span style="color: #090; font-size: smaller" id="example-atcoder-portal"></span></p></p>
+					</div>
 					<div class="border-tool padding-1" id="div-settings">
 						<p>更多设置 <span style="color: transparent">(将鼠标移到标题栏下方空白处的两端有惊喜哦！)</span></p>
-						<p><label>当前字幕状态：<strong id="status-marquee" style="color: #09f">off</strong></label> <button class="big-button" id="toggle-marquee">开启</button></p>
-						<p><label>极速浏览模式 (敬请期待)：<strong id="status-speed" style="color: #09f">off</strong></label> <button class="big-button" id="toggle-speed">开启</button></p>
-						<p><label>Codeforces rating 排行榜渲染方式：<strong id="status-ranklist-mode" style="color: #09f">并行请求</strong></label> <button class="big-button" id="toggle-ranklist-mode">切换</button><br /><span style="color: #090; font-size: smaller">具体区别可以在开发者模式 (F12) 的「网络」(Network) 中看到。</span></p>
+						<p><label>当前字幕状态：<strong id="status-marquee"></strong></label> <button class="big-button" id="toggle-marquee"></button></p>
+						<p><label>极速浏览模式 (敬请期待)：<strong id="status-speed"></strong></label> <button class="big-button" id="toggle-speed"></button></p>
+						<p><label>Codeforces rating 排行榜渲染方式：<strong id="status-ranklist-mode"></strong></label> <button class="big-button" id="toggle-ranklist-mode">切换</button><br /><span style="color: #090; font-size: smaller">具体区别可以在开发者模式 (F12) 的「网络」(Network) 中看到。</span></p>
+						<p><label>自动检查版本：<strong id="status-check-version"></strong></label> <button class="big-button" id="toggle-check-version"></button></p>
 					</div>
 				</fieldset>
 			</div>
