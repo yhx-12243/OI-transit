@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2673,Grand18D]Tree and Hamilton Path</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $N$ 个顶点的树 $T = \left( V, E_T \right)$，顶点标号为 $1 \sim N$，每条边有一个边权 $C_i$。</p>
+		<p>定义完全图 $G = \left( V, E_G \right)$，对于 $\forall u, v \in V, u \neq v$，则无向边 $\left( u, v \right)$ 的长度为 $\operatorname{dist}_T \left( u, v \right)$，其中 $\operatorname{dist}_T \left( u, v \right)$ 表示 $u, v$ 在 $T$ 上的距离。</p>
+		<p>求 $G$ 的 Hamilton <strong>路径</strong>长度的最大值，起终点不限。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 10^5$)，表示树的点数。</p>
+		<p>接下来 $N - 1$ 行，每行三个正整数 $A_i, B_i, C_i$ ($1 \leq A_i &lt; B_i \leq N; 1 \leq C_i \leq 10^8$)，表示树上有一条连接 $A_i$ 和 $B_i$，长度为 $C_i$ 的边。保证这 $N - 1$ 条边恰好构成一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 Hamilton 路径长度的最大可能值。</p>
+
+		<h3>题解</h3>
+		<p>根据<a href="../index.html?redirect=891" target="_blank">这道题</a>的经验，我们先来考虑求最长 Hamilton 圈的长度。</p>
+		<p>直接计算并不容易，那么我们反过来考虑树上的每条边，它至多能在 Hamilton 圈中出现多少次 (即它对最终答案的贡献系数可以是多少)。</p>
+		<p>容易发现，对于一条边 $\left( u, v \right)$，如果将其去掉后得到的两个子树的大小分别为 $S_u$ 和 $S_v$，则它至多在 Hamilton 圈中出现 $2 \min \left\{ S_u, S_v \right\}$ 次，证明比较显然，这里略去。</p>
+		<p>于是我们就得到了答案 (Hamilton 圈总长) 的一个上界：$\displaystyle \sum_{\left( u, v \right) \in E_T} 2 \min \left\{ S_u, S_v \right\}$。</p>
+		<p>那这个上界是否能达到呢？事实上是可以的。</p>
+		<p>首先，如果要达到这个上界，我们对于每一条边，考虑它分成的两棵子树的<strong>较小者</strong>，设为连通块 $D$。则在最终的 Hamilton 路径中，不能出现连续两个 $D$ 内的点。</p>
+		<p>那这两棵子树中 "较小" 的那个，有什么性质呢？</p>
+		<p>注意到我们开始讨论去掉某条边后的子树大小，于是不难想到<strong>树的重心</strong>。</p>
+		<p>树的重心是满足这样的一个或两个点：<strong style="color: green">将该点去掉后，所有子树大小均不超过 $\left \lfloor \dfrac N2 \right \rfloor$</strong>。</p>
+		<p>任取一个重心 (如果有两个的话)，记为 $C$。考虑将其去掉之后，得到若干棵互不相同的子树。</p>
+		<p>那么，设其中一个子树 $S_q$ 的根为 $q$，那么对边 $\left( q, C \right)$ 使用之前的结论知，不能出现连续两个 $S_q$ 中的点。</p>
+		<p>这个结论对 $\forall q$ 都是成立的。而且这些结论加起来就是充要条件 —— 因为其它边去掉后，两棵子树中的较小者<strong>都不包含 $C$，从而真包含于某个 $S_q$</strong>。</p>
+		<p>而，注意到每棵子树的大小都不超过 $\dfrac N2$，加上重心那个点，于是这确实是可以办到的 (可以试着对比<a href="../index.html?redirect=692" target="_blank">这里</a>)。</p>
+		<p>因此，对于 Hamilton 圈的问题，我们已经彻底解决了 —— 答案就是 $\displaystyle \sum_{\left( u, v \right) \in E_T} 2 \min \left\{ S_u, S_v \right\}$。</p>
+		<hr />
+		<p>接下来，考虑 Hamilton 路径的情况。</p>
+		<p>首先容易注意到，Hamilton 路径可以看成 Hamilton 圈中去掉一条边 (对应于 $T$ 中的路径) 得到，于是我们希望这去掉的边的长度尽可能的小。</p>
+		<p>但是要注意的是，并不是所有的路径 $x \leadsto y$ 都是可以被 "去掉" 的，因为有可能没有一条答案为 $\displaystyle ans_{cyc} = \sum_{\left( u, v \right) \in E_T} 2 \min \left\{ S_u, S_v \right\}$ 的 Hamilton 圈经过边 $x \to y$。</p>
+		<p>那么，我们需要的重心的个数进行讨论：</p>
+		<ol>
+			<li><p>重心有两个，记为 $C_1, C_2$。等价地，将 $\left( C_1, C_2 \right)$ 去掉后得到两个大小均为 $\dfrac N2$ 的连通块。</p>
+			<p>那么，根据刚才的描述，所有的 Hamilton 圈一定是在两个子树中交替选点，且任意一种这样的方案的答案都等于 $ans_{cyc}$。</p>
+			<p>于是，我们可以考虑去掉边 $\left( C_1, C_2 \right)$，从而来得到一条长度为 $\color {fuchsia} {ans_{cyc} - \operatorname{dist} \left( C_1, C_2 \right)}$ 的 Hamilton 路径。</p>
+			<p>那这个值是最优的呢？万一 $\operatorname{dist} \left( C_1, C_2 \right)$ 非常大，是否会存在一种替代方案？</p>
+			<p>事实上是<strong>没有的</strong>。原先，我们计算这条边的贡献系数的上限是 $2 \min \left\{ S_{C_1}, S_{C_2} \right\} = 2 \cdot \dfrac N2 = N$，而现在这条边的实际贡献却只有 $N - 1$。</p>
+			<p>然而，你现在是 <strong>Hamilton 路径</strong>而不是 Hamilton 圈，Hamilton 路径总共就只有 $N - 1$ 条边，于是你这条边再怎么 "活泼" 也至多出现 $N - 1$ 次 (即贡献 $N - 1$ 的系数)，从而 $ans_{cyc} - \operatorname{dist} \left( C_1, C_2 \right)$ 确实就是答案的上界。</p></li>
+			<li><p>重心是唯一的，设为 $C$。</p>
+			<p>此时，其余子树 $S_q$ 的大小都<strong>严格小于 $\dfrac N2$</strong>。</p>
+			<p>首先还是考虑构造，由前述结论知，相邻两个点要么其中一个为 $C$，要么属于不同的子树。</p>
+			<p>那么如果我们要去掉一条路径，显然不会选择后者，于是选择前者 $C$ 到某个点的路径，那某个点是谁呢？当然是离 $C$ 最近的点啦。</p>
+			<p>设这个点为 $n$，则答案就是 $\color {fuchsia} {ans_{cyc} - \operatorname{dist} \left( C, n \right)}$。</p>
+			<p>而这个值是上界吗？我们只需证明，<strong>与 $C$ 相连的所有边中，贡献系数的总和不会超过 $2 N - 3$</strong>。</p>
+			<p><del>这几乎就是显然的</del>。具体分析和上面一样，这里就不再展开了。</p>
+			<p>而原先计算这些边的贡献总和为 $2 \sum\limits_q \left| S_q \right| = 2 \left( N - 1 \right) = 2 N - 2$，所以仍然<strong>至少需要存在一条边少贡献一次</strong>，那么这条边当然由最短的边承担啦。</p></li>
+		</ol>
+		<p>于是，对于所有两种情况，我们都已经得到了答案的表达式 (<span style="color: fuchsia">粉色</span>式子)，因此只需要实现一个简单的 dfs 和求重心的过程，时间复杂度 $O \left( N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 100054, M = N * 2;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int n, E = 0;
+int first[N], next[M];
+int p[N], size[N];
+int cG = 0, G[3];
+ll ans = 0;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+inline void addedge(int u, int v, int w) {
+	e[++E] = edge(u, v, w), next[E] = first[u], first[u] = E;
+	e[++E] = edge(v, u, w), next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y, max = 0; size[x] = 1;
+	for (i = first[x]; i; i = next[i])
+		if ((i - 1) ^ (p[x] - 1) ^ 1)
+			p[y = e[i].v] = i, dfs(y), size[x] += size[y], up(max, size[y]),
+			ans += (ll)e[i].w * min(size[y], n - size[y]);
+	if (up(max, n - size[x]), max &lt;= n / 2) G[cG++] = x;
+}
+
+int main() {
+	int i, u, v, w, mn = INT_MAX;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d%d", &amp;u, &amp;v, &amp;w), addedge(u, v, w);
+	dfs(1);
+	if (cG == 1) for (i = first[*G]; i; i = next[i]) down(mn, e[i].w);
+	else assert(cG == 2), mn = e[p[*G]].w;
+	printf("%lld\n", ans * 2 - mn);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>这里重心的判定可以用条件「以重心为根时，所有子树的大小不超过原树大小的一半」，从而直接判定而避免比较型更新。</p>
+		<p><strong>坑2：</strong>计算 $\displaystyle ans_{cyc} = \sum_{\left( u, v \right) \in E_T} 2 \min \left\{ S_u, S_v \right\}$ 的时候别忘记使用 <code>long long</code>。</p>
+	</body>
+</html>

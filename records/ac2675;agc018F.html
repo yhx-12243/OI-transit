@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2675,Grand18F]Two Trees</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定两棵 $N$ 个顶点的有根树 $T_1 = \left( V, E_1 \right), T_2 = \left( V, E_2 \right)$，其中 $V = \left\{ 1, 2, \cdots, N \right\}$。</p>
+		<p>你希望构造出一个长度为 $N$ 的整数数组 $X_1, X_2, \cdots, X_N$，满足下列条件：</p>
+		<p>对于 $\forall i \in \left\{ 1, 2 \right\}, v \in V$，均有 $\displaystyle \left| \sum_{u \in subtree_i \left( v \right)} X_u \right| = 1$，这里 $subtree_i \left( v \right)$ 表示 $T_i$ 中以 $v$ 为根的子树。</p>
+		<p>求是否存在这样的整数数组，如果存在，并给出一组构造。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 10^5$)，表示树的点数 (数组的长度)。</p>
+		<p>第二行包含 $N$ 个整数 $A_1, A_2, \cdots, A_N$ ($A_i \in \left[ 1, N \right] \cup \left\{ -1 \right\}$)，如果 $i$ 是 $T_1$ 的根节点，则 $A_i = -1$，否则 $A_i$ 表示 $i$ 在 $T_1$ 中的父节点标号。</p>
+		<p>第三行包含 $N$ 个整数 $B_1, B_2, \cdots, B_N$ ($B_i \in \left[ 1, N \right] \cup \left\{ -1 \right\}$)，如果 $i$ 是 $T_2$ 的根节点，则 $B_i = -1$，否则 $B_i$ 表示 $i$ 在 $T_2$ 中的父节点标号。</p>
+
+		<h3>输出格式</h3>
+		<p>如果存在满足条件的整数数组，第一行输出 <code>POSSIBLE</code>，第二行输出 $N$ 个整数，依次表示 $X_1, X_2, \cdots, X_N$ 的值。</p>
+		<p>如果不存在满足条件的整数数组，输出一行 <code>IMPOSSIBLE</code>。</p>
+
+		<h3>题解</h3>
+		<p>首先，如果 $\displaystyle \sum_{u \in subtree_i \left( v \right)} X_u = 1$，那么就是个傻逼题，直接根据子树的 $X$ 值把自己解出来即可，最后检验一下两棵树解出来的序列是否相同。</p>
+		<p>那现在 $\displaystyle \sum_{u \in subtree_i \left( v \right)}$ 并不一定等于 $1$，还是可以等于 $-1$ (这是一个<em>二选一</em>)，从而没有办法直接确定一个数是多少。</p>
+		<p>不过，我们还是可以先从找一些必要条件，入手。这不，$1$ 和 $-1$ 至少在 $\hspace{-0.444em} \pmod 2$ 意义下是相同的吧？</p>
+		<p>那么，我们就可以在 $\hspace{-0.444em} \pmod 2$ 意义下解出每个数的值。换句话说，我们可以知道每个 $X_i$ 的<strong>奇偶性</strong>。</p>
+		<p>于是一个比较显然的必要条件就是：<strong>在 $\hspace{-0.444em} \pmod 2$ 意义下，两棵树解出来的序列应当相同</strong>。</p>
+		<hr />
+		<p>现在假设它们相同了，那么每个数是奇还是偶也就定下来了。每棵子树的和目前它至少也得是个奇数了。</p>
+		<p>更加具体地，每个数的奇偶性可以由它的子节点个数直接得到：<strong style="color: green">若一个点由偶数个子节点，则它为奇数；若一个点由奇数个子节点，则它为偶数</strong>。</p>
+		<p>这是因为，$v$ 的每个子节点对应的子树和都是奇数，所以所有子树的和的奇偶性就等于<strong>子树个数</strong> ($v$ 的子节点个数) 的奇偶性，于是剩下一个点 $v$ 的奇偶性就应当和它的子节点个数<strong>不同</strong>才能保证总和是奇数。</p>
+		<p>得到那么多条件，接下来是否一定有解呢？且如果有解该怎么构造呢？</p>
+		<p>回想一下之前我们遇到这种总和为 $\pm 1$ 的题是怎么构造的。</p>
+		<p>对，在 <a href="../index.html?redirect=816" target="_blank">[Codeforces547D]Mike and Fish</a> <del>(数学书上的题)</del> 这道题中，我们通过了找 Euler 回路的方法，然后对点进行交错染色从而抵消。</p>
+		<p>具体地，我们定义无向图 $G = T_1 \oplus T_2$ (注意是图的<a href="../memos/14.html" target="_blank"><strong>和</strong></a>而不是并)，<strong>然后再在 $G$ 中添加这样的若干条边：对于 $v \in V$，若 $X_v$ 为奇数，则连接两棵树上对应的 $v$ 点</strong>。</p>
+		<p>然后，考虑这张新图的任意一个 (有向的) <strong>回路</strong> $C$。对于 $T_i$ 的某棵子树，记作 $S$，那么它和 $V \setminus S$ 之间形成一个 "割" $cross \left( S, V \setminus S \right)$。</p>
+		<p>由回路的基本性质知，<strong style="color: blue">一个回路和一个割集的交一定包含偶数条边，特别地，如果这个回路是有向的，则它从 $S$ 走到 $V \setminus S$ 的边数和从 $V \setminus S$ 走到 $S$ 的边数是相等的</strong>。如下图：</p>
+		<img class="center-block" src="uploads/56.png" alt="回路与割集的交" />
+		<p>那么，考察回路中<strong>跨越两棵树的边</strong>，由定义知，它们对应着原点集 $V$ 中的一个奇数 (确切地说，是 $X$ 值为奇数的点)。此时，我们对 $X_v$ 进行如下赋值：</p>
+		<ul>
+			<li><p>若边的定向是从 $T_1$ 走向 $T_2$，则令 $X_v = 1$。</p></li>
+			<li><p>若边的定向是从 $T_2$ 走向 $T_1$，则令 $X_v = -1$。</p></li>
+		</ul>
+		<p>特别地，<span style="color: blue">若 $X_v$ 为偶数，则规定 $X_v = 0$</span>。</p>
+		<p>现在回过头来考虑这棵子树的所有点的点权和，于是，根子树内部有多少个穿越 $S$ 的边 (即 $cross \left( S, V \setminus S \right)$ 中的边) 有关。</p>
+		<p>而 $cross \left( S, V \setminus \right)$ 中的边只有两种：</p>
+		<p>一种是两棵树中的交错的边，另一种只有一条边：该子树的根与它的父节点 (先不考虑根节点) 之间的边。</p>
+		<p>由<span style="color: blue">蓝色</span>结论知，这些边恰好由一半 "出去" (值为 $1$)，一半 "进来" (值为 $-1$)，而至多一条边不参与贡献，于是子树总和自然就是 $\pm 1$ 了。</p>
+		<p>那么，我们刚才是假设回路的存在性。那这样的回路一定存在吗？</p>
+		<p>为了一般性，我们肯定需要考虑 Euler 回路。注意到 Euler 回路存在的条件存在的充要条件是图连通且每个点的度均为偶数。</p>
+		<p>那么考虑原树中的顶点，由前述<span style="color: green">绿色</span>结论，对于非根的顶点 $v$，$v$ 的<strong>度数</strong> $d \left( v \right)$ (子节点数 $+ 1$) 和 $X_v$ 具有相同的奇偶性，从而在 $G$ 中它的度数就是偶数了，不过对于两个根节点，它们的度数仍然是奇数。</p>
+		<p>这里有一个比较巧妙的方法，<strong>将两棵树的根节点相连</strong>。</p>
+		<p>这样一来，保证了图连通，二来也保证所有点的的度数均为偶数，于是存在 Euler 回路。</p>
+		<p>而加的一条边对前述结论也不影响：因为对于整棵树的权值和，相当于对这棵以根节点为根的 "子树" $S$，在 $S$ 与 $V \setminus S$ 的割集中，也至多只有一条边 (就是我们刚才添加的连接两个根节点的边)，于是总和也是 $\pm 1$。</p>
+		<p style="color: red">(ps: 其实刚才的步骤可以理解为给根设置一个 "父节点")</p>
+		<p>于是只需要实现一个求 Euler 回路的过程即可，时间复杂度 $O \left( N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) ((x - 1 ^ 1) + 1)
+
+const int N = 200054, M = N * 3;
+
+int n, R1, R2, E = 0;
+int to[M], first[N], next[M];
+int deg[N], eg[N];
+bool used[M], dir[M];
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x) {
+	for (int &amp;i = first[x]; i; i = next[i])
+		if (!used[i])
+			used[ad(i)] = used[i] = dir[i] = true, dfs(to[i]);
+}
+
+int main() {
+	int i, x;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", &amp;x), ~x ? (addedge(i, x), ++deg[x]) : (R1 = i);
+	for (; i &lt;= 2 * n; ++i) scanf("%d", &amp;x), ~x ? (addedge(i, x + n), ++deg[x + n]) : (R2 = i);
+	addedge(R1, R2);
+	for (i = 1; i &lt;= n; ++i)
+		if ((deg[i] ^ deg[i + n]) &amp; 1) return puts("IMPOSSIBLE"), 0;
+		else if (~deg[i] &amp; 1) addedge(i, i + n), eg[i] = E;
+	for (i = 1; i &lt;= 2 * n; ++i) dfs(i);
+	puts("POSSIBLE");
+	for (i = 1; i &lt;= n; ++i) printf("%d%c", deg[i] &amp; 1 ? 0 : dir[eg[i]] ? 1 : -1, i == n ? 10 : 32);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p style="color: red"><strong>坑1：</strong>注意在处理第二棵树的时候顶点下标由个 $N$ 的偏移量 (<code>+ n</code>)，不要漏掉或多加了。</p>
+		<p><strong>坑2：</strong>判断一条边是 "出去" (从 $T_1$ 走向 $T_2$) 还是 "进来" (从 $T_2$ 走向 $T_1$) 可以通过加边时边的编号的奇偶性来得到。</p>
+	</body>
+</html>

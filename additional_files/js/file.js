@@ -3,7 +3,17 @@
 	'use strict';
 
 	const
-		cfColor = {0 : 'gray', 1200 : 'green', 1400 : 'cyan', 1600 : 'blue', 1900 : 'violet', 2100 : 'orange', 2400 : 'red', 3000 : 'legendary'};
+		cfColor = {
+			'pupil' : 'green',
+			'specialist' : 'cyan',
+			'expert' : 'blue',
+			'candidate master' : 'violet',
+			'master' : 'orange',
+			'international master' : 'orange',
+			'grandmaster' : 'red',
+			'international grandmaster' : 'red',
+			'legendary grandmaster' : 'legendary'
+		};
 
 	let
 		okay, config = {};
@@ -98,7 +108,7 @@
 				.data('priority', parseInt(info[3]))
 				.get(0);
 		}).sort(function(a, b) {return $(b).data('priority') - $(a).data('priority') || (+b.cells[0].innerText) - (+a.cells[0].innerText);});
-		totPage = Math.ceil(mems.length / RECORDS_PER_PAGE);
+		totPage = Math.ceil(mems.length / MEMOS_PER_PAGE);
 		curPage = (curPage >= 1 ? Math.min(curPage, totPage) : 1);
 		$('#memTable').append(Rows.slice((curPage - 1) * MEMOS_PER_PAGE, curPage * MEMOS_PER_PAGE));
 		$('#memTotal').html('统计: 共 ' + mems.length + ' 份便笺');
@@ -113,7 +123,7 @@
 				$('<tr />')
 					.append($('<td />')
 						.append(
-							$('<a class="user ' + cfColor[Object.keys(cfColor).sort().filter(x => x <= p.rating).pop()] + '" href="http://codeforces.com/profile/' + p.handle + '" target="_blank">' + p.handle + '</a>')
+							$('<a class="user ' + (cfColor.hasOwnProperty(p.rank) ? cfColor[p.rank] : 'gray') + '" href="http://codeforces.com/profile/' + p.handle + '" target="_blank">' + p.handle + '</a>')
 						)
 					)
 					.append($('<td />').html(p.firstName))

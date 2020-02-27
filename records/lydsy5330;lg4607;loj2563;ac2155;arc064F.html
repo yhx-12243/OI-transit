@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy5330][lg4607][loj2563][SDOI2018]反回文串/[AtCoder2155,Regular64F]Rotated Palindromes</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>「回文串什么的最讨厌了……」</p>
+		<p>小 Q 讨厌任何形式的回文串：</p>
+		<ol>
+			<li><p>如果一个字符串从左往右读和从右往左读是一样的，那么小 Q 讨厌它；例如 $\texttt{aa}$ 和 $\texttt{aba}$。</p></li>
+			<li><p>对于一个字符串来说，若将某个前缀子串移除并拼接到字符串的尾部，能得到一个小 Q 讨厌的字符串，那么小 Q 也会讨厌原来的这个字符串；例如 $\texttt{aab}$ 和 $\texttt{baa}$。</p></li>
+		</ol>
+		<p>现在问题来了，如果任意字符串只可以由 $k$ 种已知的字符组成 (也就是说字符集的大小为 $k$)，那么长度为 $n$ 的所有字符串里，有多少字符串是小 Q 讨厌的？</p>
+		<p>答案可能很大，你只需要给出答案对 $p$ 取模后的值。</p>
+
+		<h3>输入格式</h3>
+		<p style="color: red">这里给出 [SDOI2018]反回文串 的输入格式，另一道题是该题的弱化版，可以看 OJ 上的输入格式。</p>
+		<p>第一行包含一个正整数 $T$ ($1 \leq T \leq 10$)，表示数据的组数。</p>
+		<p>对于每组数据，共一行，包含三个正整数 $n, k, p$ ($1 \leq k \leq n \leq 10^{18}; 10^9 \leq p \leq 2^{30}$，$p$ <strong>不一定</strong>是素数)。</p>
+
+		<h3>输出格式</h3>
+		<p style="color: red">这里给出 [SDOI2018]反回文串 的输出格式，另一道题是该题的弱化版，可以看 OJ 上的输出格式。</p>
+		<p>对于每组数据，输出一行一个整数，表示小 Q 的讨厌的字符串的个数对 $p$ 取模的值。</p>
+
+		<h3>题解</h3>
+		<p>不考虑旋转同构的话，那么问题很简单 —— 答案就是 $k^{\left \lceil n/2 \right \rceil}$，即前 $\left \lceil \dfrac n2 \right \rceil$ 个字符可以自由选择，后 $\left \lfloor \dfrac n2 \right \rfloor$ 个字符可以由前面的字符唯一确定。</p>
+		<p>但是现在可以旋转，那么答案就是乘 $n$ 吗？不是的，因为有些整周期串 (比如 $\texttt{ababab}$) 就可能会被统计到多次。</p>
+		<p>于是这引导我们从对串的<strong>最小周期</strong>进行讨论。</p>
+		<p>假设 $s$ 的最小周期为 $T$ ($T \mid n$)，显然 $s$ 的每个周期必须为回文串。那么这样的串会对最终的答案贡献多少次呢？</p>
+		<p>容易想到的值为 $T$，但是这里需要考虑一个细节：</p>
+		<p><strong style="color: fuchsia">当 $T$ 为偶数时，有 $s = u u^R$ (其中 $u = s \left[ 1 .. \dfrac T2 \right]$，那么考虑 $s$ 循环移位 $\dfrac T2$ 位，得到串 $s' = u^R u$，它也是一个本原 (最小周期为 $T$) 的回文串，因此会重复考虑。故这时候我们需要将代价 "平摊"，即每个串对最终答案贡献 $\dfrac T2$ 次</strong>。</p>
+		<p>那还有没有其它情况呢？没有了，其余情况 $s$ 的循环移位均不是回文串，否则容易推得 $s$ 有更小的周期。</p>
+		<p>于是我们定义记号 $\bar T = \begin{cases} \dfrac T2 &amp; 2 \mid T \\ T &amp; 2 \nmid T \end{cases}$，表示一个长度为 $T$ 的串对答案的 (平摊) 贡献次数。</p>
+		<p>因此，我们只需要求出有多少个 (字符集为 $k$ 且) <strong>长度为 $T$ 的本原回文串</strong> (即不存在更小周期的回文串)，将这个值记作 $P \left( T \right)$，于是答案即为 $$ \sum_{d \mid n} P \left( d \right) \cdot \bar d \tag 1 \label 1 $$</p>
+		<hr />
+		<p>下面考虑计算 $P \left( n \right)$，显然 $P \left( n \right)$ 不一定就是 $k^{\left \lceil n/2 \right \rceil}$，因为有的回文串具有更小的周期。</p>
+		<p>因此我们需要寻找它们两者之间的关系。</p>
+		<p>考虑一个长度为 $n$ 的任意回文串，它的最小周期可以为 $n$ 的任意因子 $d$。而容易得到，最小周期为 $d$ 的，长度为 $n$ 的回文串数量<strong>恰好等于长度为 $d$ 的本原回文串数量</strong>，于是 $$ k^{\left \lceil n/2 \right \rceil} = \sum_{d \mid n} P \left( d \right) $$</p>
+		<p>由 Möbius 反转公式，知 $$ P \left( n \right) = \sum_{d \mid n} k^{\left \lceil d/2 \right \rceil} \cdot \mu \left( \frac nd \right) $$</p>
+		<p>将其代入 $\eqref 1$ 式并化简，得答案表达式</p>
+		<p>$$ \sum_{a b c = n} \mu \left( a \right) \cdot k^{\left \lceil b/2 \right \rceil} \cdot \overline {a b} \tag 2 \label 2 $$</p>
+		<hr />
+		<p>下面我们的任务就是求 $\eqref 2$ 式了。显然我们首先需要将 $n$ 分解，对于 $10^{18}$ 的范围套个 Pollard-Rho 就好了，这不是重点。</p>
+		<p>但是这是一个三重 "卷积"，如果暴力计算的话复杂度将会是 $O \left( d^2 \left( n \right) \right)$，而在 $10^{18}$ 的数据范围下，$d \left( n \right)$ 可以达到 $10^5$，这显然不能接受。</p>
+		<p>那么考虑优化这个算法。首先，容易注意到 $\eqref 2$ 式被求和项是三个因子中，"$k^{\left \lceil b/2 \right \rceil}$" 是相对比较 "另类" 的，很难和数论扯上关系；而其它的两项一个是 $\mu$，一个是类似于恒等函数的东西，相对容易通过数论方法解决。</p>
+		<p>于是，我们枚举 $b$，使用快速幂算出 $k^{\left \lceil b/2 \right \rceil}$ 后，剩下部分就是 $$ \sum_{a \mid \frac nb} \mu \left( a \right) \cdot \overline {a b} $$</p>
+		<ol>
+			<li><p>当 $b$ 为偶数时，$a b$ 一定为偶数，因此此时有 $\overline {a b} = \dfrac {a b} 2$，于是 $$ \sum_{a \mid \frac nb} \mu \left( a \right) \cdot \overline {a b} = \frac b2 \cdot \sum_{a \mid \frac nb} \mu \left( a \right) \cdot a $$</p>
+			<p>考虑 $\displaystyle f \left( n \right) = \sum_{d \mid n} \mu \left( d \right) \cdot d$，显然它是一个积性函数，且 $f \left( p \right) = 1 - p$，于是右边部分就相当于：设 $\dfrac nb$ 的标准分解为 $\displaystyle \prod_{i=1}^l p_i^{\alpha_i}$，在它等于 $\displaystyle \prod_{i=1}^l \left( 1 - p_i \right)$。综上，得</p>
+			<p style="color: teal">若 $2 \mid b$，则 $$ \sum_{a \mid \frac nb} \mu \left( a \right) \cdot \overline {a b} = \frac b2 \cdot \prod_{p \mid \frac nb} \left( 1 - p \right) $$ (这里 $\displaystyle \prod_{p \mid n} a_p$ 表示对 $n$ 的所有<strong>素因子</strong>求和)</p></li>
+			<li><p>当 $b$ 为奇数，且 $n$ 为奇数时，$a b$ 一定为奇数，此时有 $\overline {a b} = a b$。和上面的推理类似，可知</p>
+			<p style="color: teal">若 $2 \nmid b \wedge 2 \nmid n$，则 $$ \sum_{a \mid \frac nb} \mu \left( a \right) \cdot \overline {a b} = b \cdot \prod_{p \mid \frac nb} \left( 1 - p \right) $$</p></li>
+			<li><p>当 $b$ 为奇数，且 $n$ 为偶数时，$a$ 可以为奇数也可以为偶数。</p>
+			<p>若 $a$ 为偶数，那么显然 $4 \nmid a$ (否则 $\mu \left( a \right) = 0$ 将导致这一项无贡献)，于是对于每个这样的 $a$，都有 $2 \mathbin \| a$，因此它可以和 $\dfrac a2$ 进行<strong>配对</strong>。</p>
+			<p>考虑每对元素的贡献和，不妨设这个对为 $\left( t, 2 t \right)$ (其中 $2 \nmid t$)，于是有 $\mu \left( t \right) \cdot \overline {t b} + \mu \left( 2 t \right) \cdot \overline {2 t b} = \mu \left( t \right) \cdot t b + \left( - \mu \left( t \right) \right) \cdot t b = 0$。</p>
+			<p>既然每一对的贡献都是 $0$ 了，那么所有对的贡献总和也自然是 $0$ 了。从而，</p>
+			<p style="color: teal">若 $2 \nmid b \wedge 2 \mid n$，则 $$ \sum_{a \mid \frac nb} \mu \left( a \right) \cdot \overline {a b} = 0 $$</p></li>
+		</ol>
+		<p>至此，我们已经讨论完毕了所有情况，我们只需要枚举 $n$ 的因子 $b$，这可以使用 dfs 来方便地解决，在 dfs 的同时顺便维护一下 $\dfrac nb$ 有哪些素因子 (即 $d$ 里面那个素因子有没有用<strong>满</strong>) 即可。</p>
+		<p>总时间复杂度 $O \left( \sum \left( \operatorname{Factorization} \left( n \right) + d \left( n \right) \log n \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef std::pair &lt;ll, int&gt; pr;
+typedef std::map &lt;ll, int&gt; map;
+
+int mod, cnt;
+ll n, m, ans = 0;
+pr pd[54];
+
+ll PowerMod(ll a, ll n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace NT {
+	const int N = 1000054;
+
+	int pn = 0, c[N], p[78540];
+	map result;
+
+	inline ll MulMod(ll a, ll b, ll m) {return (__int128)a * b % m;}
+
+	ll PowerMod(ll a, ll n, ll m) {
+		if (!n || a == 1) return 1ll;
+		ll s = PowerMod(a, n &gt;&gt; 1, m);
+		s = MulMod(s, s, m);
+		return n &amp; 1 ? MulMod(s, a, m) : s;
+	}
+
+	void sieve(int n) {
+		int i, j, v;
+		memset(c, -1, sizeof c);
+		for (i = 2; i &lt;= n; ++i) {
+			if (!~c[i]) p[pn] = i, c[i] = pn++;
+			for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt;= c[i]; ++j) c[v] = j;
+		}
+	}
+
+	bool Miller_Rabin(ll n) {
+		static const int test[8] = {2, 3, 5, 7, 11, 13, 82, 373};
+		if (n &lt; N) return n &gt; 1 &amp;&amp; p[c[n]] == n;
+		int c, i, j; ll s = n - 1, u, v;
+		for (c = 0; !(s &amp; 1); ++c, s &gt;&gt;= 1);
+		for (i = 0; i &lt; 8; ++i) {
+			if (!(n % test[i])) return false;
+			u = PowerMod(test[i], s, n);
+			for (j = 0; j &lt; c; ++j, u = v)
+				if (v = MulMod(u, u, n), u != 1 &amp;&amp; u != n - 1 &amp;&amp; v == 1) return false;
+			if (u != 1) return false;
+		}
+		return true;
+	}
+
+	ll Pollard_Rho(ll n, int c) {
+		ll i = 1, k = 2, x = rand() % (n - 1) + 1, y = x, p;
+		for (; k &lt;= 131072; ) {
+			x = (MulMod(x, x, n) + c) % n;
+			p = std::__gcd((y - x + n) % n, n);
+			if (p != 1 &amp;&amp; p != n) return p;
+			if (++i == k) y = x, k &lt;&lt;= 1;
+		}
+		return 0;
+	}
+
+	inline void push(ll prime, int alpha) {result[prime] += alpha;}
+
+	void __builtin_factor(ll n) {
+		int i, j, k; ll d;
+		for (i = 0; n != 1; )
+			if (n &gt;= N) {
+				if (Miller_Rabin(n)) return push(n, 1);
+				for (k = 97; !(d = Pollard_Rho(n, k)); --k);
+				__builtin_factor(d), n /= d;
+			} else {
+				for (i = p[c[n]], j = 0; !(n % i); n /= i, ++j);
+				push(i, j);
+			}
+	}
+
+	inline void factor(ll n) {result.clear(), __builtin_factor(n);}
+
+	inline void init() {sieve(N - 1);}
+}
+
+void dfs(int dep, ll P, ll Q) {
+	if (dep == cnt) {
+		ans += PowerMod(m, (P + 1) / 2, P &amp; 1 ? (n &amp; 1 ? P * Q % mod : 0) : P / 2 * Q % mod);
+		return;
+	}
+	for (int i = 0; i &lt;= pd[dep].second; ++i, P *= pd[dep].first)
+		dfs(dep + 1, P, Q * (i == pd[dep].second ? 1 : 1 - pd[dep].first));
+}
+
+void work() {
+	ans = cnt = 0;
+	scanf("%lld%lld%d", &amp;n, &amp;m, &amp;mod), NT::factor(n), m %= mod;
+	for (const pr &amp;e : NT::result) pd[cnt++] = e;
+	dfs(0, 1, 1), ans %= mod;
+	printf("%d\n", int(ans + (ans &gt;&gt; 63 &amp; mod)));
+}
+
+int main() {
+	int T; NT::init();
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $k$ 可能超过 $p$ (模数)，因此计算前最好先将 $k$ 对 $p$ 取模。</p>
+		<p><strong>坑2：</strong>$p$ 不一定是素数，因此不能直接用 Fermat 小定理 (当然你愿意求个 $\phi$ 然后用<span class="text-muted">扩展</span> Euler 定理我也不拦你)。</p>
+	</body>
+</html>

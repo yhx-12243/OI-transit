@@ -18,7 +18,7 @@
 #define lg2 std::__lg
 
 typedef long long ll;
-const int N = 530000, mod = 998244353, half_mod = (mod + 1) / 2, root = 31;
+const int N = 530000, mod = 998244353, iv2 = (mod + 1) / 2, root = 31;
 typedef int vec[N], *pvec;
 typedef std::pair &lt;int, int&gt; pr;
 typedef std::vector &lt;int&gt; vector;
@@ -43,7 +43,7 @@ namespace Poly {
 
 	void out(int deg, pvec f, const char *_name) {
 		printf("%s(x) =", _name);
-		for (int i = 0; i &lt;= deg; ++i) printf(" %+d x^%d", (int)(f[i] - (mod &amp; -(f[i] &gt;= half_mod))), i);
+		for (int i = 0; i &lt;= deg; ++i) printf(" %+d x^%d", (int)(f[i] - (mod &amp; -(f[i] &gt;= iv2))), i);
 		putchar(10);
 	}
 
@@ -90,7 +90,7 @@ namespace Poly {
 
 	// Inversion (use buffer 1, 2, 3)
 	void Inv(int deg, pvec a, pvec b) {
-		int len, i; ll iv = half_mod;
+		int len, i; ll iv = iv2;
 		if (!*a) fputs("Inv::Calculate inverse of polynomial with constant term 0 !\n", stderr), abort();
 		*b = PowerMod(*a, mod - 2), b[1] = 0, *B1 = *a, B1[1] = a[1];
 		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
@@ -98,7 +98,7 @@ namespace Poly {
 			memset(b + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(b, B2);
 			memset(B1 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(B1, B3);
 			for (i = 0; i &lt; n; ++i) reduce(B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod);
-			DNTT(B2, B3), std::reverse(B3 + 1, B3 + n), iv = (iv &gt;&gt; 1) + half_mod;
+			DNTT(B2, B3), std::reverse(B3 + 1, B3 + n), iv = (iv &gt;&gt; 1) + iv2;
 			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B3[i] * iv % mod;
 			memcpy(B1 + i, a + i, n &lt;&lt; 1);
 		}
@@ -167,58 +167,105 @@ namespace Poly {
 	}
 }
 
-int n, cnt = 0, lc[N], rc[N];
-vec A, B, C, C0, C1, C2, C3, C4;
-vector g[N], result;
+namespace PolyEvaluation {
+	using namespace Poly;
 
-// input: g[0] to g[cnt - 1], output: g[id]
-int solve(int L, int R) {
-	if (L + 1 == R) return L;
-	int M = (L + R) / 2, id = cnt++, lp = solve(L, M), rp = solve(M, R);
-	Poly::Mul(g[lp], g[rp], g[id]);
-	return lc[id] = lp, rc[id] = rp, id;
+	int cnt = 0, lc[N], rc[N];
+	vec Prd_, E1, E2, E3;
+	vector g[N], tmp_;
+
+	int solve(int L, int R) {
+		if (L + 1 == R) return L;
+		int M = (L + R) / 2, id = cnt++, lp = solve(L, M), rp = solve(M, R);
+		Mul(g[lp], g[rp], g[id]);
+		return lc[id] = lp, rc[id] = rp, id;
+	}
+
+	void recursion(int id, int L, int R, const vector &amp;poly) {
+		if (L + 1 == R) return tmp_.EB(poly.back());
+		int i, n = poly.size() - 1, M = (L + R) / 2, lp = lc[id], rp = rc[id],
+			dl = min(n, g[lp].size() - 1), dr = min(n, g[rp].size() - 1);
+		if (L + 2 == R) return
+			tmp_.EB((poly[n] + (ll)poly[n - 1] * g[rp].back()) % mod),
+			tmp_.EB((poly[n] + (ll)poly[n - 1] * g[lp].back()) % mod);
+
+		NTT_init(lg2(n + dr) + 1);
+		ll iv = mod - (mod - 1) / Poly::n;
+		vector pntt(Poly::n, 0), nxt;
+		memcpy(E1, poly.data(), (n + 1) &lt;&lt; 2), DNTT(E1, pntt.data()), memset(E1, 0, (n + 1) &lt;&lt; 2);
+
+		memcpy(E2, g[rp].data(), (dr + 1) &lt;&lt; 2), DNTT(E2, E3);
+		for (i = 0; i &lt; Poly::n; ++i) E3[i] = (ll)E3[i] * pntt[i] % mod;
+		DNTT(E3, E2), std::reverse(E2 + 1, E2 + Poly::n);
+		nxt.clear(), nxt.reserve(dl + 1);
+		for (i = n - dl; i &lt;= n; ++i) nxt.EB(E2[i] * iv % mod);
+		memset(E2, 0, (n + dr + 1) &lt;&lt; 2), recursion(lp, L, M, nxt);
+
+		NTT_init(lg2(n + dr) + 1);
+		memcpy(E2, g[lp].data(), (dl + 1) &lt;&lt; 2), DNTT(E2, E3);
+		for (i = 0; i &lt; Poly::n; ++i) E3[i] = (ll)E3[i] * pntt[i] % mod;
+		DNTT(E3, E2), std::reverse(E2 + 1, E2 + Poly::n);
+		nxt.clear(), nxt.reserve(dr + 1);
+		for (i = n - dr; i &lt;= n; ++i) nxt.EB(E2[i] * iv % mod);
+		memset(E2, 0, (n + dl + 1) &lt;&lt; 2), recursion(rp, M, R, nxt);
+	}
+
+	vector emain(int n, pvec f, const vector &amp;pts) {
+		int i, id, m = pts.size(), q;
+		if (!m) return vector();
+		if (!n) return vector(m, *f);
+		for (i = 0; i &lt; m; ++i) g[i].clear(), g[i].EB(1), g[i].EB(neg(q = pts[i]));
+
+		id = solve(0, cnt = m), memcpy(Prd_, g[id].data(), (m + 1) &lt;&lt; 2);
+		Inv(n + 1, Prd_, E2), memset(Prd_, 0, (m + 1) &lt;&lt; 2);
+		if (n &gt; 0) memset(E2 + (n + 1), 0, (Poly::n - n - 1) &lt;&lt; 2);
+
+		std::reverse_copy(f, f + (n + 1), E1), Mul(2 * n, E1, E2, E3),
+		memset(E1, 0, (n + 1) &lt;&lt; 2), memset(E2, 0, (n + 1) &lt;&lt; 2);
+
+		return tmp_.clear(), tmp_.reserve(m), recursion(id, 0, m, vector(E3 + max(n - m + 1, 0), E3 + (n + 1))), tmp_;
+	}
 }
 
-// input: g[id] and polynomial (vector) poly, output: (vector) result
-void evaluation(int id, int L, int R, vector &amp;poly) {
-	if (L + 1 == R) {result.EB(poly.front()); return;}
-	int M = (L + R) / 2, lp = lc[id], rp = rc[id]; vector rem;
-	Poly::DivMod(R - L - 1, M - L, poly.data(), g[lp].data(), C0, C1);
-	rem.assign(C1, C1 + (M - L));
-	evaluation(lp, L, M, rem);
-	Poly::DivMod(R - L - 1, R - M, poly.data(), g[rp].data(), C0, C1);
-	rem.assign(C1, C1 + (R - M));
-	evaluation(rp, M, R, rem);
-}
+namespace PolyInterpolation {
+	using namespace PolyEvaluation;
 
-void inter(int id, int L, int R) {
-	if (L + 1 == R) return;
-	int M = (L + R) / 2, lp = lc[id], rp = rc[id], i;
-	inter(lp, L, M); inter(rp, M, R);
-	Poly::NTT_init(lg2(R - L - 1) + 1);
-	memcpy(C1, C + L, M - L &lt;&lt; 2); memset(C1 + (M - L), 0, Poly::n - (M - L) &lt;&lt; 2);
-	memcpy(C2, C + M, R - M &lt;&lt; 2); memset(C2 + (R - M), 0, Poly::n - (R - M) &lt;&lt; 2);
-	memcpy(C3, g[lp].data(), M - L + 1 &lt;&lt; 2); memset(C3 + (M - L + 1), 0, Poly::n - (M - L + 1) &lt;&lt; 2);
-	memcpy(C4, g[rp].data(), R - M + 1 &lt;&lt; 2); memset(C4 + (R - M + 1), 0, Poly::n - (R - M + 1) &lt;&lt; 2);
-	Poly::DNTT(C1, C0), Poly::DNTT(C2, C1), Poly::DNTT(C3, C2), Poly::DNTT(C4, C3);
-	for (i = 0; i &lt; Poly::n; ++i) C4[i] = ((ll)C0[i] * C3[i] + (ll)C1[i] * C2[i]) % mod;
-	Poly::DNTT(C4, C0); std::reverse(C0 + 1, C0 + Poly::n);
-	ll iv = PowerMod(Poly::n, mod - 2);
-	for (i = 0; i &lt; R - L; ++i) C[L + i] = C0[i] * iv % mod;
-}
+	vec I1, I2, I3, I4, I5;
+	pvec iresult;
 
-// input: (pair &lt;int, int&gt;) a, output: (int *) C
-void interpolation(int n, pr *a) {
-	int i, v, id; vector F;
-	for (i = 0; i &lt; n; ++i)
-		v = a[i].first, g[i].EB((!v - 1) &amp; (mod - v)), g[i].EB(1);
-	cnt = n; id = solve(0, n);
-	memcpy(A, g[id].data(), n + 1 &lt;&lt; 2);
-	for (i = 1; i &lt;= n; ++i) B[i - 1] = (ll)A[i] * i % mod;
-	F.assign(B, B + n);
-	evaluation(id, 0, n, F);
-	for (i = 0; i &lt; n; ++i) C[i] = PowerMod(result[i], mod - 2, a[i].second);
-	inter(id, 0, n);
+	void irecursion(int id, int L, int R) {
+		if (L + 1 == R) return;
+		int i, M = (L + R) / 2, lp = lc[id], rp = rc[id];
+		irecursion(lp, L, M), irecursion(rp, M, R);
+		NTT_init(lg2(R - L - 1) + 1);
+		ll iv = mod - (mod - 1) / Poly::n;
+		memcpy(I1, iresult + L, (M - L) &lt;&lt; 2), memset(I1 + (M - L), 0, (Poly::n - (M - L)) &lt;&lt; 2);
+		memcpy(I2, iresult + M, (R - M) &lt;&lt; 2), memset(I2 + (R - M), 0, (Poly::n - (R - M)) &lt;&lt; 2);
+		memcpy(I3, g[lp].data(), (M - L + 1) &lt;&lt; 2), memset(I3 + (M - L + 1), 0, (Poly::n - (M - L + 1)) &lt;&lt; 2);
+		memcpy(I4, g[rp].data(), (R - M + 1) &lt;&lt; 2), memset(I4 + (R - M + 1), 0, (Poly::n - (R - M + 1)) &lt;&lt; 2);
+		DNTT(I1, I5), DNTT(I2, I1), DNTT(I3, I2), DNTT(I4, I3);
+		for (i = 0; i &lt; Poly::n; ++i) I4[i] = ((ll)I1[i] * I2[i] + (ll)I3[i] * I5[i]) % mod;
+		DNTT(I4, I5); std::reverse(I5 + 1, I5 + Poly::n);
+		for (i = 0; i &lt; R - L; ++i) iresult[L + i] = I5[i] * iv % mod;
+	}
+
+	void imain(int n, pr *pts, pvec ret) {
+		int i, id, q;
+		assert(n &gt; 0);
+		for (i = 0; i &lt; n; ++i) g[i].clear(), g[i].EB(1), g[i].EB(neg(q = pts[i].first));
+
+		id = solve(0, cnt = n), memcpy(Prd_, g[id].data(), (n + 1) &lt;&lt; 2);
+		Inv(n, Prd_, E2), memset(Prd_, 0, n &lt;&lt; 2);
+		if (n &gt; 1) memset(E2 + n, 0, (Poly::n - n) &lt;&lt; 2);
+
+		for (i = 0; i &lt; n; ++i) E1[i] = ll(n - i) * g[id][i] % mod;
+		Mul(2 * (n - 1), E1, E2, E3),
+		memset(E1, 0, n &lt;&lt; 2), memset(E2, 0, n &lt;&lt; 2);
+
+		tmp_.clear(), tmp_.reserve(n), recursion(id, 0, n, vector(E3, E3 + n));
+		for (i = 0; i &lt; n; ++i) ret[i] = PowerMod(tmp_[i], mod - 2, pts[i].second);
+		iresult = ret, irecursion(id, 0, n), std::reverse(ret, ret + n);
+	}
 }
 </code><script>syntax_highlight()</script>
 </pre></div>

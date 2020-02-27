@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[AtCoder2377,Grand14E]Blue and Red Tree</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵由 $N$ 个顶点的树，顶点标号为 $1, 2, \cdots, N$。</p>
+		<p>初始时，每条边都是<span style="color: blue">蓝色</span>的，你需要执行下列操作<strong>恰好 $N - 1$ 次</strong>，来将这棵树变成<span style="color: red">红色</span>的：</p>
+		<ul>
+			<li><p>选定树上的一条<strong>只包含<span style="color: blue">蓝色</span>边</strong>的简单路径 $u \leadsto v$，并移除路径上的<strong>某一条</strong><span style="color: blue">蓝</span>边。</p></li>
+			<li><p>加入一条连接 $u, v$ 的<span style="color: red">红</span>边。</p></li>
+		</ul>
+		<p>你的目标是让最终的<span style="color: red">红</span>树与一棵给定的<span style="color: red">红</span>树 (称为目标<span style="color: red">红</span>树) 完全相同，问目标是否可以达到。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($2 \leq N \leq 10^5$)，表示点的个数。</p>
+		<p>接下来 $N - 1$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq N; a_i \neq b_i$)，描述<span style="color: blue">蓝</span>树上的一条边。保证这 $N - 1$ 条边恰好构成一棵树。</p>
+		<p>接下来 $N - 1$ 行，以同样的方式给出目标<span style="color: red">红</span>树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个字符串，如果目标可以被达成，则为 <code>YES</code>；如果不能被达成，则为 <code>NO</code>。</p>
+
+		<h3>题解</h3>
+		<!--p>首先，容易注意到<span style="color: blue">蓝</span>树和<span style="color: red">红</span>树的地位其实是完全相同的 —— 即把他们调换，答案不改变。</p>
+		<p>事实上，对于两棵树 $T_1, T_2$，如果把 $T_1$ 看成蓝树，$T_2$ 看成红树，存在一个可行的操作序列的话：那么，我们现在将 $T_2$ 看成蓝树，$T_1$ 看成红树，则将刚才的那个操作序列<strong>倒过来做</strong>，即得到一个合法的从 $T_2$ 过渡到 $T_1$ 的序列。</p>
+		<p>于是现在不再区分两棵树的颜色了，把它当成不同的两棵树就可以了。</p-->
+		<p>考虑最后一步操作，此时只有一条蓝边，其余边均为红边，从而这步操作的实质就是把这条蓝边替换成红边。</p>
+		<p>接下来一步一步向前推，考虑倒数第二步操作，不难发现，如果我们把第一步的那条公共边 $\left( u, v \right)$ 的两端进行 "<a href="../index.html?redirect=223" target="_blank">缩边</a>" 后，则倒数第二步的两条边仍然是重边。</p>
+		<p>以此类推，我们可知：设第 $i$ 次操作的两条边分别为 $\left( bu_i, bv_i \right), \left( ru_i, rv_i \right)$，则一个合法的操作序列一定满足：</p>
+		<ol>
+			<li><p>对于第 $N - 1$ 次操作，$\left( bu_{N-1}, bv_{N-1} \right) = \left( ru_{N-1}, rv_{N-1} \right)$。</p></li>
+			<li><p>然后对 $\left( bu_{N-1}, bv_{N-1} \right)$ 进行图的<strong>缩边操作</strong> (即将连接它们的边都接入新点 $x$，<strong>边计重数</strong>)，$\left( ru_{N-1}, rv_{N-1} \right)$ 同理。</p></li>
+			<li><p>其次，对于第 $N - 2$ 次操作，<strong>在缩边后需要满足</strong> $\left( bu_{N-2}, bv_{N-2} \right) = \left( ru_{N-2}, rv_{N-2} \right)$。</p></li>
+			<li><p>然后，再对边 $\left( bu_{N-2}, bv_{N-2} \right), \left( ru_{N-2}, rv_{N-2} \right)$ 分别进行缩边。</p></li>
+			<li><p>……</p></li>
+			<li><p>最后，对于第 $1$ 次操作，缩边后需满足 $\left( bu_1, bv_1 \right) = \left( ru_1, rv_1 \right)$。</p></li>
+		</ol>
+		<p>于是我们只需要判断是否存在这样一组操作序列即可。</p>
+		<p>首先，不难注意到一个 <del>(有点像拟阵的扩充性的)</del> 贪心性质：</p>
+		<p><strong style="color: green">如果存在一组满足条件的操作序列，那么对于前面的任意操作，后面不会因为前面的「误操作」导致无解 (这里说的有点口语化，形式化地叙述可以见拟阵的<em>扩充性</em>)</strong>。</p>
+		<p>事实上，无论你前面怎么「误操作」过，考虑原来的可行序列 $seq$，按照这个序列依次检验对应边的两个端点是否并成一个点：如果并成了一个点，则跳过；否则，由原来是重边知在缩边后应仍为重边，则对其进行缩点，从而存在可行的操作序列。</p>
+		<p>于是，我们只需要检验当前两棵树中是否有重边，并在缩边后维护这一点即可。</p>
+		<hr />
+		<p>对于初始的情况，显然可以用 <code>std::map</code>/Hash 表来判断 (是否有一个元素出现 $\geq 2$ 次)，关键是两个点进行缩边后我们应该怎么处理 (handle)。</p>
+		<p>考虑进行缩边 $\left( u, v \right)$，则我们需要删去边 $\left( u, v \right)$，然后找到原图中与 $u, v$ 相连的所有点，设它们的邻域分别为 $N \left( u \right), N \left( v \right)$。我们需要将新点的邻域设为 $N \left( u \right) \cup N \left( v \right)$，同样需要注意这里的集合是可重集 (即重边计重数)。</p>
+		<p>于是考虑用 <code>std::set</code> 维护邻域，然而我们需要不断合并两个 <code>std::set</code>，于是可以采用<strong>启发式合并</strong>的方法就进行维护。</p>
+		<p>同时，我们还要找到每个点目前处于哪个 "缩完后的点" (即连通块)，这可以使用并查集来维护，即缩边 $\left( u, v \right)$ 时使用并查集将 $u, v$ 所在集合合并。</p>
+		<p>最后不断操作，直到原树缩为一个点 (此时答案为 <code>YES</code>) 或某一步时找不到重边 (此时答案为 <code>NO</code>)，即可输出答案。</p>
+		<p>时间复杂度 $O \left( N \log^2 N \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+
+typedef std::set &lt;int&gt; set;
+typedef std::pair &lt;int, int&gt; pr;
+struct __hash__ {
+	typedef unsigned long long u64;
+	static std::hash &lt;u64&gt; H;
+	inline size_t operator () (const pr &amp;x) const {return H(x.first | (u64)x.second &lt;&lt; 32);}
+};
+typedef std::unordered_map &lt;pr, int, __hash__&gt; map;
+const int N = 100054;
+
+int n;
+int p[N];
+set s[N];
+map dict;
+pr que[2003731];
+
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+int main() {
+	int i, u, v, U, V, h, t = 0, E = 0; pr e;
+	map::iterator it;
+	scanf("%d", &amp;n), std::iota(p, p + (n + 1), 0);
+	dict.reserve(n * (1 + lg2(n))), dict.rehash(20030731);
+	for (i = 2; i &lt; 2 * n; ++i) {
+		scanf("%d%d", &amp;u, &amp;v);
+		s[u].emplace(v), s[v].emplace(u), e = std::minmax(u, v);
+		if (++dict[e] == 2) que[t++] = e;
+	}
+	for (h = 0; h &lt; t; ++h) {
+		std::tie(u, v) = que[h];
+		if ((U = ancestor(u)) == (V = ancestor(v))) continue;
+		if (s[U].size() &gt; s[V].size()) std::swap(U, V);
+		s[U].erase(V), s[V].erase(U), p[U] = V, ++E;
+		for (int x : s[U]) {
+			it = dict.find(std::minmax(U, x));
+			if (!--it-&gt;second) dict.erase(it);
+			e = std::minmax(V, x);
+			if (++dict[e] == 2) que[t++] = e;
+			s[x].erase(U), s[x].insert(V), s[V].insert(x);
+		}
+		s[U].clear();
+	}
+	return puts(E == n - 1 ? "YES" : "NO"), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>具体的找边过程可以使用队列来维护，即像拓扑排序那样，每缩一次边，将所有新产生的重边放入队列。不过要注意出队时应先检验是否已经在一个连通块中。</p>
+		<p><strong>坑2：</strong>存储边的时候最好强制 $u &lt; v$，以免出现编号关系引起的 "伪重边"。</p>
+	</body>
+</html>
