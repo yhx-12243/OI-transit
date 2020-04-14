@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces997E]Good Subsegments</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一个 $n$ 元排列 $p_1, p_2, \cdots, p_n$，称 $\left[ L, R \right]$ 是一个连续段当且仅当 $\max \left\{ p_L, p_{L + 1}, \cdots, p_R \right\} - \min \left \{ p_L, p_{L + 1}, \cdots, p_R \right\} = R - L$。</p>
+		<p>现在给定一个 $n$ 元排列 $p_1, p_2, \cdots, p_n$，有 $q$ 组询问，每次询问给出 $l, r$，你需要求出有多少对 $\left( x, y \right)$，满足 $l \leq x \leq y \leq r$，且 $\left[ x, y \right]$ 是一个连续段。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($1 \leq n \leq 120\,000$)，表示排列的大小。</p>
+		<p>第二行包含 $n$ 个正整数 $p_1, p_2, \cdots, p_n$ ($1 \leq p_i \leq n$)，表示给定的排列。</p>
+		<p>第三行包含一个正整数 $q$ ($1 \leq q \leq 120\,000)$，表示询问的个数。</p>
+		<p>接下来 $q$ 行，每行两个正整数 $l, r$ ($1 \leq l \leq r \leq n$)，描述一组询问。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q$ 行，每行一个整数，表示满足条件的有序对 $\left( x, y \right)$ 的个数。</p>
+
+		<h3>题解</h3>
+		<p>不难发现这个问题是 <a href="../index.html?redirect=808" target="_blank">[Codeforces526F]Pudding Monster</a> 的加强版 —— 即从一次全局询问变成了若干次区间询问。</p>
+		<p>如那题所说，传统的线段树做法还是可行的，不过它是离线的且常数略大，使用可持久化线段树来<del>暴力</del>在线的实际效率都不怎么搞。</p>
+		<p>于是，下面还是介绍一下如何使用处理连续段的利器 —— <strong>析合树</strong> (DCT) 来较为快速地解决这个问题。</p>
+		<p><del>(这好像还是一道析合树的官方例题呢~)</del></p>
+		<p><del>众所周知</del>，对于一个连续段，它在析合树上的刻画只有两种：</p>
+		<ol>
+			<li><p>它是本原连续段，对应析合树上任意一个节点。</p></li>
+			<li><p>它不是本原连续段，对应于一个合点中若干个 ($2 \sim d - 1$ 个) 连续的子节点的并 (其中 $d$ 为子节点总数)。</p></li>
+		</ol>
+		<p>于是，下面我们也对这两种连续段分别统计答案。这里假设我们已经建立出了析合树 (具体构建方法见<a href="../index.html?redirect=808" target="_blank">这里</a>或其它参考资料)</p>
+		<ol>
+			<li><p>先考虑本原连续段的个数：即有多少个<strong>顶点</strong>，设它对应的区间为 $\left[ x, y \right]$，满足 $l \leq x \leq y \leq r$。</p>
+			<p>不难发现这个问题像线段树定位的问题，于是根据 <a href="../index.html?redirect=546" target="_blank">[ZJOI2017]线段树</a> 或 zkw 线段树的经验，我们将 $l' \gets l - 1, r' \gets r + 1$，转而考虑求满足 $l' &lt; x \leq y &lt; r'$ 的顶点个数。当然，这里还要对 $l = 1$ 以及 $r = n$ 进行特判。特判的过程较为简单，这里就只介绍 $1 &lt; l \leq r &lt; n$ 的情形。</p>
+			<p>设在析合树中，叶节点 $\left[ l', l' \right]$ 和 $\left[ r', r' \right]$ 的最近公共祖先为 $c$ (由析合树的性质，$c \neq l \wedge c \neq r$)，于是考虑 $c \leadsto l$ 的路径 ("左链")，对于每个除 $c$ 外的顶点 $v$，对于在 $v$ 右侧的每个兄弟节点 $u$ (注意析合树是有序树！)，都能对答案产生 $size_u$ 的贡献，其中 $size$ 表示对应的子树大小。</p>
+			<p>因此，我们需要在 dfs 中预处理对于每个顶点 $v$，它的右侧兄弟个数的 $size$ 之和，然后做一个链上前缀和 (树上顺部分和)，然后单次查询时就可以得到所有这样的 $u$ 之和了。</p>
+			<p>当然，对路径 $v \leadsto r$ ("右链") 也需要做一次同样的操作，得到右侧这部分点的贡献和。</p>
+			<p>最后，不难发现会重复计算一些点：即对 $c$ 的每个子节点 $u$，$size_u$ 都会被多算一次：</p>
+			<ul>
+				<li>若 $u$ 应该被计入答案，则它会被左链、右链分别统计到一次，于是多算了一次。</li>
+				<li>若 $u$ 不应该被计算答案，如果 $u$ 在右侧，则它仅会被左链统计到；如果 $u$ 在左侧，则它仅会被右链统计到，于是还是多算了一次。</li>
+			</ul>
+			<p>因此，最后答案还需要减去 $\displaystyle \sum_{p_u = c} size_u$，才是最终的答案。</p></li>
+			<li><p>再考虑非本原连续段，即两个即以上 (但不是全部) 兄弟合点合并出的连续段。</p>
+			<p>和 $1$ 类似，对于每个点 $v$，<strong>若它的父节点是合点</strong>，则记录出它左、右两侧的兄弟节点分别点能组合出多少个<strong>非本原连续段</strong>。</p>
+			<p>然后对这两个值也进行链上前缀和 (树上顺部分和)，询问时类似 $1$，将左链的贡献和右链的贡献相加。</p>
+			<p>最后，若 $c$ 是析点，则我们不需要进行任何处理，就得到了答案。</p>
+			<p>反之，若 $c$ 是合点，我们对最后一层算的答案是错误的。</p>
+			<p>此时，由于这个式子是二次的，我们没有什么较好的直接减的方法，于是只能对这一层<del>推倒重来</del>重新计算。</p>
+			<p>设 $c$ 在 $l', r'$ 方向的子节点分别是第 $i$ 个和第 $j$ 个 (下标从 $1$ 开始)，$c$ 一共有 $d$ 个子节点，则实际上这一层的非本原连续段的个数应为 $\dbinom {j - i - 1} 2$，而实际上我们却统计了 $\dbinom {d - i} 2 + \dbinom {j - 1} 2$ 个，于是我们只需将答案加上 $$ \dbinom {j - i - 1} 2 - \dbinom {d - i} 2 - \dbinom {j - 1} 2 $$ 即得到最终的答案。</p></li>
+		</ol>
+		<p>对于特判的过程，其实就是将两条链 (左链/右链) 简化为了一条链，于是处理的过程自然就相对简单多了。</p>
+		<p>总时间复杂度 $O \left( \left( n + q \right) \log n \right)$，不过注意到各个部分 (构建析合树、<abbr title="LCA —— Lowest Common Ancestor, 最近公共祖先">LCA</abbr>、$k$ 级祖先/<samp>jump_until</samp>) 都可以在线性时间内完成，因此这个问题可以做到 $O \left( n + q \right)$ (理论最优)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+#define ctz __builtin_ctz
+#define EB emplace_back
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int N = 254000;
+
+int n, q;
+int p[N], dep[N], idx[N];
+int P[19][N], *pa = *P;
+vector G[N];
+ll w[N], sum[N], lsum[N], rsum[N], lcj[N], rcj[N];
+ll depL[N], depR[N];
+
+namespace DCTree {
+	enum type {leaf, disjunct, conjunct} I[N];
+
+	pr st[20][N];
+	int stack1[N], stack2[N], stack[N];
+	int cnt, root, left[N], mid[N], right[N];
+
+	inline void up(pr &amp;x, const pr &amp;y) {x.first &gt; y.first ? x.first = y.first : 0, x.second &lt; y.second ? x.second = y.second : 0;}
+
+	void build_sparse_table() {
+		int i, j, k = n; pr *f, *g = *st;
+		for (j = 0; 1 &lt;&lt; (j + 1) &lt;= n; ++j) {
+			f = g, g = st[j + 1], k -= 1 &lt;&lt; j;
+			for (i = 1; i &lt;= k; ++i)
+				up(g[i] = f[i], f[i + (1 &lt;&lt; j)]);
+		}
+	}
+
+	inline bool is_consecutive(int L, int R) {
+		int c = lg2(R - L); pr ans = st[c][L]; up(ans, st[c][R - (1 &lt;&lt; c)]);
+		return ans.second - ans.first == R - L - 1;
+	}
+
+	namespace ST {
+		#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+		struct node {int v, tag;} x[N * 4];
+
+		void build(int id, int L, int R) {
+			x[id].v = L, x[id].tag = 0;
+			if (L == R) return;
+			segc; build(lc, L, M), build(rc, M + 1, R);
+		}
+
+		void add(int id, int L, int R, int ql, int qr, int v) {
+			if (ql &lt;= L &amp;&amp; R &lt;= qr) {x[id].v += v, x[id].tag += v; return;}
+			segc;
+			if (ql &lt;= M) add(lc, L, M, ql, qr, v);
+			if (qr &gt; M) add(rc, M + 1, R, ql, qr, v);
+			x[id].v = std::min(x[lc].v, x[rc].v) + x[id].tag;
+		}
+
+		int find_suf(int id, int L, int R, int v, int cv = 0) {
+			if (cv + x[id].v &gt; v) return -1;
+			if (L == R) return L;
+			segc, p = find_suf(lc, L, M, v, cv += x[id].tag);
+			return ~p ? p : find_suf(rc, M + 1, R, v, cv);
+		}
+	}
+
+	inline void link(int x, int px) {pa[x] = px, G[px].EB(x);}
+
+	void build() {
+		int i, l, top1 = 0, top2 = 0, top = 0, &amp;v = root, u; cnt = n;
+		for (i = 1; i &lt;= n; ++i) st[0][i] = pr(p[i], p[i]), left[i] = right[i] = i, I[i] = leaf;
+		build_sparse_table(), ST::build(1, 1, n);
+		for (i = 1; i &lt;= n; ++i) {
+			for (; top1 &amp;&amp; p[i] &gt; p[ stack1[top1] ]; --top1)
+				ST::add(1, 1, n, stack1[top1 - 1] + 1, stack1[top1], p[i] - p[ stack1[top1] ]);
+			for (; top2 &amp;&amp; p[i] &lt; p[ stack2[top2] ]; --top2)
+				ST::add(1, 1, n, stack2[top2 - 1] + 1, stack2[top2], p[ stack2[top2] ] - p[i]);
+			stack1[++top1] = stack2[++top2] = i;
+			l = ST::find_suf(1, 1, n, i);
+			for (v = i; top &amp;&amp; left[ u = stack[top] ] &gt;= l; --top)
+				if (I[u] == conjunct &amp;&amp; is_consecutive(mid[u], i + 1))
+					right[u] = i, link(v, u), v = u;
+				else if (is_consecutive(left[u], i + 1)) {
+					I[++cnt] = conjunct, link(u, cnt), link(v, cnt);
+					left[cnt] = left[u], right[cnt] = i, mid[cnt] = left[v], v = cnt;
+				} else {
+					I[++cnt] = disjunct, link(v, cnt);
+					for (; top &amp;&amp; !is_consecutive(left[ u = stack[top] ], i + 1); --top)
+						link(u, cnt); link(u, cnt);
+					left[cnt] = left[u], right[cnt] = i, v = cnt;
+				}
+			stack[++top] = v;
+		}
+	}
+}
+
+inline ll C2(int x) {return x * (x - 1ll) / 2;}
+inline int dmin(const int x, const int y) {return dep[x] &lt; dep[y] ? x : y;}
+
+void dfs(int x) {
+	int i, y, deg = G[x].size(); ll s = 0; bool conj = DCTree::I[x] == DCTree::conjunct;
+	std::sort(G[x].begin(), G[x].end(), [] (const int x, const int y) {return DCTree::left[x] &lt; DCTree::left[y];});
+	w[x] = (conj ? C2(deg) : 1);
+	for (i = 0; P[i][x]; ++i) P[i + 1][x] = P[i][ P[i][x] ];
+	for (i = 0; i &lt; deg; ++i) {
+		y = G[x][i], dep[y] = dep[x] + 1, idx[y] = i;
+		lsum[y] = s, dfs(y), s += sum[y];
+		if (conj) lcj[y] = C2(i), rcj[y] = C2(deg - i - 1);
+	}
+	sum[x] = s + w[x], s = 0;
+	for (i = deg - 1; i &gt;= 0; --i) y = G[x][i], rsum[y] = s, s += sum[y];
+}
+
+void dfs2(int x) {
+	for (int y : G[x])
+		depL[y] = depL[x] + lsum[y] + lcj[y], depR[y] = depR[x] + rsum[y] + rcj[y], dfs2(y);
+}
+
+int jump_until(int x, int d) {
+	for (int S = dep[x] - d; S; S &amp;= S - 1) x = P[ctz(S)][x];
+	return x;
+}
+
+int LCA(int x, int y) {
+	if (dep[x] &lt; dep[y]) std::swap(x, y);
+	if (x = jump_until(x, dep[y]), x == y) return x;
+	for (int i = 18; i &gt;= 0; --i)
+		if (P[i][x] != P[i][y])
+			x = P[i][x], y = P[i][y];
+	return pa[x];
+}
+
+int main() {
+	int i, j, l, r, c, d; ll ans; using DCTree::root;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", p + i);
+	DCTree::build(), dfs(root), dfs2(root);
+	for (scanf("%d", &amp;q); q; --q) {
+		scanf("%d%d", &amp;l, &amp;r), --l, ++r;
+		if (!l &amp;&amp; r == n + 1) ans = sum[root];
+		else if (!l) ans = depL[r];
+		else if (r == n + 1) ans = depR[l];
+		else {
+			c = LCA(l, r), ans = (depR[l] - depR[c]) + (depL[r] - depL[c]) - (sum[c] - w[c]);
+			if (DCTree::I[c] == DCTree::conjunct)
+				d = G[c].size(), i = idx[jump_until(l, dep[c] + 1)], j = idx[jump_until(r, dep[c] + 1)],
+				ans += C2(j - i - 1) - C2(d - i - 1) - C2(j);
+		}
+		printf("%lld\n", ans);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意析合树是<strong>有序树</strong>，子节点之间是有顺序的，构建及 dfs 的时候需要注意。</p>
+		<p><strong>坑2：</strong>由于最后需要用 <code>jump_until</code> 函数，因此用树上倍增实现 <abbr title="LCA —— Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 会相对方便一些。</p>
+	</body>
+</html>

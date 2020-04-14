@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[uoj501][loj3271][JOISC 2020 Day 1]建筑装饰 4</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定长度为 $2 N$ 的两个序列，分别为序列 $A : a_1, a_2, \cdots, a_{2 N}$，和序列 $B : b_1, b_2, \cdots, b_{2 N}$。</p>
+		<p>构造一个长度为 $2 N$ 的序列 $C$ 。满足以下条件：</p>
+		<ul>
+			<li><p>序列 $C$ 的第 $i$ 个数 $c_i$，只能从 $A_i$ 和 $B_i$ 中选取。</p></li>
+			<li><p>设 $x$ 为序列 $A$ 中元素被选取的次数，$y$ 为序列 $B$ 中元素被选取的次数，则 $x = y = N$。</p></li>
+			<li><p>序列 $C$ 是一个 (非严格) 单调上升的序列。</p></li>
+		</ul>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($N \leq 5 \times 10^5)$，表示序列长度的一半。</p>
+		<p>第二行包含 $2 N$ 个正整数 $a_i$ ($a_i \leq 10^9$)，描述序列 $A$。</p>
+		<p>第二行包含 $2 N$ 个正整数 $b_i$ ($b_i \leq 10^9$)，描述序列 $B$。</p>
+
+		<h3>输出格式</h3>
+		<p>如果存在满足条件的序列 $C$，则输出一行，包含一个长度为 $2 N$ 的字符串 $s$，如果序列 $C$ 的第 $i$ 个数从 $a_i$ 中选取，则 $s_i = \texttt A$，否则 $s_i = \texttt B$。</p>
+		<p>如果不存在满足条件的序列 $C$，则输出一行 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>首先，如果没有第 2 条限制 ($x = y = N$)，那么这个问题应该是容易的：</p>
+		<p>只需要每次取 $a_i, b_i$ 中较小者即可，如果这个过程中途不会因找不到数而停止，则最终的序列 $C$ 即为所求，否则说明无解。</p>
+		<p>但是这样做并不能保证 $x = y = N$，而且由于 $a_i$ 和 $b_i$ 的大小关系不定，甚至都不能保证什么 $x, y$ 是否最小。</p>
+		<p>于是我们考虑序列中来自序列 $A$ 的元素数量作为一维加入状态，于是容易得到一个 $O \left( N^2 \right)$ DP：</p>
+		<p>用 $f_{i, j}$ 表示是否存在以 $a_i$ 结尾的，来自序列 $A$ 的元素个数为 $j$ (那么来自序列 $B$ 的元素个数自然为 $i - j$) 的递增序列，$g_{i, j}$ 同理 (即以 $b_i$ 结尾，来自<em style="color: red">序列 $A$</em> 的元素个数为 $j$)。</p>
+		<p>转移方程不难得到：</p>
+		<ul>
+			<li><p>若 $a_i \leq a_{i+1}$，则 $f_{i+1, j+1} \uparrow f_{i, j}$。</p></li>
+			<li><p>若 $b_i \leq a_{i+1}$，则 $f_{i+1, j+1} \uparrow g_{i, j}$。</p></li>
+			<li><p>若 $a_i \leq b_{i+1}$，则 $g_{i+1, j} \uparrow f_{i, j}$。</p></li>
+			<li><p>若 $b_i \leq b_{i+1}$，则 $g_{i+1, j} \uparrow g_{i, j}$。</p></li>
+		</ul>
+		<p style="color: red">(ps: 这里 $a \uparrow b$ 表示 <code>a = a || b</code> [C++])</p>
+		<p>最后只需判断一下 $f_{2 N, N}$ 是否为 $\mathrm{true}$ 即可，如果是说明有解，输出方案就像一般 DP 一样记录状态回溯回去即可。</p>
+		<hr />
+		<p>但是上面这种做法的复杂度为 $O \left( N^2 \right)$，无法接受，我们考虑对其进行优化。</p>
+		<p>经过简单的分析可知，<strong style="color: green">固定 $i$，使 $f_{i, j} = \mathrm{true}$ 的 $j$ 的取值范围为一段连续的区间 $\left[ fl_i, fr_i \right]$ 或空集，$g_{i, j}$ 同理</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>沿 DP 的方向归纳证明。</p>
+				<p>考虑 $a_{i+1}$。首先，如果 $a_i &gt; a_{i+1} \wedge b_i &gt; b_{i+1}$，则 $f_{i+1, j}$ 恒为 $\mathrm{false}$，结论成立。</p>
+				<p>若 $a_i, b_i$ 恰有一个 $\leq a_{i+1}$，则由转移过程知结论显然成立。</p>
+				<p>若 $a_i \leq a_{i+1} \wedge b_i \leq a_{i+1}$，我们只需证明 $\left[ fl_i, fr_i \right] \cup \left[ gl_i, gr_i \right]$ 为区间。</p>
+				<p>事实上，若 $a_i \leq b_i$，则 $\left[ fl_i - 1, fr_i - 1 \right] \subseteq \left[ gl_i, gr_i \right]$，于是结论成立。</p>
+				<p>反之，若 $a_i \geq b_i$，则 $\left[ fl_i - 1, fr_i - 1 \right] \supseteq \left[ gl_i, gr_i \right]$，此时结论也成立。</p>
+				<p>综上，使得 $f_{i+1, j} = \mathrm{true}$ 的 $j$ 的取值为区间。</p>
+			</div>
+		</div>
+		<p>于是每次只需要简单地进行区间求并即可，时间复杂度 $O \left( N \right)$，可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 1000054;
+
+int n;
+int a[N], b[N];
+pr f[N], g[N];
+char s[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline pr operator + (const pr &amp;x, int c) {return pr(x.first + c, x.second + c);}
+inline bool contain(int n, const pr &amp;x) {return x.first &lt;= n &amp;&amp; n &lt;= x.second;}
+
+inline void upd(pr &amp;x, const pr &amp;y) {
+	if (y.first &gt;&gt; 31) return;
+	if (x.first &gt;&gt; 31) x = y;
+	down(x.first, y.first), up(x.second, y.second);
+}
+
+int main() {
+	int i, x, rem;
+	scanf("%d", &amp;n);
+	for (i = 1; i &lt;= 2 * n; ++i) scanf("%d", a + i);
+	for (i = 1; i &lt;= 2 * n; ++i) scanf("%d", b + i);
+	*f = *g = pr(0, 0);
+	for (i = 1; i &lt;= 2 * n; ++i) {
+		f[i] = g[i] = pr(INT_MIN + 1, INT_MIN + 1);
+		if (a[i] &gt;= a[i - 1]) upd(f[i], f[i - 1] + 1);
+		if (a[i] &gt;= b[i - 1]) upd(f[i], g[i - 1] + 1);
+		if (b[i] &gt;= a[i - 1]) upd(g[i], f[i - 1]);
+		if (b[i] &gt;= b[i - 1]) upd(g[i], g[i - 1]);
+	}
+	rem = n;
+	if (contain(n, f[2 * n])) s[2 * n] = 65, x = a[2 * n];
+	else if (contain(n, g[2 * n])) s[2 * n] = 66, x = b[2 * n];
+	else return puts("-1"), 0;
+	for (i = 2 * n - 1; i; --i) {
+		rem -= s[i + 1] == 65;
+		if (a[i] &lt;= x &amp;&amp; contain(rem, f[i])) s[i] = 65, x = a[i];
+		else if (b[i] &lt;= x &amp;&amp; contain(rem, g[i])) s[i] = 66, x = b[i];
+		else throw "error";
+	}
+	return puts(s + 1), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>回溯时不仅要考虑 $\left[ fl_i, fr_i \right]$ 是否包含，还不能忘记序列递增的条件。</p>
+	</body>
+</html>

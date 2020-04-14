@@ -22,7 +22,7 @@
 		<p>输出一行，包含 $m$ 个整数，分别为 $A \left( b_1 \right), A \left( b_2 \right), \cdots, A \left( b_m \right)$ 模 $998244353$ 的值。</p>
 
 		<h3>题解</h3>
-		<p style="color: red">ps: 前置技能：<a href="../memos/8.html" target="_blank">多项式求逆</a>、多项式除法及取模。</p>
+		<p style="color: red">ps: 前置技能：<a href="../memos/8.html" target="_blank">多项式求逆</a>、<del>多项式除法及取模</del>。</p>
 		<p>这其实就是<strong>多项式多点求值</strong>的模板问题，如何解决它呢？</p>
 		<p>如果暴力解决的话，那么复杂度将是 $O \left( n m \right)$ 的，显然不可接受。</p>
 		<p>注意到我们在做 DFT 的时候，取了一组特殊的基 ($1, w, w^2, w^3, \cdots, w^{m-1}$)，于是可以在 $O \left( n \log n \right)$ 的时间内得到它们点值。当时我们使用了<strong>分治法</strong>，利用 $\left( w^i \right)^2 = \left( w_{m/2+i} \right)^2$ 的性质将问题规模减半。<del>(虽然说后来可以使用<strong>蝴蝶优化</strong>消除递归)</del></p>
@@ -53,178 +53,16 @@
 		<p>回想我们离线求逆元的过程，是不是将所有的一次式都除下来呢？对，先将所有的一次式都除下来，得到 $f_0 \left( x \right) = \dfrac {f^R \left( x \right)} {\left( 1 - b_1 x \right) \left( 1 - b_2 x \right) \cdots \left( 1 - b_m x \right)}$，这一部分可以使用分治 NTT + 一次多项式求逆完成。</p>
 		<p>接下来，考虑我们的目标，即你现在有一个多项式 $f_0 \left( x \right)$，你要求出对于每个 $i$，将所有<strong style="color: fuchsia">除了 $1 - b_i x$ 的一次式</strong>与 $f_0$ 乘起来后的 $n$ 次项系数。</p>
 		<p>根据 <a href="../index.html?redirect=425" target="_blank">[soj7]多项式插值</a> 第二部分的经验，还是考虑通过分治解决。</p>
-		<p>注意到我们在分治过程中其实已经得到 $1 - b_i x$ 乘积的一个类似线段树状的结构。于是，我们在其中搜索时，如果向左子树递归，那么就将右子树的多项式乘起来；如果享有字数递归，那么就将左子树的多项式乘起来。</p>
+		<p>注意到我们在分治过程中其实已经得到 $1 - b_i x$ 乘积的一个类似线段树状的结构。于是，我们在其中搜索时，如果向左子树递归，那么就将右子树的多项式乘起来；如果向右子树递归，那么就将左子树的多项式乘起来。</p>
 		<p>但是注意到我们要 $x^n$ 项系数，那么就时刻需要保持在 $\hspace{-0.444em} \pmod {x^{n+1}}$ 下计算，从而时间复杂度又会退化成 $O \left( n \log n \cdot m \right)$，<del>还不如暴力</del>。</p>
 		<p><del>别慌啊</del>，这当然是可以优化的：注意到我们<strong>只要 $x^n$ 项系数</strong>，那么如果我们已知剩下只需要乘一个 $d$ 次多项式的时候，我们是不是可以将过低的项去掉？</p>
-		<p>对，此时只有 $n - d \sim n$ 次项系数才能影响到答案，因此，我们不是向平常取模一样<em>截尾</em>，而是直接<strong>去头</strong>！</p>
+		<p>对，此时只有 $n - d \sim n$ 次项系数才能影响到答案，因此，我们不是像平常取模一样<em>截尾</em>，而是直接<strong>去头</strong>！</p>
 		<p>即，每次递归的时候，根据两边子树的大小，对多项式进行合适的 "去头" (即移除低次项) <span class="text-muted">(比答案次数还要高的项当然要去除了，这个就不提了)</span></p>
 		<p>于是在递归时多项式的大小就正比于子树大小了，从而时间复杂度和之前分析一样，为 $O \left( n \log^2 n \right)$，不过注意到我们避免了多项式除法，因此常数少了不少，约为普通多项式乘法的 $6$ 倍左右。</p>
 
 		<h3>代码</h3>
 
-		<p><strong style="color: red">(ps: 以下内容为 2020.2.24 更新)</strong></p>
-
-		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
-#define EB emplace_back
-#define lg2 std::__lg
-using std::cin;
-using std::cout;
-
-typedef long long ll;
-const int N = 530000, mod = 998244353, iv2 = (mod + 1) / 2, root = 31;
-typedef int vec[N], *pvec;
-typedef std::vector &lt;int&gt; vector;
-
-inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
-inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
-ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
-
-namespace Poly {
-	int l, n;
-	vec rev, x, y;
-
-	void NTT_init(int len) {
-		if (l == len) return; n = 1 &lt;&lt; (l = len);
-		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
-		*x = 1, *rev = 0;
-		for (int i = 1; i &lt; n; ++i)
-			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
-	}
-
-	void DNTT(int *d, int *t) {
-		int i, *j, *k, len = 1, delta = n, R;
-		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
-		for (i = 0; i &lt; l; ++i) {
-			delta &gt;&gt;= 1;
-			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
-			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
-				for (k = j; k &lt; j + len; ++k)
-					R = (ll)y[k - j] * k[len] % mod,
-					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
-					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
-			len &lt;&lt;= 1;
-		}
-	}
-
-	vec B1, B2, B3, B4, B5, B6, B7;
-
-	void Mul(int deg, pvec a, pvec b, pvec c) {
-		if (!deg) {*c = (ll)*a * *b % mod; return;}
-		NTT_init(lg2(deg) + 1);
-		int i; ll iv = mod - (mod - 1) / n;
-		DNTT(a, c), DNTT(b, B1);
-		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
-		DNTT(B1, c), std::reverse(c + 1, c + n);
-		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
-	}
-
-	void Inv(int deg, pvec a, pvec b) {
-		int len, i; ll iv = iv2; assert(*a);
-		*b = PowerMod(*a, mod - 2), b[1] = 0, *B1 = *a, B1[1] = a[1];
-		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
-			NTT_init(len + 2);
-			memset(b + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(b, B2);
-			memset(B1 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(B1, B3);
-			for (i = 0; i &lt; n; ++i) reduce(B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod);
-			DNTT(B2, B3), std::reverse(B3 + 1, B3 + n), iv = (iv &gt;&gt; 1) + iv2;
-			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B3[i] * iv % mod;
-			memcpy(B1 + i, a + i, n &lt;&lt; 1);
-		}
-	}
-
-	void Mul(vector &amp;a, vector &amp;b, vector &amp;ret) {
-		int degA = a.size() - 1, degB = b.size() - 1;
-		if (!(degA || degB)) {ret.emplace_back((ll)a[0] * b[0] % mod); return;}
-		NTT_init(lg2(degA + degB) + 1);
-		int i; ll iv = mod - (mod - 1) / n;
-		memcpy(B1, a.data(), (degA + 1) &lt;&lt; 2), memset(B1 + (degA + 1), 0, (n - degA - 1) &lt;&lt; 2);
-		memcpy(B2, b.data(), (degB + 1) &lt;&lt; 2), memset(B2 + (degB + 1), 0, (n - degB - 1) &lt;&lt; 2);
-		DNTT(B1, B3), DNTT(B2, B1);
-		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * B3[i] % mod;
-		DNTT(B1, B3), std::reverse(B3 + 1, B3 + n); ret.clear(), ret.reserve(degA + degB + 1);
-		for (i = 0; i &lt;= degA + degB; ++i) ret.EB(B3[i] * iv % mod);
-	}
-}
-
-namespace PolyEvaluation {
-	using namespace Poly;
-
-	int cnt = 0, lc[N], rc[N];
-	vec Prd_, E1, E2, E3;
-	vector g[N], tmp_;
-
-	inline int min(const int x, const int y) {return x &lt; y ? x : y;}
-	inline int max(const int x, const int y) {return x &lt; y ? y : x;}
-
-	int solve(int L, int R) {
-		if (L + 1 == R) return L;
-		int M = (L + R) / 2, id = cnt++, lp = solve(L, M), rp = solve(M, R);
-		Mul(g[lp], g[rp], g[id]);
-		return lc[id] = lp, rc[id] = rp, id;
-	}
-
-	void recursion(int id, int L, int R, const vector &amp;poly) {
-		if (L + 1 == R) return tmp_.EB(poly.back());
-		int i, n = poly.size() - 1, M = (L + R) / 2, lp = lc[id], rp = rc[id],
-			dl = min(n, g[lp].size() - 1), dr = min(n, g[rp].size() - 1);
-		if (L + 2 == R) return
-			tmp_.EB((poly[n] + (ll)poly[n - 1] * g[rp].back()) % mod),
-			tmp_.EB((poly[n] + (ll)poly[n - 1] * g[lp].back()) % mod);
-
-		NTT_init(lg2(n + dr) + 1);
-		ll iv = mod - (mod - 1) / Poly::n;
-		vector pntt(Poly::n, 0), nxt;
-		memcpy(E1, poly.data(), (n + 1) &lt;&lt; 2), DNTT(E1, pntt.data()), memset(E1, 0, (n + 1) &lt;&lt; 2);
-
-		memcpy(E2, g[rp].data(), (dr + 1) &lt;&lt; 2), DNTT(E2, E3);
-		for (i = 0; i &lt; Poly::n; ++i) E3[i] = (ll)E3[i] * pntt[i] % mod;
-		DNTT(E3, E2), std::reverse(E2 + 1, E2 + Poly::n);
-		nxt.clear(), nxt.reserve(dl + 1);
-		for (i = n - dl; i &lt;= n; ++i) nxt.EB(E2[i] * iv % mod);
-		memset(E2, 0, (n + dr + 1) &lt;&lt; 2), recursion(lp, L, M, nxt);
-
-		NTT_init(lg2(n + dr) + 1);
-		memcpy(E2, g[lp].data(), (dl + 1) &lt;&lt; 2), DNTT(E2, E3);
-		for (i = 0; i &lt; Poly::n; ++i) E3[i] = (ll)E3[i] * pntt[i] % mod;
-		DNTT(E3, E2), std::reverse(E2 + 1, E2 + Poly::n);
-		nxt.clear(), nxt.reserve(dr + 1);
-		for (i = n - dr; i &lt;= n; ++i) nxt.EB(E2[i] * iv % mod);
-		memset(E2, 0, (n + dl + 1) &lt;&lt; 2), recursion(rp, M, R, nxt);
-	}
-
-	vector emain(int n, pvec f, const vector &amp;pts) {
-		int i, id, m = pts.size(), q;
-		if (!m) return vector();
-		if (!n) return vector(m, *f);
-		for (i = 0; i &lt; m; ++i) g[i].clear(), g[i].EB(1), g[i].EB(neg(q = pts[i]));
-
-		id = solve(0, cnt = m), memcpy(Prd_, g[id].data(), (m + 1) &lt;&lt; 2);
-		Inv(n + 1, Prd_, E2), memset(Prd_, 0, (m + 1) &lt;&lt; 2);
-		if (n &gt; 0) memset(E2 + (n + 1), 0, (Poly::n - n - 1) &lt;&lt; 2);
-
-		std::reverse_copy(f, f + (n + 1), E1), Mul(2 * n, E1, E2, E3),
-		memset(E1, 0, (n + 1) &lt;&lt; 2), memset(E2, 0, (n + 1) &lt;&lt; 2);
-
-		return tmp_.clear(), tmp_.reserve(m), recursion(id, 0, m, vector(E3 + max(n - m + 1, 0), E3 + (n + 1))), tmp_;
-	}
-}
-
-int n, m, id;
-vec f;
-vector a;
-
-int main() {
-	int i, n, m, v;
-	std::ios::sync_with_stdio(false), cin.tie(NULL);
-	cin &gt;&gt; n &gt;&gt; m, a.reserve(m);
-	for (i = 0; i &lt;= n; ++i) cin &gt;&gt; f[i];
-	for (i = 0; i &lt; m; ++i) cin &gt;&gt; v, a.EB(v);
-	a = PolyEvaluation::emain(n, f, a);
-	for (i = 0; i &lt; m; ++i) cout &lt;&lt; a[i] &lt;&lt; '\n';
-	return 0;
-}
-</code><script>syntax_highlight()</script>
-</pre></div>
+		<p><strong style="color: red">(模板题，代码略，最新版见 <a href="../memos/12.html" target="_blank">[Memo #12]完整多项式模板</a>)</strong></p>
 
 		<h3>坑</h3>
 		<p><strong>坑1：</strong>注意在使用 <code>__builtin_clz</code> 求对数时，注意特判 $n = 0$ 的情况。</p>

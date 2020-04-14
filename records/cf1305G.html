@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1305G]Kuroni and Antihype</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个叫做 Antihype 的传销组织，加入的规则如下：</p>
+		<ol>
+			<li><p>如果你未加入 Antihype，则你可以加入它并获得 $0$ 单位的钱。</p></li>
+			<li><p>如果你已加入 Antihype，则你可以邀请你的一个<strong>尚未加入 Antihype</strong> 的朋友并使她加入，同时你可以获得 $x$ 单位的钱，其中 $x$ 为你的年龄。</p></li>
+		</ol>
+		<p>现在有 $n$ 个人，年龄分别为 $a_1, a_2, \cdots, a_n$，其中 $i$ 和 $j$ 互为朋友当且仅当 $a_i \mathbin{\&amp;} a_j = 0$，其中 $\mathbin{\&amp;}$ 表示按位与运算。</p>
+		<p>目前这 $n$ 个人都不在 Antitype 中。求在最优策略下，她们进行合作进入 Antihype 所能获得的总钱数的最大值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($1 \leq n \leq 2 \times 10^5$)，表示人的个数。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_1, a_2, \cdots, a_n$ ($0 \leq a_i \leq 2 \times 10^5$)，分别表示每个人的年龄。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示这 $n$ 个人所能获得的钱数总和的最大可能值。</p>
+
+		<h3>题解</h3>
+		<p>显然最终所有人都会进入传销组织，且每个人要么是自愿进入的 (规则 1)，要么是由唯一一个人 "拉入" 的 (规则 2)。</p>
+		<p>对于第 $i$ 个人，设它是被 $j$ 拉入的 (如果存在)，那么我们连接一条边 $j \to i$，于是我们就可以得到一个 (外向) 森林，其中每棵树的根表示通过规则 1 进入的，然后每个顶点会邀请它的所有子节点。</p>
+		<p>考虑获得的总钱数，它就等于图中<strong>所有非根节点的父节点权值和</strong>。为了方便，我们设置一个超级根 $R$，权值为 $0$，并将原来的所有根都连向它。</p>
+		<p>从而可以得到了一棵树，且答案就等于树上除了 $R$ 以外的所有点的父节点权值和。</p>
+		<p>考虑这棵树满足的条件：首先 $R$ 显然可以和任意点相连，而对于其它相邻的两点 $u, v$，必然是其中一个点邀请另一个点，因而这两个点必然是朋友关系，即它们在朋友关系图 $G_F$ 中相邻。</p>
+		<p>于是，设 $G$ 为原题的朋友关系图加上 $R$ 和所有点的边，则最终的树就应该是 <strong>$G$ 的一个生成树</strong>。</p>
+		<p>对于生成树的最优化问题，不难想到<strong>最小生成树</strong> (包括最大生成树等)，而原问题需要最大化 $\sum\limits_v a_{p_v}$，那一条边 $\left( u, v \right)$ 的权值既可能是 $a_u$，又可能是 $a_v$，那该怎么办呢？</p>
+		<p><span style="color: blue">注意到 $a_{p_v} = \left( a_{p_v} + a_v \right) - a_v$，而 $\displaystyle \sum_v a_v = \sum_{i=1}^n a_i$ 是一个已知量！</span>个我们只需要最大化 $\sum\limits_v \left( a_{p_v} + a_v \right)$ 即可，而这样的话，一条边 $\left( u, v \right)$ 的权值就是固定的了 —— 它等于 $a_u + a_v$。</p>
+		<p>这样我们成功地将原问题转化为一个<em>最小生成树</em> (最大生成树) 问题。接下来，唯一的问题就是，直接建图总边数是 $O \left( n^2 \right)$ 的，如何进行优化。</p>
+		<hr />
+		<p>在这里，Kruskal 算法和 Prim 算法似乎没有很大的伸展空间，因此我们转而使用 Borůvka 算法。</p>
+		<p>考虑 Borůvka 算法的过程：每一次迭代，计算出每个连通块连向其余连通块的边权最大值，并将它们相连。这样至少能成功连接 $\left \lceil \dfrac n2 \right \rceil$ 次，从而可以在 $O \left( \log n \right)$ 次迭代后完成。</p>
+		<p>我们枚举每个点 $v$，考察与它的邻点中权值最大值的。首先，它的邻点 $u$ 需要满足 $a_v \mathbin{\&amp;} a_u = 0$，即 $a_u \preceq \neg a_v$ (二进制下的子集)，于是问题转化为求某个子集中的最大数。</p>
+		<p>由于迭代的总次数不多，我们考虑对每个 $S$，求出满足 $a_u \preceq S$ 的最大数。</p>
+		<p>不难发现，这就是一个标准的<a href="../index.html?redirect=214" target="_blank">快速 Möbius 变换</a> (子集和变换) 问题，只不过把求和改成了取 $\max$。</p>
+		<p>即初始时对每个存在的 $i$，令 $f_i \gets i$，然后对 $f$ 进行快速 Möbius 变换 (子集 "max" 变换)，最后对每个点 $v$ 查询一下 $f_{\neg a_v}$ 即可。</p>
+		<p>不过，这样会有一个问题：在第二轮迭代开始，与一个顶点关联的边权最大的边在第一轮和它已经连通。</p>
+		<p>使用与大多数题类似的技巧，我们在维护满足条件的最大顶点 $u$ 时，顺便维护出<strong>与 $u$ 不在同一连通块中的点权最大的顶点 $v$</strong> (类似 "次大值" 的思想，这容易在 $O \left( 1 \right)$ 时间内合并)，这样在查询的时候一个点的答案要么就在最大值，要么就在 "次大值" 了。</p>
+		<p>最后再并查集维护连通性，我们就完成了这道题。分析一下时间复杂度，在每一轮迭代中，复杂度的瓶颈是那个快速 Möbius 变换 (子集和变换)，复杂度为 $O \left( a_i \log a_i \right)$，故总时间复杂度为 $O \left( a_i \log a_i \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 262154, ALL = 262143;
+
+int n;
+int a[N];
+int p[N], size[N];
+pr max[N], cc[N], empty;
+
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+inline bool test(int x, int y, bool un = false) {
+	if ((x = ancestor(x)) == (y = ancestor(y))) return true;
+	return un &amp;&amp; (size[x] &lt; size[y] ? (p[x] = y, size[y] += size[x]) : (p[y] = x, size[x] += size[y]), false);
+}
+
+inline void up(pr &amp;x, const int y) {
+	if (a[x.first] &lt; a[y]) test(x.first, y) || (x.second = x.first), x.first = y;
+	else if (a[x.second] &lt; a[y] &amp;&amp; !test(x.first, y)) x.second = y ;
+}
+
+inline void up(pr &amp;x, const pr &amp;y) {up(x, y.first), up(x, y.second);}
+
+inline void up(pr &amp;x, const int y, const int z) {if (!test(y, z) &amp;&amp; a[x.first] + a[x.second] &lt; a[y] + a[z]) x = pr(y, z);}
+
+inline void up(pr &amp;x, const int y, const pr &amp;z) {up(x, y, z.first), up(x, y, z.second);}
+
+int main() {
+	int i, j, k, len, nCC; ll ans = 0;
+	scanf("%d", &amp;n), p[n + 1] = nCC = n + 1, a[nCC] = -1, empty = pr(nCC, nCC);
+	for (i = 1; i &lt;= n; ++i) scanf("%d", a + i), ans -= a[i], p[i] = i, size[i] = 1;
+	for (; nCC &gt; 1; ) {
+		for (i = 0; i &lt;= ALL; ++i) max[i] = empty;
+		for (i = 0; i &lt;= n; ++i) if (p[i] == i) cc[i] = empty;
+		for (i = 0; i &lt;= n; ++i) up(max[a[i]], i);
+		for (len = 1, i = 0; i &lt; 18; ++i, len &lt;&lt;= 1)
+			for (j = 0; j &lt;= ALL; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k) up(max[k + len], max[k]);
+		for (i = 0; i &lt;= n; ++i) up(cc[ancestor(i)], i, max[~a[i] &amp; ALL]);
+		for (i = 0; i &lt;= n; ++i) if (p[i] == i)
+			if (cc[i].second != n + 1 &amp;&amp; !test(i, cc[i].second, true))
+				--nCC, ans += a[cc[i].first] + a[cc[i].second];
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意维护 "与 $u$ 不在同一连通块中的点权最大的顶点" 的写法，不要和次大值搞混了，具体可以参见 <a href="../index.html?redirect=457" target="_blank">[清华集训2016]汽水</a>。</p>
+		<p><strong>坑2：</strong>在 Borůvka 中连边的时候，并不是每一次连边都能成功的，别忘记用并查集判定一下。</p>
+	</body>
+</html>

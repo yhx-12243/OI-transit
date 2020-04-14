@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1322D]Reality Show</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你现在需要组织一场真人秀节目，需要邀请若干名选手前来参加。有 $n$ 名选手，第 $i$ 名选手的竞争力为 $l_i$。具体地：</p>
+		<ol>
+			<li><p>邀请第 $i$ 名选手需要花费 $s_i$ 单位的钱。</p></li>
+			<li><p>选手必须按照她们原先的顺序依次被邀请，且你需要保证后邀请的选手的竞争力不能<em>严格高于</em>之前<strong>任何一名已经被邀请</strong>选手的竞争力。</p></li>
+			<li><p>当一名竞争力为 $v$ 的选手被邀请时，会依次发生如下三件事：</p>
+			<ul>
+				<li><p>这场节目赚取 $c_v$ 单位的钱。</p></li>
+				<li><p>如果此时场上有两名选手具有相同的竞争力 $t$，则它们会进行竞争：</p>
+				<ul>
+					<li>恰有一名选手失败，失败者则离开节目送往医院治疗。</li>
+					<li>另外一名选手胜利，它的竞争力将变为 $t + 1$，且节目获得 $c_{t + 1}$ 单位的钱。</li>
+				</ul></li>
+				<li><p>竞争不断进行，直到场上所有选手的竞争力互不相同。</p></li>
+			</ul>
+		</ol>
+		<p>当然，你也可以<del>砸场子</del>，不邀请任何一名选手，此时收益为 $0$。</p>
+		<p>你需要合理选择邀请的选手集合，以<strong>最大化</strong>你的总利润，即所有通过选手参加和竞争赚取的钱数，减去邀请选手所花费的钱数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 2000$)，表示选手的个数和这 $n$ 名选手竞争力的上界 <strong>(注意选手通过<em>竞争</em>后所获得的竞争力可能超过 $m$</strong>)。</p>
+		<p>第二行包含 $n$ 个正整数 $l_1, l_2, \cdots, l_n$ ($1 \leq l_i \leq m$)，表示这 $n$ 名选手的初始竞争力。</p>
+		<p>第三行包含 $n$ 个非负整数 $s_1, s_2, \cdots, s_n$ ($0 \leq s_i \leq 5000$)，表示邀请她们所需花费的钱数。</p>
+		<p>第四行包含 $n + m$ 个整数 $c_i$ ($-5000 \leq c_i \leq 5000$)，其中 $c_i$ 表示产生一名竞争力为 $i$ 的选手所能带来的收益。</p>
+		<p class="text-muted"><del>显然</del>容易证明，在给定条件下，任何选手的竞争力在任何时刻都不会超过 $n + m$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示总利润的最大可能值。</p>
+
+		<h3>题解</h3>
+		<p>首先不难发现，当我们确定完邀请的选手的集合后，发生的对应竞争力的竞争次数，以及最后选手的竞争力集合都是唯一确定的，从而就可以直接计算出总收益，而不必拘泥于选手邀请的顺序。</p>
+		<p>为了方便起见，我们不妨改变游戏规则：<strong>邀请的选手的竞争力按顺序单调递增</strong> (当然前提是先把整个选手序列倒过来)。</p>
+		<p>这么做有一个好处，就是当选手竞争时，最终的竞争力的趋势是<strong>上升的</strong>，而这与我们添加选手的竞争力趋势一致 (单调上升)，从而我们可以通过合理控制这些选手竞争的时间，让场上所有选手具有 "相同的竞争力"，从而削减状态。</p>
+		<p>这样一来，就不难设计 DP 状态了：用 $f_{i, l, c}$ 表示考虑了前 $i$ 名选手，当前场上有 $d$ 名竞争力为 $l$ 的选手，所得的最大利润。</p>
+		<p>那么，先不考虑添加新的选手 (即固定 $i$)，考虑内部的转移：</p>
+		<p>首先，我们可以让这些竞争力为 $l$ 的选手进行「竞争」，从而得到 $\left \lfloor \dfrac d2 \right \rfloor$ 个竞争力为 $l + 1$ 的选手。</p>
+		<p>(ps: 什么你问最后落单的怎么办？你要注意我们总体的走势是上升的，如果在这个时候选择「竞争」意味着以后所加入的选手的竞争力都 $\geq l + 1$，于是这个落单的选手就无法和后面<strong>任一个选手</strong>进行<strong>任何操作</strong>，从而自然就可以忽略掉)</p>
+		<p>综上，转移为 $$ f_{i, l + 1, \left \lfloor d \middle / 2 \right \rfloor} \uparrow f_{i, l, d} + \left \lfloor \frac d2 \right \rfloor \cdot c_i \tag 1 \label 1 $$</p>
+		<p>由于转移为取 $\max$，这个操作在进行有限次后一定会到达一种 "稳定" 的状态 (即无法产生新的变化，就像 Belllman-Ford 松弛稳定后的状态一样)，此时，我们可以考虑加入一个新的选手了。</p>
+		<p>设这个新的选手的竞争力为 $l_{i+1}$，那么根据我们之前的原则 (除了落单选手外，场上所有选手具有 "相同竞争力") 知，我们需要对形如 $f_{i, l_{i+1}, c}$ 的状态进行转移。具体地，有 $$ f_{i+1, l_{i+1}, c+1} \uparrow f_{i, l_{i+1}, c} - s_{i+1} + c_{l_{i+1}} \tag 2 \label 2 $$</p>
+		<p>最后 $f_{+ \infty, 0}$ 就是答案 (因为当竞争力充分大时，这样的选手数量一定是 $0$，即其余选手均落单)</p>
+		<hr />
+		<p>分析一下算法的时间复杂度：表面看起来状态数好像是 $O \left( n^3 \right)$ 的，实际上，和<a href="../index.html?redirect=857" target="_blank">这道题</a>类似，每次转移其实有大量状态是不变的。</p>
+		<p>考察每次转移 (从 "稳定" 态到 "稳定" 态) 所影响的状态个数 (这里影响指的是<strong>可能</strong>会改变，当然也可能不改变值)：</p>
+		<p>首先 (转移 $\eqref 2$)，它会对状态 $\left( l, 0 \right), \left( l, 1 \right), \cdots, \left( l, n \right)$ 产生影响。</p>
+		<p>然后 (转移 $\eqref 1$)，这 $n + 1$ 个状态又会对状态 $\left( l + 1, 0 \right), \left( l + 1, 1 \right), \cdots, \left( l + 1, \left \lfloor \dfrac n2 \right \rfloor \right)$ 产生影响。</p>
+		<p>接下来，上面这些状态还会对 $\left( l + 2, 0 \right), \left( l + 2, 1 \right), \cdots, \left( l + 2, \left \lfloor \dfrac n4 \right \rfloor \right)$ 来产生影响。</p>
+		<p>同时，注意到无论怎么操作，选手竞争力的最大值不会超过 $M = m + \left \lfloor \log_2 n \right \rfloor$，于是影响完 $\left( M, 0 \right)$ 后接下来的状态就只有 $0 \to 0$ 了，实质都是一样的 (即对于 $l \geq M$，始终有 $f_{i, l}$ 和 $f_{i, l + 1}$ 一致)。</p>
+		<p>故影响的状态数实际上只有 $n + \left \lfloor \dfrac n2 \right \rfloor + \left \lfloor \dfrac n4 \right \rfloor + \left \lfloor \dfrac n8 \right \rfloor + \cdots + \underbrace{1 + 1 + \cdots + 1}_{\text{less than } M} = O \left( n + M \right)$。</p>
+		<p>于是，和<a href="../index.html?redirect=857" target="_blank">那道题</a>类似，总时间复杂度为 $O \left( n \left( n + m \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+
+const int N = 2054, M = 5054;
+
+int n, R;
+int a[N], cost[N], profit[M];
+int f[N][N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+int main() {
+	int i, j, x, y, r;
+	scanf("%d%d", &amp;n, &amp;R);
+	for (i = n - 1; i &gt;= 0; --i) scanf("%d", a + i), --a[i];
+	for (i = n - 1; i &gt;= 0; --i) scanf("%d", cost + i);
+	for (i = 0; i &lt; n + R; ++i) scanf("%d", profit + i);
+	R += lg2(n), memset(f, 192, sizeof f);
+	for (i = 0; i &lt;= R; ++i) f[i][0] = 0;
+	for (i = 0; i &lt; n; ++i) {
+		x = a[i];
+		for (j = n; j; --j) up(f[x][j], f[x][j - 1] - cost[i] + profit[x]);
+		for (r = n, y = x; y &lt; R; ++y, r &gt;&gt;= 1)
+			for (j = 0; j &lt;= r; ++j)
+				up(f[y + 1][j / 2], f[y][j] + j / 2 * profit[y + 1]);
+	}
+	printf("%d\n", f[R][0]);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 DP 时第二 (一) 维状态应至少设到 $m + \left \lfloor \log_2 n \right \rfloor$，否则会漏状态。</p>
+		<p><strong>坑2：</strong>在转移 $\eqref 2$ 中，由于第一维状态是压缩的 (这种 DP 只能压缩状态而不能滚动状态)，注意枚举方式，要<strong>从大到小</strong>枚举 $c$。</p>
+	</body>
+</html>

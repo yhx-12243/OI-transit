@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[uoj509][JOISC 2020 Day 3]迷路的猫</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Anthony 是一只生活在 JOI 市的蚂蚁。JOI 市共有 $N$ 座小镇，编号为 $0 \sim N - 1$，Anthony 居住在 $0$ 号小镇。</p>
+		<p>JOI 市一共有 $M$ 条路，编号为 $0 \sim M - 1$。第 $i$ 条路连接编号为 $U_i$ 和 $V_i$ 的小镇 ($U_i \neq V_i$)，每条路是双向的。保证不存在两条连接两个相同的小镇的道路，同时每两座小镇可以直接或间接互相到达。</p>
+		<p>Catherine 是一只猫，也是 Anthony 的好朋友。她打算游览 JOI 市，但是她并不知道关于路的信息，所以经常迷路。于是，Anthony 打算事先在每条道路上都作上标记。标记共有 $A$ 种，编号为 $0 \sim A - 1$。</p>
+		<p>Catherine 现在到达了 JOI 市。当她不在 $0$ 号小镇时，她会做如下事情：</p>
+		<blockquote>对于每种标记，她会统计当前所在的小镇连出去的道路中，除了她上一次走来的道路 (若存在) 之外，这种标记共出现了多少次。</blockquote>
+		<p>之后她会选择一条路去行动。注意<strong>除了上一次走来的道路，她仅能通过路上的标记来分辨其余的道路</strong>。她想尽量快地到达 $0$ 号小镇。更准确地说，若起点至 $0$ 号小镇最少需要经过 $d$ 条道路，那么她希望在经过不超过 $d + B$ 条边后就能到达 $0$ 号小镇。</p>
+		<p>你需要编写程序模拟 Anthony 摆放路标和 Catherine 探索 JOI 市的过程。</p>
+
+		<h3>交互细节</h3>
+		<p>你需要提交两个程序。</p>
+		<p>第一个程序为 <code>Anthony.cpp</code>，它会模拟 Anthony 的摆放过程。需要包含头文件 <code>Anthony.h</code>。</p>
+		<ul>
+			<li><p><code>std::vector &lt;int&gt; Mark(int N, int M, int A, int B, std::vector&lt;int&gt; U, std::vector&lt;int&gt; V)</code></p>
+			<p>该程序会恰好在开始时调用一次。</p>
+			<ul>
+				<li>数字 $N, M, A, B$ 含义同题面。</li>
+				<li>$U, V$ 存储着所有的边，<code>U[i]</code> 和 <code>V[i]</code> 表示第 $i$ 条路连接了 $U_i$ 和 $V_i$。</li>
+			</ul>
+			<p>选手需要返回一个长度为 $M$ 的数组 $x$，第 $i$ 个元素 $x_i$ 代表在第 $i$ 条道路上的路标编号。</p></li>
+		</ul>
+		<p>第二个程序为 <code>Catherine.cpp</code>，它会模拟 Catherine 的探索过程。需要包含头文件 <code>Catherine.h</code>。</p>
+		<ul>
+			<li><p><code>void Init(int A, int B)</code></p>
+			<p>该程序会恰好在开始时调用一次。</p>
+			<ul>
+				<li>数字 $A, B$ 含义同题面。</li>
+			</ul></li>
+			<li><p><code>int Move(std::vector &lt;int&gt; y)</code></p>
+			<p>该程序会在每次 Catherine 到达一个不是 $0$ 的小镇时调用。</p>
+			<ul>
+				<li>$y$ 是一个长度为 $A$ 的数组，元素 <code>y[j]</code> 代表着所有与当前街道相连且不为她上一次走过的路 (若存在) 的路上标记 $j$ 的出现次数。</li>
+				<li>你需要返回一个整数 $z$，表示选择走的标记。需要满足 $-1 \leq z \leq A - 1$。若 $z = -1$，表示 Catherine 原路返回，此时你需要保证 Catherine 至少进行过一次操作；若 $0 \leq z \leq A - 1$，表示 Catherine 选择一条标记为 $z$ 的边经过，此时你需要保证 $y_z &gt; 0$。</li>
+			</ul>
+			<p>注意如果有多条可以选择的边，grader <strong>不一定</strong>会随机选择一条合法的出现行动。</p></li>
+		</ul>
+
+		<h3>题解</h3>
+		<p>(看数据范围容易知道本题的标算需要分为两种情况讨论)</p>
+		<ol>
+			<li><p>$A = 3, B = 0, G$ 为一般连通图。</p>
+			<p>先考虑三种颜色时树该怎么做。</p>
+			<p>注意到树上任意两点距离唯一，这说明 Catherine 每次必须<strong>沿着这条唯一路径</strong>行走。</p>
+			<p>不妨假设 grader 在和你博弈 (against，即 grader 处于最坏情况)，此时你必须将这条唯一路径加以明确区分 —— 它的标记应当是独一无二的。</p>
+			<p>那么，在 Anthony 做标记的时候，(我们将树看成以 $0$ 为根的有根树) 对于每个点 $v$，边 $\left( v, p_v \right)$ 需要使用一种标记，$v$ 向它子节点连的边使用另一种标记。</p>
+			<p>不妨设标记为<span style="color: red">红</span>、<span style="color: green">绿</span>、<span style="color: blue">蓝</span>。那么如果 $\color {red} {\left( v, p_v \right)}$ 为 <span style="color: red">红色</span></span>，它连向子节点的边就不能用<span style="color: red">红色</span></span>，假设都是<span style="color: green">绿色</span>。</p>
+			<p>那么在 Catherine 来的时候，只需要找准那个唯一的颜色向这个方向走就可以了。</p>
+			<p>等等！万一点 $v$ 也只有一棵子树呢？这时 Catherine 就无法区分了！</p>
+			<p>不过问题不大，我们有三种颜色而不是两种。三种颜色的好处是，当颜色只有两种时，是存在 "大小关系" 的 —— 就像 "石头剪刀布" 一样。</p>
+			<p>比如，我们把 $\left( v, p_v \right)$ 的标记设为 "石头"，那么我们只需要将 $v$ 连向子节点的标记设为 "剪刀"。那么，只需要 Catherine 每次选择能使 "石头剪刀布" 中赢的一方即可。</p>
+			<hr />
+			<p>对于图的情况，其实也是差不多的。</p>
+			<p>首先我们要对图跑最短路。那用什么最短路算法呢？注意到图无边权，那当然是 bfs 喽。</p>
+			<p>先对图进行以 $0$ 为起点的宽度优先搜索，这个 bfs 就起到了一个 "分层" 的作用 —— 把每个点按照它到 $0$ 的距离，分为 $V_0 = \left\{ 0 \right\}, V_1, V_2, \cdots$。</p>
+			<p>考虑一条边 $\left( u, v \right)$，其中 $u \in V_a, v \in V_b$。</p>
+			<p>那么不难发现 $\left| a - b \right| \leq 1$，容易使用反证法证明。</p>
+			<p>假设现在 Catherine 所在的点在集合 $V_d$ 中，由于她需要<em>步步走最短路</em>，于是她下一步必须要走到 $V_{d-1}$ 中的点。</p>
+			<p>这说明，在 Anthony 做标记时，$\left( V_{d-1}, V_d \right)$ 的边要与 $\left( V_d, V_d \right)$ 的边，$\left( V_d, V_{d+1} \right)$ 的边显得不同，且 $\left( V_d, V_d \right), \left( V_d, V_{d+1} \right)$ 的边应该相同。</p>
+			<p>这样，一种较好的方法是：对于 $\left( u, v \right), u \in V_a, v \in V_b, a \leq b$，我们将这条边的标记设为 $\min \left\{ a, b \right\} \bmod 3$ (比如规定 $0$ 是石头，$1$ 是剪刀，$2$ 是布)，这种策略是可行的。</p>
+			<p>具体地，当 Catherine 在 $V_d$ 中，她所能看到的边的标记只有两种：$d - 1 \pmod 3$，以及 $d \pmod 3$。</p>
+			<p>这样，她还是可以通过 "石头剪刀布" 的方法找到连向 $d - 1$ 的边，从而步步走最短路，最终完成目标。时间复杂度显然是 $O \left( N + M \right)$ 没话说。</p></li>
+			<li><p>$A = 2, B = 6, G$ 为树。</p>
+			<p>注意到在这个子任务中 $B = 6 &gt; 0$，暗示了应该没有完美 (即步步走最短路) 的策略。</p>
+			<p>刚才的分析也表明了，当一个点的度数为 $2$ 时，$3-$染色可以利用 "石头剪刀布" 的思想来明确区分这两种颜色。而现在只有 $2$ 种颜色，在 Catherine 的角度下它们的地位是完全对等的，于是她并不能区分这两条路。</p>
+			<p>然而，如果树上除了根节点外没有 $2$ 度点的话，上述算法仍然是可行的 —— 只需要像二分图染色一样，对于一条边 $\left( v, p_v \right)$，将这条边的颜色染为 $dep_v \bmod 2$ 即可。这样 Catherine 每次只需选择唯一的颜色即可。</p>
+			<p>于是现在只需要考虑如何解决 $2$ 度点。</p>
+			<p>首先，不难注意到一个事实：<strong style="color: fuchsia">如果 Catherine 第一步走对了，那么之后她就有不再走错的策略</strong>。</p>
+			<p>这是因为，由我们的染色知，她每一步只需选择唯一的道路 (度为 $2$) 或与上一步不同颜色的道路 (度 $\geq 2$) 即可，而这种颜色一定是唯一的。</p>
+			<p>所以我们现在的目标就是在最初为 Catherine "引路" —— 即让她走对这至关重要的 "第一步"。</p>
+			<p>如果仍然按照这种策略，那么是不可行的，因为在最坏情况 (链) 下，她可能会走到链的另一端，然后再折回来，此时 $B = 2 N - 4$，无法接受。</p>
+			<p>刚才提到了最坏情况 —— 链，那么我们就先思考在链 (除了两个端点，其余点的度均为 $2$) 的情况下，如何在 $B = 6$ 的限制下完成目标。</p>
+			<p>设链为 $0 - 1 - 2 - \cdots - \left( N - 2 \right) - \left( N - 1 \right)$，设 Catherine 迷失在链的中间某个位置，对她来说链的两个端点并没有什么区别 —— 用图论的术语说就是<strong>同构</strong>的。</p>
+			<p>那么，我们的染色需要满足：在方向 $0 \to 1 \to 2 \to \cdots \to \left( N - 2 \right) \to \left( N - 1 \right)$ 和方向 $\left( N - 1 \right) \to \left( N - 2 \right) \to \cdots \to 2 \to 1 \to 0$ 看来，两种染色的 "模式" (pattern) 不同构。</p>
+			<p>从最简单的周期染色开始，我们尝试寻找正看反看<strong>不同构</strong>的 pattern。</p>
+			<ul>
+				<li><p>最小周期为 $1$：</p>
+				<p>$$ c = \left[ \cdots 0 0 0 \color {fuchsia} 0 0 0 0 \cdots \right], c^R = \left[ \cdots 0 0 0 \underline {\color {fuchsia} 0} 0 0 0 \cdots \right], \text{isomorphic.} $$</p></li>
+				<li><p>最小周期为 $2$：</p>
+				<p>$$ c = \left[ \cdots 0 1 0 1 \color {fuchsia} {0 1} 0 1 0 1 \cdots \right], c^R = \left[ \cdots 1 0 1 \underline {0 \color {fuchsia} 1} \color {fuchsia} 0 1 0 1 0 \cdots \right], \text{isomorphic.} $$</p></li>
+				<li><p>最小周期为 $3$：</p>
+				<p>$$ c = \left[ \cdots 0 0 1 \color {fuchsia} {0 0 1} 0 0 1 \cdots \right], c^R = \left[ \cdots 1 \underline {0 0 \color {fuchsia} 1} \color {fuchsia} {0 0} 1 0 0 \cdots \right], \text{isomorphic.} $$</p></li>
+				<li><p>最小周期为 $4$：</p>
+				<p>$$ c = \left[ \cdots 0 0 0 1 \color {fuchsia} {0 0 0 1} 0 0 0 1 \cdots \right], c^R = \left[ \cdots 1 \underline {0 0 0 \color {fuchsia} 1} \color {fuchsia} {0 0 0} 1 0 0 0 \cdots \right], \text{isomorphic.} $$</p>
+				<p>$$ c = \left[ \cdots 0 0 1 1 \color {fuchsia} {0 0 1 1} 0 0 1 1 \cdots \right], c^R = \left[ \cdots 1 1 \underline {0 0 \color {fuchsia} {1 1}} \color {fuchsia} {0 0} 1 1 0 0 \cdots \right], \text{isomorphic.} $$</p></li>
+				<li><p>最小周期为 $5$：</p>
+				<p>$$ c = \left[ \cdots 0 0 0 0 1 \color {fuchsia} {0 0 0 0 1} 0 0 0 0 1 \cdots \right], c^R = \left[ \cdots 1 \underline {0 0 0 0 \color {fuchsia} 1} \color {fuchsia} {0 0 0 0} 1 0 0 0 0 \cdots \right], \text{isomorphic.} $$</p>
+				<p>$$ c = \left[ \cdots 0 0 0 1 1 \color {fuchsia} {0 0 0 1 1} 0 0 0 1 1 \cdots \right], c^R = \left[ \cdots 1 1 \underline {0 0 0 \color {fuchsia} {1 1}} \color {fuchsia} {0 0 0} 1 1 0 0 0 \cdots \right], \text{isomorphic.} $$</p>
+				<p>$$ c = \left[ \cdots 0 0 1 0 1 \color {fuchsia} {0 0 1 0 1} 0 0 1 0 1 \cdots \right], c^R = \left[ \cdots 1 0 1 \underline {0 0 \color {fuchsia} {1 0 1}} \color {fuchsia} {0 0} 1 0 1 0 0 \cdots \right], \text{isomorphic.} $$</p></li>
+				<li><p>最小周期为 $6$：</p>
+				<p>$$ c = \left[ \cdots 0 0 0 0 0 1 \color {fuchsia} {0 0 0 0 0 1} 0 0 0 0 0 1 \cdots \right], c^R = \left[ \cdots 1 \underline {0 0 0 0 0 \color {fuchsia} 1} \color {fuchsia} {0 0 0 0 0} 1 0 0 0 0 0 \cdots \right], \text{isomorphic.} $$</p>
+				<p>$$ c = \left[ \cdots 0 0 0 0 1 1 \color {fuchsia} {0 0 0 0 1 1} 0 0 0 0 1 1 \cdots \right], c^R = \left[ \cdots 1 1 \underline {0 0 0 0 \color {fuchsia} {1 1}} \color {fuchsia} {0 0 0 0} 1 1 0 0 0 0 \cdots \right], \text{isomorphic.} $$</p>
+				<p>$$ c = \left[ \cdots 0 0 0 1 0 1 \color {fuchsia} {0 0 0 1 0 1} 0 0 0 1 0 1 \cdots \right], c^R = \left[ \cdots 1 0 1 \underline {0 0 0 \color {fuchsia} {1 0 1}} \color {fuchsia} {0 0 0} 1 0 1 0 0 \cdots \right], \text{isomorphic.} $$</p>
+				<p>$$ c = \left[ \cdots 0 0 0 1 1 1 \color {fuchsia} {0 0 0 1 1 1} 0 0 0 1 1 1 \cdots \right], c^R = \left[ \cdots 1 1 1 \underline {0 0 0 \color {fuchsia} {1 1 1}} \color {fuchsia} {0 0 0} 1 1 1 0 0 0 \cdots \right], \text{isomorphic.} $$</p>
+				<p>$$ c = \left[ \cdots 0 0 1 0 1 1 \color {fuchsia} {0 0 1 0 1 1} 0 0 1 0 0 1 \cdots \right], c^R = \left[ \cdots 1 1 0 1 0 0 \color {red} {1 1 0 1 0 0} 1 1 0 1 0 0 \cdots \right], \color {red} {\text{NOT}} \text{ isomorphic !} $$</p></li>
+			</ul>
+			<p>于是我们找到了一个最小周期为 $6$ 的 pattern，使得它正看反看不同构 (事实上它是最小周期为 $6$ 的 pattern 中唯一满足要求的)，于是我们可以将链按照这种模式进行染色。</p>
+			<p>由于它正看反看不同构，因此 Catherine 一定能在常数步 (至多 $6$ 步) 后知道它在往正方向前进还是往负方向前进，从而合适地调转方向。</p>
+			<p>但是如果走 $6$ 步的话，算上来回 $B$ 就达到 $12$ 了，还是会超标，因此我们需要进行更加精细的分析。</p>
+			<p>先忽略一些细节 (比如走到叶子时如果未结束则马上掉头等)，假设链两端均是无限长的 (走到目标后程序自动 <code>exit</code>)，则整个状态大概可以用一个自动机来描述：</p>
+			<p style="color: red">(为方便起见，以及与代码统一，下面假设整条链沿着 Catherine 到目标的染色模式为 $\cdots 0 0 1 0 1 1 0 0 1 0 1 1 \cdots$)</p>
+			<img class="center-block" src="uploads/218.png" alt="Catherine 自动机" />
+			<p>(图例：$\color {fuchsia} {\texttt P}$ 表示方向正确，$\color {fuchsia} {\texttt N}$ 表示方向错误 [需要掉头]，<strong style="color: teal">青色</strong>表示初始站位两边的颜色，默认第一步走右侧数字所代表的颜色)</p>
+			<p>不难发现，在这个自动机上，至多走 $3$ 步 ($10 \to 00 \to 001 \to \texttt P/\texttt N$) 就能知道前进的方向，从而合适地调转。</p>
+			<p>于是，我们就解决了链上 $B = 6$ 的情形。</p>
+			<p>将其推广到树上，其实也不难 —— 我们只需要沿着 "虚树" 的思想 —— 将树上极长的一段二度路径看成一个整体，然后对大的 "虚树" 进行奇偶性染色，而在染到一段二度路径的时候，将其展开，按照 $0, 1, 0, 0, 1, 1, \cdots$ (以 $1$ 开头就是 $1, 0, 0, 1, 1, 0$) 的顺序依次染色，直到叶子或下一个 ($\geq$) 三度点。</p>
+			<p>Catherine 在走的时候也不难，如果遇到叶子，说明走错了，赶紧掉头；如果遇到一个 ($\geq$) 三度点，判断当前颜色是不是唯一色 (如果是唯一色，说明走错了；否则说明没有走错，以后也不会走错)。</p>
+			<p>而且，这两个判断 (度非 $2$ 判断) 是应该最先完成的 —— 即在跑自动机前检验是否是 $2$ 度点。</p>
+			<p>于是我们就完成了树的 $2-$染色，$B = 6$ 的情形，总时间复杂度 $O \left( N \right)$。</p></li>
+		</ol>
+
+		<h3>代码</h3>
+
+		<h4>Anthony.cpp</h4>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "Anthony.h"
+#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+typedef std::vector &lt;int&gt; vector;
+
+namespace tree {
+	const int N = 20054, INF = 0x3f3f3f3f;
+
+	int V, E, A, B;
+	int p[N], pe[N], dep[N], deg[N];
+	int cnt = 0, o[N], c[N];
+	vector G[N];
+
+	void dfs(int x) {
+		o[++cnt] = x;
+		for (int y : G[x]) if (y != p[x])
+			p[y] = x, dep[y] = dep[x] + 1, ++deg[x], dfs(y);
+	}
+
+	vector Mark(int V_, int E_, int A_, int B_, const vector &amp;u, const vector &amp;v) {
+		int i, x; V = V_, E = E_, A = A_, B = B_; vector col(E, 0);
+		assert(E == V - 1);
+		for (i = 0; i &lt; E; ++i) G[u[i]].EB(v[i]), G[v[i]].EB(u[i]);
+		dfs(0), assert(cnt == V);
+		for (i = 0; i &lt; E; ++i) pe[ p[ u[i] ] == v[i] ? u[i] : v[i] ] = i;
+		for (i = 2; i &lt;= V; ++i)
+			if (p[ x = o[i] ])
+				c[x] = (deg[ p[x] ] == 1 ? (c[ p[x] ] + 1) % 6 : 13 &gt;&gt; c[ p[x] ] &amp; 1);
+		for (i = 1; i &lt; V; ++i) col[pe[i]] = 50 &gt;&gt; c[i] &amp; 1;
+		return col;
+	}
+}
+
+namespace graph {
+	const int N = 20054, INF = 0x3f3f3f3f;
+
+	int V, E, A, B;
+	int dis[N], que[N];
+	vector G[N];
+
+	inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+	vector Mark(int V_, int E_, int A_, int B_, const vector &amp;u, const vector &amp;v) {
+		int i, x, h, t = 1; vector col;
+		V = V_, E = E_, A = A_, B = B_, col.reserve(E);
+		for (i = 0; i &lt; E; ++i) G[u[i]].EB(v[i]), G[v[i]].EB(u[i]);
+		memset(dis, 63, sizeof dis), *dis = *que = 0;
+		for (h = 0; h &lt; t; ++h)
+			for (int y : G[ x = que[h] ])
+				if (dis[y] &gt;= INF) dis[y] = dis[x] + 1, que[t++] = y;
+		for (i = 0; i &lt; E; ++i) col.EB(min(dis[u[i]], dis[v[i]]) % 3);
+		return col;
+	}
+}
+
+vector Mark(int N, int M, int A, int B, vector U, vector V) {return A == 2 ? tree::Mark(N, M, A, B, U, V) : graph::Mark(N, M, A, B, U, V);}
+
+</code></pre></div>
+
+		<h4>Catherine.cpp</h4>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "Catherine.h"
+#include &lt;bits/stdc++.h&gt;
+#define xpp else if (deg &gt; 2) \
+		return type = 0, d[la] ? la = !la : -1; \
+	else if (deg &lt; 2) \
+		return type = 0, -1
+
+typedef std::vector &lt;int&gt; vector;
+
+namespace tree {
+	int la = -1, type = 0;
+
+	int Move(const vector &amp;d) {
+		int deg = d[0] + d[1];
+		if (~la) {
+			++deg;
+			switch (type) {
+				case 0:
+					if (deg &lt; 2) throw "xppakjoi again";
+					else if (deg == 2) return la = d[1];
+					else if (deg &gt; 2) return la = !la;
+				case 1:
+					if (deg == 2) {
+						assert(d[0] == 0 &amp;&amp; d[1] == 1);
+						return type = 3, la = 1;
+					} xpp;
+				case 2:
+					if (deg == 2) {
+						assert(d[0] == 1 &amp;&amp; d[1] == 0);
+						return type = 3, la = 0;
+					} xpp;
+				case 3:
+					if (deg == 2) {
+						if (d[1]) return type = 0, -1;
+						if (d[0]) return type = 0, la = 0;
+					} xpp;
+				case 4:
+					if (deg == 2) {
+						if (d[0]) return type = 1, la = 0;
+						if (d[1]) return type = 5, la = 1;
+					} xpp;
+				case 5:
+					if (deg == 2) {
+						if (d[0]) return type = 0, -1;
+						if (d[1]) return type = 0, la = 1;
+					} xpp;
+			}
+		} else {
+			if (d[0] + d[1] == 1) return la = d[1];
+			if (d[0] + d[1] &gt; 2) return la = d[1] == 1;
+			if (d[0] == 1 &amp;&amp; d[1] == 1) return type = 4, la = 0;
+			if (d[0] == 2 &amp;&amp; d[1] == 0) return type = 1, la = 0;
+			if (d[0] == 0 &amp;&amp; d[1] == 2) return type = 2, la = 1;
+			throw "xppakjoi";
+		}
+		throw "xppakjoi";
+	}
+}
+
+namespace graph {
+	int Move(const vector &amp;d) {
+		if (d[0] &amp;&amp; !d[2]) return 0;
+		if (d[1] &amp;&amp; !d[0]) return 1;
+		if (d[2] &amp;&amp; !d[1]) return 2;
+		throw "xppakjoi";
+	}
+}
+
+int (*pMove)(const vector &amp;);
+
+void Init(int A, int B) {pMove = (A == 2 ? tree::Move : graph::Move);}
+int Move(vector y) {return pMove(y);}
+
+</code></pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>Catherine 在树上判断时，应时刻先判断是度数是否为 $2$，若不是，先运行非 $2$ 度点的逻辑。</p>
+		<p><strong>坑2：</strong>染色时可以使用二进制压缩 ($13$ 和 $50$) 的方式来简便实现，不过要注意一段二度路径的第一条边应保持与父边颜色不同，然后顺次展开。</p>
+		<script>syntax_highlight()</script>
+	</body>
+</html>

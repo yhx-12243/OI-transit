@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1329D]Dreamoon Likes Strings</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义一个字符串 $s = s_1 s_2 \cdots s_n$ 是<strong>美丽的</strong>，如果对 $\forall 1 \leq i &lt; n$，均有 $s_i \neq s_{i+1}$。</p>
+		<p>现在，给定一个字符串 $a$，你每次可以从 $a$ 中选择一个<strong>美丽的</strong>子串并删去它。注意删去这个子串后 $a$ 剩余的两端会按照原顺序进行拼接。</p>
+		<p>你需要用尽可能少的步数使 $a$ 变为空串，请求出步数的最小值，并给出一组方案。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。</p>
+		<p>第一行包含一个正整数 $t$ ($t \leq 2 \times 10^5$)，表示数据组数。</p>
+		<p>对于每组数据，共一行，包含一个由小写字母构成的非空字符串 $a$ ($\sum \left| a \right| \leq 2 \times 10^5$)，表示题目中的字符串 $a$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，第一行输出一个整数 $m$，表示步数的最小值。</p>
+		<p>紧接着 $m$ 行，每行两个正整数 $l_i, r_i$ ($1 \leq l_i \leq r_i \leq \left| a_{i-1} \right|$，其中 $a_i$ 表示操作 $i$ 步后的字符串)，表示第 $i$ 次操作选择了子串 $a_{i-1} \left[ l_i .. r_i \right]$，你需要保证 $a_{i-1} \left[ l_i .. r_i \right]$ 是<strong>美丽的</strong>。</p>
+		<p>如果有多组解，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>称两个相邻字符相同的位置称为 "坏对"。考虑我们删除这些串的目的，不难发现我们需要尽可能地减少 "坏对" 的数量。</p>
+		<p>我们将 $s$ 中所有的 "坏对" 取出来 (可以重叠)，将每个 "坏对" 的字母连起来，记为 $B \left( s \right)$。如，当 $B \left( \texttt{aaabbcdd} \right) = \texttt{aabd}$。</p>
+		<p>显然，当 $B \left( s \right) = \varepsilon$ 时，我们可以一次删完它。</p>
+		<p>否则，考虑一次删除对 $B \left( s \right)$ 的影响：</p>
+		<p>由于我们只能选择 "美丽的" 子串，因此 "坏对" 只可能出现在子串首尾的 "交界处"。也就是说，一次删除至多使 "坏对" 个数减少 $2$ (使 $\left| B \left( s \right) \right|$ 长度减少 $2$)。</p>
+		<p>那么是否删除任意两个都是可以的吗？并不一定。</p>
+		<p>首先，删除 $B \left( s \right)$ 中任意一个字符显然是可行的 —— 只要找到对应位置删了就可以。</p>
+		<p>如果删除 $B \left( s \right)$ 中的两个字符，首先它们要是相邻的，这是因为你选的子串是 "美丽的"。</p>
+		<p>其次，这两个字符必须不同。否则删除后会两端拼接起来后，又会重新组成一个 "坏对"，这样就等价于只删除了一个。</p>
+		<p>而如果删除的两个字符满足相邻且不同，容易证明这是可行的。</p>
+		<p>于是，问题就转化为了：</p>
+		<blockquote>给定字符串 $B \left( s \right)$，每次只能删除一个字符或相邻且不同的一对字符，至少需要删几次才能将其删空。</blockquote>
+		<p style="color: red">(ps: 当然，将 $B \left( s \right)$ 删空时最后还需要进行一次操作来将 "美丽的" $s$ 清空，故答案最后要 $+1$)</p>
+		<hr />
+		<p>首先，对于这个新问题，我们先来分析一下它的下界：</p>
+		<p>一方面，设 $\left| B \left( s \right) \right| = m$，那么显然有 $ans \geq \left \lceil \dfrac m2 \right \rceil$。</p>
+		<p>另一方面，设 $B \left( s \right)$ 中字符 $c$ 出现了 $m_c$ 次，那么易知有 $ans \geq m_c$。</p>
+		<p>综上，答案的一个下界为 $\max \left\{ \left \lceil \dfrac m2 \right \rceil, \max\limits_{c \in \Sigma} m_c \right\}$。</p>
+		<p>那么这个下界是否能达到呢？下面我们一边证明，一边给出一组构造。</p>
+		<p>我们定义一个串的<strong>特征值</strong>为 $W \left( t \right) = m - 2 \max\limits_{c \in \Sigma} m_c$ ($\left| t \right| = m$)。</p>
+		<p>不难发现，$W \left( t \right)$ 的奇偶性和 $\left| t \right|$ 相同。我们根据 $\left| t \right|$ 的奇偶性来讨论：</p>
+		<ol>
+			<li><p>$\left| t \right|$ 是偶数。</p>
+			<p>此时，若 $W \left( t \right) &lt; 0$，那么每一步操作必须让 $\color {red} \Delta W \left( t \right) \geq 0$，这是一个必要条件。</p>
+			<p>否则，只要保证 $W \left( t \right)$ 时刻大于等于 $0$ 即可 (这也是必要条件)。</p>
+			<p>由于每次操作只能是相邻的字符，于是<a href="../index.html?redirect=627" target="_blank">根据套路</a>，我们考虑用栈来维护消除序列。</p>
+			<p>每时每刻考虑当前元素和栈顶，如果满足上述 $W$ 的限制，则删除，否则将其加入栈顶。我们证明这个算法一定能得到合法解。</p>
+			<p>事实上，这个算法如果能得到解，那一定是合法的。我们只需要证明这个算法最终能得到解。</p>
+			<p>首先，不难证明，在只删除两个字符的情况下，$W \left( t \right)$ 是单调不增的。</p>
+			<p>若 $W \left( t \right) &gt; 0$，那么无论怎么操作都是合法的。</p>
+			<p>若 $W \left( t \right) \leq 0$，其实只需要保证删除的字符中一个是使得 $m_c$ 取最大值的 $c$，另一个不是 $c$ 即可。</p>
+			<p>如果连这个做不到，说明 $t$ 中只有一种字符，此时我们<strong>只能一个一个删去</strong>，每次 $W \left( t \right)$ 增加一，直至归零。这样得到的解也是最优解。</p></li>
+			<li><p>$\left| t \right|$ 是奇数。</p>
+			<p>这种情况其实和 1. 几乎一样，只需要把 $W \left( t \right)$ 的判断对象从 $0$ 改成 $-1$ 即可。</p></li>
+		</ol>
+		<p>于是，我们就得到了 $B \left( s \right)$ 的一种删除策略 —— 即每次删除 $B \left( s \right)$ 的哪两个字符。</p>
+		<p>最后的问题就是如何将这个序列转化成 (题目所要求的) 原串的删除序列。</p>
+		<p>如果不考虑下标的改变 (即每次考虑从原始串中删除连续一段，被删除的串占位)，那么转化是不难的 —— 因为我们容易维护出 $B \left( s \right)$ 中每个字符所对应的 "坏对" 的位置。</p>
+		<p>那么，删除 $B \left( s \right)$ 中的两个字符，就相当于把这两个 "坏对" 拆开，于是容易构造方案。</p>
+		<p>至于下标会改变的话，容易使用数据结构 (如线段树) 维护当前区间前面，以及当前区间内分别有多少个字符，然后区间清零即可。</p>
+		<p>时间复杂度 $O \left( \left| a \right| \log \left| a \right| \right)$ (单组)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+
+const int N = 200054;
+
+int n, m, S, M, W;
+char s[N], b[N];
+int pos[N], cc[26], cu[N];
+int stack[N];
+int cnt, al[N], ar[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+namespace ST {
+	#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+	struct node {int v, tag;} x[N * 3];
+
+	inline void cover(node &amp;ret) {ret.v = 0, ret.tag = 1;}
+
+	inline void push_down(node &amp;ret, node &amp;l, node &amp;r) {if (ret.tag) cover(l), cover(r);}
+
+	void build(int id, int L, int R) {
+		x[id].v = R - L + 1, x[id].tag = 0;
+		if (L == R) return;
+		segc; build(lc, L, M), build(rc, M + 1, R);
+	}
+
+	void clear(int id, int L, int R, int ql, int qr) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return cover(x[id]);
+		segc; push_down(x[id], x[lc], x[rc]);
+		if (ql &lt;= M) clear(lc, L, M, ql, qr);
+		if (qr &gt; M) clear(rc, M + 1, R, ql, qr);
+		x[id].v = x[lc].v + x[rc].v;
+	}
+
+	int range(int id, int L, int R, int ql, int qr) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return x[id].v;
+		segc, s = 0;
+		if (ql &lt;= M) s += range(lc, L, M, ql, qr);
+		if (qr &gt; M) s += range(rc, M + 1, R, ql, qr);
+		return s;
+	}
+
+	void Do(int l, int r) {
+		int lp = (l ? ST::range(1, 0, n - 1, 0, l - 1) + 1 : 1), rp = ST::range(1, 0, n - 1, 0, r);
+		assert(lp &lt;= rp), printf("%d %d\n", lp, rp);
+		ST::clear(1, 0, n - 1, l, r);
+	}
+}
+
+inline void add(int x) {--cu[cc[x]], ++cu[++cc[x]], ++S, up(M, cc[x]), W = S - 2 * M;}
+inline void del(int x) {--cu[cc[x]], ++cu[--cc[x]], --S, M -= !cu[M],  W = S - 2 * M;}
+
+inline bool check(int l, int r) {
+	if (b[l] == b[r]) return false; int oW = W;
+	return del(b[l]), del(b[r]), W &gt;= min(oW, -1) || (add(b[l]), add(b[r]), false);
+}
+
+void work() {
+	int i, top = 0;
+	scanf("%s", s), n = strlen(s), m = cnt = 0, memset(cc, 0, 104);
+	for (i = 1; i &lt; n; ++i)
+		if (s[i - 1] == s[i]) ++cc[ b[m] = s[i] - 97 ], pos[m++] = i;
+	for (S = M = i = 0; i &lt; 26; ++i) S += cc[i], up(M, cc[i]), ++cu[cc[i]];
+	printf("%d\n", max(-~S / 2, M) + 1), W = S - 2 * M;
+	for (i = 0; i &lt; m; ++i)
+		if (top &amp;&amp; check(stack[top - 1], i)) al[cnt] = stack[--top][pos], ar[cnt++] = pos[i] - 1;
+		else stack[top++] = i;
+	for (; top; al[cnt] = stack[--top][pos], ar[cnt++] = n - 1);
+	al[cnt] = 0, ar[cnt++] = n - 1;
+	ST::build(1, 0, n - 1);
+	for (i = 0; i &lt; cnt; ++i) ST::Do(al[i], ar[i]);
+	for (i = 0; i &lt; 26; ++i) cu[cc[i]] = 0;
+}
+
+int main() {
+	int T;
+	for (scanf("%d", &amp;T); T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>最后单独删去 "坏对" 时，注意枚举的顺序：即如果从右往左枚举，那么需要删除后缀；如果从左往右枚举，那么需要删除前缀；当然你也可以一段一段删。</p>
+		<p><strong>坑2：</strong>至于如何快速计算 $W \left( t \right)$，其实我们需要一个滋磁<em>插入元素删除元素查找众数</em>的数据结构，注意到每次删除一个元素至多只会使得某元素的出现次数减一，因此只需维护 (每个元素的出现次数) 的出现次数即可。(可能有点绕口，即对每个 $i$，记录有多少种元素的出现次数为 $i$)</p>
+	</body>
+</html>

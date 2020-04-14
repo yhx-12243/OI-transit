@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1305H]Kuroni the Private Tutor</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一场测验，共 $n$ 道试题，有 $m$ 名学生参加，每道题的分值为 $1$ 分。已知，做出第 $i$ 道题的学生人数在区间 $\left[ l_i, r_i \right]$ 中。特别地，所有学生的得分总和 (所有题目做出人数的总和) 为 $t$。</p>
+		<p>你瞥了一眼这场测验的排行榜，并记住了如下 $q$ 个额外信息：其中第 $i$ 个信息形如，排名为第 $p_i$ 的学生 (可能并列) 的得分为 $s_i$。</p>
+		<p>求至多有多少人并列第一，以及在并列第一的人数最多的条件下，(并列) 第一名的得分的最大值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($1 \leq n, m \leq 10^5)$，表示测验的试题数和参加的学生数。</p>
+		<p>接下来 $n$ 行，每行两个非负整数 $l_i, r_i$ ($0 \leq l_i \leq r_i \leq m$)，表示做出第 $i$ 道题的学生人数的范围。</p>
+		<p>第 $n + 2$ 行包含一个非负整数 $q$ ($0 \leq q \leq m$)，表示通过排行榜得到的额外信息数目。</p>
+		<p>接下来 $q$ 行，每行两个非负整数 $p_i, s_i$ ($1 \leq p_i \leq m; 0 \leq s_i \leq n$)，描述一条额外信息 (排名为第 $p_i$ 的学生的得分为 $s_i$)，保证所有 $p_i$ 互不相同，且对于 $i \neq j$，若 $p_i &lt; p_j$，则必有 $s_i \geq s_j$。</p>
+		<p>最后一行包含一个非负整数 $t$ ($0 \leq t \leq n \cdot m$)，表示所有学生的得分总和。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含两个整数，分别表示并列第一的人数的最大值，以及在并列第一的人数最多的条件下，得分的最大值。若不存在一种可能的情形满足所有条件，则输出两个 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>先考虑如果我们已知得分分布 (即数组 $\left\{ s_n \right\}$)，当然这里需要满足 $s_1 \geq s_2 \geq \cdots \geq s_m$，如何来判断是否存在满足条件的答对/错题方法。</p>
+		<p>考虑对问题进行建模，可知它是一个类似方格表填数的问题，其中行和有上下界，列和已知。</p>
+		<p>根据熟知的套路，我们将方格表问题转化为二分图的问题 (其中左部表示行，右部表示列)，然后行和列和相当于一个点连出去的边的条数。</p>
+		<p>这样一来，就可以建立网络流的模型了 —— 这些 $l_i, r_i, s_i$ 就相当于对应边的容量限制。</p>
+		<p>具体地，对于每一道试题 $i$，我们连接一条从源点 $S$ 指向 $i$ 的，流量下界为 $l_i$，流量上界 (容量) 为 $r_i$ 的边；对于每一名学生 $j$，连接一条从 $j$ 指向汇点 $T$ 的，容量为 $s_j$ 的边；而对于任意一道试题 $i$ 和任意一名学生 $j$，连一条从 $i \to j$ 容量为 $1$ 的边。</p>
+		<p>这样，这组 $\left\{ s_n \right\}$ 合法当且仅当这张图存在大小为 $s_1 + s_2 + \cdots + s_m$ 的流。</p>
+		<p>那由于这张图是有上下界的网络流，可以通过<a href="../index.html?redirect=56" target="_blank">一般的方法</a>将其转化为一般的 (即没有下界的) 网络流：</p>
+		<p>具体地，注意到每个代表试题的点 $i$，都有 $l_i$ 的流量入超，因此我们需要从超级源点 $S'$ 向它提供大小为 $l_i$ 的流。</p>
+		<p>于是，(由于这张图显然不会存在大小超过 $s_1 + s_2 + \cdots + s_m$ 的流) 这张图存在大小为 $f$ 的流，当且仅当它存在<strong>大小 $\geq f$ 的流</strong>，由最大流最小割定理，上述条件有又等价于<strong style="color: fuchsia">这张图的每一个割集的容量和 $\geq f$</strong>。</p>
+		<p>先考虑上界，考虑上界时我们将 $S$ 和 $S'$ 视为整体 (即看作一般的网络流)，设割集为 $\left( A \mid B \right)$，其中 $S, S' \in A, T \in B$，记试题代表的点集与 $A$ 和 $B$ 的交集分别为 $P_A, P_B$，学生代表的点集与 $A, B$ 的交集分别为 $S_A, S_B$。</p>
+		<p>于是割集由如下三种边构成：</p>
+		<ol>
+			<li><p>$S - P_B$。</p>
+			<p>这些边的长度和为 $\displaystyle \color {blue} {\sum_{i \in P_B} r_i}$。</p></li>
+			<li><p>$P_A - S_B$。</p>
+			<p>这两类边的长度和为 $\color {blue} {\left| P_A \right| \cdot \left| S_B \right|}$。</p></li>
+			<li><p>$S_A - T$。</p>
+			<p>这类边的长度和为 $\displaystyle \color {blue} {\sum_{j \in S_A} s_j}$。</p></li>
+		</ol>
+		<p>于是，有 $$ \sum_{i \in P_B} r_i + \left| P_A \right| \cdot \left| S_B \right| + \sum_{j \in S_A} s_j \geq \sum_{j=1}^m s_j \tag 1 \label 1 $$</p>
+		<p>对 $\eqref 1$ 式稍作变形，即得 $$ \left( \sum_{i=1}^n r_i - \sum_{i \in P_A} r_i \right) + \left| P_A \right| \cdot \left| S_B \right| \geq \sum_{j \in S_B} s_j \tag 2 \label 2 $$</p>
+		<p>由于 $P_B, S_B$ 是任取的，因此在固定集合大小的前提下，我们一定是取<strong>最大的 $\left| S_B \right|$ 个 $s_j$</strong> —— 即前 $\left| S_B \right|$ 名 $\left\{ 1, 2, \cdots, \left| S_B \right| \right\}$，对于 $r_i$ 同理。</p>
+		<p>于是<strong style="color: red">不妨假设 $r_i$ 单调递减</strong>，于是这些不等式可以等价地简化为对于 $\forall \rho \in \left[ 0, n \right], \sigma \in \left[ 0, m \right]$，有 $$ \rho \cdot \sigma + \sum_{j=\sigma+1}^m s_j \geq t - \sum_{i=\rho+1}^n r_i \tag 3 \label 3 $$</p>
+		<p>接下来考虑下界 —— 即 $S'$ 的出边需要全部满流 ($S \in B, S' \in A$)。</p>
+		<p>通过类似地方法，而我们可以得到如下的不等式：$$ \sum_{i \in P_B} l_i + \left| P_A \right| \cdot \left| S_B \right| + \sum_{j \in S_A} s_j \geq \sum_{i=1}^n l_i \tag 4 \label 4 $$</p>
+		<p>同样通过变形，以及<strong>假设 $l_i$ 单调递减</strong>，可得 $$ \rho \cdot \sigma + \sum_{j=\sigma+1}^m s_j \geq \sum_{i=1}^\rho l_i \tag 5 \label 5 $$</p>
+		<p>当然还有一种情况是假设 $S \in A, S' \in B$，经过类似的推导可得 $$ \rho \cdot \sigma + \sum_{j=\sigma+1}^m s_j \geq t - \sum_{i=\rho+1}^n r_i - \sum_{i=1}^\rho l_i \tag 6 \label 6 $$</p>
+		<p>不过 $\eqref 6$ 式并没有实际价值 —— 因为当 $\eqref 4$ 式成立时，由于 $l_i \geq 0$，$\eqref 6$ 式自然成立。</p>
+		<p>综上，我们的条件就转化为了 $$ \color {teal} {\rho \cdot \sigma + \sum_{j=\sigma+1}^m s_j \geq \max \left\{ t - \sum_{i=\rho+1}^n r_i, \sum_{i=1}^\rho l_i \right\} \qquad \left( 0 \leq \rho \leq n; 0 \leq \sigma \leq m \right)} \tag 7 \label 7 $$</p>
+		<p>当然，这些条件也是充分的，由最大流最小割定理这保证了所有的割都不小于图中的一些显然上界 (如 $\displaystyle \sum_{i=1}^n l_i, \sum_{j=1}^m s_j \left( = t \right)$)，因此这三种流都必须满流，从而自然存在解啦。</p>
+		<p>于是问题转化为如何对 $\eqref 7$ 式进行快速判定。要知道，暴力判断还是有 $O \left( n m \right)$ 个不等式的呢。</p>
+		<p>考虑从小到大枚举 $\rho$，不难发现等式右端可以通过预处理部分和，且与 $\sigma$ 无关，于是我们只需要理清楚等式左端的最小值与 $\sigma$ 的关系即可。</p>
+		<p>注意到诸 $s_i$ 单调递减，因此 $\displaystyle \sum_{j=\sigma+1}^m$ 是关于 $\sigma$ 的下凸数列 (即差分递增)。</p>
+		<p>而 $\displaystyle \rho \cdot \sigma + \sum_{j=\sigma+1}^m s_j$ 相当于求两向量内积 $\displaystyle \left( \sigma, \sum_{j=\sigma+1}^m s_j \right) \cdot \left( \rho, 1 \right)$ 的最大值。</p>
+		<p>那么使这个向量取到最大值的点就是斜率为 $- \rho$ 的下切线与凸包的交点 (参考<a href="../index.html?redirect=568" target="_blank">这里</a>)，故这个点的横坐标 ($\sigma$) 是单调递减的，从而可以用双指针维护出 (固定 $\rho$ 后) 使等式左端取到最小值的 $\sigma$，从而判断复杂度就降为 $O \left( n + m \right)$，可以接受。</p>
+		<hr />
+		<p>讲了那么多判定的方法，现在回到正题。</p>
+		<p><del>(Q: 喂喂喂你为啥判定讲了半天啊？)</del></p>
+		<p><del>(A: 因为后面的过程不是很麻烦，所以前面讲得稍微详细些)</del></p>
+		<p>首先不难想到二分 —— 即二分并列第一的人数 $w$，判断是否可行。</p>
+		<p style="color: red">(ps: 这里我们可以把要求定得稍微松些，即前 $w$ 名得分相同就算满足，因为如果第 $w + 1$ 名得分也与之相同说明答案可以更大)</p>
+		<p>那如何判断前 $w$ 名能否并列呢？</p>
+		<p>首先，先来排除一些<del>智障</del>情形，比如给定的额外信息中已经有前 $w$ 名中两人得分不同的情形等。</p>
+		<p>接下来，我们分两种情况讨论：</p>
+		<ol>
+			<li><p>前 $w$ 名中有额外信息，这说明我们现在已经知道前 $w$ 名的分数了。</p>
+			<p>考虑怎样分配得分，才能这些 $s_i$ 尽可能地去满足 $\eqref 7$ 式呢？</p>
+			<p>根据 $\eqref 7$ 式，可以发现，由于等式右端和 $s_i$ 无关，因此我们希望等式左端尽可能大。那么，在固定 $\sigma$ 的情况下，我们就希望 $\displaystyle \sum_{j=\sigma+1}^m s_j$ 尽可能的大 —— 即让 $s_j$ 的<strong>后缀和</strong>尽量大。</p>
+			<p>也就是说，如果我们从调整 (即依次选一个学生进行加分) 的角度进行分析，那么 (由于所加的总分是固定的) <strong style="color: fuchsia">每次加分必然会选择<em>可以加分的学生</em> <span style="color: red">(ps: 即加分后仍满足 $s_i$ 单调不增的)</span> 中<em>得分最低</em>的那个学生</strong>。不难证明这是偏序意义下最优的策略。</p>
+			<p>于是，我们先让每个学生得到它所能得到的最低分 (即前 $w$ 名分数固定，剩下的学生的得分 "向后看齐"，找到她后面第一个额外信息出现过的人)，然后将问题转化为不断加分。</p>
+			<p>当然，在之前需要继续排除一种<del>智障</del>情况：即未加分时所有人的总分已经超过了 $t$，此时显然也无解。</p>
+			<p>接下来就不断模拟上述<span style="color: fuchsia">粉色字</span>所描述的过程，直到所有人的分数的总和达到 $t$。</p>
+			<p>类似地，如果发现某个时刻已经无法加分 (即每个人都 "向前看齐" 了)，且总分还未达到 $t$ 的话，此时也应该是无解的 (这种情况和上面一种情况其实是对称的)。</p>
+			<p>如果上面两种<del>智障</del>错误都没发生的话，我们就可以将所得的 $\left\{ s_n \right\}$ 数组按照最开始方法进行检验了。如果检验出来是有解，那么自然就有解；如果是无解，由于我们构造的方案是偏序最优的，从而原问题 (这里 "原问题" 指的是二分的子问题) 也无解。</p>
+			<hr />
+			<p>顺便提一下如何快速模拟 "加分" 这个过程。首先暴力加分显然是不可取的，我们来快速完成这个过程：</p>
+			<p>不难发现，每次加分取的都是满足 $s_{i-1} \neq s_i$ 的最大 $i$。于是，整个过程就有点像填平 "水洼" 的一个过程，如下表 (其中<span style="color: fuchsia">粉色</span>表示额外信息中所固定的数)：</p>
+			<pre>7	<strong style="color: fuchsia">7</strong>	4	4	4	<strong style="color: fuchsia">4</strong>	2	2	<strong style="color: fuchsia">2</strong>
+7	<strong style="color: fuchsia">7</strong>	4	4	4	<strong style="color: fuchsia">4</strong>	<span style="color: lime">3</span>	2	<strong style="color: fuchsia">2</strong>
+7	<strong style="color: fuchsia">7</strong>	4	4	4	<strong style="color: fuchsia">4</strong>	3	<span style="color: lime">3</span>	<strong style="color: fuchsia">2</strong>
+7	<strong style="color: fuchsia">7</strong>	4	4	4	<strong style="color: fuchsia">4</strong>	<span style="color: lime">4</span>	3	<strong style="color: fuchsia">2</strong>
+7	<strong style="color: fuchsia">7</strong>	4	4	4	<strong style="color: fuchsia">4</strong>	4	<span style="color: lime">4</span>	<strong style="color: fuchsia">2</strong>
+7	<strong style="color: fuchsia">7</strong>	<span style="color: lime">5</span>	4	4	<strong style="color: fuchsia">4</strong>	4	4	<strong style="color: fuchsia">2</strong>
+7	<strong style="color: fuchsia">7</strong>	5	<span style="color: lime">5</span>	4	<strong style="color: fuchsia">4</strong>	4	4	<strong style="color: fuchsia">2</strong>
+7	<strong style="color: fuchsia">7</strong>	5	5	<span style="color: lime">5</span>	<strong style="color: fuchsia">4</strong>	4	4	<strong style="color: fuchsia">2</strong>
+7	<strong style="color: fuchsia">7</strong>	<span style="color: lime">6</span>	5	5	<strong style="color: fuchsia">4</strong>	4	4	<strong style="color: fuchsia">2</strong>
+7	<strong style="color: fuchsia">7</strong>	6	<span style="color: lime">6</span>	5	<strong style="color: fuchsia">4</strong>	4	4	<strong style="color: fuchsia">2</strong>
+</pre>
+			<p>于是只需要从右往左依次枚举每个 "水洼"，简单判断一下剩下的 "水" (加分) 能否填平它：若能则填平并继续枚举；若不能则用除法算出填平到多高即可。</p></li>
+			<li><p>前 $w$ 名中没有额外信息。</p>
+			<p>如果没有额外信息，说明并没有关于前 $w$ 名的任意限制，因此我们可以和 1. 类似，让这前 $w$ 名也 "向后看齐"，然后类似地填平 "水洼"。</p>
+			<p>这里会出一个问题：有可能这些 "水" 把后面的 "水洼" 填完了，而填到最前面的 "水洼" 时，填了一半却没 "水" 了，这时是不符合我们 "前 $w$ 名得分得分相同" 这个条件的。</p>
+			<p>此时，设前 $w$ 名出现的两种分分别为 $Q$ 和 $Q - 1$。上面这些线索表明前 $w$ 名所并列的分<strong>应至少是 $Q$</strong>。</p>
+			<p>于是我们固定前 $w$ 名得分为 $Q$，按照 1. 中方法再做一遍即可 <span style="color: olive">(容易证明再做一遍时不可能重新遇到这种情况，即递归最多一层)</span>。</p></li>
+		</ol>
+		<p>二分完了 $w$ 后，接下来考虑求这 $w$ 名得分的最大值。</p>
+		<p>首先，如果这 $w$ 名中有额外信息，那么显然得分的最大值就是额外信息中所给的分数。</p>
+		<p>如果没有，我们就接着二分 (要二分就二分到底)！</p>
+		<p>考虑二分的分值 $s$，检验它是否满足。和前面道理一样，这里我们二分的是并列的分值能否 $\geq s$ (否则答案会不满足单调性)。</p>
+		<p>检验的过程其实和前面检验 $w$ 的过程一样，也是 "向后看齐" 填 "水洼"。</p>
+		<p>同理，若在填 "水洼" 的时候发现前 $w$ 名不一致，那么还是将这些分值设为更高的 $Q$ 后检验，并将新检验的结果作为原结果返回。</p>
+		<hr />
+		<p>最后简单分析一下复杂度：判定过程可以线性完成，外面二分是一个 $\log$，故总时间复杂度为 $O \left( \left( n + m \right) \left( \log n + \log m \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+
+typedef long long ll;
+const int N = 100054;
+
+int n, T;
+int lb[N], ub[N], score[N], real[N];
+bool fixed[N];
+ll S, Lb[N], Ub[N];
+
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+inline ll max(const ll x, const ll y) {return x &lt; y ? y : x;}
+
+inline bool test(int *_arg) {
+	int i, j; ll sum = 0;
+	for (i = 0, j = n; i &lt;= T; ++i, sum += j) {
+		for (; j &amp;&amp; _arg[j - 1] &lt;= i; sum += _arg[--j] - i);
+		if (sum &lt; max(Lb[i], S - Ub[i])) return false;
+	}
+	return true;
+}
+
+inline ll allocate(int l, int r, int limit, ll sum) {
+	int width = r - l + 1, base = real[l]; lldiv_t res;
+	down(sum, (ll)limit * width), res = lldiv(sum, width);
+	std::fill(real +  l, real + (l + res.rem), base + res.quot + 1);
+	std::fill(real + (l + res.rem), real + (r + 1), base + res.quot);
+	return sum;
+}
+
+bool check(int count, int value) {
+	int i, j, _1, _rg, _crg; ll remain;
+	_1 = std::count(score, score + count, -1);
+	_rg = max(*std::max_element(score, score + n), 0);
+	_crg = std::count(score, score + count, _rg);
+	if (_1 + _crg != count || (_crg &amp;&amp; _rg &lt; value)) return false;
+	if (!_crg) _rg = value;
+
+	std::fill(real, real + count, _rg);
+	for (i = n - 1; i &gt;= count; --i) real[i] = ((fixed[i] = (bool)~score[i]) ? score[i] : real[i + 1]);
+	if ((remain = -std::accumulate(real, real + n, -S)) &lt; 0) return false;
+
+	for (j = n, i = n - 1; i &gt;= count; --i)
+		if (fixed[i])
+			i == --j || (remain -= allocate(i + 1, j, real[i] - real[j], remain), j = i);
+	if (count != j) remain -= allocate(count, j - 1, real[count - 1] - real[j], remain);
+
+	return remain ? !_crg &amp;&amp; (value += (remain + j - 1) / j) &lt;= T &amp;&amp; check(count, value) : test(real);
+}
+
+int main() {
+	int i, c, L, R, M;
+	scanf("%d%d", &amp;T, &amp;n), memset(score, -1, (n + 1) &lt;&lt; 2), score[n] = 0;
+	for (i = 0; i &lt; T; ++i) scanf("%d%d", lb + i, ub + i);
+	std::sort(lb, lb + T, std::greater &lt;int&gt; ());
+	std::sort(ub, ub + T, std::greater &lt;int&gt; ());
+	for (i = T - 1; i &gt;= 0; --i) Lb[i] = Lb[i + 1] + lb[i], Ub[i] = Ub[i + 1] + ub[i];
+	for (i = T; i &gt;= 0; --i) Lb[i] = *Lb - Lb[i];
+	for (scanf("%d", &amp;L); L; --L) scanf("%d%d", &amp;i, &amp;R), score[--i] = R;
+	scanf("%lld", &amp;S);
+	for (L = 0, R = n; L &lt; R; check(M = (L + R + 1) / 2, 0) ? L = M : (R = M - 1));
+	if (!L) return puts("-1 -1"), 0;
+	for (c = L, L = 0, R = T; L &lt; R; check(c, M = (L + R + 1) / 2) ? L = M : (R = M - 1));
+	printf("%d %d\n", c, L);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在递归再做一遍时记得检查是否有 $Q \leq n$ 成立，因为理论上讲，如果不加限制那么填第一个 "水洼" 的过程将会是永无止境的。</p>
+		<p><strong>坑2：</strong>注意 $l_i, r_i, s_i$ 排序的顺序，如果初始排序的顺序是反的，那么上面这些式子 ($\eqref 3, \eqref 5, \eqref 7$) 也需要做适当更改。</p>
+	</body>
+</html>

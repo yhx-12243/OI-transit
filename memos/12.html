@@ -10,7 +10,7 @@
 		<title>完整多项式模板</title>
 	</head>
 	<body>
-		<h3>完整多项式模板 (乘除、指对、分治、求值、插值)</h3>
+		<h3>完整多项式模板 (乘除、指对、分治、求值、插值) <sub><del class="text-muted">(继续卡常版)</sub></h3>
 
 		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">// This is a polynomial template for C++11
 #include &lt;bits/stdc++.h&gt;
@@ -23,15 +23,17 @@ typedef int vec[N], *pvec;
 typedef std::pair &lt;int, int&gt; pr;
 typedef std::vector &lt;int&gt; vector;
 
-vec fact, inv, finv;
+vec inv;
 
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
 inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
 ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
 
 void init() {
 	int i;
-	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = (ll)(mod - mod / i) * inv[mod % i] % mod;
-	for (*finv = *fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = ll(mod - mod / i) * inv[mod % i] % mod;
 }
 
 namespace Poly {
@@ -77,7 +79,7 @@ namespace Poly {
 
 	vec B1, B2, B3, B4, B5, B6, B7;
 
-	// Multiplication (use buffer 1)
+	// Multiplication (use one buffer, 3-dft of length 2n)
 	void Mul(int deg, pvec a, pvec b, pvec c) {
 		if (!deg) {*c = (ll)*a * *b % mod; return;}
 		NTT_init(lg2(deg) + 1);
@@ -88,19 +90,22 @@ namespace Poly {
 		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
 	}
 
-	// Inversion (use buffer 1, 2, 3)
+	// Inversion (use four buffers, 5-dft)
 	void Inv(int deg, pvec a, pvec b) {
-		int len, i; ll iv = iv2;
-		if (!*a) fputs("Inv::Calculate inverse of polynomial with constant term 0 !\n", stderr), abort();
-		*b = PowerMod(*a, mod - 2), b[1] = 0, *B1 = *a, B1[1] = a[1];
+		int i, len; ll iv = 1; assert(*a);
+		if (*b = PowerMod(*a, mod - 2), deg &lt;= 1) return;
+		memset(b + 1, 0, i = 8 &lt;&lt; lg2(deg - 1)), memset(B1, 0, i), *B1 = *a;
+
 		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
-			NTT_init(len + 2);
-			memset(b + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(b, B2);
-			memset(B1 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(B1, B3);
-			for (i = 0; i &lt; n; ++i) reduce(B2[i] = B2[i] * (2ll - (ll)B2[i] * B3[i] % mod) % mod);
-			DNTT(B2, B3), std::reverse(B3 + 1, B3 + n), iv = (iv &gt;&gt; 1) + iv2;
-			for (i = 0; i &lt; n &gt;&gt; 1; ++i) b[i] = B3[i] * iv % mod;
-			memcpy(B1 + i, a + i, n &lt;&lt; 1);
+			NTT_init(len + 1), iv = (iv &gt;&gt; 1) + iv2;
+
+			memcpy(B1 + (n &gt;&gt; 1), a + (n &gt;&gt; 1), n &lt;&lt; 1), DNTT(b, B2), DNTT(B1, B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B4[i] = B4[n - i] * iv % mod;
+
+			memset(B4, 0, n &lt;&lt; 1), DNTT(B4, B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B4[n - i] * (mod - iv) % mod;
 		}
 	}
 
@@ -123,10 +128,10 @@ namespace Poly {
 		for (i = 0; i &lt; degB; ++i) reduce(r[i] = a[i] - r[i]);
 	}
 
-	// Multiplication with std::vector (use buffer 1, 2, 3)
+	// Multiplication with std::vector (use three buffers, 3-dft)
 	void Mul(vector &amp;a, vector &amp;b, vector &amp;ret) {
 		int degA = a.size() - 1, degB = b.size() - 1;
-		if (!(degA || degB)) {ret.emplace_back((ll)a[0] * b[0] % mod); return;}
+		if (!(degA || degB)) {ret.EB((ll)a[0] * b[0] % mod); return;}
 		NTT_init(lg2(degA + degB) + 1);
 		int i; ll iv = mod - (mod - 1) / n;
 		memcpy(B1, a.data(), (degA + 1) &lt;&lt; 2), memset(B1 + (degA + 1), 0, (n - degA - 1) &lt;&lt; 2);
@@ -141,28 +146,75 @@ namespace Poly {
 	void Diff(int deg, pvec a, pvec b) {for (int i = 1; i &lt;= deg; ++i) b[i - 1] = (ll)a[i] * i % mod;}
 
 	// Integral
-	void Intg(int deg, pvec a, pvec b, int ct = 0) {for (int i = 1; i &lt;= deg; ++i) b[i] = (ll)a[i - 1] * inv[i] % mod; *b = ct;}
+	void Intg(int deg, pvec a, pvec b, int ct = 0) {for (int i = deg; i; --i) b[i] = (ll)a[i - 1] * inv[i] % mod; *b = ct;}
 
-	// Logarithm (use buffer 4, 5, 6)
-	void Ln(int deg, pvec a, pvec b) {
-		if (*a != 1) fputs("Ln::Calculate logarithm of polynomial without constant term 1 !\n", stderr), abort();
-		if (!--deg) {*b = 0; return;}
-		int i, j = deg * 2 - 1; NTT_init(lg2(j) + 1);
-		Diff(deg, a, B4), Inv(deg, a, B5);
-		for (i = deg; i &lt; n; ++i) B4[i] = B5[i] = 0;
-		Mul(j, B4, B5, B6), Intg(deg, B6, b);
+	// f'[x] / f[x] (use five buffers, 6.5-dft)
+	void DifQuo(int deg, pvec a, pvec b) {
+		assert(*a);
+		if (deg &lt;= 1) {*b = PowerMod(*a, mod - 2, a[1]); return;}
+
+		int i, len = lg2(deg - 1); ll iv = mod - ((mod - 1) &gt;&gt; (len + 1));
+		Inv((deg + 1) / 2, a, B5), NTT_init(len + 1),
+		memset(B5 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(B5, B2),
+
+		Diff(deg, a, B1), memcpy(B5, B1, n &lt;&lt; 1),
+		memset(B5 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(B5, B3);
+
+		for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod;
+		DNTT(B3, b), *b = *b * iv % mod;
+		for (i = 1; i &lt; n &gt;&gt; 1; ++i) b[i] = b[n - i] * iv % mod;
+		memset(b + (n &gt;&gt; 1), 0, n &lt;&lt; 1);
+
+		DNTT(b, B4), DNTT(a, B3);
+		for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B4[i] % mod; DNTT(B3, B4);
+		for (i = n &gt;&gt; 1; i &lt; n; ++i) B4[i] = (B4[n - i] * iv + mod - B1[i]) % mod;
+
+		memset(B4, 0, n &lt;&lt; 1), DNTT(B4, B3);
+		for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
+		for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B4[n - i] * (mod - iv) % mod;
 	}
 
-	// Exponentiation (use buffer 6, 7)
+	// Logarithm (use DifQuo)
+	inline void Ln(int deg, pvec a, pvec b) {assert(*a == 1), --deg ? (DifQuo(deg, a, b), Intg(deg, b, b)) : void(*b = 0);}
+
+	// Exponentiation (use seven buffers, 12-dft)
 	void Exp(int deg, pvec a, pvec b) {
-		int len, i, n = 2;
-		if (*a) fputs("Exp::Calculate exponent of polynomial without constant term 0 !\n", stderr), abort();
-		*b = 1, b[1] = 0;
-		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len, n &lt;&lt;= 1) {
-			Ln(n, b, B7), *B7 = 1;
-			for (i = 1; i &lt; n; ++i) reduce(B7[i] = a[i] - B7[i]);
-			memset(B7 + n, 0, n &lt;&lt; 2), memset(b + n, 0, n &lt;&lt; 2);
-			Mul((n &lt;&lt; 1) - 1, b, B7, B6), memcpy(b, B6, n &lt;&lt; 2);
+		int i, len; ll iv = iv2; pvec c = B7; assert(!*a);
+		if (*b = 1, deg &lt;= 1) return;
+		if (b[1] = a[1], deg == 2) return;
+
+		memset(b + 2, 0, i = 8 &lt;&lt; lg2(deg - 1)), memset(c, 0, i), memset(B1, 0, i),
+		*c = 1, neg(c[1] = b[1]);
+
+		for (len = 1; 1 &lt;&lt; len &lt; deg; ++len) {
+			NTT_init(len + 1), iv = (iv &gt;&gt; 1) + iv2;
+
+			DNTT(c, B2), DNTT(b, B3);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B3[i] * B2[i] % mod; DNTT(B4, B5);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B5[i] = B5[n - i] * iv % mod;
+
+			memset(B5, 0, n &lt;&lt; 1), DNTT(B5, B4);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B2[i] % mod; DNTT(B4, B5);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B5[i] = B5[n - i] * (mod - iv) % mod;
+
+			memcpy(B5, c, n &lt;&lt; 1), DNTT(B5, B6);
+			Diff(n &gt;&gt; 1, b, B1), DNTT(B1, B4);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B6[i] % mod; DNTT(B4, B6);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) reduce(B5[i] = (a[i] - B6[n - i + 1] * iv % mod * inv[i]) % mod);
+
+			memset(B5, 0, n &lt;&lt; 1), DNTT(B5, B4);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B3[i] % mod; DNTT(B4, B5);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B5[n - i] * iv % mod;
+
+			if (2 &lt;&lt; len &gt;= deg) return;
+
+			DNTT(b, B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B4[i] = B4[n - i] * iv % mod;
+
+			memset(B4, 0, n &lt;&lt; 1), DNTT(B4, B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) c[i] = B4[n - i] * (mod - iv) % mod;
 		}
 	}
 }
@@ -171,7 +223,7 @@ namespace PolyEvaluation {
 	using namespace Poly;
 
 	int cnt = 0, lc[N], rc[N];
-	vec Prd_, E1, E2, E3;
+	vec Prd_, E1, E2, E3, E4;
 	vector g[N], tmp_;
 
 	int solve(int L, int R) {
@@ -189,25 +241,21 @@ namespace PolyEvaluation {
 			tmp_.EB((poly[n] + (ll)poly[n - 1] * g[rp].back()) % mod),
 			tmp_.EB((poly[n] + (ll)poly[n - 1] * g[lp].back()) % mod);
 
-		NTT_init(lg2(n + dr) + 1);
-		ll iv = mod - (mod - 1) / Poly::n;
-		vector pntt(Poly::n, 0), nxt;
-		memcpy(E1, poly.data(), (n + 1) &lt;&lt; 2), DNTT(E1, pntt.data()), memset(E1, 0, (n + 1) &lt;&lt; 2);
+		vector ly, ry; ly.reserve(dl + 1), ry.reserve(dr + 1);
+		NTT_init(lg2(dl + dr) + 1); ll iv = mod - (mod - 1) / Poly::n;
+		memcpy(E1, poly.data(), (n + 1) &lt;&lt; 2), DNTT(E1, E2), memset(E1, 0, (n + 1) &lt;&lt; 2);
 
-		memcpy(E2, g[rp].data(), (dr + 1) &lt;&lt; 2), DNTT(E2, E3);
-		for (i = 0; i &lt; Poly::n; ++i) E3[i] = (ll)E3[i] * pntt[i] % mod;
-		DNTT(E3, E2), std::reverse(E2 + 1, E2 + Poly::n);
-		nxt.clear(), nxt.reserve(dl + 1);
-		for (i = n - dl; i &lt;= n; ++i) nxt.EB(E2[i] * iv % mod);
-		memset(E2, 0, (n + dr + 1) &lt;&lt; 2), recursion(lp, L, M, nxt);
+		memcpy(E1, g[rp].data(), (dr + 1) &lt;&lt; 2), DNTT(E1, E3), memset(E1, 0, (dr + 1) &lt;&lt; 2);
+		for (i = 0; i &lt; Poly::n; ++i) E3[i] = (ll)E3[i] * E2[i] % mod;
+		DNTT(E3, E4), std::reverse(E4 + 1, E4 + Poly::n);
+		for (i = n - dl; i &lt;= n; ++i) ly.EB(E4[i] * iv % mod);
 
-		NTT_init(lg2(n + dr) + 1);
-		memcpy(E2, g[lp].data(), (dl + 1) &lt;&lt; 2), DNTT(E2, E3);
-		for (i = 0; i &lt; Poly::n; ++i) E3[i] = (ll)E3[i] * pntt[i] % mod;
-		DNTT(E3, E2), std::reverse(E2 + 1, E2 + Poly::n);
-		nxt.clear(), nxt.reserve(dr + 1);
-		for (i = n - dr; i &lt;= n; ++i) nxt.EB(E2[i] * iv % mod);
-		memset(E2, 0, (n + dl + 1) &lt;&lt; 2), recursion(rp, M, R, nxt);
+		memcpy(E1, g[lp].data(), (dl + 1) &lt;&lt; 2), DNTT(E1, E3), memset(E1, 0, (dl + 1) &lt;&lt; 2);
+		for (i = 0; i &lt; Poly::n; ++i) E3[i] = (ll)E3[i] * E2[i] % mod;
+		DNTT(E3, E4), std::reverse(E4 + 1, E4 + Poly::n);
+		for (i = n - dr; i &lt;= n; ++i) ry.EB(E4[i] * iv % mod);
+
+		recursion(lp, L, M, ly), recursion(rp, M, R, ry);
 	}
 
 	vector emain(int n, pvec f, const vector &amp;pts) {

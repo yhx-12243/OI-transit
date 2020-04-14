@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[soj848][Codeforces1148H]Holy Diver</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你需要实现一个数据结构，用来维护一个数列 $a$，初始为空。</p>
+		<p>每次给出 $a, l, r, k$，你需要在数列 $a$ 的末尾插入 $x$，然后查询有多少数对 $\left( x, y \right)$ 满足 $l \leq x \leq y \leq r$ 且 $\operatorname{mex} \left\{ a_x, a_{x+1}, a_{x+2}, \cdots, a_y \right\} = k$。</p>
+		<p>$a$ 的下标从 $1$ 开始，$\operatorname{mex} \left( S \right)$ 表示集合 $S$ 中<strong>最小的未出现的自然数</strong>。例如 $\operatorname{mex} \left\{ 2, 2, 3 \right\} = 0, \operatorname{mex} \left\{ 0, 1, 4, 1, 6 \right\} = 2$。</p>
+		<p>由于一些特殊的原因，问题<strong>强制在线</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 2 \times 10^5$)，表示操作次数，同时也等于 $a$ 的长度。</p>
+		<p>接下来 $n$ 行，每行四个整数 $a', l', r', k'$ ($0 \leq a', l', r', k' \leq 10^9$)，表示加密后的操作参数。</p>
+		<p>我们令上一次询问的答案为 $lans$ (初始为 $0$)，那么第 $i$ 次操作的实际参数为 $a = \left( a' + lans \right) \bmod \left( n + 1 \right), l = \left( l' + ans \right) \bmod i + 1, r = \left( r' + ans \right) \bmod i + 1, k = \left( k' + ans \right) \bmod \left( n + 1 \right)$。若 $l &gt; r$ 则交换它们。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $n$ 行，每行一个整数，表示对应询问的答案。</p>
+
+		<h3>题解</h3>
+		<p>首先，记 $M_{l, r} = \operatorname{mex} \left\{ a_l, a_{l+1}, \cdots, a_{r-1}, a_r \right\}$。那么，不难发现一个性质：$M_{l, r} \geq M_{l + 1, r}, M_{l, r} \geq M_{l, r - 1}$。</p>
+		<p>事实上，$\operatorname{mex}$ 满足关于子集的偏序：即一个集合的 $\operatorname{mex}$ 不会比它的子集的 $\operatorname{mex}$ 小。</p>
+		<p>由于问题强制在线，因此我们考虑动态维护这个 $M$ 矩阵。我们约定用第 $r$ 行的第 $l$ 个数表示 $M_{l, r}$ ($l \leq r$)。</p>
+		<p>我们考察相邻两行之间会发生什么改变。</p>
+		<p>设我们从第 $r$ 行转移到了第 $r + 1$ 行，记 $x = a_{r+1}$。</p>
+		<p>由 $\operatorname{mex}$ 的递增性质知，下一行的每个元素只会比前一行的对应元素大。</p>
+		<p>首先，很显然有 $M_{r+1, r+1} = \left[ x = 0 \right]$，且第 $r + 1$ 行不会出现 $x$。</p>
+		<p>其次，若矩阵的第 $r$ 中没有出现 $x$，那么第 $r + 1$ 行 (除了最后一个数外) 应与第 $r$ 行完全相同。因为事实上 $x$ 的出现不会影响这些集合的 $\operatorname{mex}$。</p>
+		<p>反之，设出现了 $x$，设它的出现区间为 $l \in \left[ \alpha, \beta \right]$，那么第 $r + 1$ 行<span style="color: blue">只有 $\left[ \alpha, \beta \right]$ 对应位置上的数会发生改变</span>。</p>
+		<p>那它们具体会改变成啥呢？注意到当右端点 ($r$) 确定时，这整行的 $\operatorname{mex}$ 值<strong style="color: blue">只和各个数最后一次出现的位置</strong>有关。</p>
+		<p>注意到 $\left[ l, r \right]$ ($\alpha \leq i \leq \beta$) 这些区间中都已经出现过 $0, 1, 2, \cdots, x$ 了，因此我们只需要考虑大于 $x$ 的数。</p>
+		<p><strong>从 $x + 1, x + 2$ 开始依次考虑各个 $y$</strong>。对于某个 $y &gt; x$，若 $y$ 最后一次出现的位置 (下设为 $\color {teal} {pos_y}$，若未出现则设为 $0$) 满足 $pos_y \geq \beta$，那么所有这样的区间都会包含 $y$，从而这个 $y$ 不会作为 $\operatorname{mex}$ 值出现。</p>
+		<p>否则，分两种情况讨论：</p>
+		<ol>
+			<li><p>若 $\alpha \leq pos_y &lt; \beta$，那么对于 $\forall pos_y &lt; l \leq \beta$，区间 $\left[ l, r \right]$ 的 $\operatorname{mex}$ 值就确定为 $y$ 了，因此下面只需令 $\beta \gets pos_y$，转化为一个更小的子问题。</p></li>
+			<li><p>若 $pos_y &lt; \alpha$，那么对于 $\forall \alpha \leq l \leq \beta$，区间 $\left[ l, r \right]$ 的 $\operatorname{mex}$ 都会变成 $y$，因此完成这一轮赋值就可以跳出这个循环了。</p></li>
+		</ol>
+		<p>而重复上面这个过程 ($y \gets x + 1, x + 2, \cdots$，依次判断)，终究会在某一步跳出循环，因为当 $y$ 充分大时 $y$ 肯定不会在序列中出现，从而 $pos_y = 0 &lt; \alpha$。</p>
+		<p>先不考虑时间复杂度是否合理，我们已经得到了一个维护 $M$ 矩阵的方法。</p>
+		<hr />
+		<p>接下来考虑如何回答询问。</p>
+		<p>观察这些询问的格式，实质上就是询问一个矩阵的<strong>子矩阵中</strong>共出现了多少个 $k$。</p>
+		<p>这引导我们将矩阵中出现的 $k$ 记录下来并查询。</p>
+		<p>那么，对于一个数 $k$，它在矩阵中出现的位置又有什么规律呢？</p>
+		<p>我们从它的<del>出生分析到死亡</del>，搞清楚它的来龙去脉。</p>
+		<p>首先，$k$ 在某一行出现，说明上述过程中，把某个 $\left[ \alpha, \beta \right]$ 替换掉后变成了 $k$。</p>
+		<p>由于矩阵的行单调性，从这一行开始，$k$ 出现的位置是一个固定的区间：$\left[ \alpha_k, \beta_k \right]$。</p>
+		<p>在接下来加入的数不是 $k$ 的情况下，这个区间不会改变，从而 $k$ 的轨迹形成了一个<strong>子矩形</strong>。</p>
+		<p>然后这个矩形是不是也有 "扩张" 的时机：但这只有一种可能的方式：即 $k$ 右边的那个连续段被删掉，产生的子段中最左边的一段恰好等于 $k$。</p>
+		<p>最后，直到某一次，序列中再次加入 $k$，这块连续的 $k$ 就自此<del>永远地</del>消失了。</p>
+		<p style="color: red">(ps: 这只是代表这一 "块" $k$ 消失了，$k$ 可能在后面的块的重新出现，不过注意到当 $k$ 消失后 $\left[ \alpha_k, \beta_k \right]$ 位置上的数均 $&gt; k$，因此下一块出现的左端点一定<strong>大于上一块出现的右端点</strong></p>
+		<p>综上，每个数 ($k$) 出现的轨迹为若干个 "连通块"，其中每个连通块由若干个左端点相同的矩形构成，且下一个连通块的左端点大于上一个连通块的右端点。</p>
+		<p>我们将这些连通块按照顺序 (从上到下，从左到右，本质相同) 排序，于是查找时只需要二分找到两个界即可，然后通过预先维护面积的前缀和来计算。</p>
+		<p>当然，这里要注意一些细节：因为询问的子矩阵 $T$ 并不是完整的，因此可能存在若干个小矩形和 $T$ 交了一部分，从而需要进行特殊处理。</p>
+		<p>这样的小矩形只有可能在 $T$ 的左边和下面 (由询问矩形的特性易知)，而无论是左边还是下面，这些 "相交" 非 "包含" 的连通块至多一个。</p>
+		<p>以下面为例，我们只需要继续二分出这个连通块中与它相交的矩形，然后由于矩形与矩形的交仍然是矩形，从而算出面积差。</p>
+		<p>对左边的情况也是同理的。</p>
+		<p>这样一来，就是说如果我们得到了 $k$ 所在的矩形分布，可以在单次 $O \left( \log n \right)$ 的时间内得到答案。</p>
+		<hr />
+		<p>最后的问题就是如何维护一个数所在的矩形分布，换句话说即如何快速维护 $M$ 矩阵。</p>
+		<p>事实上，我们先证明一个引理 (它表明了维护这件事情是可行的)：</p>
+		<p><strong style="color: green">所有数出现的轨迹构成的矩形个数为 $O \left( n \right)$。</strong></p>
+		<p>如果直接顺着分析，发现并不好分析 —— 一个连续段被分裂成多个连续段。</p>
+		<p>但是如果我们<strong>倒着分析</strong>，事情就会柳暗花明：每次操作相当于<strong>若干个连续段合并成一个连续段</strong>，而初末状态的连续段个数都为 $O \left( n \right)$，由 <strong>Chtholly 树</strong>的性质/复杂度分析可知总出现的段数就是 $O \left( n \right)$，得证。</p>
+		<p>从而，只要我们每次找到的都是有用的 $y$ (即会影响这些连续段的)，那么复杂度就是正确的了。</p>
+		<p>至于如何找这个 $y$，就相当于找到最小的 $y$ 使得 $pos_y &lt; \beta$，这种存在性的二维数点直接一个线段树上去就搞定了。</p>
+		<p><del class="text-muted">(ps: 好像这里暴力也跑得很快的样子，随便卡卡常都能过)</del></p>
+		<p>于是插入的总复杂度为 $O \left( n \log n \right)$ <del class="text-muted">或 $O \left( n^2 \right)$</del>。</p>
+		<p>最后注意一个实现细节，由于整个问题是动态的 (且强制在线)，因此对于每个数 $k$，如果它在最后一行，那么它在最后一行的矩形是会不断 "延展" 的 (下面称之为 "活矩形")，对于活矩形，我们先不把它放入矩形列表 (如 <code>std::vector</code>) 中，询问时单独计算它的贡献，直到一个活矩形不再 "延展" (即这个连续段被分裂) 时，再加入矩形列表中。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::vector;
+
+typedef long long ll;
+const int N = 200054;
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+struct rect {
+	int t, b, l, r;
+	rect (int top = 0, int bottom = 0, int left = 0, int right = 0) : t(top), b(bottom), l(left), r(right) {}
+	inline ll area() const {return (ll)max(b - t, 0) * max(r - l, 0);}
+	inline rect operator &amp; (const rect &amp;B) const {return rect(max(t, B.t), min(b, B.b), max(l, B.l), min(r, B.r));}
+};
+
+typedef std::pair &lt;rect, ll&gt; prl;
+
+int n, mn[4][N], *last = *mn;
+bool occupied[N];
+rect cur[N];
+ll ans = 0, enc;
+vector &lt;prl&gt; seq[N];
+
+inline void archive(int val, const rect &amp;R) {seq[val].EB(R, seq[val].back().second + R.area());}
+
+inline void insert(int val, const rect &amp;R) {
+	if (occupied[val]) {
+		if (R.l == cur[val].l &amp;&amp; R.r == cur[val].r) return;
+		else if (R.l == cur[val].r)
+			cur[val].b = R.t, archive(val, cur[val]),
+			cur[val] = rect(R.t, R.b, cur[val].l, R.r);
+		else throw "internal error !";
+	} else cur[val] = R, occupied[val] = true;
+}
+
+template &lt;typename condition&gt;
+inline int bisect(const vector &lt;prl&gt; &amp;set, condition cond) {return std::partition_point(set.begin(), set.end(), cond) - set.begin();}
+
+ll solve(const vector &lt;prl&gt; &amp;set, int lb, int ub) {
+	if (set.size() &lt; 2) return 0;
+	int L, R, M; ll ret; rect z(lb, ub, lb, ub);
+	L = bisect(set, [lb] (const prl &amp;e) {return e.first.b &lt;= lb || e.first.r &lt;= lb;});
+	R = bisect(set, [ub] (const prl &amp;e) {return e.first.t &lt; ub &amp;&amp; e.first.l &lt; ub;});
+	if (L &gt;= R) return 0;
+	if (L + 1 == R) return (set[L].first &amp; z).area();
+	ret = set[R - 1].second - set[L - 1].second
+		+ (set[L].first &amp; z).area() - set[L].first.area()
+		+ (set[R - 1].first &amp; z).area() - set[R - 1].first.area();
+	M = min(bisect(set, [lb] (const prl &amp;e) {return e.first.l &lt; lb;}), R - 1);
+	if (L + 1 &lt; M)
+		assert(set[L + 1].first.l == set[M - 1].first.l),
+		ret -= ll(lb - set[L + 1].first.l) * (set[M - 1].first.b - set[L + 1].first.t);
+	return ret;
+}
+
+inline void updmin(int h) {
+	int i, j;
+	for (i = 0; i &lt; 3; ++i)
+		for (j = max(h - (2 &lt;&lt; i) + 1, 0); j &lt;= h; ++j)
+			mn[i + 1][j] = min(mn[i][j], mn[i][j + (1 &lt;&lt; i)]);
+}
+
+int main() {
+	int i, j, x, y, l, r, k;
+	scanf("%d%lld", &amp;n, &amp;enc), enc = -enc;
+	for (i = 0; i &lt;= n + 1; ++i) seq[i].EB(rect(), 0);
+	for (i = 1; i &lt;= n; ++i) {
+		scanf("%d%d%d%d", &amp;x, &amp;l, &amp;r, &amp;k);
+		x = (x + (ans &amp; enc)) % (n + 1), k = (k + (ans &amp; enc)) % (n + 1),
+		l = (l + (ans &amp; enc)) % i + 1, r = (r + (ans &amp; enc)) % i + 1;
+		if (l &gt; r) std::swap(l, r);
+		if (occupied[x]) {
+			int l = cur[x].l, r = cur[x].r;
+			cur[x].b = i, archive(x, cur[x]), occupied[x] = false;
+			for (y = x + 1; ; ) {
+				if (mn[3][y] &gt;= r - 1) {y += 8; continue;}
+				if (j = last[y], j &lt; l) {insert(y, rect(i, i, l, r)); break;}
+				else if (j &lt; r - 1) insert(y++, rect(i, i, j + 1, r)), r = j + 1;
+				else ++y;
+			}
+		}
+		insert(!x, rect(i, i + 1, i, i + 1)), last[x] = i, updmin(x);
+		ans = solve(seq[k], l, r + 1);
+		if (occupied[k]) cur[k].b = i + 1, ans += (cur[k] &amp; rect(l, r + 1, l, r + 1)).area();
+		printf("%lld\n", ans);
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>算相交部分面积的时候注意不要多算，一个比较明智的方法是对矩形类 (<code>rect</code>) 定义 "交" <code>&amp;</code> 运算和求面积 (<code>area()</code>) 函数。</p>
+		<p><strong>坑2：</strong>二分时注意一些取等条件，当然也可以偷懒使用 STL 自带的二分函数 <code>std::partition_point</code>。</p>
+	</body>
+</html>

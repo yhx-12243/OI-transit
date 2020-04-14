@@ -4,6 +4,7 @@
 
 	const
 		cfColor = {
+			// en
 			'pupil' : 'green',
 			'specialist' : 'cyan',
 			'expert' : 'blue',
@@ -12,7 +13,17 @@
 			'international master' : 'orange',
 			'grandmaster' : 'red',
 			'international grandmaster' : 'red',
-			'legendary grandmaster' : 'legendary'
+			'legendary grandmaster' : 'legendary',
+			// ru
+			'ученик' : 'green',
+			'специалист' : 'cyan',
+			'эксперт' : 'blue',
+			'кандидат в мастера' : 'violet',
+			'мастер' : 'orange',
+			'международный мастер' : 'orange',
+			'гроссмейстер' : 'red',
+			'международный гроссмейстер' : 'red',
+			'легендарный гроссмейстер' : 'legendary',
 		};
 
 	let
