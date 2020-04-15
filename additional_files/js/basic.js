@@ -229,13 +229,13 @@ const
 		$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
 
 		if (getStorage('check-version') !== 'off') {
-			let local_ver = '7.1.1', prompt_str;
+			let local_ver = '7.2', prompt_str;
 			$.ajax('https://yhx-12243.github.io/OI-transit/additional_files/others/version', {
 				type : 'GET',
 				cache : false,
 				success : ver => {
 					if (natcmp(local_ver, ver = ver.trim()) < 0) {
-						prompt_str = 'Warning: 当前 OI-transit 版本 (' + local_ver + ') 非最新版本 (' + ver + ')，请去 https://github.com/yhx-12243/OI-transit 获取最新版。';
+						prompt_str = 'Warning: 当前 OI-transit 版本 (' + local_ver + ') 非最新版本 (' + ver + ')，请前往 https://github.com/yhx-12243/OI-transit 获取最新版。';
 						console.log(prompt_str);
 						if (confirm(prompt_str + '\n    (点击确定进入 GitHub，点击取消不再提醒)')) {
 							win.open('https://github.com/yhx-12243/OI-transit');
