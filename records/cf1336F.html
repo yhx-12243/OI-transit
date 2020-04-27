@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1336F]Journey</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style>
+			.fbi-warning, .fbi-warning a {color: white}
+			.fbi-warning:hover {color: inherit}
+			.fbi-warning:hover a {color: #428bca}
+		</style>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个顶点的树和树上的 $m$ 条路径。</p>
+		<p>你需要选出两条路径，满足它们至少有 $k$ 条公共边。求一共有多少种方案，注意两条路径之间是无序的。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, k$ ($2 \leq n, m \leq 1.5 \times 10^5; 1 \leq k \leq n$)，分别表示树的点数、路径的条数以及最小交集大小。</p>
+		<p>接下来 $n - 1$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，描述树上的一条边。保证这 $n - 1$ 条边恰好构成一棵树。</p>
+		<p>最后 $m$ 行，每行两个正整数 $s_i, t_i$ ($1 \leq s_i, t_i \leq n; s_i \neq t_i$)，表示一条路径的两个端点。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的方案数 (即路径无序对的个数)。</p>
+
+		<h3>题解</h3>
+		<h4 class="fbi-warning text-center"><del>Warning：请 停 止 你 的 <a href="../index.html?redirect=678" target="_blank">情 报 中 心</a> 行 为</del></h4>
+		<p>不难发现，这道题和 <a href="../index.html?redirect=678" target="_blank">[NOI2018]情报中心</a> 非常像<del class="text-muted">而且都很毒瘤</del>。</p>
+		<p>注意到题目中和<strong>链交</strong>有关，<del>熟练的你已经会条件反射般地</del>进行分类讨论：<strong>两条链的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 不同、两条链的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 相同</strong>。</p>
+		<p>那么，我们继续走这条<del>前辈们走过的</del>分类讨论之路吧！</p>
+		<ol>
+			<li><p>两条链的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 不同。</p>
+			<p>其实这种情况还是两种情况中稍微简单点的一种。首先，<del>还是老套路</del>，此时两条链的交一定是一条深度 "单调" 的链，如下图：</p>
+			<img class="center-block" src="uploads/129.png" alt="LCA 不同" />
+			<p>此时，对于满足条件的链对，<span style="color: red">红点 $r$</span> 和<span style="color: green">绿点 $g$</span> 的距离至少为 $k$。</p>
+			<p>一种比较好的策略是，将这样的点对在 "路径 $\color {red} r \leadsto \color {green} g$ 中与 $\color {green} g$ 距离为 $k$ 的点" (下记为 $x$) 处进行统计。</p>
+			<p>那么现在固定 $x$，这两条链就需要满足：</p>
+			<ul>
+				<li><p>两条链的其中一个端点位于以 $x$ 为根的子树中 (注意它们的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 不一定是 $x$)。</p></li>
+				<li><p>两条链自身的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr>，其中<strong>恰有一个为 $p^\left( k \right) \left( x \right)$，另一个为 $p^\left( k \right) \left( x \right)$ 的 (严格) 祖先节点</strong>。其中 $p^\left( k \right) \left( x \right)$ 表示 $x$ 的 $k$ 级祖先，在本例中即为 $\color {green} g$。</p></li>
+			</ul>
+			<p>不难证明每个题目所需的链对只会在 $x$ 处满足上述两个条件，每满足上述两个条件的链对也恰好是题目所需的链对。</p>
+			<p>那该如何对上述两个条件进行统计呢？</p>
+			<p>还是先考虑固定 $x$。我们将每条链 $\left( u, v \right)$ 看成平面上的两个点 $\left( u, \operatorname{LCA} \left( u, v \right) \right)$ 和 $\left( v, \operatorname{LCA} \left( u, v \right) \right)$。那么点 $\left( x_1, y_1 \right), \left( x_2, y_2 \right)$ 满足上述两个条件，当且仅当：</p>
+			<ul>
+				<li><p>$x_1, x_2$ 都是 $x$ 的后代节点。</p></li>
+				<li><p>$\max \left\{ dep_{y_1}, dep_{y_2} \right\} = dep_x - k$，且 $dep_{y_1}, dep_{y_2}$ 不同时等于 $dep_x - k$。</p>
+			</ul>
+			<p>根据之前的套路，我们使用 <strong>dfs 序</strong>来刻画后代节点这个条件。再用深度来替代第二维，这样整个问题就转化为了一个<strong>二维数点</strong>问题。</p>
+			<p style="color: red">(ps: 这里的二维数点可能有些变式，事实上设满足第一维分量为 $x$ 的后代的点中，第二维分量小于 $dep_x - k$ 的有 $A_0$ 个，等于 $dep_x - k$ 的有 $A_1$ 个，那么对答案的贡献就是 $A_0 \cdot A_1$)</p>
+			<p>于是可以使用树状数组来解决，这部分时间复杂度 $O \left( \left( n + m \right) \log n \right)$。</p></li>
+			<li><p>两条链的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 相同。</p>
+			<p>这种情况稍稍复杂一点，其实它还细分为两种更小的情形：</p>
+			<p><span style="color: fuchsia">2.1. 链交是深度单调的链。</span> <span style="color: blue">2.2. 链交不是深度单调的链。</span></p>
+			<p>当然，根据<a href="../index.html?redirect=678" target="_blank">情报中心</a>的技巧，我们先不妨假设 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为根节点 ($1$)，最后只需要枚举所有可能的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 然后根据需要建虚树计算即可。同理，虚树的大小总和是 $O \left( m \right)$ 的。</p>
+			<p>考虑<span style="color: fuchsia">子问题 2.1</span>，于是要求链交是形如 $x \leadsto 1$ 这种单调的链。</p>
+			<p>那么，考虑原先的每条链：如果某个端点的深度 $&gt; k$，那么多出来的部分其实是无效的，我们可以将它的深度变为 $k$ (具体实现可以用倍增的 <code>jump_until</code>，或者用其它方法，总之就是个 $k$ 级祖先问题)。这样，我们就将所有 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为 $1$ 的链分为了三类：</p>
+			<ul>
+				<li>两个端点的深度都为 $k$。</li>
+				<li>恰有一个端点的深度为 $k$。</li>
+				<li>两个端点的深度都不为 $k$。</li>
+			</ul>
+			<p>很显然，第三种链在<span style="color: fuchsia">子问题 2.1</span> 中是没用的，故只需考虑前两种情况。</p>
+			<p>注意到链交的长度至少为 $k$，因此相交的两条链一定有一个相同的端点 (即 "底部" 的那个端点)。</p>
+			<p>考虑枚举这个端点 (当然这里的枚举不是暴力枚举，否则放一个类似菊花状物就 $O \left( n^2 \right)$ 了，如果要枚举也是在虚树上枚举) 并计算它的贡献：</p>
+			<p>事实上，在<span style="color: fuchsia">子问题 2.1</span> 中也不需要建虚树，只需要对于前两类链，在它的深度为 $k$ 的端点处打一个标记，表示这里有这么一条链即可。</p>
+			<p>然后，我们将所有有标记的点拉出来，在这里面枚举，就显然不会出事了。</p>
+			<p>设这些链是 $x \leadsto v_1, x \leadsto v_2, \cdots, x \leadsto v_t$。那么答案是多少呢？不一定是 $\dbinom t2$，我们还需要减去链交更大的。</p>
+			<p>即将这 $t$ 个点按照另一个端点所在子树 (或 $1$) 分组，规定同组的两个不能同时选，将这些 $\dbinom \kappa 2$ 减掉以后就是真正的答案了 (可以参见代码第 $198 \sim 202$ 行)。</p>
+			<hr />
+			<p>现在考虑<span style="color: blue">子问题 2.2</span>，即链交不单调。</p>
+			<img class="center-block" src="uploads/130.png" alt="LCA 相同" />
+			<p>此时，如上图，不难发现两条链的两个端点分别位于 $1$ 的两个不同子树中。</p>
+			<p>设这两条链为 $\left( u_1, v_1 \right), \left( u_2, v_2 \right)$。我们通过 "规定 $u_i$ 的 dfs 序小于 $v_i$ 的 dfs 序" 的方法，从而使得 $u_1, u_2$ 在 $1$ 的某个子树中，$v_1, v_2$ 在 $1$ 的另一个子树中。</p>
+			<p>这回可不像那道题一样是最远点对了，它是一个计数，要求不重不漏，而不是可重复贡献答案的 (最优化)。</p>
+			<p>还是建立虚树，我们考虑 $u_1, u_2$ 在合并 (到 $u = \operatorname{LCA} \left( u_1, u_2 \right)$) 时，对答案的影响。</p>
+			<p>设从 $u_1$ 出发的所有链集合为 $Q_1$，从 $u_2$ 出发的所有链集合为 $Q_2$。那么，我们就是要统计这样的有序对数：</p>
+			<ul>
+				<li>$\left( u_1, x_1 \right) \in Q_1, \left( u_2, x_2 \right) \in Q_2, \operatorname{dist} \left( u, \operatorname {LCA} \left( x_1, x_2 \right) \right) \geq k$。</li>
+			</ul>
+			<p>第三个条件看着就非常难处理。因为满足这样条件的 $\left( x_1, x_2 \right)$ 还真没什么简单的规律。</p>
+			<p>不过，当我们固定 $x_1$ 时，事情或许变得明朗起来……</p>
+			<ul>
+				<li>此时，一定有 $\operatorname{dist} \left( u, x_1 \right) \geq k$。然后我们找到路径 $u \leadsto x_1$ 上和 $u$ 相距 $k$ 的点，设为 $x_{pre}$，那么，$x_2$ 满足条件当且仅当 $x_2$ 是 $x_{pre}$ 的后代节点。</li>
+			</ul>
+			<p>换句话说，即从 $u$ 出发沿着 $u \to \leadsto x_1$ 的方向走 $k$ 步，统计有多少个 $x_2$ 在那个子树中。</p>
+			<p>那话说回来，你现在要合并两个点集 (即 $Q = Q_1 \cup Q_2$)，谁给你的勇气去固定 (枚举) 这个 $x_1$ 呢？</p>
+			<p>有，<strong>启发式合并</strong>！</p>
+			<p>没错，就是启发式合并。不妨设 $\left| Q_1 \right| \leq \left| Q_2 \right|$，那么我们就可以放心大胆地枚举 $Q_1$ 中的每一个点，在 $Q_2$ 中进行统计了。这样复杂度也最多只是多一个 $\log n$。</p>
+			<p>因此，最后再在外面套一层虚树，同时不要忘记多条链的 $u$ 相同时的答案计算 ($155 \sim 159$ 行)，就完成了<span style="color: blue">子问题 2.2</span> 的计数。</p>
+			<p>这部分的时间复杂度为 $O \left( \left( n + m \right) \log^2 n \right)$ (可以使用线段树合并或平衡树启发式合并，复杂度相同。不过平衡树需要 <code>__gnu_pbds::tree</code> 或手写，比较麻烦)。</p>
+			</li>
+		</ol>
+		<p>总时间复杂度 $O \left( \left( n + m \right) \log^2 n \right)$，常数貌似非常小 (相比与两只 $\log$ 的复杂度)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ctz __builtin_ctz
+#define EB emplace_back
+using std::pair;
+using std::tuple;
+using std::vector;
+
+typedef long long ll;
+const int N = 150054, M = N * 2, LN = 19;
+
+int n, m, K;
+int P[LN][N], *p = *P, dep[N];
+int cnt = 0, o[N], id[N], eid[N];
+pair &lt;int, int&gt; ch[N];
+ll ans = 0;
+
+inline ll C2(int x) {return x * (x - 1ll) / 2;}
+
+namespace Tree {
+	int E = 0;
+	int to[M], first[N], next[M];
+
+	inline void addedge(int u, int v) {
+		to[++E] = v, next[E] = first[u], first[u] = E;
+		to[++E] = u, next[E] = first[v], first[v] = E;
+	}
+
+	void dfs(int x) {
+		int i, y; o[++cnt] = x, id[x] = cnt;
+		for (i = 0; P[i][x]; ++i) P[i + 1][x] = P[i][ P[i][x] ];
+		for (i = first[x]; i; i = next[i])
+			if ((y = to[i]) != p[x])
+				p[y] = x, dep[y] = dep[x] + 1, dfs(y);
+		eid[x] = cnt;
+	}
+
+	int jump_until(int x, int d) {
+		int S = dep[x] - d;
+		for (assert(S &gt;= 0); S; S &amp;= S - 1) x = P[ctz(S)][x];
+		return x;
+	}
+
+	int LCA(int x, int y) {
+		if (dep[x] &lt; dep[y]) std::swap(x, y);
+		if (x = jump_until(x, dep[y]), x == y) return x;
+		for (int i = LN - 1; i &gt;= 0; --i)
+			if (P[i][x] != P[i][y]) x = P[i][x], y = P[i][y];
+		return p[x];
+	}
+}
+
+namespace BIT {
+	int x[N];
+
+	int sum(int h) {int s = 0; for (; h &gt;= 0; h &amp;= h + 1, --h) s += x[h]; return s;}
+	void add(int h, int v) {for (; h &lt; n; h |= h + 1) x[h] += v;}
+}
+
+namespace DIFF {
+	int F1[N], F2[N];
+	vector &lt;int&gt; cm[N];
+	vector &lt;tuple &lt;int, int, int *&gt;&gt; cq[N];
+
+	int main() {
+		int i, u, v, w, *out;
+		for (i = 0; i &lt; m; ++i)
+			std::tie(u, v) = ch[i], w = Tree::LCA(u, v),
+			cm[ id[u] ].EB(dep[w]), cm[ id[v] ].EB(dep[w]);
+		for (i = 1; i &lt;= n; ++i)
+			cq[ eid[i]  ].EB(dep[i] - K,      1, F1 + i),
+			cq[ id[i]-1 ].EB(dep[i] - K,     -1, F1 + i),
+			cq[ eid[i]  ].EB(dep[i] - K - 1,  1, F2 + i),
+			cq[ id[i]-1 ].EB(dep[i] - K - 1, -1, F2 + i);
+		for (i = 1; i &lt;= n; ++i) {
+			for (const int &amp;v : cm[i]) BIT::add(v, 1);
+			for (const auto &amp;e : cq[i]) std::tie(u, v, out) = e, *out += v * BIT::sum(u);
+		}
+		for (i = 1; i &lt;= n; ++i) ans += F2[i] * ll(F1[i] - F2[i]);
+		return 0;
+	}
+}
+
+namespace SAME {
+	namespace ST {
+		struct node {int v, lc, rc;} x[20030731];
+		int cnt, Len;
+		pair &lt;int, int&gt; Re[N];
+
+		int merge(int id1, int id2, int L, int R) {
+			if (!(id1 &amp;&amp; id2)) return id1 | id2;
+			if (L == R) return x[id1].v += x[id2].v, id1;
+			int M = (L + R - 1) &gt;&gt; 1;
+			x[id1].lc = merge(x[id1].lc, x[id2].lc, L, M);
+			x[id1].rc = merge(x[id1].rc, x[id2].rc, M + 1, R);
+			return x[id1].v = x[id1].lc[x].v + x[id1].rc[x].v, id1;
+		}
+
+		int add(int id, int L, int R, int h, int v) {
+			id || (x[++cnt] = *x, id = cnt), x[id].v += v;
+			if (L == R) return id;
+			int M = (L + R - 1) &gt;&gt; 1;
+			h &lt;= M ? x[id].lc = add(x[id].lc, L, M, h, v) : (x[id].rc = add(x[id].rc, M + 1, R, h, v));
+			return id;
+		}
+
+		int range(int id, int L, int R, int ql, int qr) {
+			if (!id || (ql &lt;= L &amp;&amp; R &lt;= qr)) return x[id].v;
+			int M = (L + R - 1) &gt;&gt; 1, s = 0;
+			if (ql &lt;= M) s += range(x[id].lc, L, M, ql, qr);
+			if (qr &gt; M) s += range(x[id].rc, M + 1, R, ql, qr);
+			return s;
+		}
+
+		void __builtin_expand(int id, int L, int R) {
+			if (!id) return;
+			if (L == R) {Re[Len++] = pair &lt;int, int&gt; (L, x[id].v); return;}
+			int M = (L + R - 1) &gt;&gt; 1;
+			__builtin_expand(x[id].lc, L, M), __builtin_expand(x[id].rc, M + 1, R);
+		}
+
+		inline void expand(int id) {Len = 0, __builtin_expand(id, 1, n);}
+	}
+
+	vector &lt;int&gt; cs[N], infos[N];
+	int vtc, vt[M];
+	int BASE, fK, stack[N], root[N];
+
+	inline bool idcmp(const int A, const int B) {return id[A] &lt; id[B];}
+
+	void merge(int u, int v) {
+		int i, g, c, di, ru = root[u], rv = root[v];
+		di = 2 * BASE + fK - dep[u];
+		if (ST::x[ru].v &lt; ST::x[rv].v) std::swap(ru, rv);
+		ST::expand(rv);
+		for (i = 0; i &lt; ST::Len; ++i)
+			if (std::tie(g, c) = ST::Re[i], dep[o[g]] &gt;= di)
+				g = Tree::jump_until(o[g], di), ans += (ll)c * ST::range(ru, 1, n, id[g], eid[g]);
+		root[u] = ST::merge(root[u], root[v], 1, n);
+	}
+
+	void DSA(int n, int *v) {
+		int i, x, y, la, di, conn, top = ST::cnt = 0;
+		for (i = 0; i &lt; n; ++i) {
+			if (x = v[i], !top) stack[++top] = x;
+			else {
+				stack[top + 1] = 0;
+				for (y = Tree::LCA(x, stack[top]); top &amp;&amp; dep[stack[top]] &gt;= dep[y]; --top)
+					if (top &gt; 1 &amp;&amp; stack[top + 1]) merge(stack[top], stack[top + 1]);
+				if (i == n - 1) return;
+				if (stack[++top] != y) root[y] = root[stack[top]], stack[top] = y;
+			}
+			stack[++top] = x, root[x] = 0;
+			la = -1, di = 2 * BASE + fK - dep[x], conn = 0;
+			for (int v : infos[x]) {
+				if (~la &amp;&amp; Tree::LCA(o[la], o[v])[dep] &gt;= di) ++conn;
+				else ans += C2(conn), conn = 1;
+				root[x] = ST::add(root[x], 1, ::n, la = v, 1);
+			}
+			ans += C2(conn);
+		}
+	}
+
+	int main() {
+		int i, u, v, w, la, conn;
+		for (i = 0; i &lt; m; ++i) std::tie(u, v) = ch[i], cs[Tree::LCA(u, v)].EB(i);
+		fK = K + (K == 1);
+		for (w = 1; w &lt;= n; ++w) if (cs[w].size() &gt; 1u) {
+			vtc = 1, *vt = w, BASE = dep[w];
+			for (int i : cs[w]) {
+				std::tie(u, v) = ch[i];
+				if (u == w || v == w) continue;
+				if (dep[u] &gt;= BASE + fK) u = Tree::jump_until(u, BASE + fK - 1);
+				if (dep[v] &gt;= BASE + fK) v = Tree::jump_until(v, BASE + fK - 1);
+				if (id[u] &gt; id[v]) std::swap(u, v);
+				infos[u].EB(id[v]), vt[vtc++] = u;
+			}
+			if (vtc &gt; 1) {
+				std::sort(vt, vt + vtc, idcmp), vtc = std::unique(vt, vt + vtc) - vt, vt[vtc++] = *vt;
+				for (i = 1; i &lt; vtc; ++i) std::sort(infos[ vt[i] ].begin(), infos[ vt[i] ].end());
+				DSA(vtc, vt);
+				for (i = 1; i &lt; vtc; ++i) infos[ vt[i] ].clear();
+			}
+			vtc = 0;
+			for (int i : cs[w]) {
+				std::tie(u, v) = ch[i];
+				if (dep[u] &gt; BASE + K) u = Tree::jump_until(u, BASE + K);
+				if (dep[v] &gt; BASE + K) v = Tree::jump_until(v, BASE + K);
+				if (dep[u] == BASE + K) infos[u].EB(id[v]), vt[vtc++] = u;
+				if (dep[v] == BASE + K) infos[v].EB(id[u]), vt[vtc++] = v;
+			}
+			if (vtc &gt; 0) {
+				std::sort(vt, vt + vtc, idcmp), vtc = std::unique(vt, vt + vtc) - vt;
+				for (i = 0; i &lt; vtc; ++i) {
+					u = vt[i], std::sort(infos[u].begin(), infos[u].end());
+					ans += C2(infos[u].size());
+					la = -1, conn = 0;
+					for (int v : infos[u]) {
+						if (~la &amp;&amp; Tree::LCA(o[la], o[v])[dep] &gt; BASE) ++conn;
+						else ans -= C2(conn), conn = 1;
+						la = v;
+					}
+					ans -= C2(conn), infos[u].clear();
+				}
+			}
+		}
+		return 0;
+	}
+}
+
+int main() {
+	int i, u, v, w, m_ = 0;
+	scanf("%d%d%d", &amp;n, &amp;m, &amp;K);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), Tree::addedge(u, v);
+	Tree::dfs(1);
+	for (i = 0; i &lt; m; ++i) {
+		scanf("%d%d", &amp;u, &amp;v), w = Tree::LCA(u, v);
+		if (dep[u] + dep[v] - dep[w] * 2 &gt;= K) ch[m_++] = pair &lt;int, int&gt; (u, v);
+	}
+	m = m_, DIFF::main(), SAME::main();
+	printf("%lld\n", ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>虚树弹栈时还是不要忘记 <code>stack[top + 1] = 0</code>。</p>
+		<p><strong>坑2：</strong>在枚举 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 时，如果 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 不是 $1$，那么不要忘记所有点的深度都有一个偏移量 (即 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 的深度)。</p>
+		<p><strong>坑3：</strong>当 $k = 1$ 时，如果按照传统方法统计，<span style="color: blue">子问题 2.2</span> 中没有满足条件的链 (不单调的链长至少是 $2$)，此时一个<del>避免复杂特判</del>的方法就是当 $k = 1$ 时把<span style="color: blue">子问题 2.2</span> 当成 $k = 2$ 做。</p>
+	</body>
+</html>

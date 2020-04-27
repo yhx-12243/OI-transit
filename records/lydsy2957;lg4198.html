@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy2957][lg4198]楼房重建</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>小 A 的楼房外有一大片施工工地，工地上有 $N$ 栋待建的楼房。每天，这片工地上的房子拆了又建、建了又拆。他经常无聊地看着窗外发呆，数自己能够看到多少栋房子。</p>
+		<p>为了简化问题，我们考虑这些事件发生在一个二维平面上。小 A 在平面上 $\left( 0, 0 \right)$ 点的位置，第 $i$ 栋楼房可以用一条连接 $\left( i, 0 \right)$ 和 $\left( i, H_i \right)$ 的线段表示，其中 $H_i$ 为第 $i$ 栋楼房的高度。如果这栋楼房上任何一个高度大于 $0$ 的点与 $\left( 0, 0 \right)$ 的连线没有与之前的线段相交 (交于顶点也算相交)，那么这栋楼房就被认为是可见的。</p>
+		<p>施工队的建造总共进行了 $M$ 天。初始时，所有楼房都还没有开始建造，它们的高度均为 $0$。在第 $i$ 天，建筑队将会将横坐标为 $X_i$ 的房屋的高度变为 $Y_i$ (高度可以比原来大，即修建；也可以比原来小，即拆除；甚至可以保持不变，即建筑队这天什么事也没做)。请你帮小 A 数数，每天在建筑队完工之后，他能看到多少栋楼房。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $N, M$ ($N, M \leq 10^5$)，表示楼房的数量和建造的总天数。</p>
+		<p>接下来 $N$ 行，每行两个正整数 $X_i, Y_i$ ($1 \leq X_i \leq N; 1 \leq Y_i \leq 10^9$)，表示建筑队第 $i$ 天施工的楼房的横坐标和新的高度。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $M$ 行，每行一个整数，第 $i$ 行的整数表示第 $i$ 天结束时小 A 能看到的楼房数量。</p>
+
+		<h3>题解</h3>
+		<p>由题意所知，对于两栋楼房 $A \left( x_1, y_1 \right), B \left( x_2, y_2 \right)$ ($x_1 &lt; x_2$)，则 <strong>$B$ 未被 $A$ 遮挡</strong>的充要条件是 $\dfrac {y_1} {x_1} &lt; \dfrac {y_2} {x_2}$。</p>
+		<p>而一栋楼房 $\left( x, y \right)$ 是可见的，当且仅当它不被位于它左侧的所有楼房遮挡。换句话说，令 $k_i = \dfrac {y_i} {x_i}$，则 $k_i$ 要比 $k_1, k_2, \cdots, k_{i-1}$ 都大。</p>
+		<p>稍稍转化一下题意，我们对于每个 $i$，定义 $k_i = \dfrac {y_i} {x_i}$，那么题目即转化为询问<strong>全局前缀最大值</strong>的个数。<span style="color: red">(ps: 这里的前缀最大值是严格的，即要求前面的数不能和它相等)</span></p>
+		<p>由于有修改，考虑使用线段树来维护这个信息。那怎么维护呢？</p>
+		<p>根据套路，我们肯定要维护每个区间的答案 $c$。由于问题和前缀最大值有关，那顺便也得维护一下区间最大值 $v$。</p>
+		<hr />
+		<p>现在考虑两个区间 $lc : \left[ l, m \right], rc : \left[ m + 1, r \right]$，考虑将它们的答案合并到 $id : \left[ l, r \right]$。</p>
+		<p>显然最大值不难维护，$v_{id} = \max \left\{ v_{lc}, v_{rc} \right\}$，考虑 (只考虑) 这个区间的前缀最大值个数。</p>
+		<p>首先，对于左子树 $lc$，我们可以直接继承它的答案，而对于右子树 $rc$，就不能直接继承它的答案了 —— 因为原来是 $\left[ m + 1, r \right]$ 的前缀最大值，在合并后可能就不是了。</p>
+		<p>事实上，设原来 $\left[ m + 1, r \right]$ 的前缀最大值的下标集合为 $I$，那么，在合并后，新的节点中，满足 $m + 1 \leq i \leq r$ 的前缀最大值的下标集合为 $I$ 的一个子集，确切地说是 $I$ 中满足值大于 $v_{lc}$ 的下标集合。</p>
+		<p>记 $left = v_{lc}$，我们现在就需要解决这样一个问题：统计 $\left[ m + 1, r \right]$ 中有多少个前缀最大值，且满足它大于 $left$。</p>
+		<p>更一般地，对于一个节点 $id$ (所对应的区间为 $\left[ l, r \right]$) 和一个任意值 $left$，来解决这个问题。</p>
+		<p>和 <a href="../index.html?redirect=883" target="_blank">[Codeforces671E]Organizing a Race</a> 类似，考虑按照 $left$ 和 $v_{lc}$ 的大小关系进行讨论：</p>
+		<ol>
+			<li><p>$left &gt; v_{lc}$。</p>
+			<p>这说明，$\left[ l, m \right]$ 中的所有数都比 $left$ 小，从而这一段区间内没有满足要求的前缀最大值。</p>
+			<p>因此直接向右子树递归，即解决 $\left( rc, left \right)$ 的子问题即可。</p></li>
+			<li><p>$left \leq v_{lc}$。</p>
+			<p>这是，考虑右子树 $rc$，注意到由于 $left \leq v_{lc}$，因此 "前缀最大值大于 $left$" 这个条件是无效的 —— 因为它首先得大于 $v_{lc}$。</p>
+			<p>于是，这一部分的数量直接由线段树得到：$c_{id} - c_{lc}$。</p>
+			<p>那对于左子树，仍然是原问题的一个子问题，递归解决 $\left( lc, left \right)$ 即可。</p></li>
+		</ol>
+		<p>我们这里并没有循环引用，因为维护 $c_{id}$ 时，我们只需要调用 $\left( rc, v_{lc} \right)$ 的过程即可，而这个过程不需要用到 $c_{id}$。</p>
+		<p>最后要询问时，取根节点的 $c$ 即为答案。时间复杂度的分析和那道题基本一样，单次 <code>update()</code> 为 $O \left( \log n \right)$，总时间复杂度为 $O \left( m \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+
+typedef long long ll;
+const int N = 100054;
+
+struct rational {
+	int n, d;
+	rational (int n_ = 0, int d_ = 1) : n(n_), d(d_) {}
+	inline bool operator &lt; (const rational &amp;B) const {return (ll)n * B.d &lt; (ll)d * B.n;}
+	inline bool operator == (const rational &amp;B) const {return (ll)n * B.d == (ll)d * B.n;}
+	inline bool operator &gt; (const rational &amp;B) const {return (ll)n * B.d &gt; (ll)d * B.n;}
+};
+
+inline rational max(const rational &amp;x, const rational &amp;y) {return x &lt; y ? y : x;}
+
+struct node {int c; rational v;} x[262154];
+
+int n, q;
+rational st_left__;
+
+inline int recursion(int id, int L, int R) {
+	if (L == R) return st_left__ &lt; x[id].v; segc;
+	return x[lc].v &lt; st_left__ ? recursion(rc, M + 1, R) : recursion(lc, L, M) + x[id].c;
+}
+
+void adj(int id, int L, int R, int h, rational v) {
+	if (L == R) {x[id].v = v; return;}
+	segc; h &lt;= M ? adj(lc, L, M, h, v) : adj(rc, M + 1, R, h, v);
+	x[id].v = max(x[lc].v, x[rc].v), st_left__ = x[lc].v, x[id].c = recursion(rc, M + 1, R);
+}
+
+int main() {
+	int h, v;
+	scanf("%d%d", &amp;n, &amp;q);
+	for (; q; --q)
+		scanf("%d%d", &amp;h, &amp;v), adj(1, 1, n, h, rational(v, h)),
+		st_left__ = rational(), printf("%d\n", recursion(1, 1, n));
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在实现时，为了方便，和<a href="../index.html?redirect=883" target="_blank">那道题</a>一样我们可以用 $c_{id}$ 表示<strong>考虑整个 $\left[ l, r \right]$ 区间时</strong>，$\left[ m + 1, r \right]$ (即右子树对应的区间) 中前缀最大值的个数 <span style="color: red">(ps: 即下标在 $\left[ m + 1, r \right]$ 中，且不仅仅是 $\left[ m + 1, r \right]$ 的前缀最大值，而且还是 $\left[ l, r \right]$ 的前缀最大值)</span>，</p>
+		<p>这样在节点合并的时候上文中的 $c_{id} - c_{lc}$ 可以直接换为 $c_{id}$，同时也无需利用信息的可减性 (那道题由于信息不可减所以也是如是操作的)</p>
+		<p><strong>坑2：</strong>存储 $k_i$ 的时候可以使用分数 (有理数) 代替 <code>double</code> 来避免精度误差。</p>
+	</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1336D]Yui and Mahjong Set</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p><strong>这是一道交互题</strong>。</p>
+		<p>Yui 是一个喜欢麻将的女孩子。</p>
+		<p>一天，她看见桌上有一堆麻将牌，每个麻将牌可以用一个 $1 \sim n$ 的整数来表示，且对于一个固定的 $1 \leq i \leq n$，值为 $i$ 的麻将不超过 $n$ 张。</p>
+		<p>你现在想知道这堆麻将牌中每种麻将各有多少个。但是 Yui 非常害羞，因此她要通过一种游戏来<del>委婉地</del>告诉你。</p>
+		<p>定义三张麻将牌组成<strong>刻子</strong>，如果它们具有相同的值。如 $\left\{ 2, 2, 2 \right\}$ 是刻子，但 $\left\{ 2, 3, 4 \right\}$ 不是。</p>
+		<p>定义三张麻将牌组成<strong>顺子</strong>，如果它们的值是连续正整数。如 $\left\{ 2, 3, 4 \right\}$ 是顺子，但 $\left\{ 1, 3, 5 \right\}$ 不是。</p>
+		<p>起初，Yui 会告诉你这堆麻将牌中一共有多少个刻子和顺子。在这之后，你可以不断在这个排堆中插入一张 $1 \sim n$ 的牌。在你没插入一张牌后，Yui 都会告诉你新的排堆中刻子和顺子的数量。</p>
+		<p>你至多只能插入 $n$ 张牌，不过在插入的过程中某一种牌的数量可以超过 $n$。</p>
+		<p>注意两张值相同的牌视作是不同的，比如 $\left\{ 1, 1, 2, 2, 3 \right\}$ 中就有 $4$ 个顺子 $\left\{ 1, 2, 3 \right\}$。</p>
+		<p>请通过这个 "游戏" 来获取原先牌堆中每种麻将牌的数量。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($4 \leq n \leq 100$)。</p>
+		<p>第二行包含两个非负整数 $t, s$，表示初始状态下刻子和顺子的数量。</p>
+
+		<h3>输出格式</h3>
+		<p>如果你已经得到了结果，那么输出 <code>! <em>a</em><sub>1</sub> <em>a</em><sub>2</sub> ... <em>a<sub>n</sub></em></code> ($0 \leq a_i \leq n$)，其中 $a_i$ 表示值为 $i$ 的麻将数量。</p>
+		<p>如果要插入一张牌，请输出 <code>+ <em>x</em></code> ($1 \leq x \leq n$) 并清空缓存，表示你向牌堆中插入一张值为 $x$ 的牌。</p>
+		<p>接着，你应当从标准输入中读取两个整数 $t', s'$，表示插入后刻子和顺子的数量。你需要保证插入的总次数不超过 $n$。</p>
+
+		<h3>题解</h3>
+		<p>如果我们用 $t, s$ 分别表示某种状态下的刻子数量和顺子数量，不难得到如下公式：\begin{align*}
+t &amp;= \binom {a_1} 3 + \binom {a_2} 3 + \cdots + \binom {a_n} 3 \\
+s &amp;= a_1 a_2 a_3 + a_2 a_3 a_4 + \cdots + a_{n-2} a_{n-1} a_n
+\end{align*}</p>
+		<p>下面为了方便，对于<em>不满足</em> $1 \leq i \leq n$ 的 $i$，定义 $a_i = 0$。</p>
+		<p>那么，考虑添加一张牌 $x$，于是有 $$ \Delta t = \binom {a_x + 1} 3 - \binom {a_x} 3 = \binom {a_x} 2, \Delta s = a_{x-2} a_{x-1} + a_{x-1} a_{x+1} + a_{x+1} a_{x+2} $$</p>
+		<p>不难发现，如果 $a_x \geq 2$，则我们仅仅可以通过 $\Delta t$ 就能解得 $a_x$ ($a_x = \dfrac {1 + \sqrt {1 + 8 \Delta t}} 2$，负根舍)。</p>
+		<p>于是一个非常 naive 的想法就是去将 $1 \sim n$ 都插入一次，就能差不多获取到全部 $a_i$ 了。</p>
+		<p>但是这样并不行，因为只凭 $\Delta t$ 无法区分 $a_i = 0$ 和 $1$ 的情形。况且，$\Delta t$ 提供的信息就只有这么些了，剩下的只有 $t$ 的初值 (用途并不大) 以及关于 $s$ 的一系列信息。</p>
+		<hr />
+		<p>考虑先求出 "大部分" (这个大部分先待定) 的 $\Delta t$ (从而也能求出大部分的 $a_i$)。剩下无法确定的无非就是两种：一种是已经询问过的，不知道是 $0$ 还是 $1$ 的；另一种是尚未询问的。</p>
+		<p>对于这些未知的 $a_i$，我们考虑从左往右 (即从小到大) 依次确认，设第一个未确认的下标是 $i$。</p>
+		<p>此时，说明我们已经知道了 $a_1, a_2, \cdots, a_{i-1}$，况且我们当然知道新添加牌的序列，因此对当前 $1 \sim i$ 的牌数都是清楚的。</p>
+		<p>考虑如果此时在 $i - 2$ 处插入一张牌 (如果 $i \geq 2$)，那么有 $\Delta s = a_{i-4} a_{i-3} + a_{i-3} a_{i-1} + a_{i-1} a_i$，由于我们已经知道 $a_{i-4}, a_{i-3}, a_{i-1}$ 的值了，因此就能够求出 $a_i$。</p>
+		<p>不过，这要求 $a_{i-1} \neq 0$。这怎么保证呢？我们只需要保证在 $i - 2$ 插入时，$i - 1$ 已经插入过即可，于是我们选择<strong>从大到小倒着插入</strong> (注意这与从小到大依次求解并不矛盾)。</p>
+		<p>这个时候，我们就可以通过 $a_1 \sim a_{i-1}$ 推出 $a_i$ 的值，从而得到原问题的解。</p>
+		<hr />
+		<p>于是最后剩下一个问题，当 $i = 2$ 时怎么办？</p>
+		<p>注意前面所说的 "大部分"。考察我们所用到的增量，不难发现，"插入 $n$" 这一步是没必要做的 ——</p>
+		<p>这是因为，如果我们要通过上述算法计算 $a_i$，那么对应的 $\Delta s$ 应该是插入 $i - 2$ 后 $s$ 的变化量，而为了保证 $a_{i-1} &gt; 0$，我们之前需要进行一次插入 $i - 1$。不难发现，这两种操作都无需利用插入 $n$ 的结果。</p>
+		<p>于是这给我们多留下了一次询问的机会 (注意总共是 $n$ 次询问)。此时，设 $j$ 为最小的未知下标，我们通过<em>再插入一张 $j$</em> 的方法，来<del>暴力</del>获取 $a_j$ 的值 (因为再插入时，插入前的数量就不可能是 $0$ 了，从而可以唯一辨识)。</p>
+		<p>然后，按照刚才所述的方法从 $j + 1$ 扫描到 $n$，问题获得解决。</p>
+		<p>如果这种情况下，$i$ 还是等于 $2$，这只能说明 $a_1, a_2$ 同时未知了。</p>
+		<p>这个时候，我们依然插入一张 $1$，来<del>暴力</del>获取 $a_1$。而 $a_2$ 未知，说明它只能是 $0$ 或 $1$，我们枚举它是 $0$ 还是 $1$，按照上述方法都去求一次解，看看哪个解满足所有信息即可。</p>
+		<p>最后要证明枚举的算法是可行的 —— 即如果 $a_1, a_2$ 未知，<del>满足条件的解是唯一的</del> 不过在唯一一种情况下解不唯一，可以特判，下面会介绍。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">解</div>
+			<div class="panel-body">
+			<p>下假设存在两个不同的解 $a, b$。</p>
+				<ol>
+					<li><p>如果 $a_1 = b_1 = 0$。</p>
+					<p>不妨设 $a_2 = 0, b_2 = 1$。</p>
+					<p>考虑最后一次插入 $1$，增量相同，得 $a_3 + 1 = 2 \left( b_3 + 1 \right)$。</p>
+					<p>若 $a_3$ 或 $b_3$ 为已知量 ($\geq 2$)，则 $a_3 = b_3$，立即矛盾。</p>
+					<p>故此时只有 $a_3 = 1, b_3 = 0$。</p>
+					<p>此时，考虑插入 $2$ 时，增量相同，于是又分两种情况：</p>
+					<ul>
+						<li><p>$n \geq 5$。</p>
+						<p>故 $2 \left( a_4 + 1 \right) = b_4 + 1$，即 $a_4 = 0, b_4 = 1$。</p>
+						<p>此时，考虑插入 $3$ 时，增量相同，有哦 $a_5 + 1 = 2 + 2 \left( b_5 + 1 \right)$ 或 $a_5 = 2 + 2 b_5$，矛盾。</p></li>
+						<li><p>$n = 4$。</p>
+						<p>故 $2 a_4 = b_4$。</p>
+						<p>此时必有 $a_4 = b_4 = 0$，这是唯一一个反例 $\left( \left[ 0, 0, 1, 0 \right]; \left[ 0, 1, 0, 0 \right] \right)$。</p></li>
+					</ul></li>
+					<li><p>如果 $a_1 = b_1 = 1$。</p>
+					<p>仍然不妨设 $a_2 = 0, b_2 = 1$。同理考虑插入 $1$，有 $a_3 = 1, b_3 = 0$。</p>
+					<p>接下来考虑插入 $2$，同样分两种情况：</p>
+					<ul>
+						<li><p>$n \geq 5$。</p>
+						<p>故 $2 + 2 \left( a_4 + 1 \right) = 1 + \left( b_4 + 1 \right)$，矛盾。</p></li>
+						<li><p>$n = 4$。</p>
+						<p>故 $2 + 2 a_4 = 1 + b_4$，此时应有 $a_4 = 0, b_4 = 1$。</p>
+						<p>即 $a = \left[ 1, 0, 1, 0 \right], b = \left[ 1, 1, 0, 1 \right]$，对比可知不相同。</p></li>
+					</ul>
+				</ol>
+			</div>
+		</div>
+		<p>于是我们只需要针对 $\left[ 0, 0, 1, 0 \right]$ 和 $\left[ 0, 1, 0, 0 \right]$ 做一个区分即可。</p>
+		<p>考虑对于这两组数据，初始的 $\left( t, s \right) = \left( 0, 0 \right)$，进行前三组询问后，$\left( t, s \right)$ 分别为 $\left( 0, 0 \right), \left( 0, 0 \right), \left( 0, 2 \right)$。</p>
+		<p>不难验证，使得这四组结果为 $\left( 0, 0 \right), \left( 0, 0 \right), \left( 0, 0 \right), \left( 0, 2 \right)$ 的数据只有这两组。</p>
+		<p>那么我们容易判断是否需要特判。如果要特判，那方法很简单 —— 插入一个 $2$ 或 $3$ 即可。</p>
+		<p>于是我们完成了所有情况的讨论，时间复杂度 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+using std::endl;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 108;
+
+int n, count[N];
+pr a[N];
+
+inline pr get() {int x, y; return cin &gt;&gt; x &gt;&gt; y, pr(x, y);}
+inline void insert(int x) {cout &lt;&lt; '+' &lt;&lt; ' ' &lt;&lt; x &lt;&lt; endl;}
+
+int R(int x) {return ((int)sqrt(x * 8 + 1) + 1) / 2;}
+
+inline bool find(int *ret) {
+	int i, D, p, q, r, s; bool flag; static int tmp[N];
+	memcpy(tmp, ret, (n + 1) &lt;&lt; 2);
+	for (i = 1; i &lt;= n; ++i)
+		if (!~ret[i]) {
+			D = a[i - 2].second - a[i - 1].second,
+			D -= ret[i - 3] * (ret[i - 1] + 1 + (i &gt; 4 ? count[i - 4] : 0));
+			if (D % (ret[i - 1] + 1)) return memcpy(ret, tmp, (n + 1) &lt;&lt; 2), false;
+			ret[i] = D / (ret[i - 1] + 1) - (i != n);
+			if (ret[i] &lt; 0 || (i &lt; n &amp;&amp; ret[i] &gt; 1)) return memcpy(ret, tmp, (n + 1) &lt;&lt; 2), false;
+		}
+	for (D = 0, i = 2; i &lt; n; ++i) D += ret[i - 1] * ret[i] * ret[i + 1];
+	flag = D == a[n].second;
+	for (i = n - 1; i &amp;&amp; flag; --i)
+		p = (i &gt; 2 ? ret[i - 2] : 0), q = ret[i - 1], r = ret[i + 1] + (i &lt; n - 1), s = ret[i + 2] + (i &lt; n - 2),
+		D += (p + r) * (q + s) - p * s, flag &amp;= D == a[i].second;
+	return flag || (memcpy(ret, tmp, (n + 1) &lt;&lt; 2), false);
+}
+
+int main() {
+	int i, start;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n, a[n] = get(), memset(count + 1, -1, n &lt;&lt; 2);
+	for (i = n - 1; i; --i)
+		if (insert(i), a[i] = get(), a[i].first != a[i + 1].first)
+			count[i] = R(a[i].first - a[i + 1].first);
+	if (~(count[1] &amp; count[2])) {
+		for (start = 1; start &lt; n &amp;&amp; ~count[start]; ++start);
+		if (start &lt; n) insert(start), *a = get(), count[start] = R(a-&gt;first - a[1].first) - 1;
+		assert(find(count));
+	} else if (n == 4 &amp;&amp; !a[2].second &amp;&amp; !a[1].first &amp;&amp; a[1].second == 2)
+		insert(2), memset(count + 1, 0, n &lt;&lt; 2), count[2 + (get().second == 4)] = 1;
+	else {
+		insert(1), *a = get(), count[1] = R(a-&gt;first - a[1].first) - 1, count[2] = 0;
+		if (!find(count)) count[2] = 1, assert(find(count));
+	}
+	cout &lt;&lt; '!';
+	for (i = 1; i &lt;= n; ++i) cout &lt;&lt; ' ' &lt;&lt; count[i];
+	cout &lt;&lt; endl;
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在通过 $\Delta s$ 求解 $a_i$ 时，如果遇到无法整除，或解出来的 $a_i$ 不等于 $0$ 或 $1$，都应该立即返回 <code>false</code>，避免出现增解或被 $0$ 除等情形。</p>
+		<p><strong>坑2：</strong>如果插牌策略是按顺序将所有牌都插一遍，则实现会较为麻烦 (但并不代表不可行)。<del>这种实现相对较简单一点 (不过仍然有唯一的特判，不要忘记)</del>。</p>
+	</body>
+</html>

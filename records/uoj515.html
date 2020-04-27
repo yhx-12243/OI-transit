@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[uoj515]前进四</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你需要维护一个长度为 $n$ 的序列 $a_1, a_2, \cdots, a_n$，支持以下两种操作：</p>
+		<ol>
+			<li><p>将 $a_x$ 改为 $v$。</p></li>
+			<li><p>询问 $x, x + 1, \cdots, n$ 中 (严格) <strong>后缀最小值</strong>的个数。等价地，即有多少个 $i \in \left\{ x, x + 1, \cdots, n \right\}$，满足对 $\forall i &lt; j \leq n$，均有 $a_i &lt; a_j$。</p></li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, Q$ ($n, Q \leq 10^6$)，表示序列的长度和操作的个数。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($a_i \leq 10^9$)，表示初始序列。</p>
+		<p>接下来 $Q$ 行，每行描述一个操作，格式如下：</p>
+		<ol>
+			<li><code>1 <em>x</em> <em>v</em></code> ($1 \leq x \leq n; 1 \leq v \leq 10^9$) 表示 $a_x \gets v$。</li>
+			<li><code>2 <em>x</em></code> ($1 \leq x \leq n$) 表示询问 $x, x + 1, \cdots, n$ 中后缀最小值的个数。</li>
+		</ol>
+
+		<h3>输出格式</h3>
+		<p>对于每次操作 2，输出一行一个整数，表示后缀最小值的个数。</p>
+
+		<h3>题解</h3>
+		<p>这道题看起来就是 <a href="../index.html?redirect=982" target="_blank">[lg4198]楼房重建</a> 的 (略微) 加强版 —— 即询问全局变成了询问一个后缀 (按照那道题的角度来看就是前缀)。</p>
+		<p>于是对那道题的算法稍作修改，就得到此题的一个 $O \left( n + Q \log^2 n \right)$ 的做法，<span class="text-muted">不过由于常数太大无法通过</span>。</p>
+		<p>不过，那道题的做法其实是可以适用于任意区间的询问的，而用这个做法来做前缀的情形，是不是有点小题大做了呢？(先不考虑前面那道题的做法)</p>
+		<p>我们试着将问题离线，看看能得到什么新的成果。</p>
+		<hr />
+		<p>注意到将问题离线后，那么整个问题就可以看作是一个二维的矩阵 $A_{i, j}$：其中 $A_0 = a$，$A_i$ 表示 $a$ 经过 $i$ 次修改操作后的结果。</p>
+		<p style="color: red">(ps: 换句话说，就是把 (下标, 时间) 看成两维来考虑)</p>
+		<p>而每个询问，是对矩阵 $\mathbf A$ <strong>某一行的某个前缀</strong>进行的。</p>
+		<p>通常的做法，就是对时间 (行) 进行扫描，然后一次询问就是一个区间性的问题。</p>
+		<p>那么，我们可以试着对下标 (列) 进行扫描，这样一次询问就的行标就是一个单点，而它就是对序列 (列向量) 中的某个分量的历史情况进行的。</p>
+		<p>由于它是某一行的一个前缀而不是区间，因此我们也不需要担心是否可减。</p>
+		<p>具体地，考虑对下标 (列) 进行扫描后，所需要维护的序列 $c$，就是原矩阵 $\mathbf A$ 的一个列向量，而一次询问，就是询问某个元素取到过多少次历史最小值。</p>
+		<p>由于问题无需可减性，因此我们可以不维护 "当前序列统计历史最小值"，而是 "<strong>只维护历史最小值</strong>"，从而问题就转化为一个元素从最初到现在一共取到过多少个不同的值。</p>
+		<p>考虑扫描时的修改，首先，每一列可以看成若干个连续段，所有 $n$ 列连续段的总数量是 $O \left( Q \right)$ 的。</p>
+		<p>由于我们需要统计<strong>历史最小值</strong>，因此对序列 $c$ 的操作不是区间赋值，而是<strong>区间取 $\min$</strong>。</p>
+		<hr />
+		<p>好的，经过上述转化，问题就转化为：</p>
+		<blockquote>
+			<p>你需要维护一个序列 $c_1, c_2, \cdots, c_m$，滋磁以下操作：</p>
+			<ol>
+				<li>给定 $l, r$，对每个 $l \leq i \leq r$，令 $c_i \gets \min \left\{ c_i, v \right\}$。</li>
+				<li>给定 $h$，求 $c_h$ 一共从最初到现在一共取到过多少个不同的值。</li>
+			</ol>
+		</blockquote>
+		<p>由于有区间取 $\min$，因此考虑使用<span style="color: fuchsia">线段树 Beats</span> 来完成，至于统计取到过多少个值，只需要在递归到大于次大值 (即要修改时) 将修改的区间对应的答案 (取到的不同值个数) 加一即可。</p>
+		<p>因此对答案数组，所需要滋磁的操作也不过是区间加，单点查询，树状数组或线段树均可。</p>
+		<p>由于线段树 Beats 中只有 "<strong>区间取 $\min$</strong>" 一种操作，故最终时间复杂度为 $O \left( Q \log Q \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define ID isdigit(c = *next++)
+#define IS isspace(c = *next++)
+
+struct Istream {
+	char *next, buf[20030731 * 2];
+	Istream &amp; init(FILE *f = stdin) {fread(buf, 1, sizeof buf, f); next = buf; return *this;}
+	Istream &amp; operator &gt;&gt; (int &amp;x) {
+		int c; x = 0;
+		for (; !ID; ) if (!~c) return *this;
+		for (x = c &amp; 15; ID; x = x * 10 + (c &amp; 15));
+		return *this;
+	}
+} cin;
+
+struct Ostream {
+	char *next, buf[20030731], _buf[34];
+	Ostream () : next(buf) {}
+	void flush(FILE *f = stdout) {fwrite(buf, 1, next - buf, f); next = buf;}
+	Ostream &amp; operator &lt;&lt; (int x) {
+		if (!x) return put(48), *this;
+		int i;
+		for (i = 0; x; x /= 10) _buf[++i] = x % 10 | 48;
+		for (; i; --i) put(_buf[i]);
+		return *this;
+	}
+	Ostream &amp; operator &lt;&lt; (char c) {return put(c), *this;}
+	void put(char c) {*next++ = c;}
+} cout;
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;pr&gt; vector;
+const int N = 1000054, INF = 0x3f3f3f3f;
+
+int n, m, q;
+int ans[N];
+vector ol[N], qr[N];
+
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+namespace ST {
+	#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+	#define exist_pd if (x[id].t) push_down(x[id], x[lc], x[rc])
+
+	struct node {int v, s, t, K;} x[2100054];
+
+	inline void update(node &amp;ret, const node &amp;l, const node &amp;r) {
+		if (l.v == r.v) ret.v = l.v, ret.s = max(l.s, r.s);
+		else if (l.v &lt; r.v) ret.v = r.v, ret.s = max(l.v, r.s);
+		else ret.v = l.v, ret.s = max(l.s, r.v);
+	}
+
+	inline void push_down(node &amp;ret, node &amp;l, node &amp;r) {
+		bool left_gt = l.v &gt;= r.v, right_gt = l.v &lt;= r.v;
+		if (left_gt) l.v += ret.t, l.t += ret.t, l.K += ret.K;
+		if (right_gt) r.v += ret.t, r.t += ret.t, r.K += ret.K;
+		ret.t = ret.K = 0;
+	}
+
+	void build(int id, int L, int R) {
+		if (L == R) {x[id].v = INF, x[id].s = -INF, x[id].t = 0; return;}
+		segc; build(lc, L, M), build(rc, M + 1, R);
+		update(x[id], x[lc], x[rc]);
+	}
+
+	void min(int id, int L, int R, int ql, int qr, int v) {
+		if (x[id].v &lt;= v) return;
+		if (ql &lt;= L &amp;&amp; R &lt;= qr &amp;&amp; x[id].s &lt; v) {x[id].t += v - x[id].v, x[id].v = v, ++x[id].K; return;}
+		segc; exist_pd;
+		if (ql &lt;= M) min(lc, L, M, ql, qr, v);
+		if (qr &gt; M) min(rc, M + 1, R, ql, qr, v);
+		update(x[id], x[lc], x[rc]);
+	}
+
+	node get(int id, int L, int R, int h) {
+		for (; L &lt; R; ) {
+			segc; exist_pd; id = (h &lt;= M ? (R = M, lc) : (L = M + 1, rc));
+		}
+		return x[id];
+	}
+}
+
+int main() {
+	int i, j, h, v, op, top = 0;
+	cin.init() &gt;&gt; n &gt;&gt; q;
+	for (i = 1; i &lt;= n; ++i) cin &gt;&gt; v, ol[i].EB(0, v);
+	for (; q; --q)
+		if (cin &gt;&gt; op &gt;&gt; h, op == 1) cin &gt;&gt; v, ol[h].EB(++m, v);
+		else qr[h].EB(m, top++);
+	ST::build(1, 0, m);
+	for (i = 1; i &lt;= n; ++i) ol[i].EB(m + 1, 0);
+	for (i = n; i; --i) {
+		vector &amp;t = ol[i]; h = t.size();
+		for (j = 0; j &lt; h - 1; ++j)
+			ST::min(1, 0, m, t[j].first, t[j + 1].first - 1, t[j].second);
+		for (const pr &amp;e : qr[i]) ans[e.second] = ST::get(1, 0, m, e.first).K;
+	}
+	for (i = 0; i &lt; top; ++i) cout &lt;&lt; ans[i] &lt;&lt; '\n';
+	cout.flush();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>此题的 IO 量非常大，务必使用 IO 优化。</p>
+		<p><strong>坑2：</strong>线段树 Beats 中下放标记的时候还是注意写法，不要写错了。</p>
+	</body>
+</html>

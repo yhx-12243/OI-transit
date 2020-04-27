@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1336E2]Chiori and Doll Picking</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n$ 个 $\left[ 0, 2^m - 1 \right]$ 之间的整数 $a_1, a_2, \cdots, a_n$，你需要对每个 $0 \leq i \leq m$，求出有多少个 $\left\{ 1, 2, \cdots, n \right\}$ 的子集 $S$，满足 $\displaystyle \bigoplus_{i \in S} a_i$ 的二进制表示下有 $i$ 个 $1$ (即 $\operatorname{popcount}$ 为 $i$)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($1 \leq n \leq 2 \times 10^5; 0 \leq m \leq 53$)，分别表示数的个数和范围。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_1, a_2, \cdots, a_n$ ($0 \leq a_i &lt; 2^m$)，表示这 $n$ 个数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $m + 1$ 个整数 $p_0, p_1, \cdots, p_m$，其中 $p_i$ 表示异或和的二进制表示下有 $i$ 个 $1$ 的子集个数模 $998244353$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>注意到问题和子集的异或和有关，因此不难想到构建这 $n$ 个数的线性基 $\mathcal B$。</p>
+		<p>设 $\left| \mathcal B \right| = r \leq m$，则由线性基的性质知这 $n$ 个数一共能异或出 $2^r$ 种不同的数，其中异或出每种数的方案数恰好为 $2^{n-r}$。</p>
+		<p>于是求出 $\mathcal B$ (和 $r$) 后，剩下的问题就和 $n$ 无关了，只需考虑这个线性基所张成的线性空间，最后再对答案一同乘上 $2^{n-r}$ 即可。</p>
+		<p>一种非常暴力的思路是枚举线性基张成的空间中所有 $2^r$ 个元素。这样的时间复杂度为 $O \left( 2^r \cdot r \right)$，可以通过搜索或 Gray 码枚举来优化到 $O \left( 2^r \right)$。</p>
+		<p>但在比较坏的情况下，$r$ 还是可以达到 $m$ 的，此时这个算法仍然无法在指定时间内跑出结果，我们需要寻找新的思路。</p>
+		<hr />
+		<p>观察这个问题：不难发现它涉及若干到子集的异或和。对于子集的异或和，除了线性基外，另一个常见的工具就是 <strong>FWT</strong> (快速 Walsh 变换)。</p>
+		<p>像 <a href="../index.html?redirect=557" target="_blank">[uoj310]黎明前的巧克力</a> 那样，考虑构造 $n$ 个序列的<strong>集合对称差卷积</strong>。</p>
+		<p>当然，通过 DP 构造也是可以的 (参见那篇题解)，不过这里假设读者对 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr>/集合对称差卷积的相关内容比较熟悉，不难直接得出：</p>
+		<p>最终的序列 (即异或出<strong>每一个</strong>数的方案数)，等于这样 $n$ 个序列 $y_1, y_2, \cdots, y_n$ 的集合对称差卷积，其中 $y_i$ 满足 $y_{i, 0} = y_{i, a_i} = 1$，其余位置均为 $0$ (当 $a_i = 0$ 时即 $y_{i, 0} = 2$，不过线性基中不可能出现 $0$)。</p>
+		<p>此时，我们需要考虑求每个 $y_i$ 的 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 变换后的结果了。和往常一样，用 $\operatorname{FWT} \left( \mathbf x \right)$ 表示序列 $\mathbf x$ 经过 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 变换后的结果。</p>
+		<p>由 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 的定义式，可知 $$ \operatorname{FWT} \left( y_i \right)_k = \operatorname{FWT} \left( \mathbf I + \mathbf C_{a_i} \right)_k = \operatorname{FWT} \left( \mathbf I \right)_k + \operatorname{FWT} \left( \mathbf C_{a_i} \right)_k = 1 + \left( -1 \right)^{\operatorname{popc} \left( a_i \mathbin \&amp; k \right)} = \begin{cases} 2 &amp; \operatorname{popc} \left( a_i \mathbin \&amp; k \right) \equiv 0 \pmod 2 \\ 0 &amp; \operatorname{popc} \left( a_i \mathbin \&amp; k \right) \equiv 1 \pmod 2 \end{cases} \tag 1 \label 1 $$</p>
+		<p>仍然考虑最终序列 $\gamma$ 经过 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 变换后的结果 $\operatorname{FWT} \left( \gamma \right)$，我们设为 $\Gamma$。类似地，考虑 $\Gamma_k$，它等于 $$ \Gamma_k = \operatorname{FWT} \left( y_1 \right)_k \cdot \operatorname{FWT} \left( y_2 \right)_k \cdots \operatorname{FWT} \left( y_n \right)_k = \begin{cases} 2^n &amp; \forall i, \operatorname{popc} \left( a_i \mathbin \&amp; k \right) \equiv 0 \pmod 2 \\ 0 &amp; \exists i, \operatorname{popc} \left( a_i \mathbin \&amp; k \right) \equiv 1 \pmod 2 \end{cases} \tag 2 \label 2 $$</p>
+		<p>对于 $\gamma$ 的第 $k$ 项，只需要对 $\Gamma$ 做一次 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 逆变换即可，即 $$ \gamma_k = \frac 1 {2^m} \sum_{i=0}^{2^m-1} \left( -1 \right)^{\operatorname{popc} \left( i \mathbin \&amp; k \right)} \cdot \Gamma_i \tag 3 \label 3 $$</p>
+		<hr />
+		<p>考虑对于 $0 \leq c \leq m$，最终的答案 $c$。当然，我们不考虑最后的因子 $2^{n-r}$，那么由定义有 $$ p_c = \sum_{\operatorname{popc} \left( k \right) = c} \gamma_k \tag 4 \label 4 $$</p>
+		<p>将 $\eqref 3$ 式代入，得 $$ p_c = \sum_{\operatorname{popc} \left( k \right) = c} \gamma_k = \frac 1 {2^m} \sum_{\operatorname{popc} \left( k \right) = c} \sum_i \left( -1 \right)^{\operatorname{popc} \left( i \mathbin \&amp; k \right)} \cdot \Gamma_i = \sum_i \Gamma_i \cdot \sum_{\operatorname{popc} \left( k \right) = c} \left( -1 \right)^{\operatorname{popc} \left( i \mathbin \&amp; k \right)} \tag 5 \label 5 $$</p>
+		<p>考虑等式右端 $\displaystyle \sum_{\operatorname{popc} \left( k \right) = c} \left( -1 \right)^{\operatorname{popc} \left( i \mathbin \&amp; k \right)}$，我们将它记为 $G \left( i, c \right)$，我们先来考虑如何计算 $G \left( i, c \right)$。</p>
+		<p>设 $i$ 的 $m$ 位二进制表示下 $1$ 的个数为 $P_1 = \operatorname{popc} \left( i \right)$，$0$ 的个数为 $P_2 = m - P_1$。</p>
+		<p>由于我们要枚举的 $k$ 中，(二进制表示下) $1$ 的个数为 $c$，因此我们可以枚举这 $c$ 个 $1$ 中，有 $\imath$ 个在 $i$ 中对应位为 $1$ 的，有 $\jmath$ 个对应位为 $0$ 的 (于是有 $\imath + \jmath = c$)。</p>
+		<p>那么，这种情况的方案就等于 $\dbinom {P_1} \imath \dbinom {P_2} \jmath$，最后别忘了乘以贡献 $\left( -1 \right)^\imath$。</p>
+		<p>综上，可知 $G \left( i, c \right)$ 的表达式为 $$ G \left( i, c \right) = \sum_{i + j = c} \left( -1 \right)^i \binom {P_1} i \binom {P_2} j $$</p>
+		<p>从上式也可得知，$G \left( i, c \right)$ 其实只和 $\operatorname{popc} \left( i \right)$ 和 $c$ 有关，与 $i$ 的具体值并没有关系。</p>
+		<p>此时再来考虑 $\eqref 5$ 式，即 $\displaystyle p_c = \sum_i \Gamma_i \cdot G \left( i, c \right)$，我们不难想到按照 $\operatorname{popc} \left( i \right)$ 将 $i$ 分类，然后每一类通过提出来一起计算。</p>
+		<p>诶这看起来就靠谱多了，至少我们已经不用计算 $2^m$ 项了。</p>
+		<p style="color: red">(ps: 由于 $c, \operatorname{popc} \left( i \right)$ 的取值不过是 $O \left( m \right)$ 的，因此计算 $G \left( i, c \right)$ 绝对不会成为瓶颈)</p>
+		<p>亦即，我们要对每个 $c$，计算 $\displaystyle \color {fuchsia} {\sum_{\operatorname{popc} \left( k \right) = c} \Gamma_k}$ 的值。</p>
+		<hr />
+		<p>回到 $\eqref 2$ 式，即 $\Gamma_k$ 的定义式。注意到 $\Gamma_k$ 的取值只有两种，一种是 $2^n$，另一种是 $0$。它们都和 $k$ 并无直接关系，因此我们可以将 $2^n$ 看成 $1$，最后再乘回去。也就是说，我们要统计<strong>有多少个 $k$ 使得 $\Gamma_k$ 能取到 $2^n$</strong> (非零值)。</p>
+		<p>那 $\Gamma_k$ 什么时候能取到 $2^n$ 呢？当且仅当对于<strong>每个 $i$</strong>，$a_i \mathbin \&amp; k$ 的二进制表示下均有偶数个 $1$。</p>
+		<p>我们将 $k$ 视作某种意义下的 "掩码"，将每个数在掩码下的对应位提出来，得到一个 $n \times \operatorname{popc} \left( k \right)$ 的矩阵。</p>
+		<p>则这个矩阵需要满足，<span style="color: teal"><strong>每一行之和</strong>在 $\hspace{-0.444em} \pmod 2$ 意义下均为 $0$</span>。</p>
+		<p>这是一个很有趣的条件：每一行之和为 $0$，就相当于把这个矩阵看成若干个<strong>列向量</strong>后，这些向量的和为 $0$。</p>
+		<p>因此我们就需要统计，将整个 $n \times m$ 的矩阵看成 $m$ 个列向量 ($n$ 位二进制数) 后，(对于每个 $0 \leq c \leq m$) 有多少种选择 $c$ 个列向量 (二进制数)，满足它们在 $\hspace{-0.444em} \pmod 2$ 意义下的和 (异或和) 为 $\mathbf 0$。</p>
+		<p>但是这样向量的个数还是有 $m$ 个，暴力枚举的话时间复杂度仍然是 $O \left( 2^m \right)$ 无法接受。</p>
+		<p>不过，注意到我们前面已经得到了一个 $O \left( 2^r \right)$ 的算法，于是我们尝试能否用阈值方法来将这两种算法融合在一起。</p>
+		<hr />
+		<p>那么，$r$ 小的情况已经得以解决，那么我们就考虑 $r$ 较大的情形。</p>
+		<p>$r$ 较大，说明矩阵中基变量较多。我们先使用初等行变换将原矩阵变为<a href="http://en.wikipedia.org/wiki/Row_echelon_form#rref" target="_blank"><strong>行最简形矩阵</strong></a>，并注意到交换两列不影响答案，于是整个矩阵就可以化为如下形式：$$ \left[ \begin{array} {cccccc|cccc}
+1 &amp; 0 &amp; 0 &amp; \cdots &amp; 0 &amp; 0 &amp; a_{1, r + 1} &amp; a_{1, r + 2} &amp; \cdots &amp; a_{1, m} \\
+0 &amp; 1 &amp; 0 &amp; \cdots &amp; 0 &amp; 0 &amp; a_{2, r + 1} &amp; a_{2, r + 2} &amp; \cdots &amp; a_{2, m} \\
+0 &amp; 0 &amp; 1 &amp; \cdots &amp; 0 &amp; 0 &amp; a_{3, r + 1} &amp; a_{3, r + 2} &amp; \cdots &amp; a_{3, m} \\
+\vdots &amp; \vdots &amp; \vdots &amp; \ddots &amp; \vdots &amp; \vdots &amp; \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
+0 &amp; 0 &amp; 0 &amp; \cdots &amp; 1 &amp; 0 &amp; a_{r-1, r + 1} &amp; a_{r-1, r + 2} &amp; \cdots &amp; a_{r-1, m} \\
+0 &amp; 0 &amp; 0 &amp; \cdots &amp; 0 &amp; 1 &amp; a_{r, r + 1} &amp; a_{r, r + 2} &amp; \cdots &amp; a_{r, m}
+\end{array} \right] $$</p>
+		<p>其中，左边 $r \times r$ 的部分是一个单位矩阵，右边 $r \times \left( m - r \right)$ 的部分是一个任意矩阵。</p>
+		<p>此时，若存在某些列向量的和为 $\mathbf 0$，设这些列向量为 $\mathbf l_1, \mathbf l_2, \cdots, \mathbf l_\mu, \mathbf r_1, \mathbf r_2, \cdots, \mathbf r_\nu$，其中 $\mu, \nu$ 分别表示在左边和右边的向量个数。</p>
+		<p>不难发现，当 $\mathbf r_1, \mathbf r_2, \cdots, \mathbf r_\nu$ 确定后，$\mu$ 和 $\mathbf l_1, \mathbf l_2, \cdots, \mathbf l_\mu$ 是唯一确定的 (因为前 $r$ 个列向量刚好构成整个线性空间的一组<del>正交</del>基)，而且 $\mu$ 的值<del>显然</del>就等于 $\mathbf r_1 + \mathbf r_2 + \cdots + \mathbf r_\nu$ 中值为 $1$ 的分量数。</p>
+		<p>恰巧，当 $r$ 较大的时候，$m - r$ 一定不会很大，因此我们可以枚举右侧 $m - r$ 个列向量是否选入，从而得到唯一一组选择若干个列向量和为 $\mathbf 0$ 向量的方案，计入答案。</p>
+		<p>同样，使用搜索或 Gray 码枚举，这部分的时间复杂度就达到了 $O \left( 2^{m-r} \right)$。</p>
+		<p>这部分答案算完后最后别忘了乘以 $2^{r - m}$，乘以 $2^r$ 是因为 $\Gamma$ 的定义式 $\eqref 2$ 中就有 $2^r$ (别忘了我们仍然是对线性基进行枚举)，除以 $2^m$ 是因为 <abbr title="Inverse Fast Walsh Transform, 逆快速 Walsh 变换">IFWT</abbr> 所需要。</p>
+		<hr />
+		<p>最后，通过阈值方法，来将最初的算法和通过 <abbr title="Fast Walsh Transform, 快速 Walsh 变换">FWT</abbr> 的算法结合起来，总时间复杂度就降到了 $O \left( 2^{\min \left\{ r, m - r \right\}} + n m + \operatorname{poly} \left( m \right) \right) = O \left( 2^{m/2} + n m + \operatorname{poly} \left( m \right) \right)$，就能通过 $m = 53$ 的数据啦。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define popc64 __builtin_popcountll
+#define ctz __builtin_ctz
+
+typedef long long ll;
+typedef unsigned long long u64;
+const int N = 65, mod = 998244353, pmod = mod - 1;
+
+int n, m, rank;
+u64 lb[N], tr[N];
+int C[N][N], g[N];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+ll PowerMod(ll a, int n, ll c = 1) {for (n += n &gt;&gt; 31 &amp; pmod; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i, j;
+	for (*C[0] = i = 1; i &lt; N; ++i)
+		for (*C[i] = j = 1; j &lt;= i; ++j)
+			add(C[i][j] = C[i - 1][j], C[i - 1][j - 1]);
+}
+
+bool insert(u64 x) {
+	for (int i = 0; i &lt; m; ++i) if (x &gt;&gt; i &amp; 1) {
+		if (lb[i]) x ^= lb[i];
+		else return lb[i] = x, ++rank;
+	}
+	return false;
+}
+
+void normalize() {
+	int i, j, r = 0, o[N]; u64 tmp[N];
+	for (i = 0; i &lt; m; ++i) if (lb[i]) o[r] = i, tmp[r++] = lb[i];
+	for (i = 0; i &lt; m; ++i) if (!lb[i]) o[r++] = i;
+	memset(lb, 0, sizeof lb);
+	for (i = 0; i &lt; rank; ++i)
+		for (lb[i] = j = 0; j &lt; m; ++j)
+			lb[i] |= (tmp[i] &gt;&gt; o[j] &amp; 1) &lt;&lt; j;
+	for (i = 0; i &lt; rank; ++i) for (j = 0; j &lt; i; ++j)
+		if (lb[j] &gt;&gt; i &amp; 1) lb[j] ^= lb[i];
+}
+
+int CI(int P1, int P2) {
+	int i, j, ret = 0;
+	for (i = 0, j = P2; i &lt;= P1 &amp;&amp; j &gt;= 0; ++i, --j)
+		ret = (ret + ll(i &amp; 1 ? -C[P1][i] : C[P1][i]) * C[m - P1][j]) % mod;
+	return ret + (ret &gt;&gt; 31 &amp; mod);
+}
+
+int main() {
+	int i, j, k, pc, ret; u64 x; ll base;
+	scanf("%d%d", &amp;n, &amp;m), init();
+	for (i = 0; i &lt; n; ++i) scanf("%llu", &amp;x), insert(x);
+	normalize();
+	if (rank * 2 &lt;= m) {
+		for (j = 1 &lt;&lt; rank, x = i = 0; i &lt; j; x ^= lb[ctz(++i)]) ++g[popc64(x)];
+		base = PowerMod(2, n - rank);
+		for (i = 0; i &lt;= m; ++i)
+			printf("%d%c", int((ll)g[i] * base % mod), i == m ? 10 : 32);
+	} else {
+		for (i = 0; i &lt; m; ++i) for (j = 0; j &lt; m; ++j) tr[j] |= (lb[i] &gt;&gt; j &amp; 1) &lt;&lt; i;
+		for (k = m - rank, j = 0; j &lt; k; ++j) tr[j] = tr[j + rank];
+		for (j = 1 &lt;&lt; k, x = pc = i = 0; i &lt; j; x ^= tr[ctz(i)])
+			++g[popc64(x) + pc], ++i, i &gt;&gt; ctz(i) &amp; 2 ? --pc : ++pc;
+		base = PowerMod(2, n - m);
+		for (i = 0; i &lt;= m; ++i) {
+			for (ret = j = 0; j &lt;= m; ++j) ret = (ret + (ll)g[j] * CI(j, i)) % mod;
+			ret = ret * base % mod, printf("%d%c", ret, i == m ? 10 : 32);
+		}
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $n - m$ 可能小于 $0$，因此快速幂时注意一下负幂的情形。</p>
+		<p><strong>坑2：</strong>第一种情形最后乘 $2^{n-r}$ 的时候小心爆 <code>int</code>。</p>
+	</body>
+</html>

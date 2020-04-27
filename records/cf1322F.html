@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1322F]Assigning Fares</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个顶点的树和树上的 $m$ 条路径 $a_i \leadsto b_i$，你需要对树上的每个顶点 $v$ 赋予一个正整数标号，满足每条路径经过的点的标号沿路径依次严格递增或严格递减。</p>
+		<p>求在满足上述条件时，最大标号 $\max\limits_{1 \leq i \leq n} c_i$ 的最小值，并给出一组构造。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($2 \leq n \leq 5 \times 10^5; 1 \leq m \leq 5 \times 10^5$)，表示树的点数和路径的条数。</p>
+		<p>接下来 $n - 1$ 行，每行两个正整数 $u_i, v_i$ ($1 \leq u_i &lt; v_i \leq n; u_i \neq v_i$)，描述树上的一条边。保证这 $n - 1$ 条边恰好构成一棵树。</p>
+		<p>最后 $m$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq n; a_i \neq b_i$)，表示一条路径的两个端点。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $k = \max\limits_{1 \leq i \leq n} c_i$，表示最大标号的最小可能值。</p>
+		<p>第二行输出 $n$ 个整数 $c_1, c_2, \cdots, c_n$ ($1 \leq c_i \leq k$)，依次表示每个顶点的标号。你需要满足每条路径经过的点的标号沿路径依次严格递增或严格递减。</p>
+		<p>如果有多组合法的最优解，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>注意到要让 "最大" 标号 "最小"，于是不难想到二分，而答案 $k$ 显然具有单调性，因此二分是可行的。</p>
+		<p>一个显然的答案上界是 $n$，使用数学归纳法不难证明 (去掉一片叶子可以用 $1 \sim n - 1$ 完成，然后叶子要么是最大，要么是最小)。</p>
+		<p>于是下面只需要判定对于一个给定的 $k$，答案为 $k$ 是否可行，如果可行并给出一组构造。</p>
+		<p>考虑树上的每条边 $\left( v, p_v \right)$，如果它未被任意一条路径覆盖 (称其为<strong>自由边</strong>)，则可以不考虑这条边。否则，由于它被某条路径覆盖，从而它的两个端点的值必定满足如下两种状态之一 (我们将其称为 $d_i$)：</p>
+		<ul>
+			<li>(A) $c_v &lt; c_{p_v}$。</li>
+			<li>(D) $c_v &gt; c_{p_v}$。</li>
+		</ul>
+		<p>而一条路径的作用，就是限制若干个 $d_i$ 的取值相同或相反。</p>
+		<p>注意到让若干布尔变量的取值相同或相反，不难想到使用<a href="../index.html?tag=%E5%A4%9A%E5%B9%B6%E6%9F%A5%E9%9B%86" target="_blank"><strong>多并查集</strong></a>或<strong>带权并查集</strong>来维护。</p>
+		<p style="color: red">(ps: 预处理是否为自由边以及连通关系可以用 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> + dfs 完成，注意到需要使用 <code>jump_until</code> 功能，使用倍增算法可以减少代码量)</p>
+		<p>于是，所有非自由边 $\left( v, p_v \right)$，就被划分成了若干条等价类。其中每个等价类中的所有边是连通的，且一整个等价类只有两种取 $d_i$ 的方案。</p>
+		<p>这样就可以考虑树形 DP 了。我们用 $f_i$ 表示，规定边 $\left( i, p_i \right)$ 为 A 型边 (如果是自由边则可直接忽略) 时，$c_i$ 的最小值 (选最小的原因是如果大的 $c_i$ 可以产生解，那么更小的 $c_i$ 一定能产生解)。</p>
+		<p>那么，由对称性不难得知，若规定边 $\left( i, p_i \right)$ 为 D 型边，则 $c_i$ 的最大值为 $k + 1 - c_i$。</p>
+		<p>现在考虑如何求 $f_i$。边界情况 (叶节点) 显然是 $f_i = 1$。而对于分支节点，我们考虑从一个完整的集合 $\left\{ 1, 2, \cdots, k \right\}$，对每个子树 (连通块) 找出它对 $c_i$ 限制的区间 (或集合)，最后将它们取交集，$f_i$ 就是交集中的最小元素。</p>
+		<p>而 $i$ 的子树 $j$ 分为三类情况：</p>
+		<ol>
+			<li><p>$\left( j, p_j = i \right)$ 是自由边。</p>
+			<p>此时可以直接忽略 $j$。</p></li>
+			<li><p>$\left( j, i \right)$ 和 $\left( i, p_i \right)$ 在同一个连通块中 (即它们之间有 "关系")。</p>
+			<p>由于我们已经假设 $\left( i, p_i \right)$ 为 A 型边，于是自然可知边 $\left( j, i \right)$ 的类型，则：</p>
+			<ul>
+				<li>若 $\left( j, i \right)$ 为 A 型边，则 $c_i &gt; c_j$，即限制区间为 $\left[ c_j + 1, k \right]$。</li>
+				<li>若 $\left( j, i \right)$ 为 D 型边，则 $c_i &lt; c_j$，即限制区间为 $\left[ 1, c_j - 1 \right]$。</li>
+			</ul></li>
+			<li><p>$\left( j, i \right)$ 和 $\left( i, p_i \right)$ 不在同一个连通块中。</p>
+			<p>设 $\left( j, i \right)$ 所在的连通块为 $B$。那么 $B$ 中所有边都在 $i$ 的子树内，此时我们以连通块 $B$ 为单位进行处理。</p>
+			<p>记连通块 $B$ 中，和 $i$ 关联的边有 $\left( j_1, i \right), \left( j_2, i \right), \cdots, \left( j_\kappa, i \right)$。则连通块 $B$ 有两种 "定向"。对于每种 "定向"，我们都可以算出 $\left( j_1, i \right), \cdots, \left( j_\kappa, i \right)$ 的类型，从而 "交" 出一个 $c_i$ 的可行区间。</p>
+			<p>此时，再由对称性，若其中一种 "定向" 对 $c_i$ 的限制区间为 $\left[ l, r \right]$。那么，另一种 "定向" 对 $c_i$ 的限制区间就一定是 $\left[ k + 1 - r, k + 1 - l \right]$。</p>
+			<p>于是，连通块 $B$ 对 $c_i$ 的限制集合就是 $\left[ l, r \right] \cup \left[ k + 1 - r, k + 1 - l \right]$。</p></li>
+		</ol>
+		<p>最后的任务就是对所有这样的区间取一个交集，并取其中的最小元素。</p>
+		<p>首先，区间之间的求交非常简单 —— 直接取左端点的最大值和右端点的最小值即可。但是情况 3. 中 $\left[ l, r \right] \cup \left[ k + 1 - r, k + 1 - l \right]$ 有可能并不是一个区间！</p>
+		<p>扫描线？并不用那么麻烦！</p>
+		<p>继续利用这个集合的性质：如果 $\left[ l, r \right] \cup \left[ k + 1 - r, k + 1 - l \right]$ 不是一个区间，则它一定是关于 $\dfrac {k + 1} 2$ 对称的两个区间！</p>
+		<p>于是考虑这条 "对称轴" $x = \dfrac {k + 1} 2$，则每个这样的集合 $\left[ l, r \right] \cup \left[ k + 1 - r, k + 1 - l \right]$ 都可以分为左边一个区间和右边一个区间。</p>
+		<p>我们只需对左边的区间求交，然后对称到右边的区间，即可得到一个<strong>最终交</strong>，不妨设为 $\left[ l', r' \right] \cup \left[ k + 1 - r', k + 1 - l' \right]$。</p>
+		<p>此时考虑计算 $f_i$。显然，如果有任何一个区间是空，那么一定是无解，返回 <code>false</code> 即可 (说明二分的 $k$ 太小了)。否则，设其它正常区间交出来的集合是 $\left[ l_0, r_0 \right]$，考虑 $\max \left\{ l_0, l' \right\}$：</p>
+		<p>如果它不在 <strong>banned 区间</strong> (即 $\left( r', k + 1 - r' \right)$ 内，则 $f_i = \max = \left\{ l_0, l' \right\}$；否则，考虑 $k + 1 - r'$ 是否超过 $\max \left\{ r_0, k + 1 - l' \right\}$，如果没超过，则 $f_i = k + 1 - r'$，如果超过了，那么 <code>return false</code>。</p>
+		<p>一种方便的实现 (代码第 $77 \sim 78$ 行) 为：</p>
+		<ul>
+			<li>$l_0 \gets \max \left\{ l_0, l' \right\}, r_0 \gets \min \left\{ r_0, k + 1 - l' \right\}$。如果 $l_0 &gt; r'$，则 $l_0 \gets \max \left\{ l_0, k + 1 - r' \right\}$，此时判断是否有 $l_0 &gt; r_0$ 即可。</li>
+		</ul>
+		<p>最后输出方案时，可以通过打差分标记的方法：因为在 DP 时，我们假设了 $\left( i, p_i \right)$ 为 A 型边，然后通过 $f_i$ 的值可以知道它的各个子树的非自由边是 A 型还是 D 型。那么如果 $\left( i, p_i \right)$ 是 D 型边的话只需做一个子树反转即可。</p>
+		<p>也就是说，我们只需要对每一条边记录在最终方案时它和它的 "父边" 类型是否相同即可，最终做一个树上顺部分和即可得到整个方案。</p>
+		<p>在实现得当的情况下，单次判定/DP 是可以在 $O \left( n \right)$ 时间内完成的，因而总时间复杂度为 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ctz __builtin_ctz
+#define ad(x) ((((x) - 1) ^ 1) + 1)
+#define tr(x) (2 * (x) - 1)
+#define fa(x) (2 * (x))
+
+const int N = 500054, M = N * 2, LN = 20;
+
+int n, m, E = 0;
+int to[M], first[N], next[M];
+int P[LN][N], *p = *P, dep[N];
+int cnt = 0, o[N], id[N], eid[N];
+int cong[N], cov[N], bel[M];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y; o[++cnt] = x, id[x] = cnt;
+	for (i = 0; P[i][x]; ++i) P[i + 1][x] = P[i][ P[i][x] ];
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x]) p[y] = x, dep[y] = dep[x] + 1, dfs(y);
+	eid[x] = cnt;
+}
+
+int jump_until(int x, int d) {
+	int S = dep[x] - d;
+	for (assert(S &gt;= 0); S; S &amp;= S - 1) x = P[ctz(S)][x];
+	return x;
+}
+
+namespace dsu {
+	int p[M];
+
+	int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+	inline bool test(int x, int y, bool un = false) {
+		if ((x = ancestor(x)) == (y = ancestor(y))) return true;
+		return un &amp;&amp; (p[x] = y, false);
+	}
+	inline void equiv(int x, int y) {test(x, y, true), test(ad(x), ad(y), true);}
+	inline void init(int n) {std::iota(p, p + ++n, 0);}
+}
+
+namespace dp {
+	int f[N], stamp[N], li[N];
+	int l[N], r[N];
+	bool contain[N], rev[N];
+
+	bool main(int R) {
+		int i, x, y, cl, cr, cc, B, at, bt, top, _; bool Lr, Rr;
+		memset(stamp, 0, (n + 1) &lt;&lt; 2);
+		for (_ = n; _; --_) {
+			x = o[_], top = 0, cl = 1, cr = R, cc = (R + 1) / 2;
+			for (i = first[x]; i; i = next[i]) {
+				if (!cov[ y = to[i] ]) continue;
+				B = bel[tr(y)], at = (B + 1) / 2;
+				if (stamp[at] != _) stamp[at] = _, l[at] = 1, r[at] = R, li[top++] = at;
+				B &amp; 1 ? up(l[at], f[y] + 1) : down(r[at], R - f[y]);
+			}
+			B = bel[tr(x)], bt = (B + 1) / 2;
+			for (i = 0; i &lt; top; ++i) {
+				if (y = li[i], l[y] &gt; r[y]) return false;
+				if (y == bt)
+					B &amp; 1 ? (up(cl, l[y]), down(cr, r[y])) : (up(cl, R + 1 - r[y]), down(cr, R + 1 - l[y]));
+				else
+					Lr = l[y] * 2 &lt;= R + 2, Rr = r[y] * 2 &gt;= R,
+					assert(Lr || Rr), down(cc, min(r[y], R + 1 - l[y])),
+					up(cl, min(l[y], R + 1 - r[y])), down(cr, max(r[y], R + 1 - l[y]));
+			}
+			if (cc &lt; cl) up(cl, R + 1 - cc);
+			if (cl &gt; cr) return false;
+			for (f[x] = cl, i = 0; i &lt; top; ++i) y = li[i], contain[y] = (l[y] &lt;= cl &amp;&amp; cl &lt;= r[y]);
+			for (i = first[x]; i; i = next[i])
+				y = to[i], B = bel[tr(y)], at = (B + 1) / 2, rev[y] = (B ^ (at == bt ? bel[tr(x)] : contain[at])) &amp; 1;
+		}
+		return true;
+	}
+
+	void dump(int R) {
+		int i, v; ++R;
+		for (i = 1; i &lt;= n; ++i) v = o[i], (rev[v] ^= rev[p[v]]) &amp;&amp; (f[v] = R - f[v]);
+		for (i = 1; i &lt;= n; ++i) printf("%d%c", f[i], i == n ? 10 : 32);
+	}
+}
+
+int main() {
+	int i, u, v, w, x, y, L, R, M;
+	scanf("%d%d", &amp;n, &amp;m), dsu::init(2 * n);
+	for (i = 1; i &lt; n; ++i) scanf("%d%d", &amp;u, &amp;v), addedge(u, v);
+	for (dfs(1); m; --m) {
+		scanf("%d%d", &amp;u, &amp;v), assert(u != v);
+		if (id[u] &gt; id[v]) std::swap(u, v);
+		if (id[v] &lt;= eid[u])
+			++cong[v], --cong[jump_until(v, dep[u] + 1)], ++cov[v], --cov[u];
+		else {
+			w = min(dep[u], dep[v]), x = jump_until(u, w), y = jump_until(v, w);
+			for (i = LN - 1; i &gt;= 0; --i)
+				if (P[i][x] != P[i][y]) x = P[i][x], y = P[i][y];
+			++cong[u], ++cong[v], --cong[x], --cong[y], ++cov[u], ++cov[v], cov[p[x]] -= 2;
+			dsu::equiv(tr(x), fa(y));
+		}
+	}
+	for (i = n; i; --i)
+		if (v = o[i], cov[ p[v] ] += cov[v], cong[ p[v] ] += cong[v], cong[v]) dsu::equiv(tr(v), tr(p[v]));
+	for (i = 2; i &lt;= n; ++i) if (dsu::test(tr(i), fa(i))) return puts("-1"), 0;
+	for (u = 1; u &lt;= n; ++u) {
+		if (to[ i = first[u] ] == p[u]) first[u] = next[i];
+		else for (i = first[u]; next[i]; i = next[i])
+			if (to[next[i]] == p[u]) next[i] = next[next[i]];
+		if (!bel[ dsu::ancestor(tr(u)) ]) bel[ dsu::ancestor(tr(u)) ] = tr(u);
+		if (!bel[ dsu::ancestor(fa(u)) ]) bel[ dsu::ancestor(fa(u)) ] = fa(u);
+	}
+	for (i = 1; i &lt;= 2 * n; ++i) bel[i] = bel[ dsu::ancestor(i) ];
+	for (L = 1, R = n; L &lt; R; dp::main(M = (L + R) / 2) ? R = M : L = M + 1);
+	return printf("%d\n", L), dp::main(L), dp::dump(L), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意不要忘记自由边的情形：自由边的两个端点的 $c_i$ 是可以相同的，而非自由边才需要必须不同。</p>
+		<p><strong>坑2：</strong>输出方案时，诸如 $\left( j, i \right)$ 是否和 $\left( i, p_i \right)$ 是否在一个连通块中，那么判断的标准是略微有些不同的 (代码第 $81$ 行)。</p>
+		<p><strong>坑3：</strong>在 DP 的时候记得端点 $l, r$ 时刻只能用来 <code>up</code>/<code>down</code> 而不能中途赋值。</p>
+		<p>一些技巧：可以通过记录 <code>stamp</code> 的方法来找到处理点 $i$ 时所需要用到的所有连通块 $B$ 而避免排序，可以通过 dfs 序来加速遍历的过程，同时避免某些全局变量污染。</p>
+	</body>
+</html>
