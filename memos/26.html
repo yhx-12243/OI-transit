@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<script>
+			window.onload = function() {
+				const $ = document.getElementById.bind(document),
+					  prompt = '输出下面程序的运行结果，或者指明 CE 或 UB。',
+					  prompt_lang = lang => `下列程序将会使用 <strong style="color: fuchsia">${lang}</strong> 编译：`,
+					  ctrl_enter = '可以按 Ctrl + Enter 提交',
+					  status_p = (total, correct, incorrect, progress, rate) => `总题数：${total}，正确：${correct}，错误：${incorrect}，进度：${progress}，正确率：${rate}`,
+					  prob_length = problem_list.length;
+
+				let level = -1, prob, ac = 0;
+
+				function render(lid) {
+					level = lid, prob = problem_list[level - 1];
+					$('quiz-title').innerHTML = `第 ${level} 题`;
+					$('quiz-pl').innerHTML = prompt_lang(prob.lang);
+					if (prob.html) {
+						$('quiz-code').innerHTML = prob.code;
+					} else {
+						$('quiz-code').innerText = prob.code;
+						syntax_highlight();
+					}
+					$('start').innerHTML = '提交';
+					$('explanation').innerHTML = ctrl_enter;
+					$('answer-zone').classList.remove('has-success', 'has-error');
+					$('bool-ce').checked = false;
+					$('bool-ub').checked = false;
+					$('user-output').value = '';
+					$('user-output').readOnly = false;
+					$('user-output').focus();
+				}
+
+				function check_answer() {
+					if (prob.ce) return $('bool-ce').checked;
+					let jans = prob.answer, pans = $('user-output').value;
+					return !$('bool-ce').checked && prob.ub === $('bool-ub').checked && (jans === '<Undefined Behavior>' || (pans.endsWith('\n') || (pans += '\n'), pans === jans));
+				}
+
+				function submit() {
+					if (check_answer()) {
+						++ac;
+						$('answer-zone').classList.add('has-success');
+					} else {
+						$('answer-zone').classList.add('has-error');
+					}
+					$('bool-ce').checked = prob.ce;
+					$('bool-ce').disabled = false;
+					$('bool-ub').checked = prob.ub;
+					$('bool-ub').disabled = false;
+					$('user-output').value = prob.answer;
+					$('user-output').disabled = false;
+					$('user-output').readOnly = true;
+					$('explanation').innerHTML = prob.explanation;
+					$('quiz-status').innerHTML = status_p(prob_length, ac, level - ac, (100 * level / prob_length).toFixed(1) + '%', (100 * ac / level).toFixed(1) + '%');
+					if (level === prob_length) {
+						$('start').innerHTML = '查看结果';
+					} else {
+						$('start').innerHTML = '下一题';
+					}
+					level = ~level;
+					$('start').focus();
+				}
+
+				function get_grade(score) {
+					if (score > 99.99) return '<samp style="color: #f00">Legendary grandmaster</samp>';
+					else if (score > 94.99) return '<samp style="color: #f00">International grandmaster</samp>';
+					else if (score > 87.99) return '<samp style="color: #f00">Grandmaster</samp>';
+					else if (score > 79.99) return '<samp style="color: #ff8c00">International master</samp>';
+					else if (score > 71.99) return '<samp style="color: #ff8c00">Master</samp>';
+					else if (score > 63.99) return '<samp style="color: #a0a">Candidate master</samp>';
+					else if (score > 55.99) return '<samp style="color: #00f">Expert</samp>';
+					else if (score > 47.99) return '<samp style="color: #038a9e">Specialist</samp>';
+					else return '<samp style="color: #008000">Pupil</samp>';
+				}
+
+				function show_result() {
+					let score = 100 * ac / prob_length;
+					$('quiz-title').innerHTML = '结果';
+					$('quiz-desc').innerHTML = `<div class="text-center" style="font-size: larger; font-weight: bold; margin-top: 192px"><p>您的最终得分为：<samp>${score.toFixed(1)}</samp></p><p>等级：${get_grade(score)}</p><p>敬请期待第二期哦～</p></div>`;
+					$('quiz-desc').classList.remove('hidden');
+					$('quiz-main').classList.add('hidden');
+					$('start').disabled = true;
+				}
+
+				function step() {
+					if (level === -1) {
+						level = 0;
+						$('quiz-title').innerHTML = '使用指北';
+						$('quiz-bgi').classList.add('hidden');
+						$('quiz-desc').classList.remove('hidden');
+					} else if (level === 0) {
+						$('quiz-desc').classList.add('hidden');
+						$('quiz-main').classList.remove('hidden');
+						$('quiz-status').innerHTML = status_p(prob_length, 0, 0, '0.0%', NaN);
+						render(1);
+					} else if (level > 0) {
+						submit();
+					} else if (level === ~prob_length) {
+						show_result();
+					} else {
+						render(-level);
+					}
+				}
+
+				$('start').addEventListener('click', step);
+
+				document.body.addEventListener('keypress', function (e) {
+					if (e.keyCode === 10 || e.which === 10) {
+						step();
+					}
+				});
+
+				$('bool-ce').addEventListener('click', function () {
+					if ($('bool-ce').checked) {
+						$('bool-ub').checked = false;
+						$('bool-ub').disabled = true;
+						$('user-output').value = '';
+						$('user-output').disabled = true;
+					} else {
+						$('bool-ub').disabled = false;
+						$('user-output').disabled = false;
+					}
+				});
+			}
+		</script>
+		<title>C++ “阅读程序” 小测验</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="quiz/problems.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style>
+			.form-control[readonly] {background-color: #fff;}
+		</style>
+	</head>
+	<body>
+		<h3>C++「阅读程序」小测验</h3>
+		<div class="panel panel-info" style="max-width: 1024px; margin-left: auto; margin-right: auto">
+			<div class="panel-heading" id="quiz-title">答题区</div>
+			<div class="panel-body" id="quiz-container" style="min-height: 512px; position: relative">
+				<img class="img-responsive center-block" id="quiz-bgi" src="../records/uploads/218.png" alt="Background Image" />
+				<div class="hidden" id="quiz-desc">
+					<p>每一关都会给出一段程序和对应的语言，你需要 (不通过辅助工具) 计算出该程序的运行结果。保证程序在运行过程中没有<strong>不易口算</strong>的部分。</p>
+					<p>不过，程序可能会在<strong>对应语言</strong>中产生 Compile Error (下简称 CE) 或触发 Undefined Behavior (下简称 UB)，你需要指出它。</p>
+					<p>如果该程序会 CE，则不需要提供输出结果；如果该程序会 UB，则需要提供在<strong>主流编译器上的输出结果</strong>，若不统一，则<strong>不作要求</strong>。</p>
+					<p>特别地，<del>为降低难度</del>，<strong>实现定义行为</strong> (IB) 和<strong>未指明行为</strong> (UnsB) 在这里均按照<strong>一般情况</strong>处理 (即不算作 UB)。</p>
+					<p>再次点击 “开始” 按钮进入测验。</p>
+				</div>
+				<div class="hidden" id="quiz-main">
+					<p class="text-info" id="quiz-pl"></p>
+					<pre class="sh_sourceCode"><code class="sh_cpp" id="quiz-code"></code></pre>
+					<div class="row" id="answer-zone">
+						<div class="col-xs-3">
+							<div class="checkbox"><label><input accesskey="c" id="bool-ce" type="checkbox" />编译错误 (<ins>C</ins>ompile Error)</label></div>
+							<div class="checkbox"><label><input accesskey="u" id="bool-ub" type="checkbox" />未定义行为 (<ins>U</ins>ndefined Behavior)</label></div>
+						</div>
+						<div class="col-xs-9">
+							<textarea class="form-control" id="user-output" rows="5" style="font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; resize: none"></textarea>
+							<span class="help-block" id="explanation"></span>
+						</div>
+						<div style="clear: both"></div>
+					</div>
+				</div>
+				<div style="height: 40px"></div>
+				<div class="text-center" style="position: absolute; bottom: 10px; width: 100%; padding-right: 30px"><button class="btn btn-success" id="start" style="">开始</button></div>
+			</div>
+			<div class="panel-footer" id="quiz-status">未开始</div>
+		</div>
+	</body>
+</html>

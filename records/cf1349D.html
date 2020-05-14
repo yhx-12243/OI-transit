@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1349D]Slime and Biscuits</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个人，初始时第 $i$ 个人有 $a_i$ 个饼干。每一轮将会依次进行如下操作：</p>
+		<ol>
+			<li>在 $\sum a_i$ 块饼干中等概率随机选择一块饼干。</li>
+			<li>设这个饼干是第 $i$ 个人的，然后在剩下 $n - 1$ 个人中等概率随机一个人 $j$ ($1 \leq j \leq n; j \neq i$)，然后将 $i$ 的那块饼干给 $j$。</li>
+			<li>一旦所有饼干集中在一个人手里，整个游戏就会结束。</li>
+		</ol>
+		<p>你需要求出游戏进行的轮数的期望，对 $998244353$ 取模。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($2 \leq n \leq 10^5$)，表示总人数。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_1, a_2, \cdots, a_n$ ($1 \leq \sum a_i \leq 3 \times 10^5$)，依次表示每个人初始时拥有的饼干个数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示游戏进行的轮数的期望在模 $998244353$ 意义下的值。</p>
+
+		<h3>题解</h3>
+		<p>为了方便起见，我们先考虑两个人的情形。</p>
+		<p>设两个人初始时分别有 $a$ 块饼干和 $b$ 块饼干。记 $S = a + b$。</p>
+		<p>则整个过程可以看作数轴上有一条线段，端点为 $0, S$，有一个点在其上方，表示第一个人的饼干数量。初始时，这个点位于坐标 $a$ 处。</p>
+		<p>现在，这个点有一定的概率向两端移动，概率与它到对应端点的距离成正比。求这个点运动到某个端点所需的时间的最小值。</p>
+		<p>通过这个模型不难联想到 "悬崖勒马" 的模型 —— 即一个点在数轴正半轴运动，求到原点的概率及期望时间相关量。</p>
+		<p>而这个问题有两个量，因此我们先尝试将其转化为 "悬崖勒马" 的模型。</p>
+		<p>考虑这个点可以在数轴正半轴上运动，<strong>且到点 $S$ 时不结束游戏</strong> <span style="color: red">(ps: 注意此时该点并不会继续向右运动，因为根据规则下一步它向右运动的概率为 $0$)</span>。在这样的条件下，设它最终到原点的期望时间为 $E_k$。</p>
+		<p>那么，这个 $E_k$ 可以分为两种类型：</p>
+		<ol>
+			<li><p>在回到原点之前没有经过点 $S$。</p>
+			<p>在这种情况下，这部分期望对答案的贡献，就是<strong>在原问题中点最终停留到位置 $0$ 部分的期望</strong>，设为 $E_0$。</p></li>
+			<li><p>在回到原点之前经过点 $S$。</p>
+			<p>在这种情况下，这部分期望对答案的贡献可以分为两步：</p>
+			<ul>
+				<li>在原问题中，点最终停留到位置 $S$ 部分的期望，设为 $E_1$。</li>
+				<li>到达 $S$ 后，剩下的问题等价于一个 "初始点在 $S$ 的悬崖勒马问题"。设 "初始点在 $i$ 的悬崖勒马问题" 的期望时间为 $f_i$，由全期望公式，这部分期望对答案的贡献应为 $f_S \cdot p$，其中 $p$ 为原问题中点最终停留到位置 $S$ 部分的<strong>概率</strong>。</li>
+			</ul>
+		</ol>
+		<p>综上，有 $$ E_k = E_0 + E_1 + f_S \cdot p $$</p>
+		<p>由定义知 $E_k = f_a$，于是有 $f_a = E_0 + E_1 + f_S \cdot p$。</p>
+		<p>同理 (对称地)，有 $f_b = E_0 + E_1 + f_S \cdot \left( 1 - p \right)$。</p>
+		<p>将两式相加，可知 $f_a + f_b = 2 \left( E_0 + E_1 \right) + f_S$，即 $$ E_0 + E_1 = \frac {f_a + f_b - f_S} 2 $$</p>
+		<p>注意到 $E_0 + E_1$ 就是答案，因此我们现在只需要求解 $f_i$。</p>
+		<hr />
+		<p>而求解 $f_i$ 是不难的。通过定义不难可以列出：$$ f_i = \begin{cases} 0 &amp; i = 0 \\ 1 + \dfrac iS f_{i-1} + \dfrac {S - i} S f_{i+1} &amp; i &gt; 0 \end{cases} $$</p>
+		<p>对式子进行变形，可得 $$ i \left( f_i - f_{i-1} \right) = \left( S - i \right) \left( f_{i+1} - f_i \right) + S $$
+		<p>代入 $i = S$ 得 $f_S - f_{S-1} = 1$，然后即可递推出所有 $f_i - f_{i-1}$，最后利用 $f_0 = 0$，即可解得所有 $f_i$。</p>
+		<p>于是 $n = 2$ 的问题可以在 $O \left( S \right)$ 时间内完成。</p>
+		<hr />
+		<p>考虑 $n &gt; 2$ 的情形，其实本质是相同的。</p>
+		<p>用 $E_i$ 表示最终所有饼干到第 $i$ 个人手里时，对原期望的贡献 (注意不是条件期望)。此时，我们还是固定其中一个人，不妨设为 $1$ 号，考虑只在 $1$ 号点处结束时的这个过程。</p>
+		<p>初看这是一个高维的 "悬崖勒马"，实质上还是一维的。</p>
+		<p>因为在这个模型中，$2, 3, \cdots, n$ 这 $n - 1$ 个人的地位是相同的 —— 因为游戏终止条件是<strong>所有饼干都在 $1$ 号手里</strong>。</p>
+		<p>还是用 $f_i$ 表示剩余 $n - 1$ 个人的饼干总数为 $i$ 时，所有人的饼干集中到 $1$ 手里时的期望时间。同时，记 $\displaystyle S = \sum_{i=1}^n a_i$。</p>
+		<p>考虑 "所有饼干集中到 $i$ 手中" 这个过程，我们还是对这个期望进行算两次。</p>
+		<p>一方面，由定义，它就等于 $f_{S - a_i}$，即将 $2, 3, \cdots, n$ 看作一个整体，它就是一个 "悬崖勒马" 模型。</p>
+		<p>另一方面，和上文一样对整个过程进行分类：</p>
+		<ol>
+			<li><p>游戏直接结束，中途没有出现过饼干集中在非 $1$ 号手中的情形。</p>
+			<p>此时，这部分的期望就等于 $E_1$。</p></li>
+			<li><p>游戏并没有直接结束，而是中途出现过饼干集中在 $i$ ($i \neq 1$) 号手中的情形。不妨设饼干<strong>最初集中在 $i$ 手中</strong>。</p>
+			<p>这个期望还是分为两部分：一部分是先到达这个状态，为 $E_i$，另一部分为一个 "悬崖勒马" 问题，记这种情况 (饼干集中到 $i$ 手中) 的概率为 $p_i$，则贡献为 $f_S \cdot p_i$。</p></li>
+		</ol>
+		<p>综上，有 $$ f_{S - a_1} = \sum_{i=1}^n E_i + \sum_{i=2}^n f_S \cdot p_i = \sum_{i=1}^n \left( E_i + f_S \cdot p_i \right) - f_S \cdot p_1 $$</p>
+		<p>同理可得其它 $n - 1$ 式。将它们相加，并利用 $\displaystyle \sum_{i=1}^n p_i = 1$，可得 \begin{align*}
+&amp; \sum_{j=1}^n f_{S - a_j} \\
+=&amp; \sum_{j=1}^n \left( \sum_{i=1}^n \left( E_i + f_S \cdot p_i \right) - f_S \cdot p_j \right) \\
+=&amp; \sum_{j=1}^n \left( \sum_{i=1}^n E_i + f_S - f_S \cdot p_j \right) \\
+=&amp; n \left( \sum_{i=1}^n E_i + f_S \right) - f_S \cdot \sum_{j=1}^n p_j \\
+=&amp; n \sum_{i=1}^n E_i + \left( n - 1 \right) f_S
+\end{align*}</p>
+		<p>注意到答案为 $\displaystyle \sum_{i=1}^n E_i$，	它就等于 $\displaystyle \frac 1n \left( \sum_{i=1}^n f_{S - a_i} - \left( n - 1 \right) f_S \right)$。于是剩下的问题还是如何求 $f_i$。</p>
+		<p>求 $f_i$ 的方法和上面大同小异，无非就是方程变成了 $$ f_i = \begin{cases} 0 &amp; i = 0 \\ 1 + \dfrac iS \left( \dfrac 1 {n - 1} f_{i-1} + \dfrac {n - 2} {n - 1} f_i \right) + \dfrac {S - i} S f_{i+1} &amp; i &gt; 0 \end{cases} $$</p>
+		<p>经过类似的变形可得 $$ i \left( f_i - f_{i-1} \right) = \left( n - 1 \right) \cdot \left[ \left( S - i \right) \left( f_{i+1} - f_i \right) + S \right] $$</p>
+		<p>代入 $i = S$ 知 $f_i - f_{i-1} = n - 1$，容易 $O \left( S \right)$ 递推求解。</p>
+		<p>综上，整个问题可以在 $O \left( n + S \right)$ 时间内解决。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 300054, mod = 998244353;
+
+int n, S = 0;
+int a[N], f[N], inv[N];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+int main() {
+	int i, ans = 0;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (i = 1; i &lt;= n; ++i) cin &gt;&gt; a[i], S += a[i];
+	for (inv[1] = 1, i = 2; i &lt; S || i &lt;= n; ++i) inv[i] = ll(mod - mod / i) * inv[mod % i] % mod;
+	f[S] = n - 1;
+	for (i = S - 1; i; --i) f[i] = (f[i + 1] * ll(S - i) + S) % mod * (n - 1) % mod * inv[i] % mod;
+	for (i = 1; i &lt;= S; ++i) add(f[i], f[i - 1]);
+	for (i = 1; i &lt;= n; ++i) add(ans, f[S - a[i]]);
+	cout &lt;&lt; int((ans + f[S] * (mod - n + 1ll)) % mod * inv[n] % mod) &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>求逆元时注意要求到 $\max \left\{ n, \sum a_i \right\}$ 不要求少了。</p>
+	</body>
+</html>
