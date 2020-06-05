@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym102586J]Median Replace Hard</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一个长度为奇数 $N$ 的 $\texttt 0/\texttt 1$ 串 $S$，被称为<strong>漂亮的</strong>，如果我们可以执行如下操作 $\dfrac {N - 1} 2$ 次得到串 $\texttt 1$：</p>
+		<ul>
+			<li><p>选择 $X$ 的<strong>连续</strong>三个字符 $a_{i-1}, a_i, a_{i+1}$，然后将它们删去，在原位置插入 $f \left( a_{i-1}, a_i, a_{i+1} \right)$。</p>
+			<p style="color: red">(ps: 这里 $f \left( u, v, w \right)$ 是一个接受三个 $0$ 或 $1$ 的字符，返回一个 $0$ 或 $1$ 的字符的函数)</p></li>
+		</ul>
+		<p>现在 Taichi 有一个由 $\texttt 0, \texttt 1, \texttt ?$ 构成的串 $S$。请你帮她求出，有多少个将 $\texttt ?$ 替换为 $\texttt 0$ 或 $\texttt 1$ 的方案，使得最终得到的串是<strong>漂亮的</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 256$)，表示数据组数。</p>
+		<p>对于每组数据，共一行，包含两个非空字符串 $P, S$ ($\left| P \right| = 8; \sum \left| S \right| \leq 3 \times 10^5; 2 \nmid \left| S \right|$)，其中 $P$ 中只包含 $\texttt 0$ 和 $\texttt 1$，用来描述函数 $f$，具体地，有 $f \left( x, y, z \right) = P \left[ 1 + x + 2 y + 4 z \right]$；$S$ 为一个由 $\texttt 0, \texttt 1, \texttt ?$ 构成的字符串，表示询问的文本串。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示通过将 $\texttt ?$ 替换为 $\texttt 0$ 或 $\texttt 1$ 所能得到的漂亮的串的个数模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>作为 <a href="../index.html?redirect=875" target="_blank">[AtCoder3950,Grand22E]Median Replace</a> 的加强版，这道题允许连续三个字符可以以任意给定的规则进行替换。</p>
+		<p>然而这样就缺少了一般的贪心策略。如果要对所有函数 $f$ 逐个攻破，则这样的函数有 $2^8 = 256$ 个，工作量非常大，而且并不是每个函数都像 "中位数" 那样友好，有些甚至连单调性引理都没有。</p>
+		<p>不过，可以注意到，在那道题中，我们最终得到了一个 "毕克自动机"，而这个自动机接受一个长度为奇数的串，当且仅当它是漂亮的。于是我们将判定问题转化到了自动机的识别，然后容易在对应自动机上计数。</p>
+		<p>"毕克自动机" 虽然是贪心得到的产物，但这可以引发我们思考：<strong style="color: fuchsia">对于任意一个函数 $f$，是否都存在对应的 <abbr title="Deterministic Finite-state Automaton, 确定性有限状态自动机">DFA</abbr>，使得它接受一个长度为奇数的串，当且仅当它在 $f$ 意义下是漂亮的</strong>。如果是这样，那么我们只需要得到这个自动机，然后做一个简单的 DP 即可。</p>
+		<p>事实上，这个结论是正确的，对于每个 $f$，这样的自动机都存在 <span style="color: red">(ps: 证明有些繁杂且机械，这里就略去了)</span>。</p>
+		<p>于是，下面只需要考虑如何求出这个自动机。</p>
+		<p>考虑使用 Myhill-Nerode 定理，一个自动机具有唯一的最小化，这个最小化是由一个等价关系 "$\overset L \sim$" 定义的。具体地址，$x \overset L \sim y \Leftrightarrow \left( \forall s \in \Sigma^*, x \cdot s \text{ 是漂亮的} \Leftrightarrow y \cdot s \text{ 是漂亮的} \right)$。</p>
+		<p>那么考虑将长度低于一个阈值 $th$ 的串取出来 (如可以取 $t = 10$)，考察它们之间的等价关系。</p>
+		<p>判定等价关系的时候，显然直接按照定义是不可行的 (需要检验无穷多个串)，不过可以利用 "泵引理" 的思想，因为 <abbr title="Deterministic Finite-state Automaton, 确定性有限状态自动机">DFA</abbr> 的总点数是有限的，因此一定存在某个和总点数相关的数 $B$，使得我们只需要检验长度不超过 $B$ 的串 $s$ (用来拼接的串)，即可达到同样的效果。</p>
+		<p>而判断一个串是否可接受可以通过简单 DP 得到，这里就不再赘述了。</p>
+		<p>最后根据等价类划分一下自动机，如果有必要再最小化一下，就可以得到这个串 $f$ 对应的自动机了。</p>
+		<p><del>当然，如果搜索自动机的时间太长，可以像下面代码一样将自动机打表，然后直接预处理。</del></p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+using std::vector;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 300054, mod = 1000000007;
+
+struct DFA {
+	int n;
+	vector &lt;int&gt; acc;
+	vector &lt;pr&gt; trans;
+	DFA () {}
+	DFA (int n_, const vector &lt;int&gt; &amp;acc_, const vector &lt;pr&gt; &amp;trans_) : n(n_), acc(acc_), trans(trans_) {}
+} dfa[256];
+
+char form[10], s[N];
+
+void initDFA() <a href="uploads/4.cpp" download="gym102586J.cpp">{...}</a>
+
+inline int &amp; add(int &amp;x, const int y) {return x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+int resolve(const DFA &amp;D, char *s) {
+	int i, ret = 0; char *p = s; static vector &lt;int&gt; cur, nxt;
+	cur.resize(D.n), nxt.resize(D.n);
+	memset(nxt.data(), 0, D.n &lt;&lt; 2), nxt.front() = 1;
+	for (; *p; ++p) {
+		cur.swap(nxt), memset(nxt.data(), 0, D.n &lt;&lt; 2);
+		for (i = 0; i &lt; D.n; ++i) {
+			if (*p != 49) add(nxt[D.trans[i].first], cur[i]);
+			if (*p != 48) add(nxt[D.trans[i].second], cur[i]);
+		}
+	}
+	for (int x : D.acc) add(ret, nxt[x]);
+	return ret;
+}
+
+inline void work() {
+	int type;
+	cin &gt;&gt; form &gt;&gt; s, type = strtol(form, NULL, 2);
+	cout &lt;&lt; resolve(dfa[type], s) &lt;&lt; '\n';
+}
+
+int main() {
+	int T; initDFA();
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+/******** making table program. ********
+#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define lg2 std::__lg
+
+typedef std::vector &lt;bool&gt; bitset;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::map &lt;pr, int&gt; map;
+const int N = 1050000, W = 5000;
+
+int type;
+int f[N];
+int bel[N], rep[W];
+int tr[W][4], real_tr[W][2];
+int o[N], mask;
+bool fin[N];
+bitset g[W];
+map Ri;
+
+inline int elim(int S, int i) {
+	int hi = S &gt;&gt; (i + 3) &lt;&lt; (i + 1),
+		me = (type &gt;&gt; (7 - (S &gt;&gt; i &amp; 7)) &amp; 1) &lt;&lt; i,
+		lo = S &amp; ~(-1 &lt;&lt; i);
+	return hi | me | lo;
+}
+
+bool judge(int S) {
+	if (S &lt; N &amp;&amp; ~f[S]) return f[S];
+	int i, len = lg2(S);
+	assert(len &amp; 1 &amp;&amp; len &gt; 1);
+	for (i = 0; i &lt; len - 2; ++i) if (judge(elim(S, i))) return S &lt; N ? f[S] = 1 : 1;
+	return S &lt; N ? f[S] = 0 : 0;
+}
+
+inline int concat(int a, int b) {
+	int A = lg2(a);
+	return (a &amp; ~(1 &lt;&lt; A)) | b &lt;&lt; A;
+}
+
+void print_one(int S, FILE *_f) {
+	int i, l = lg2(S);
+	for (i = 0; i &lt; l; ++i) fputc((S &gt;&gt; i &amp; 1) | 48, _f);
+}
+
+int work() {
+	int i, j, l, $, d = 0, CC = 0, cnt; bitset u;
+	for (l = 1; l &lt; 10; l += 2)
+		for (i = 1 &lt;&lt; l; i &lt; 2 &lt;&lt; l; ++i) {
+			u.clear();
+			for ($ = 0; $ &lt; 8; $ += 2)
+				for (j = 1 &lt;&lt; $; j &lt; 2 &lt;&lt; $; ++j)
+					u.EB(judge(concat(i, j)));
+			g[i] = u, o[d++] = i;
+		}
+	std::stable_sort(o, o + d, [] (const int x, const int y) {return g[x] &lt; g[y];});
+	fputs("vvvvvvvvvvvv group 0 vvvvvvvvvvvv\n", stderr);
+	for (i = 0; i &lt; d; ++i) {
+		print_one(o[i], stderr), fputc(10, stderr), bel[ o[i] ] = CC;
+		if (i &lt; d - 1 &amp;&amp; g[o[i]] != g[o[i + 1]])
+			fprintf(stderr, "^^^^^^^^^^^^ group %d ^^^^^^^^^^^^\n\nvvvvvvvvvvvv group %d vvvvvvvvvvvv\n", CC, 1 + CC), ++CC;
+	}
+	fprintf(stderr, "^^^^^^^^^^^^ group %d ^^^^^^^^^^^^\n", CC++);
+	for (i = d - 1; i &gt;= 0; --i) rep[ bel[ o[i] ] ] = o[i];
+
+	fputs("\n======== transformation table ========\n", stderr);
+	for (i = 0; i &lt; CC; ++i)
+		j = rep[i],
+		tr[i][0] = bel[concat(j, 4)], tr[i][1] = bel[concat(j, 6)],
+		tr[i][2] = bel[concat(j, 5)], tr[i][3] = bel[concat(j, 7)],
+		fprintf(stderr, "%4d =&gt; %4d%4d%4d%4d\n", i, tr[i][0], tr[i][1], tr[i][2], tr[i][3]);
+	fputs("======================================\n\n", stderr);
+
+	cnt = CC;
+	auto get = [&amp;cnt] (int x, int y) {
+		map::iterator it; bool ret;
+		std::tie(it, ret) = Ri.emplace(pr(x, y), cnt);
+		return ret ? cnt++ : it-&gt;second;
+	};
+
+	for (i = 0; i &lt; CC; ++i)
+		real_tr[i][0] = get(tr[i][0], tr[i][1]), real_tr[i][1] = get(tr[i][2], tr[i][3]);
+
+	l = get(bel[2], bel[3]);
+	for (const auto &amp;e : Ri)
+		real_tr[e.second][0] = e.first.first, real_tr[e.second][1] = e.first.second;
+
+	for (i = 0; i &lt; CC; ++i) fin[i] = judge(rep[i]);
+	return cnt - CC;
+}
+
+int main(int argc, char *argv[]) {
+	assert(argc &gt; 1), type = atoi(argv[1]);
+	memset(f, -1, sizeof f), f[2] = 0, f[3] = 1;
+	return work();
+}
+*/
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<p>(打表内容过长，就不显示了，完整代码见<a href="uploads/4.cpp" download="gym102586J.cpp">此处</a>)</p>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在最小化自动机时，注意偶数长度的串是否接受是任意的，因此我们合理选(mei)择(ju)这些串是否接受来得到更小的自动机。事实上，所有这样的 (最小) 自动机的点数不超过 $30$，等号在 $P = \texttt{00010110}$ 时取到。</p>
+		<p><strong>坑2：</strong>打表时尽量灵活地使用批处理等技术，<del>毕竟 $256$ 个自动机还是有点多的。</del></p>
+	</body>
+</html>

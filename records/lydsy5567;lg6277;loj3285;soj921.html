@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy5567][lg6277][loj3285][soj921][USACO2020OPEN]Circus</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一棵 $n$ 个点的树，上面有 $k$ 枚不同 (可区分) 的棋子，每个棋子在一个顶点上。定义一个<strong>状态</strong>需要满足 $k$ 枚棋子在不同的 $k$ 个顶点上。</p>
+		<p>如果一个状态可以通过将一枚棋子移动到与之相邻且当前没有棋子的顶点上，来得到另一个状态，则称这两个状态 "等价"。"等价" 是<em>等价关系</em> (即具有对称性，传递性)。</p>
+		<p>请对于每个 $k = 1, 2, \cdots, n$，求出两两不等价的状态的个数 (即等价类的个数)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^5$)，表示树的点数。</p>
+		<p>接下来 $n - 1$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i &lt; b_i \leq n; a_i \neq b_i$)，描述树上的一条边。保证这 $n - 1$ 条边恰好构成一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $n$ 行，每行一个整数，第 $i$ 行的整数表示当 $k = i$ 时等价类的个数模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>不难注意到，如果这 $k$ 枚棋子是相同 (不可区分) 的，显然所有的<strong>状态</strong>都是等价的。</p>
+		<p>因此对于一个状态，我们可以将其归约为所有棋子都在某 $k$ 个固定点时的情形 (比如 $1, 2, \cdots, k$)，然后统计这样的排列个数。</p>
+		<p>定义两个状态的距离为它们所对应的排列的 <strong>Hamming 距离</strong> (即不同点的个数)。</p>
+		<p>考察任意两个状态 $s, t$ ($s \neq t$)，如果 $\operatorname{dist} \left( s, t \right) &gt; 2$，则不难得知一定存在一个中间状态 $m$ 满足 $\operatorname{dist} \left( s, m \right), \operatorname{dist} \left( m, t \right) &lt; \operatorname{dist} \left( s, t \right)$。</p>
+		<p>进一步，任意两个状态都可以通过交换若干对棋子得到。</p>
+		<p>于是我们只需要考虑，哪些棋子之间是可交换的。</p>
+		<p>容易验证两个棋子之间的可交换是一个等价关系 (即具有自反性、对称性、传递性)，于是设这个关系将原 $n$ 个顶点分成了 $\mathcal E$ 个等价类 $E_1, E_2, \cdots, E_\mathcal E$，则答案的表达式就为 $$ \binom n {\left| E_1 \right|, \left| E_2 \right|, \cdots, \left| E_\mathcal E \right|} $$</p>
+		<p>于是现在考虑如何求出这个等价关系。</p>
+		<hr />
+		<p>将原树 $T$ 进行 "二度路径" 的缩边，即把所有二度路径看成一个整体，于是剩下的树 $T_e$ 中每个点的度都不为 $2$。</p>
+		<p>考虑 $T_e$ 中的一条边 $\left( u, v \right)$，设它在 $T$ 中对应的 "二度路径" 的长度 (边数) 为 $l$，则考虑当 $k \geq n - l - 1$ 时：</p>
+		<img class="center-block" src="uploads/231.png" alt="二度路径" />
+		<p>此时这条边将 $T_e$ 分成两棵子树，设它们的大小分别为 $S_u, S_v$ (含 $u, v$)，则有 $S_u + S_v = n - l + 1$。</p>
+		<p>若 $k &gt; n - l - 1 = \left( S_u - 1 \right) + \left( S_v - 1 \right)$，可见至少有 $k - \left( n - l - 1 \right)$ 个点永远留在链 $u \leadsto v$ 上，且这些点将剩下的 $n - l - 1$ 个点分为两部分：一部分永远在 $u$ 所在的子树内，一部分永远在 $v$ 所在的子树内。</p>
+		<p>当 $k = n - l - 1 = \left( S_u - 1 \right) + \left( S_v - 1 \right)$ 时，类似地，我们可以看成 "$0$ 个点" 将剩下的 $k$ 个点分成了两个部分：其中 "左边" $S_u - 1$ 个点，在 $u$ 所在的子树内，"右边" $S_v - 1$ 个点，在 $v$ 所在的子树内。</p>
+		<p>换句话说，考虑左侧的 $S_u - 1$ 个点 $L$，右侧的 $S_v - 1$ 个点 $R$，以及中间的 $k - \left( n - l - 1 \right)$ 个点 $M$，则 $\left( L, M \right); \left( M, R \right); \left( L, R \right)$ 两两无法交换，且 $M$ 中的任意两个点也无法交换。</p>
+		<p>通过这个分析，我们可得 $\left( x, y \right)$ 可交换的一个必要条件：</p>
+		<p><strong style="color: green">对于任意长度为 $l \geq n - k - 1$ 的 "二度路径" $\left( u, v \right)$，$x, y$ 要么同在 $u$ 子树内，要么同在 $v$ 子树内</strong>。</p>
+		<hr />
+		<p>下面证明这个条件的充分性。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>设 $x, y$ 满足题设条件。</p>
+				<p>首先，将所有元素移动，使得 $x$ 和所有的空位连通，设这个连通块为 $T$。</p>
+				<p>然后设路径 $x \leadsto y$ 上的第一枚棋子为 $z$，考虑 $T \cup \left\{ z \right\}$ 的形态：</p>
+				<ol>
+					<li><p>$T \cup \left\{ z \right\}$ 不是一条链 (path)。</p>
+					<p>若 $y = z$，则可以完成交换：</p>
+					<img class="center-block" src="uploads/232.png" alt="交换" />
+					<p>若 $y \neq z$，则可以将 $z$ 移动到链 $x \leadsto y$ 之外，转化为更简单的情形：</p>
+					<img class="center-block" src="uploads/233.png" alt="转化" /></li>
+					<li><p>$T \cup \left\{ z \right\}$ 是一条链。</p>
+					<p>若 $\left( x, z \right)$ 中所有点都是 $2$ 度的，则显然与条件矛盾。</p>
+					<p>所以 $\left( x, z \right)$ 中存在 $\geq 3$ 度点，若存在与 $x, z$ 不相邻的 $\geq 3$ 度点，则：</p>
+					<img class="center-block" src="uploads/234.png" alt="转化为 T ∪ {z} 不是链" />
+					<p>即可将其转化为 $T \cup \left\{ z \right\}$ 不是一条链的情形。</p>
+					<p>否则，若只存在与 $x$ 相邻的三度点 $t$，考虑 "二度路径" $t \leadsto z$ 即得矛盾。</p>
+					<p>同理，若只存在与 $z$ 相邻的三度点 $t$，考虑 "二度路径" $x \leadsto t$ 即得矛盾。</p></li>
+				</ol>
+				<p>于是只需要不断按照此规则操作下去，不难发现，$\operatorname{dist} \left( x, y \right)$ 单调递减，因此最终 (如果不产生矛盾) 一定可以成功将 $x$ 与 $y$ 交换。</p>
+			</div>
+		</div>
+		<p>因此，对于固定的 $k$，我们只需要考虑满足 $l \geq n - k - 1$ 的 "二度路径" 产生的影响即可。</p>
+		<p>首先不难通过 dfs 得到树上所有的 (极长) "二度路径"，考虑所有 $l \geq n - k - 1$ 的 "二度路径"，将这些路径从 $T$ 中<strong>删去</strong>，得到若干个连通块 $C_1, C_2, \cdots, C_m$。</p>
+		<p>设有 $\lambda_i$ 个棋子可以到达连通块 $C_i$，那么这 $\lambda_i$ 个点就构成了最初交换关系的一个<strong>等价类</strong> (即前文中的 $\left| E_i \right|$)。</p>
+		<p>于是我们现在需要统计所有的 $\lambda_i$。</p>
+		<p>考虑补集转化，计算<strong>不能到达连通块 $C_i$ 的棋子个数</strong>。</p>
+		<p>设与连通块 $C_i$ 相邻 (即通过一条 "二度路径" 分隔) 的连通块为 $C_{j_1}, C_{j_2}, \cdots, C_{j_y}$，考虑其中每个连通块 $C_j$ 对其的贡献。</p>
+		<p>按照前述分析，不妨 $C_i$ 是 "连通块 $L$"，$C_j$ 是 "连通块 $R$"，中间那个 "二度路径" 是 "连通块 $M$"。则 <strong>$L$ 无法和 $M, R$ 的点进行交换</strong> —— 换句话说，<strong style="color: teal">$M, R$ 中的点无法到达 $L$</strong>。</p>
+		<p>那 $M, R$ 中一共有多少棋子呢？就等于 $k - \left( n - w_j \right)$，其中 $w_j$ 表示连通块 $C_{j_y}$ 的大小。</p>
+		<p>从而，不能到达连通块 $C_i$ 的棋子个数就等于 $$ \sum_{i=1}^y \left[ k - \left( n - w_{j_i} - 1 \right) \right] = \left( k - n + 1 \right) \cdot y + \sum_{i=1}^y w_{j_i} = \left( k - n + 1 \right) \cdot y + \left( n - \left| C_i \right| \right) \tag 1 \label 1 $$</p>
+		<p style="color: red">于是，由 $\eqref 1$，能到达连通块 $C_i$ 的棋子个数 $$ \lambda_i = k - \left[ \left( k - n + 1 \right) \cdot y + \left( n - \left| C_i \right| \right) \right] = \left( n - k - 1 \right) \cdot \left( y - 1 \right) + \left( \left| C_i \right| - 1 \right) \tag 2 \label 2 $$</p>
+		<p>于是我们只需要计算并维护每个<span style="color: fuchsia">连通块大小</span> ($\left| C_i \right|$) 以及与它<span style="color: blue">相邻的连通块个数</span> ($y$)。</p>
+		<hr />
+		<p>而现在我们需要对大量 $k$ 进行统计。考虑我们是将 $l \geq n - k - 1$ 的 "二度路径" 删去，因此树中存在的 "二度路径" 就是满足 $l &lt; n - k - 1$ 的。因此我们需要按照 $n - k - 1$ 递增的顺序 (等价地，$k$ 递减的顺序) 来枚举，这样树中存在的 "二度路径" 就会依次增加，这引导我们使用<strong>并查集</strong>来维护。</p>
+		<p>考虑合并两个连通块时<span style="color: fuchsia">连通块大小</span>和<span style="color: blue">相邻连通块个数</span>的变化。不难发现，<span style="color: fuchsia">连通块大小</span>就等于将两个子<span style="color: fuchsia">连通块大小</span>直接相加并加上 "二度路径" 的长度再减 $1$，而<span style="color: blue">相邻连通块个数</span>就是两个子连通块的<span style="color: blue">相邻连通块个数</span>相加后再减 $2$。</p>
+		<p>那最后连通块的数量比较多，是否需要数据结构呢？事实上不需要，只需要枚举所有的连通块即可。</p>
+		<p>事实上，连通块的个数等于尚未连的 "二度路径" 数再加 $1$，而一条长度为 $l$ 的 "二度路径" 至多只会在 $l$ 轮尚未连上，因此尚未连的 "二度路径" 的总数不过是 $\sum l = O \left( n \right)$ 级别。</p>
+		<p>于是用 <code>std::set</code>/<code>std::unordered_set</code> 维护当前所有的连通块并按照 $\eqref 2$ 式计算即可，总时间复杂度 $O \left( \operatorname{Sorting} \left( n \right) + n \cdot \alpha \left( n \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef std::unordered_set &lt;int&gt; set;
+typedef std::tuple &lt;int, int, int&gt; tuple;
+const int N = 100054, M = N * 2, mod = 1000000007;
+
+int n, E = 0, C = 0, root;
+int to[M], first[N], next[M];
+int p[N], dep[N], deg[N];
+int fact[N], finv[N], ans[N];
+bool key[N];
+set roots;
+tuple chain[N];
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(int n) {
+	int i;
+	for (*fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	finv[n] = PowerMod(fact[n], mod - 2);
+	for (i = n; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E, ++deg[u];
+	to[++E] = u, next[E] = first[v], first[v] = E, ++deg[v];
+}
+
+namespace dsu {
+	int p[N], size[N], expose[N];
+
+	inline void init(int n) {std::iota(p, p + (n + 1), 0), std::fill(size, size + (n + 1), 1), memcpy(expose, deg, (n + 1) &lt;&lt; 2);}
+
+	int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+	inline void connect(int x, int y, int w) {
+		x = ancestor(x), y = ancestor(y), assert(x != y);
+		if (size[x] &gt; size[y]) std::swap(x, y);
+		p[x] = y, size[y] += size[x] + w - 1, expose[y] += expose[x] - 2, roots.erase(x);
+	}
+}
+
+void dfs(int x) {
+	int i, y;
+	for (i = first[x]; i; i = next[i]) if ((y = to[i]) != p[x])
+		p[y] = x, dep[y] = dep[x] + 1, dfs(y);
+}
+
+int main() {
+	int i, j, l, u, v;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n, init(n), memcpy(ans, fact, (n + 1) &lt;&lt; 2);
+	for (i = 1; i &lt; n; ++i) cin &gt;&gt; u &gt;&gt; v, addedge(u, v);
+	for (i = n; i; --i) if ((key[i] = deg[i] != 2)) roots.emplace(root = i);
+	dfs(root);
+	for (i = 1; i &lt;= n; ++i)
+		if (key[i] &amp;&amp; i != root) {
+			for (v = p[i]; !key[v]; v = p[v]);
+			chain[C++] = tuple(dep[i] - dep[v], v, i);
+		}
+	std::sort(chain, chain + C), dsu::init(n);
+	for (j = i = 0; i &lt; n - 1; ++i) {
+		for (; j &lt; C &amp;&amp; (std::tie(l, u, v) = chain[j], l &lt; i); ++j) dsu::connect(u, v, l);
+		int &amp;s = ans[n - i - 1];
+		for (int r : roots) s = (ll)s * finv[i * (dsu::expose[r] - 1ll) + dsu::size[r] - 1] % mod;
+	}
+	for (i = 1; i &lt;= n; ++i) cout &lt;&lt; ans[i] &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意公式是 $\left( n - k - 1 \right) \left( \texttt{expose[r]} - 1 \right) + \left( \texttt{size[r]} - 1 \right)$，不要算错了。</p>
+		<p><strong>坑2：</strong>上述算法在当 $k = n$ 时会越界，不过此时显然有 $ans_n = n !$，直接处理即可。</p>
+	</body>
+</html>

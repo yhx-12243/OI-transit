@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[loj6718]九个太阳「弱」化版</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n, k$，满足 $k$ 是 $2$ 的幂，求 $$ \sum_{k \mid i, 0 \leq i \leq n} \binom ni $$ 对 $998244\color{red}853$ 取模的值。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, k$ ($n \leq 10^{15}, k \leq 2^{15}$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示上式模 $998244\color{red}853$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>注意到模数从 $998244353$ 换成了 $998244853$ (任意模)，而它就不再有满足条件的 $k$ 次单位根了，因此利用单位根反演的类似技巧将不再适用。</p>
+		<p>我们考虑从生成函数的角度来理解这个问题，定义 $$ F \left( x \right) = \left( 1 + x \right)^n = \binom n0 + \binom n1 x + \binom n2 x^2 + \cdots + \binom nn x^n $$</p>
+		<p>于是我们就需要求它的<strong>指数为 $k$ 的倍数的项的系数之和</strong>。</p>
+		<p>也就是说，$1, x^k, x^{2 k}, \cdots$ 在某种意义下是等价的，因此我们可以考虑<strong style="color: teal">对多项式 $x^k - 1$ 取模</strong>。</p>
+		<p style="color: red">(ps: 事实上，考虑 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr> 求点值的实际意义，不难发现它其实就是在求 $x^k - 1$ 意义下的循环卷积，因为这些单位根恰好就是多项式 $x^k - 1$ 的复根)</p>
+		<p>于是我们只需要求出 $F \left( x \right) \bmod \left( x^k - 1 \right) = \left( 1 + x \right)^n \bmod \left( x^k - 1 \right)$ 的常数项即可。</p>
+		<p>考虑使用多项式快速幂。注意到模数不是 NTT 模数，因此可以使用拆系数 FFT/多模数 NTT/分治乘解决。</p>
+		<p>总时间复杂度 $O \left( k \log k \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 132000, mod = 998244853;
+
+int fact[N], finv[N];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (*fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod;
+	--i, finv[i] = PowerMod(fact[i], mod - 2);
+	for (; i; --i) finv[i - 1] = (ll)finv[i] * i % mod;
+}
+
+inline ll C(int n, int r) {return (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+namespace Poly {
+	typedef std::complex &lt;double&gt; C;
+
+	int l, n, rev[N];
+	C x[N], y[N], B1[N], B2[N], B3[N], B4[N];
+
+	void FFT_init(int len) {
+		if (l == len) return;
+		n = 1 &lt;&lt; (l = len);
+		int i; double angle = M_PI;
+		for (i = l - 1; i &gt;= 0; angle *= .5, --i) x[1 &lt;&lt; i] = C(cos(angle), sin(angle));
+		for (i = 3; i &lt; n; ++i) if (i &amp; (i - 1)) x[i] = x[i &amp; -i] * x[i ^ (i &amp; -i)];
+		*x = C(1.), *rev = 0;
+		for (i = 1; i &lt; n; ++i) rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DFT(C *d, C *t) {
+		int i, len = 1, delta = n; C *j, *k, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = y[k - j] * k[len], k[len] = *k - R, *k += R;
+			len &lt;&lt;= 1;
+		}
+	}
+
+	void sqr(int deg, int *a, int *b) {
+		if (!deg) {*b = (ll)*a * *a % mod; return;}
+		FFT_init(lg2(deg) + 2);
+		int i, j; double iv = 1. / n; C p, q, r;
+		for (i = 0; i &lt;= deg; ++i) B1[i] = C(a[i] &amp; 32767, a[i] &gt;&gt; 15);
+		std::fill(B1 + i, B1 + n, C()), DFT(B1, B3), B3[n] = *B3;
+		for (i = 0, j = n; i &lt; n; ++i, --j)
+			p = (B3[i] + std::conj(B3[j])) * C(.5, 0.),
+			q = (B3[i] - std::conj(B3[j])) * C(0., -.5),
+			r = p + q * C(0., 1.), B1[j] = p * r, B2[j] = q * r;
+		*B1 = B1[n], *B2 = B2[n], DFT(B1, B3), DFT(B2, B4);
+		for (i = 0; i &lt;= deg * 2; ++i)
+			b[i] = (ll(B3[i].real() * iv + .5) + (ll((B3[i].imag() + B4[i].real()) * iv + .5) % mod &lt;&lt; 15) + (ll(B4[i].imag() * iv + .5) % mod &lt;&lt; 30) + mod) % mod;
+	}
+}
+
+ll n;
+int K;
+int f[N], g[N];
+
+void naive_sqr(int deg, int *a, int *b) {
+	int i, j;
+	for (i = 0; i &lt;= deg; ++i)
+		for (j = 0; j &lt;= deg; ++j) b[i + j] = (b[i + j] + (ll)a[i] * a[j]) % mod;
+}
+
+void polyPowerMod(ll n, int d) {
+	int i, z = lg2(n); bool alive = false; ll df = 1;
+	auto sqr_algo = (d &gt; 512 ? Poly::sqr : naive_sqr);
+	for (; --z &gt;= 0; ) {
+		df = df &lt;&lt; 1 | (n &gt;&gt; z &amp; 1);
+		if (df &lt; d) continue;
+		if (!alive) for (alive = true, i = 0; i &lt;= df &gt;&gt; 1; ++i) f[i] = C(df &gt;&gt; 1, i);
+		sqr_algo(d - 1, f, g);
+		if (n &gt;&gt; z &amp; 1) for (i = 2 * d - 1; i; --i) add(g[i], g[i - 1]);
+		for (i = d - 1; i &gt;= 0; --i) add(f[i] = g[i], g[i + d]), g[i] = g[i + d] = 0;
+	}
+	assert(df == n &amp;&amp; alive);
+}
+
+int main() {
+	cin &gt;&gt; n &gt;&gt; K, init();
+	if (K &lt;= 1) return cout &lt;&lt; PowerMod(2, n) &lt;&lt; '\n', 0;
+	if (n &lt; K) return cout &lt;&lt; '1' &lt;&lt; '\n', 0;
+	return polyPowerMod(n, K), cout &lt;&lt; *f &lt;&lt; '\n', 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>多项式快速幂时注意常数，在这里 <a href="../templates.html#nt02" target="_blank">"递归版" 的写法</a>因为相乘时只需要乘一个一次式而拥有更小的常数。</p>
+	</body>
+</html>

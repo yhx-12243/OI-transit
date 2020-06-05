@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1205F]Beauty of a Permutation</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一个 $n$ 元排列 $p_1, p_2, \cdots, p_n$，称 $\left[ L, R \right]$ 是一个连续段当且仅当 $\max \left\{ p_L, p_{L + 1}, \cdots, p_R \right\} - \min \left \{ p_L, p_{L + 1}, \cdots, p_R \right\} = R - L$。</p>
+		<p>你现在有 $q$ 组询问，每组询问给出 $n, k$，你需要确定是否存在一个 $n$ 元排列恰好包含 $k$ 个连续段。如果存在，并给出一组构造。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $q$ ($q \leq 10000$)，表示询问的组数。</p>
+		<p>接下来 $q$ 行，每行包含两个正整数 $n, k$ ($n \leq 100; k \leq \dfrac {n \left( n + 1 \right)} 2$)，表示所询问的排列大小和期望连续段个数。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，如果对应的排列不存在，则输出 <code>NO</code>，否则第一行输出 <code>YES</code>，第二行输出 $n$ 个整数 $p_1, p_2, \cdots, p_n$，描述你所找到的连续段个数为 $k$ 的 $n$ 元排列。</p>
+
+		<h3>题解</h3>
+		<p>根据<a href="../index.html?redirect=808" target="_blank">这道题</a>的经验，一个排列的连续段个数可以用它的<strong>析合树</strong>来进行较好地刻画。</p>
+		<p>具体地，<strong style="color: red">不考虑 $n$ 个长度为 $1$ 的连续段</strong> (下文默认不考虑)，则一个排列的连续段个数可以这样得到：</p>
+		<ul>
+			<li>设它的析合树为 $T$，对 $T$ 中的每个非叶节点，如果它是<strong>析点</strong>，则对答案贡献 $1$，如果它是度数 (子节点个数) 为 $D$ 的<strong>合点</strong>，则对答案贡献 $\dbinom D2$。那么所有非叶节点的贡献总和就是这个排列的连续段总数。</li>
+		</ul>
+		<p>对于一个长度为 $n$，连续段总数为 $k$ 的排列，我们将其对应到平面上的一个点/二维向量 $\left( n - 1, k \right)$。</p>
+		<p>如果这样的排列存在，我们将 $\left( n - 1, k \right)$ 染成<span style="color: black">黑色</span>，否则将其染成<span style="color: silver">白色</span>。记黑点的集合为 $B$。</p>
+		<p>那么不考虑构造，原问题就等价于询问点 $\left( n - 1, k - n \right)$ 的颜色。</p>
+		<p>下面我们就来考虑每个点的颜色是黑还是白，等价地，研究 $B$ 集合的结构。</p>
+		<hr />
+		<p>首先，由析合树的性质，我们能注意到两种比较基本的排列：</p>
+		<ol>
+			<li><p>这个排列是单调的，它的析合树只有一个合点和 $n$ 个叶节点。</p>
+			<p>此时只需 $n \geq 2$，对应到平面上的点即 $\left( n - 1, \dbinom n2 \right)$。等价地，$\left( x, \dfrac {x \left( x + 1 \right)} 2 \right) \in B$ ($x \geq 1$)。</p>
+			</li>
+			<li><p>这个排列是<a href="../index.html?redirect=746" target="_blank"><strong>单排列</strong></a>，它的析合树只有一个析点和 $n$ 个叶节点。</p>
+			<p>此时必有 $n \geq 4$，对应到平面上的点即 $\left( n - 1, 1 \right)$。等价地，$\left( x, 1 \right) \in B$ ($x \geq 3$)。</p></li>
+		</ol>
+		<p>定义 $B_1 = \left\{ \left( x, \dfrac {x \left( x + 1 \right)} 2 \right) \mid x \geq 1 \right\} \cup \left\{ \left( x, 1 \right) \mid x \geq 3 \right\}$，则 $B_1 \subset B$。</p>
+		<p>为了方便，我们规定 $\left( 0, 0 \right) \in B$ (其实按照定义这个点本来就应该是黑色的)。下面我们证明 $B$ 的一个重要性质，就是它<strong>对于加法的封闭性</strong>：</p>
+		<p><strong style="color: green">若 $\left( x_1, y_1 \right) \in B, \left( x_2, y_2 \right) \in B$，则 $\left( x_1 + x_2, y_1 + y_2 \right) \in B$</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>不妨设 $x_1, x_2 &gt; 0$。因为 $x_1, x_2$ 中有 $0$ 时，其中一个必为 $\left( 0, 0 \right)$，此时结论显然。</p>
+				<p>由定义，存在大小为 $x_1 + 1$，连续段个数为 $y_1$ 的排列 $\sigma$，以及大小为 $y_1 + 1$，连续段个数为 $y_1$ 的排列 $\pi$。</p>
+				<p>按照 <a href="../index.html?redirect=685" target="_blank">[CTSC2018]青蕈领主</a> 的说法，我们将 $\pi$ 的其中一个元素 "<strong>展开</strong>" 称 $\sigma$，就得到一个更大的排列 $\rho$。</p>
+				<p>它的析合树 $T \left( \rho \right)$ 可以看做用 $\sigma$ 的析合树 $T \left( \sigma \right)$ 替换掉 $\pi$ 的析合树 $T \left( \pi \right)$ 的一个叶节点得到的。</p>
+				<p>那么 $T \left( \rho \right)$ 的叶节点个数显然就是 $\left( x_1 + 1 \right) + \left( y_1 + 1 \right) - 1 = x_1 + y_1 + 1$，$\rho$ 的连续段个数就等于 $y_1 + y_2$ (由析合树的性质可知)。</p>
+				<p>故 $\rho$ 的存在就说明了 $\left( x_1 + x_2, y_1 + y_2 \right) \in B$。</p>
+			</div>
+		</div>
+		<p>定义两个点 (向量) 集 $P, Q$ 的 "和" 为 $A + B = \left\{ \left( x_1 + x_2, y_1 + y_2 \right) \mid \left( x_1, y_1 \right) \in P, \left( x_2, y_2 \right) \in Q \right\}$，$k \cdot A = \underbrace {A + A + \cdots + A}_{n \text{ 个 } A}$ ($k \in \mathbb N^*$)，那么不难得到如下推论：</p>
+		<p><strong style="color: orange">定义 $B_k = k \cdot B_1$，则 $B_1 \cup B_2 \cup B_3 \cup \cdots \cup B_k \cup \cdots \subseteq B$</strong>。</p>
+		<p>接下来，就是我们的重头戏了，我们要证明：<strong style="color: green">$B \subseteq B_1 \cup B_2 \cup B_3 \cup \cdots \cup B_k \cup \cdots$</strong>，也就是说，$B$ 中每个向量一定可以表示成 $B_1$ 中若干向量的和。更本质地，$B_1$ 是集合 $B$ 的一个 "生成集" (当然它也是 "基")。</p>
+		<p>事实上，注意到 $B$ 中的所有向量都在第一象限，因此我们只需要证明除了 $B_1$ 以外的每个向量可以表示成两个 "更小的" 非零向量之和，于是可以根据向量的模长实行数据归纳法。于是下面就证明：</p>
+		<p><strong style="color: green">(等价命题) 对于 $\left( x, y \right) \in B \setminus B_1, \exists \left( x_1, y_1 \right), \left( x_2, y_2 \right) \in B, \left( x_1, y_1 \right), \left( x_2, y_2 \right) \neq \mathbf 0$，满足 $\left( x, y \right) = \left( x_1 + x_2, y_1 + y_2 \right)$</strong>。</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>由定义，存在 $x + 1$ 元排列 $\sigma$ 具有 $y$ 个连续段。</p>
+				<p>注意到 $\left( x, y \right) \notin B_1$，说明 $T \left( \sigma \right)$ 不为那种 "只有一个根节点和 $n$ 个叶节点" 的树。</p>
+				<p>于是根节点至少存在一个子节点 $c$，它不是叶节点。</p>
+				<p>我们将以 $c$ 为根的子树分离出去，然后用一个叶节点代替原来 $c$ 所在的位置。</p>
+				<p style="color: red">(ps: 可以看出，就是将上一个证明的过程反过来做，用排列的语言讲就是将 $c$ 对应的连续段 "<strong>看成整体</strong>")</p>
+				<p>设分离出去的树为 $T_1$，剩下的树为 $T_2$，显然它们都是某个排列的析合树。</p>
+				<p>由前证明知这两个排列对应的向量的和恰好为 $\left( x, y \right)$，而它们显然不是零向量，故结论成立。</p>
+			</div>
+		</div>
+		<p>综上，有 $B = B_1 \cup B_2 \cup B_3 \cup \cdots \cup B_k \cup \cdots$。</p>
+		<hr />
+		<p>于是，现在就不难求出 $B$ 集合了 —— 只需要做一个背包 DP 即可。具体地，按照顺序枚举点 (向量) $\mathbf v$，枚举 $B_1$ 中的每个点 (向量) $\mathbf b$，判断 $\mathbf v - \mathbf b$ 是否有 $B$ 中的元素即可。</p>
+		<p>这样，我们就解决了判定的问题。对于给出一组构造，刚才的证明也可以看做是构造性的 —— 具体地，我们只需要 $B$ 中任何一个元素在 $B_1$ 中的线性表示，我们就可以按照这个证明的过程逐步构建析合树，并得到所要的排列。</p>
+		<p>简单分析一下时间复杂度，有 $\left| B_1 \right| = O \left( n \right)$，总共涉及到的点数为 $O \left( n^3 \right)$，故预处理时间复杂度为 $O \left( n^4 \right)$，单组询问时间复杂度显然为 $O \left( n \right)$，故总时间复杂度为 $O \left( n^4 + q \cdot n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int N = 108, N2 = 5400;
+
+enum type {invalid, conjunct, disjunct};
+
+struct path {
+	type S; pr last;
+	path () {}
+	path (type S_, pr la_) : S(S_), last(la_) {}
+} f[N][N2];
+
+int C2[N], last[N2];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+void init() {
+	int i, j, k;
+	for (i = 1; i &lt; N - 1; ++i) C2[i + 1] = C2[i] + i;
+	f[1][0] = path(conjunct, {0, 0}),
+	f[2][1] = path(conjunct, {1, 0}),
+	f[3][2] = path(conjunct, {2, 1}),
+	f[3][3] = path(conjunct, {1, 0}),
+	last[1] = 2, last[2] = last[3] = 3;
+	for (i = 4; i &lt;= 100; ++i) {
+		f[i][1] = path(disjunct, {1, 0}), f[i][C2[i]] = path(conjunct, {1, 0});
+		// disjunct
+		for (j = 2; j &lt; C2[i]; ++j)
+			if (last[j - 1] &amp;&amp; last[j - 1] &lt; i - 2)
+				f[i][j] = path(disjunct, {last[j - 1], j - 1});
+		// conjunct
+		for (j = 2; j &lt; C2[i]; ++j) if (f[i][j].S == invalid)
+			for (k = 1; k &lt; i &amp;&amp; C2[k + 1] &lt; j; ++k)
+				if (f[i - k][j - C2[k + 1]].S != invalid) {
+					f[i][j] = path(conjunct, {i - k, j - C2[k + 1]});
+					break;
+				}
+		for (j = 1; j &lt;= C2[i]; ++j) if (f[i][j].S != invalid &amp;&amp; !last[j]) last[j] = i;
+	}
+}
+
+vector recursion(int n, int W) {
+	if (n == 1) return vector(1, 1);
+	int i, m = f[n][W].last.first, deg = n - m + 1;
+	vector ret(recursion(f[n][W].last.first, f[n][W].last.second));
+	ret.reserve(n);
+	if (f[n][W].S == conjunct) {
+		assert(deg &gt; 1);
+		for (int &amp;x : ret) x = m - x + 1;
+		for (; ++m &lt;= n; ret.EB(m));
+	} else {
+		assert(deg &gt; 3);
+		for (int &amp;x : ret) ++x;
+		for (i = 4; i &lt;= deg; i += 2) ret.EB(i + m - 1);
+		ret.EB(1);
+		for (i = 3; i &lt; deg - 2; i += 2) ret.EB(i + m - 1);
+		if (deg &amp; 1) ret.EB(n);
+		ret.EB(i + m - 1);
+	}
+	return ret;
+}
+
+inline vector solve(int n, int W) {return n == 1 ? (W == 1 ? vector(1, 1) : vector()) : (W &lt;= n || f[n][W - n].S == invalid ? vector() : recursion(n, W - n));}
+
+int main() {
+	int T, i, n, W; vector ret; init();
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) {
+		cin &gt;&gt; n &gt;&gt; W, ret = solve(n, W);
+		if (ret.empty()) cout &lt;&lt; "NO\n";
+		else for (cout &lt;&lt; "YES\n", i = 0; i &lt; n; ++i) cout &lt;&lt; ret[i] &lt;&lt; (i == n - 1 ? '\n' : ' ');
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>枚举 $B_1$ 中元素的时候注意上下界，以及 $\left( 2, 1 \right) \notin B$。</p>
+		<p><strong>坑2：</strong>在询问时先将问题转化为点坐标，同时注意当坐标减到负数时不要数组越界了。</p>
+	</body>
+</html>

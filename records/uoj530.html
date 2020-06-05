@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[uoj530]汉明距离</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于两个长度为 $m$ 的 $\texttt 0/\texttt 1$ 串 $\alpha, \beta$，定义它们的 <strong>Hamming 距离</strong> $\displaystyle d \left( \alpha, \beta \right) = \sum_{i=1}^m \left| \alpha_i - \beta_i \right|$。例如，当 $\alpha = \texttt{001}, \beta = \texttt{100}$ 时，$d \left( \alpha, \beta \right) = \left| 0 - 1 \right| + \left| 0 - 0 \right| + \left| 1 - 0 \right| = 2$。</p>
+		<p>现在给出一个 $\texttt 0/\texttt 1$ 串 $\pi = \texttt{110010010000111} \cdots$，它的长度是 $n = 2^{19}$。(完整的串见<a href="uploads/3.in" download="pi">此处</a>)</p>
+		<p>你需要写一个程序，程序输入一个长度为 $n$ 的 $\texttt 0/\texttt 1$ 串 $\sigma$ 后，需要输出 $d \left( \pi, \sigma \right)$ 的<strong>估计值</strong>：更精确地，设你输出的<strong>整数</strong>为 $D$，则 $D$ 需要满足不等式 $\dfrac 12 d \left( \pi, \sigma \right) \leq D \leq 2 d \left( \pi, \sigma \right)$。</p>
+		<p>特别地，你的程序<strong>代码长度不能超过 $2048 \,\mathrm{Bytes}$</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个长度为 $2^{19}$ 的 $\texttt 0/\texttt 1$ 串 $\sigma$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示你给出的 $d \left( \pi, \sigma \right)$ 的估计值 $D$。</p>
+
+		<h3>题解</h3>
+		<p>通过观察可以得到一个<del>没什么卵用</del>的结论：给定的串为 $\pi$ 的二进制展开式 $\pi = \left( 11.0010010000111 \cdots \right)_2$。</p>
+		<p>当然直接算 $\pi$ 希望并不大，因为通常的高精度算法的复杂度均为 $O \left( n^2 \right)$，其中 $n$ 为精度 (长度)，而低于 $O \left( n^2 \right)$ 的高精计算通常会涉及到诸如 FFT 等算法难以压缩在 $2 \,\mathrm{KB}$ 以内。</p>
+		<p>因此我们需要从类似 "字符串" 的角度进行思考。</p>
+		<p>首先，如果给定的 $\sigma = \pi$，那么题面中的不等式就转化为 $0 \leq D \leq 0 \Rightarrow D = 0$，也就是说你需要精确判断一个串是否是 $\pi$。而对于剩下的串，题目保证了你只需在输出一个在 "阈值" 内的值即可通过。</p>
+		<p>精确判断两个串是否相等，一个比较有效的方法是类 Hash 算法。</p>
+		<p>对于字符串 $\alpha, \beta$，如何方便地刻画它们的 Hamming 距离呢？注意到它们都是 $\texttt 0/\texttt 1$ 串，我们试着从 <strong>$0/1$ 向量</strong>的角度去理解它。即设串 $\alpha, \beta$ 对应的 $\texttt 0/\texttt 1$ 向量分别为 $\mathbf \alpha, \mathbf \beta$，那么容易得到 $d \left( \alpha - \beta \right) = \left| \mathrm \alpha - \mathrm \beta \right|^2$，其中 $\left| \mathbf v \right|$ 表示向量 $\mathbf v$ 的<em>模长</em>。</p>
+		<p>而关于向量模长的估计，有一个<del>著名的</del>结论：</p>
+		<p><strong style="color: green">(JL Lemma 的一个特例) 设 $\mathbf v$ 为 $d$ 维向量，$\mathbf A$ 为一 $n \times d$ 随机矩阵，其中每个元素在 $-1$ 和 $+1$ 中等概率选取，则向量 $\mathbf A \cdot \mathbf v$ 的模长的期望值为 $n \left| \mathbf v \right|$。</strong></p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>先证明 $n = 1$ 的情形。</p>
+				<p>重新叙述命题，得：$\xi_1, \xi_2, \cdots, \xi_d$ 为互相独立的离散型随机变量，取 $-1$ 和 $+1$ 的概率各一半，则 (欲证) $E \left[ \left( \xi_1 v_1 + \xi_2 v_2 + \cdots + \xi_d v_d \right)^2 \right] = v_1^2 + v_2^2 + \cdots + v_d^2$。</p>
+				<p>由期望的线性性，知 $\displaystyle E \left[ \left( \xi_1 v_1 + \xi_2 v_2 + \cdots + \xi_d v_d \right)^2 \right] = E \left( \sum_{i=1}^d \xi_i^2 v_i^2 + \sum_{1 \leq i &lt; j \leq d} \xi_i \xi_j v_i v_j \right) = \sum_{i=1}^d E \left( \xi_i^2 v_i^2 \right) + \sum_{1 \leq i &lt; j \leq d} E \left( \xi_i \xi_j v_i v_j \right) = \sum_{i=1}^d v_i^2 + \sum_{1 \leq i &lt; j \leq d} E \left( \xi_i \xi_j \right) v_i v_j$。</p>
+				<p>注意到 $\xi_i, \xi_j$ ($i &lt; j$) 相互独立，故 $E \left( \xi_i \xi_j \right) = E \left( \xi_i \right) E \left( \xi_j \right) = 0$，代入上式得 $E \left[ \left( \xi_1 v_1 + \xi_2 v_2 + \cdots + \xi_d v_d \right)^2 \right] = v_1^2 + v_2^2 + \cdots + v_d^2$。</p>
+				<p>对 $n &gt; 1$ 的情形，只需发现 $\mathbf A \cdot \mathbf v$ 的每一维的平方的期望均为 $\left| \mathbf v \right|$，故 $E \left( \left| \mathbf A \cdot \mathbf v \right| \right) = n \left| \mathbf v \right|$，证毕。</p>
+			</div>
+		</div>
+		<p>通过上述结论，我们就可以 (通过概率方法) 将计算高维向量的模长转化为计算低维向量的模长。</p>
+		<p>待定 $n$，我们就需要一个随机的 $n \cdot d$ ($d = 2^{19}$) 的矩阵 $\mathbf A$，然后计算得到向量 $\mathbf A \cdot \left( \mathbf \sigma - \mathbf \pi \right)$。</p>
+		<p>考虑如何计算 $\mathbf A$ 和 $\mathbf \sigma - \mathbf \pi$ 的乘积。首先你无法得到 $\mathbf \sigma - \mathbf \pi$，但是我们可以使用乘法分配律将 $\mathbf A \cdot \left( \mathbf \sigma - \mathbf \pi \right)$ 转化成 $\mathbf A \cdot \mathbf \sigma - \mathbf A \cdot \mathbf \pi$。而 $\mathbf A \cdot \mathbf \sigma$ 容易在 $O \left( n d \right)$ 时间内计算，因此现在只剩下 $\mathbf A \cdot \mathbf \pi$。</p>
+		<p>注意到向量 $\mathbf \pi$ 是固定的，因此如何在程序内部随机一个矩阵 $\mathbf A$ 的话，就没办法计算 $\mathbf A \cdot \mathbf \pi$ 了。那么，我们可以考虑<strong>固定这个矩阵 $\mathbf A$</strong>，然后 $\mathbf A, \mathbf \pi$ 都固定下来了，就可以在程序外部计算出向量 $\mathbf A \cdot \mathbf \pi$，然后将向量打表嵌入程序。</p>
+		<p>不过，虽然矩阵 $\mathbf A$ 是固定的，但也不能乱写。一个比较好的方法就是通过伪随机数生成器 (比如 <code>std::mt19937</code>) 生成一个矩阵，然后在程序外部计算 $\mathbf A \cdot \mathbf \pi$。</p>
+		<hr />
+		<p>最后是待定的 $n$ 的取值问题。</p>
+		<p>首先，由于我们计算矩阵需要花费 $O \left( n d \right)$ (或 $O \left( \dfrac {n d} \omega \right)$) 的时间，而且算出来的向量 ($\mathbf A \cdot \mathbf \pi$) 还能嵌入到 $2 \,\mathbf{KB}$ 的程序内。因此 $n$ 至多只能是 $10^2$ 这个数量级，$10^3$ 就不行了。</p>
+		<p>其次，对于 $\mathbf v$ 为 $0/1$ 向量的情形，设 $\left| \mathbf v \right| = m$，则通过 $\left| \mathbf A \cdot \mathbf v \right|$ 计算得到的模长 $\left| \mathbf v \right|$ (即 $\left| \mathbf A \cdot \mathbf v \right| / n$) 的<strong>标准差</strong>为 $\sqrt {\dfrac {2 m \left( m - 1 \right)} n}$，因此 $n$ 也不能太小。</p>
+		<p>经适当斟酌，可知 $n$ 取 $192 \sim 256$ 时较为合适，下面的代码中取了 $n = 256$。</p>
+		<p>最终时间复杂度 $O \left( \dfrac {n d} \omega \right)$，代码长度 $1785 \,\mathrm{Bytes}$，可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define popc __builtin_popcount
+using std::cin;
+using std::cout;
+
+typedef unsigned int u32;
+const int N = 524288, data[256] = {-505,-171,-145,-291,657,-1105,811,1119,535,-119,63,363,-607,367,-515,295,377,345,259,433,-23,371,-397,-843,543,127,609,465,-353,-357,209,591,-169,97,353,393,123,-389,-459,-319,-721,-1035,23,381,-403,271,143,289,-875,-85,-791,-283,-559,-429,-441,395,-473,-305,413,-45,727,1057,-285,-1,345,213,45,533,683,-271,-661,463,247,735,375,25,-395,-1405,-273,165,37,-477,461,-241,-179,-213,-587,381,167,43,185,-115,205,509,-233,-931,-237,-471,-339,-329,167,51,559,-1301,-543,-399,-1487,-83,-187,999,-1181,-395,-213,-289,-731,25,763,-255,541,103,-275,-357,709,1185,397,-485,-359,-493,-687,141,-403,-703,-463,1339,589,803,-945,-91,559,-149,461,203,-1079,-613,761,137,829,385,1227,523,-291,219,321,-431,97,-255,-647,279,-139,197,1,-259,237,-269,259,-537,1109,-409,213,-321,275,499,863,1611,-155,21,-143,-593,447,-553,281,-213,-189,359,-5,-507,-175,317,-497,235,871,-1505,449,-451,-307,215,81,299,685,1113,445,51,-773,-861,165,-529,753,1119,337,-251,345,729,207,-183,381,85,-5,-39,-59,111,829,97,13,261,-577,673,1111,-143,593,-237,243,151,299,-419,27,311,-519,-241,519,391,-19,427,-1345,-1055,197,331,-153,205,-215,445,-25,69,-1431,107,-669,-1257};
+
+char s[N + 1];
+u32 S[N];
+
+int main() {
+	int i, R, C = 0, D; long long A = 0;
+	std::mt19937 gen(20040607);
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; s, std::shuffle(s, s + N, gen), D = std::count(s, s + N, '1');
+	for (i = 16383; i &gt;= 0; --i) S[i] = strtol(s + (i &lt;&lt; 5), NULL, 2), s[i &lt;&lt; 5] = 0;
+	for (R = 0; R &lt; 256; ++R) {
+		for (C = i = 0; i &lt; 16384; ++i) C += popc(gen() &amp; S[i]);
+		C = C * 2 - D - data[R], A += (long long)C * C;
+	}
+	cout &lt;&lt; (A + 128) / 256 &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>计算 $\left| \mathbf A \cdot \mathbf v \right|$ 的时候，可以使用位运算优化：事实上，$\operatorname{popc} \left( a \mathbin{\&amp;} v \right) - \operatorname{popc} \left( \neg a \mathbin{\&amp;} v \right) = 2 \operatorname{popc} \left( a \mathbin{\&amp;} v \right) - \operatorname{popc} \left( v \right)$，而 $\sum \operatorname{popc} \left( v \right)$ 可以预处理得到。</p>
+		<p><strong>坑2：</strong>这个算法在答案 $d \left( \pi, \sigma \right) \leq 1$ 的时候是精确的 (只需注意到此时方差为 $0$)。对于其它情况，建议对答案<em>四舍五入</em>。</p>
+	</body>
+</html>

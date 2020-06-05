@@ -371,7 +371,7 @@ const problem_list = [
 		},
 		{ // 47
 			'lang' : 'C++11',
-			'code' : '#include <bits/stdc++.h>\nusing std::cin;\nusing std::cout;\n\nint main() {\n\tint a = 1, b = 2, c = 3;\n#define a b\n#define b c\n#define c d\n#define d b\n\tcout << a << \' \' << b << \' \' << c << \' \' << d << \'\\n\';\n\treturn 0;\n}',
+			'code' : '#include <bits/stdc++.h>\nusing std::cin;\nusing std::cout;\n\nint main() {\n\tint a = 1, b = 2, c = 3, d = 4;\n#define a b\n#define b c\n#define c d\n#define d b\n\tcout << a << \' \' << b << \' \' << c << \' \' << d << \'\\n\';\n\treturn 0;\n}',
 			'answer' : '2 2 3 4\n',
 			'ub' : false,
 			'ce' : false,
