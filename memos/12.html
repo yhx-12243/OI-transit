@@ -10,7 +10,7 @@
 		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 	</head>
 	<body>
-		<h3>完整多项式模板 (乘除、指对、分治、求值、插值) <sub><del class="text-muted">(继续卡常版)</del></sub></h3>
+		<h3>完整多项式模板 (乘除、指对、分治、求值、插值) <sub><del class="text-muted">(先不卡了版)</del></sub></h3>
 
 		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">// This is a polynomial template for C++11
 #include &lt;bits/stdc++.h&gt;
@@ -216,6 +216,57 @@ namespace Poly {
 			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
 			for (i = n &gt;&gt; 1; i &lt; n; ++i) c[i] = B4[n - i] * (mod - iv) % mod;
 		}
+	}
+}
+
+namespace CDQ_NTT {
+	vec f, g, C1, C2, C3, C4, C5;
+
+	// Standard CDQ-NTT Algorithm, type `UK`
+	void solve(int L, int w) {
+		int i, R = L + (1 &lt;&lt; w), M; ll iv;
+		if (!w) {
+			// something depend on problem
+			return;
+		}
+		solve(L, w - 1);
+		if ((M = (1 &lt;&lt; (w - 1)) + L) &gt; n) return;
+		Poly::NTT_init(w), iv = mod - (mod - 1) / Poly::n;
+		memcpy(C2, f + L, 2 &lt;&lt; w), memset(C2 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
+		Poly::DNTT(C2, C1), Poly::DNTT(g, C2);
+		for (i = 0; i &lt; Poly::n; ++i) C3[i] = (ll)C1[i] * C2[i] % mod;
+		Poly::DNTT(C3, C1);
+		for (i = M; i &lt; R; ++i) f[i] = (f[i] + C1[Poly::n - i] * iv) % mod;
+		solve(M, w - 1);
+	}
+
+	// Standard CDQ-NTT Algorithm, type `UU`
+	void solve(int L, int w) {
+		int i, R = L + (1 &lt;&lt; w), M; ll iv;
+		if (!w) {
+			// something depend on problem
+			return;
+		}
+		solve(L, w - 1);
+		if ((M = (1 &lt;&lt; (w - 1)) + L) &gt; n) return;
+		Poly::NTT_init(w), iv = mod - (mod - 1) / Poly::n;
+		if (L) {
+			memcpy(C2, f, 4 &lt;&lt; w), memcpy(C3, g, 4 &lt;&lt; w),
+			memcpy(C4, f + L, 2 &lt;&lt; w), memset(C4 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
+			memcpy(C5, g + L, 2 &lt;&lt; w), memset(C5 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
+			Poly::DNTT(C2, C1), Poly::DNTT(C3, C2), Poly::DNTT(C4, C3), Poly::DNTT(C5, C4);
+			for (i = 0; i &lt; Poly::n; ++i) C5[i] = ((ll)C1[i] * C4[i] + (ll)C2[i] * C3[i]) % mod;
+			Poly::DNTT(C5, C1);
+			for (i = M; i &lt; R; ++i) f[i] = (f[i] + C1[Poly::n - (i - L)] * iv) % mod;
+		} else {
+			memcpy(C2, f, 2 &lt;&lt; w), memset(C2 + M, 0, 2 &lt;&lt; w),
+			memcpy(C3, g, 2 &lt;&lt; w), memset(C3 + M, 0, 2 &lt;&lt; w),
+			Poly::DNTT(C2, C1), Poly::DNTT(C3, C2);
+			for (i = 0; i &lt; Poly::n; ++i) C3[i] = (ll)C1[i] * C2[i] % mod;
+			Poly::DNTT(C3, C1);
+			for (i = M; i &lt; R; ++i) f[i] = (f[i] + C1[Poly::n - i] * iv) % mod;
+		}
+		solve(M, w - 1);
 	}
 }
 

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>Touhou (UOJ135) Visualizer</title>
+		<script src="th/uoj135.min.js"></script>
+		<style>
+			svg {display: block;}
+		</style>
+	</head>
+	<body>
+		<h3>Touhou (UOJ135) Visualizer</h3>
+		<p><strong style="color: red">温馨提示：本游戏/模拟器对电脑绘图性能要求较高，出现卡顿属正常现象。</strong></p>
+		<div class="panel panel-warning" style="width: 100%">
+			<div class="panel-heading" id="controller-title">功能区</div>
+			<div class="panel-body" id="controller-container">
+				<div class="text-center form-inline">
+					<p>地图文件 (<samp>touhou*.in</samp>)：<input type="file" id="file-input" style="display: inline-block"></p>
+					<div class="row">
+						<div class="col-xs-6">
+							<label class="control-label">尺寸比例尺 = 1 :&nbsp;</label><input class="form-control" type="text" id="scale" placeholder="每像素代表的实际长度" />
+						</div>
+						<div class="col-xs-6">
+							<label class="control-label">时间比例尺 = 1 :&nbsp;</label><input class="form-control" type="text" id="tscale" placeholder="每秒代表的实际时间" />
+						</div>
+						<div style="clear: both"></div>
+					</div>
+					<hr />
+					<div class="row">
+						<div class="col-xs-4">
+							<label class="control-label" title="在队列式操作中，长按无效，按下的所有键将依次加入队列。"><input type="checkbox" id="queue-op" /> 队列式操作</label>
+						</div>
+						<div class="col-xs-4">
+							<label class="control-label" title="用按键 S 来表示向下走，方便 WASD 选手"><input type="checkbox" id="sx-swap" /> <kbd>S</kbd>, <kbd>X</kbd> 互换</label>
+						</div>
+						<div class="col-xs-4">
+							<button class="btn btn-primary" id="download-op">导出决策文件</button>
+						</div>
+						<div style="clear: both"></div>
+					</div>
+					<hr />
+					<div class="row">
+						<div class="col-xs-6">
+							<p>使用 <kbd>W</kbd>、<kbd>X</kbd>、<kbd>A</kbd>、<kbd>D</kbd>、<kbd>Q</kbd>、<kbd>Z</kbd>、<kbd>E</kbd>、<kbd>C</kbd>、<kbd>S</kbd> 进行操作</p>
+							<p>按住 <kbd>Shift</kbd> 后可以移动鼠标进行操作</p>
+							<button class="btn btn-success" id="start-manual">开始手动模式</button>
+						</div>
+						<div class="col-xs-6">
+							<p>或，选择决策文件 (<samp>touhou*.out</samp>)：<input type="file" id="file-output" style="display: inline-block"></p>
+							<p>按 <kbd>Ctrl</kbd> 可以显示/隐藏擦弹圆</p>
+							<button class="btn btn-info" id="start-auto">开始自动模式</button>
+						</div>
+						<div style="clear: both"></div>
+					</div>
+				</div>
+			</div>
+			<div class="panel-footer" id="controller-status">请选择文件</div>
+		</div>
+		<div class="panel panel-info" style="width: 100%">
+			<div class="panel-heading" id="stage-title">舞台</div>
+			<div class="panel-body" id="stage-container">
+				<div class="text-center">
+					<div class="row" style="margin-bottom: 10px">
+						<div class="col-xs-6 text-left">时间：<samp id="cur-time">00000</samp><samp>/</samp><samp id="total-time">00000</samp></div>
+						<div class="col-xs-6 text-right">得分：<samp id="cur-score">0</samp><br /><span class="small" id="delta-score" style="color: fuchsia; display: inline-block"></span>
+							</div>
+						<div style="clear: both"></div>
+					</div>
+					<div class="panel panel-default" style="display: inline-block; padding: 4px">
+						<svg id="cvs" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+							<g>
+								<style type="text/css" >
+									<![CDATA[
+										circle.bullet-close {
+											stroke: red;
+											stroke-width: 1.5px;
+										}
+									]]>
+					            </style>
+								<defs>
+									<radialGradient id="GRZD">
+										<stop offset="0%" style="stop-color: white" />
+										<stop offset="50%" style="stop-color: rgb(170, 128, 128)" />
+										<stop offset="79%" style="stop-color: rgb(85, 0, 0)" />
+										<stop offset="100%" style="stop-color: rgba(85, 0, 0, 0)" />
+									</radialGradient>
+								</defs>
+								<defs id="stage-bullet-definitions"></defs>
+								<g id="stage-main"></g>
+							</g>
+							<g>
+								<defs>
+									<radialGradient id="green-radial">
+										<stop offset="0%" style="stop-color: white" />
+										<stop offset="100%" style="stop-color: lime" />
+									</radialGradient>
+									<radialGradient id="light-green-radial">
+										<stop offset="0%" style="stop-color: #80ff80" />
+										<stop offset="33%" style="stop-color: #80ff80" />
+										<stop offset="100%" style="stop-color: rgba(128, 255, 128, 0)" />
+									</radialGradient>
+									<radialGradient id="red-radial">
+										<stop offset="0%" style="stop-color: #f99" />
+										<stop offset="100%" style="stop-color: red" />
+									</radialGradient>
+									<radialGradient id="light-red-radial">
+										<stop offset="0%" style="stop-color: #f66" />
+										<stop offset="33%" style="stop-color: #f66" />
+										<stop offset="100%" style="stop-color: rgba(255, 102, 102, 0)" />
+									</radialGradient>
+								</defs>
+								<style type="text/css" >
+									<![CDATA[
+										#player-graze-circle {
+											fill: url(#light-green-radial);
+										}
+										#player-body-circle {
+											fill: url(#green-radial);
+										}
+										.danger>#player-graze-circle {
+											fill: url(#light-red-radial);
+										}
+										.danger>#player-body-circle {
+											fill: url(#red-radial);
+										}
+									]]>
+					            </style>
+								<g id="player">
+									<circle id="player-graze-circle" />
+									<circle id="player-body-circle" />
+								</g>
+							</g>
+							<g id="stage-text-related">
+								<defs>
+									<radialGradient id="cyan-fuchsia-radial" r="50px">
+										<stop offset="0%" style="stop-color: cyan" />
+										<stop offset="1%" style="stop-color: fuchsia" />
+									</radialGradient>
+								</defs>
+								<text id="stage-text-elem" style="dominant-baseline: central; fill: url(#cyan-fuchsia-radial); font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; text-anchor: middle; visibility: hidden"></text>
+							</g>
+						</svg>
+					</div>
+					<div class="row" style="margin-bottom: 10px">
+						<div class="col-xs-6 text-left">当前坐标：<samp>(</samp><samp id="cur-coordinate-x">0.00</samp><samp>, </samp><samp id="cur-coordinate-y">0.00</samp><samp>)</samp></div>
+						<div class="col-xs-6 text-right">距离下一次<strong>不中弹得分</strong>的时间：<samp id="next-bonus-time">N/A</samp>，奖励分数：<samp id="next-bonus-amount">N/A</samp></div>
+						<div style="clear: both"></div>
+					</div>
+				</div>
+			</div>
+			<div class="panel-footer" id="stage-status">未开始</div>
+		</div>
+	</body>
+</html>

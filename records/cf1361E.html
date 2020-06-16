@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1361E]James and the Chase</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张有向强连通图 $G = \left( V, E \right)$，定义一个顶点 $v \in G$ 是<strong>有趣的</strong>，如果它到达任意顶点 $u \neq v$ <strong>有且仅有一条</strong> (简单) 路径。</p>
+		<p>你需要求出 $G$ 中所有<strong>有趣的</strong>顶点。特别地，如果有趣的顶点的总数严格小于总点数的 $20 \%$ (即 $\dfrac {\left| V \right|} 5$)，则你只需要输出 $-1$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $t$ ($t \leq 2000$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含两个非负整数 $n, m$ ($1 \leq n \leq 10^5; 0 \leq m \leq 2 \times 10^5$)，分别表示 $G$ 的点数和边数。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，描述一条有向边。</p>
+		<p>保证 $G$ 为简单图，且 $\sum n \leq 10^5; \sum m \leq 2 \times 10^5$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，如果有趣的顶点总数 $&lt; \dfrac {\left| V \right|} 5$，则输出一行 $-1$，否则按照顶点标号递增的顺序在一行内依次输出所有有趣的顶点的标号。</p>
+
+		<h3>题解</h3>
+		<p>考虑这个奇怪的条件："如果有趣的顶点总数小于总点数的 $20 \%$，你只需要输出 $-1$"，这就是本题的突破口。</p>
+		<p>因此我们假设 $G$ 满足<strong style="color: teal">有趣的顶点的总数不小于总点数的 $20 \%$</strong>，看看能得到什么。</p>
+		<p>易知，如果 $G$ 满足这个性质，我们不难通过<strong>随机化</strong>的方式得到一个有趣的顶点，而随机的次数是期望常数 (不超过 $5$) 次。</p>
+		<p>于是我们使用随机化去寻找其中一个有趣的顶点，显然判断一个点是否有趣是 $O \left( n + m \right)$ 的，于是我们可以花 $O \left( k \left( n + m \right) \right)$ 的时间找到一个有趣的顶点，其中 $k$ 的期望 $E \left( k \right) \leq 5$。</p>
+		<p>找到这样的顶点后，又该如何处理呢？</p>
+		<p>考虑题目中的条件，设这个点为 $r$，则 $r$ 到图中其余任意一点都有唯一路径。如果我们把这 $n - 1$ 条唯一路径取出来求个并，可知我们能得到一棵<strong>外向树</strong>，它其实就是 $r$ 的 dfs 树。</p>
+		<p>这棵树有着良好的性质：如，<strong style="color: green">$G$ 中所有的非树边都是返祖边 (后向边)</strong>。</p>
+		<p style="color: red">(ps: 反之，若存在前向边 $u \to v$，则 $r \leadsto u \leadsto v$ 和 $r \leadsto u \to v$ 是两条不同的路径；若存在横叉边 $u \to v$，则 $r \leadsto u \to v$ 和 $r \leadsto \operatorname{LCA} \left( u, v \right) \leadsto v$ 是两条不同的路径)</p>
+		<hr />
+		<p>建出 dfs 树后，我们考虑一个顶点在什么情况下是有趣的。</p>
+		<p>若 $v$ 是有趣的，则 $v$ 到任意一个点 $u$ 具有唯一的路径 <span style="color: blue">(Cond &#945;)</span>。</p>
+		<p>特别地，对于 $u \in anc \left( v \right)$ ($anc \left( v \right)$ 表示 $v$ 的祖先集合)，$v$ 到 $u$ 具有唯一路径 <span style="color: fuchsia">(Cond &#946;)</span>。</p>
+		<p>显然有 $\alpha \Rightarrow \beta$，不过事实上也有 $\beta \Rightarrow \alpha$：注意到树上所有的边除了树边只有返祖边 (后向边)，因此 $v \leadsto u$ 的任意一条 (简单) 路径一定满足 $v \leadsto \operatorname{LCA} \left( u, v \right) \to u$，故 $v$ 到所有祖先路径唯一蕴含了 $v$ 到所有其他点路径唯一。</p>
+		<hr />
+		<p>由于原图强连通，因此对于 $v \neq r$，必存在 $v$ 子树中的点 $w$ 使得存在边 $w \to a$，其中 $a \in \left( anc \left( v \right) \setminus \left\{ v \right\} \right)$。</p>
+		<p>而且，这样的边至多只有一条：否则 $v$ 一定不是有趣的，考虑 $w_1 \to a_1$ 和 $w_2 \to a_2$，那么 $v$ 到 $p_v$ 就有 $v \leadsto w_1 \to a_1 \leadsto p_v$ 和 $v \leadsto w_2 \to a_2 \leadsto p_v$ 两条路径。</p>
+		<p>因此，我们可以把满足该条件的唯一边记为 $w \to a$。</p>
+		<p>此时，如果 $v$ 是有趣的，那么 $a$ 也一定是有趣的；反之，我们只需要将两条路径 $a \leadsto u$ 中拼接上 $v \leadsto w \to a$ 即可。</p>
+		<p>类似地，如果 $a$ 是有趣的，那么 $v$ 也一定是有趣的；反之，对于两条路径 $v \leadsto u$，若 $u$ 在 $v$ 子树内，则只需拼接上 $a \leadsto v$ 即得矛盾，否则这条 (简单) 路径一定以 $v \leadsto w \to a$ 开头，证毕。</p>
+		<p>综上，我们只需检验一条树边是否被返祖边 "覆盖" 超过一次，以及如果是一次时是哪条边 ($w \to a$)，容易使用差分技术 $O \left( n \right)$ 解决，然后按照 dfs 序扫一遍即可得到所有有趣的顶点。</p>
+		<p>最后别忘了检验得到的顶点数是否不小于 $\dfrac n5$，因为当顶点数略小于 $\dfrac n5$ 时随机时也有较大概率随到。</p>
+		<p>期望时间复杂度 $O \left( 5 \left( n + m \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<h4>C++17</h4>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+const int N = 100054, M = 200054;
+
+struct edge {
+	int u, v;
+	edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+} e[M];
+
+int V, E, root;
+int first[N], next[M];
+int a[N], cand[N];
+int p[N], cov[N], Cov[N];
+int cnt = 0, o[N];
+int ans[N];
+bool instack[N], succ[N];
+std::mt19937 gen;
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+inline void addedge(int u, int v, int id) {e[id] = edge(u, v), next[id] = first[u], first[u] = id;}
+
+bool dfs(int x) {
+	int i, y; instack[x] = true;
+	o[++cnt] = x;
+	for (i = first[x]; i; i = next[i])
+		if (!p[y = e[i].v]) {
+			if (p[y] = x, !dfs(y)) return false;
+		} else if (!instack[y]) return false;
+	return instack[x] = false, true;
+}
+
+bool check(int x) {
+	int i; memset(p, 0, (V + 1) &lt;&lt; 2), p[x] = -1, cnt = 0;
+	if (!dfs(x)) return false;
+	for (i = 1; i &lt;= V &amp;&amp; p[i]; ++i);
+	return i &gt; V;
+}
+
+void work() {
+	int i, u, v, n;
+	cin &gt;&gt; V &gt;&gt; E, memset(first, 0, (V + 1) &lt;&lt; 2);
+	for (i = 1; i &lt;= E; ++i) cin &gt;&gt; u &gt;&gt; v, addedge(u, v, i);
+	std::iota(a, a + V, 1), n = min(V, 54);
+	std::sample(a, a + V, cand, n, gen);
+	for (i = 0; i &lt; n &amp;&amp; !check(cand[i]); ++i);
+	if (i == n) {cout &lt;&lt; "-1\n"; return;}
+	root = cand[i], memset(cov, 0, (V + 1) &lt;&lt; 2), memset(Cov, 0, (V + 1) &lt;&lt; 2);
+	for (i = 1; i &lt;= E; ++i)
+		if (u = e[i].u, v = e[i].v, p[v] != u)
+			++cov[u], --cov[v], Cov[u] ^= i, Cov[v] ^= i;
+	for (i = V; i; --i) v = o[i], cov[p[v]] += cov[v], Cov[p[v]] ^= Cov[v];
+	for (i = 1; i &lt;= V; ++i) v = o[i], succ[v] = i == 1 || (cov[v] == 1 &amp;&amp; succ[ e[ Cov[v] ].v ]);
+	for (n = 0, i = 1; i &lt;= V; ++i) if (succ[i]) ans[n++] = i;
+	if (5 * n &lt; V) {cout &lt;&lt; "-1\n"; return;}
+	for (i = 0; i &lt; n; ++i) cout &lt;&lt; ans[i] &lt;&lt; (i == n - 1 ? '\n' : ' ');
+}
+
+int main() {
+	int T; gen.seed((std::random_device())());
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>随机选点时可以使用 C++17 的 <code>std::sample</code> 函数。</p>
+		<p><strong>坑2：</strong>建出 dfs 树后，那么 $r$ 一定是有趣的，不需要通过 "路径覆盖" 来判断。</p>
+		<p><strong>坑3：</strong>多组数据时记得清空路径覆盖的标记。</p>
+	</body>
+</html>

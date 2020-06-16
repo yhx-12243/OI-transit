@@ -22,12 +22,12 @@ const
 		DisplayDict = {'Luogu' : '洛谷', 'SPOJ' : 'Sphere OJ', 'SOJ' : 'Simple OJ/Stupid OJ', 'Local' : '本地', 'Unknown' : '一些看似不是很知名的 OJ，快去问一问大佬们吧'},
 		NormDict = {'lydsy' : 'Lydsy', 'lg' : 'Luogu', 'vijos' : 'Vijos', 'hdu' : 'HDU', 'poj' : 'POJ', 'uoj' : 'UOJ', 'loj' : 'LibreOJ', 'simpleoj' : 'SOJ', 'soj' : 'SOJ', 'cf' : 'Codeforces', 'gym' : 'Codeforces', 'cc' : 'Codechef', 'ac' : 'AtCoder', 'agc' : 'AtCoder', 'arc' : 'AtCoder', 'abc' : 'AtCoder', 'spoj' : 'SPOJ'},
 		SiteDict = {
-			'lydsy' : [/^(\d+)$/, x => `https://www.lydsy.com/JudgeOnline/problem.php?id=${x}`],
+			'lydsy' : [/^(\d+)$/, x => `http://www.lydsy.com/JudgeOnline/problem.php?id=${x}`],
 			'lg' : [/^([TU]?)(\d+)$/, (x, y) => `https://www.luogu.com.cn/problem/${x || 'P'}${y}`],
 			'vijos' : [/^(\d+)$/, x => `https://vijos.org/p/${x}`],
 			'hdu' : [/^(\d+)$/, x => `http://acm.hdu.edu.cn/showproblem.php?pid=${x}`],
 			'poj' : [/^(\d+)$/, x => `http://poj.org/problem?id=${x}`],
-			'uoj' : [/^(\d+)$/, x => `http://uoj.ac/problem/${x}`],
+			'uoj' : [/^(\d+)$/, x => `https://uoj.ac/problem/${x}`],
 			'loj' : [/^(\d+)$/, x => `https://loj.ac/problem/${x}`],
 			'simpleoj' : [/^(\d+)$/, x => `http://10.49.27.23/problem?id=${x}`],
 			'soj' : [/^(\d+)$/, x => `http://10.49.18.71/problem/${x}`],
@@ -229,7 +229,7 @@ const
 		$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
 
 		if (getStorage('check-version') !== 'off') {
-			let local_ver = '7.2.3', prompt_str;
+			let local_ver = '7.2.4', prompt_str;
 			$.ajax('https://yhx-12243.github.io/OI-transit/additional_files/others/version', {
 				type : 'GET',
 				cache : false,
