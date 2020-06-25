@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6624][uoj544][loj3304][多省联测 A 组 2020]作业题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个 $n$ 个顶点 $m$ 条边 (点和边都从 $1$ 开始编号) 的无向简单图 $G$，每一条边有一个正整数边权 $w_i$。对于一棵 $G$ 的生成树 $T$，定义 $T$ 的价值为：$T$ 所包含的边的边权的最大公约数乘以边权之和，即：$$ w \left( T \right) = \left( \sum_{i=1}^{n-1} w_{e_i} \right) \cdot \gcd \left( w_{e_1}, w_{e_2}, \cdots, w_{e_{n-1}} \right) $$ 其中 $e_1, e_2, \dots, e_{n-1}$ 为 $T$ 包含的边的编号。</p>
+		<p>请求出 $G$ 的所有生成树 $T$ 的价值之和对 $998244353$ 取模后的结果。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($2 \leq n \leq 30; 1 \leq m \leq \dbinom n2$)，表示 $G$ 的点数和边数。</p>
+		<p>接下来 $m$ 行，每行三个正整数 $u_i, v_i, w_i$ ($1 \leq u_i, v_i \leq n; u_i \neq v_i; 1 \leq w_i \leq 152501$)，表示有一条无向边连接 $u_i$ 号点和 $v_i$ 号点，且权值为 $w_i$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有生成树的价值之和对 $998244353$ 取模后的结果。</p>
+
+		<h3>题解</h3>
+		<p>对于这种带 $\gcd$ 的式子，我们考虑将 $\gcd$ 通过反演的方式 (如 Mobius 反转变换的方式) 将其处理掉。</p>
+		<p>具体地，注意到 $\displaystyle n = \sum_{d \mid n} \phi \left( d \right)$，因此有 $\displaystyle \gcd \left( a, b, \cdots \right) = \sum_{d \mid a, d \mid b, \cdots} \phi \left( d \right)$，故我们可以计算出<span style="color: fuchsia">对于每个 $d$，<strong>所有边权都为 $d$ 的倍数的生成树</strong>的边权和的总和，设为 $A_d$</span>，那么答案就等于 $\displaystyle \sum_d \phi \left( d \right) \cdot A_d$。故下面讨论如何计算 $A_d$。</p>
+		<p>先考虑计算 $A_d$，我们可以只将边权为 $d$ 的倍数的边提出来，这样就转化为了 $d = 1$ 的情形 —— 求所有生成树的边权和的总和。</p>
+		<p>对于生成树类的问题，我们想使用 Kirchhoff's Matrix-Tree 定理，可惜 Kirchhoff's Matrix-Tree 定理中每个生成树的贡献为它所有边权的乘积，而我们需要的则是边权和。</p>
+		<p><del>此时，一种非常 DD 的方法是枚举每条边，计算有多少个生成树经过这条边，最后将其相加，可惜这样做是 $O \left( n^4 \right)$ 的，没啥前途</del>。</p>
+		<p>考虑如何将乘积转化为和，不难想到使用<strong>同底数幂的乘法</strong>：$a^m \cdot a^n = a^{m+n}$。</p>
+		<p>这里 $a$ 的选择比较有讲究：我们可以定义形式变元 $x$，然后令 $a = \mathrm e^x$，这样就有 $\mathrm e^{m x} \cdot \mathrm e^{n x} = \mathrm e^{\left( m + n \right) x}$。</p>
+		<p>于是，对于一条权值为 $w$ 的边，我们在矩阵中赋予它 $\mathrm e^{w x}$ 的权值，这样设最终的行列式就是 $\displaystyle \sum_i a_i \cdot \mathrm e^{i x}$，其中 $\displaystyle \sum_i i \cdot a_i$ 就是答案。</p>
+		<p>由 $\exp$ 的定义知 $\displaystyle \sum_i i \cdot a_i = \left[ x^1 \right] \sum_i a_i \cdot \mathrm e^{i x}$，因此只需要求出最终的行列式就可以了。</p>
+		<p>但是这个行列式的项数太大了，怎么办呢？</p>
+		<p>没关系，注意到我们求的是 $\left[ x^1 \right]$ 项系数，因此我们只需要计算行列式 $\displaystyle \sum_i a_i \cdot \mathrm e^{i x}$ 的<strong>幂级数展开式</strong>，在 $\hspace{-0.444em} \pmod {x^2}$ 意义下计算即可。</p>
+		<p style="color: red">(ps: 即数域中的每个元素形如 $a + b x + O \left( x^2 \right)$，此时，$a + b x + O \left( x^2 \right)$ 的逆元为 $\dfrac 1a - \dfrac b {a^2} x + O \left( x^2 \right)$。换句话说，我们其实利用了 $\left( 1 + m x \right) \left( 1 + n x \right) \equiv 1 + \left( m + n \right) x \pmod {x^2}$)</p>
+		<p>于是只需要一个普通的 Gauss 消元即可。</p>
+		<p>时间复杂度的一个显然的上界是 $O \left( n^3 \cdot w_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ctz __builtin_ctz
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef unsigned int u32;
+const int N = 34, M = 154000, mod = 998244353;
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void sub(int &amp;x, const int y) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+// a + b x + O(x^2)
+struct linear {
+	int a, b;
+	linear () {}
+	linear (int _a, int _b = 0) : a(_a), b(_b) {}
+	inline linear operator - () const {return linear((!a - 1) &amp; (mod - a), (!b - 1) &amp; (mod - b));}
+	inline linear operator * (const linear &amp;B) const {return linear((ll)a * B.a % mod, ((ll)a * B.b + (ll)b * B.a) % mod);}
+	inline linear &amp; operator += (const linear &amp;B) {return add(a, B.a), add(b, B.b), *this;}
+	inline linear &amp; operator -= (const linear &amp;B) {return sub(a, B.a), sub(b, B.b), *this;}
+	inline linear &amp; operator *= (const linear &amp;B) {return *this = *this * B;}
+	inline linear inv() const {int $ = PowerMod(a, mod - 2); return linear($, ll(mod - b) * $ % mod * $ % mod);}
+};
+
+int V, E;
+int pn = 0, c[M], p[14200], phi[M];
+int G[N][N];
+linear mat[N][N];
+u32 ALL, con[N];
+
+void sieve(int n) {
+	int i, j, v; phi[1] = 1;
+	memset(c, -1, sizeof c);
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i]) p[pn] = i, c[i] = pn++, phi[i] = i - 1;
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt; c[i]; ++j) c[v] = j, phi[v] = phi[i] * (p[j] - 1);
+		if (v &lt;= n) c[v] = j, phi[v] = phi[i] * p[j];
+	}
+}
+
+inline void connect(int u, int v) {
+	if (con[u] == con[v]) return;
+	int A = con[u] | con[v], B = A;
+	for (; A; A &amp;= A - 1) con[ctz(A)] = B;
+}
+
+linear gauss(int n) {
+	int i, j, k; linear det(1), coe;
+	static linear *m[N];
+	for (i = 0; i &lt; n; ++i) m[i] = mat[i];
+	for (i = 0; i &lt; n; ++i) {
+		for (j = i; j &lt; n &amp;&amp; !m[j][i].b; ++j);
+		if (j == n) return linear(0);
+		if (i != j) det = -det, std::swap(m[i], m[j]);
+		det *= m[i][i], coe = m[i][i].inv();
+		for (j = 0; j &lt; n; ++j) m[i][j] *= coe;
+		for (k = i + 1; k &lt; n; ++k)
+			for (coe = -m[k][i], j = i; j &lt; n; ++j) m[k][j] += coe * m[i][j];
+	}
+	return det;
+}
+
+int main() {
+	int i, u, v, w, ans = 0; sieve(M - 1);
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; V &gt;&gt; E, ALL = ~(-1u &lt;&lt; V);
+	for (i = 0; i &lt; E; ++i) cin &gt;&gt; u &gt;&gt; v &gt;&gt; w, --u, --v, G[u][v] = G[v][u] = w;
+	for (i = 1; i &lt; M; ++i) {
+		for (u = 0; u &lt; V; ++u) con[u] = 1 &lt;&lt; u;
+		for (u = 0; u &lt; V - 1; ++u)
+			for (v = u + 1; v &lt; V; ++v)
+				if (G[u][v] &amp;&amp; !(G[u][v] % i)) connect(u, v);
+		if (*con == ALL) {
+			for (u = 0; u &lt; V - 1; ++u) {
+				memset(mat[u], 0, V &lt;&lt; 3);
+				for (v = 0; v &lt; V; ++v)
+					if (G[u][v] &amp;&amp; !(G[u][v] % i)) mat[u][u] -= mat[u][v] = linear(mod - 1, mod - G[u][v]);
+			}
+			ans = (ans + (ll)phi[i] * gauss(V - 1).b) % mod;
+		}
+	}
+	cout &lt;&lt; ans &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在进行 Gauss 消元之前，可以加一些剪枝 —— 先判断边权为 $d$ 的倍数的边的数量是否不小于 $n - 1$ (可以用 Dirichlet 后缀和几乎线性完成)，然后判断这些边是否连通 ($O \left( n^2 \right)$)，最后再 Gauss 消元 ($O \left( n^3 \right)$)。事实上真正需要 Gauss 消元的 $d$ 的数量 (即 $n^3$ 前的系数) 一般不会超过几百。</p>
+		<p><strong>坑2：</strong>数域中的元素 $a + b x$ 当 $a = 0$ 时是没有逆元的，因此计算时需要注意，取对应列中满足 $a \neq 0$ 的元素进行消元。</p>
+	</body>
+</html>

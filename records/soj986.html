@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[soj986][ZJOI2020]抽卡</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个互不相同的整数 $A = \left\{ a_1, a_2, \cdots, a_n \right\}$，你现在有一个集合 $S = \varnothing$，每一秒你可以进行如下操作：</p>
+		<ul>
+			<li>等概率均匀随机选择一个元素 $a \in A$ (其中 $a$ 可以在 $S$ 中)，然后令 $S \gets S \cup \left\{ a \right\}$。</li>
+		</ul>
+		<p>求期望多少秒后 $S$ 中存在连续 $k$ 个整数。保证 $A$ 中存在连续 $k$ 个整数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($2 \leq k \leq n \leq 2 \times 10^5$)，分别表示集合的大小和要求出现的连续整数个数。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($1 \leq a_i \leq 2 n$，$a_i$ 互不相同且其中至少存在连续 $k$ 个整数)，描述集合 $A$ 中的元素。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示期望时间在模 $998244353$ 意义下的结果。</p>
+
+		<h3>题解</h3>
+		<p>对于 "至少一组" 的模型，我们可以像 <a href="../index.html?redirect=365" target="_blank">[uoj214]合唱队形</a> 一样用 <strong>Min-Max 容斥原理</strong>将问题转化为 "所有方案" 的模型。</p>
+		<p>在此题中，就相当于，设 $A$ 中所有连续 $k$ 个整数的左端点 (即最小值) 为 $v_1, v_2, \cdots, v_l$，则我们需要求出对于每个 $T \subseteq \left\{ v_1, v_2, \cdots, v_l \right\}$，期望多长时间有 $\displaystyle \bigcup_{v \in T} \left[ v, v + k - 1 \right] \subseteq S$。</p>
+		<p>但是这样的集合数量有 $2^l$ 个，暴力计算显然是无法接受的。</p>
+		<p>不过，考虑转化后的子问题，不难发现就是<a href="../index.html?redirect=365" target="_blank">那题</a>中的一个几何分布的模型，它的答案就等于 $n \cdot H_I$，其中 $\displaystyle H_k = \sum_{i=1}^k \frac 1i$ 为调和数，$I$ 为集合 $\displaystyle \bigcup_{v \in T} \left[ v, v + k - 1 \right] \subseteq S$ 的大小。</p>
+		<p>换句话说，相同大小的集合对答案产生的贡献 (除容斥系数外) 是完全相同的，因此我们只需要统计有多少个集合的大小为 $I$，最后直接枚举大小而不是枚举每一个集合。</p>
+		<p style="color: red">(ps: 当然，统计集合个数的时候不要忘记带上容斥系数)</p>
+		<hr />
+		<p>现在考虑如何统计大小为 $I$ 的 "区间并" 的个数。</p>
+		<p>首先，对于 $A = L \cup R$，若 $\max L + 1 &lt; \min R$，则每个 $k-$连续段要么包含于 $L$，要么包含于 $R$，且两者不可能相交。</p>
+		<p>对于 $L$ 中的连续段，我们令其个数的生成函数为 $F_L \left( x \right)$ (即 $\left[ x^I \right] F_L \left( x \right)$ 表示大小为 $I$ 的并集的<strong style="color: teal">带权</strong>个数)，对于 $R, A$，同理设 $F_R \left( x \right), F_A \left( x \right)$，那么，可得 $$ F_A \left( x \right) = F_L \left( x \right) \cdot F_R \left( x \right) $$</p>
+		<p>于是，我们只需要考虑 $A$ 中的每个<strong>极长连续段</strong>，求出对应的生成函数最后全部相乘即可。</p>
+		<p>注意到对于长度为 $n$ 的极长连续段，它所对应的生成函数是 $n + k - 1$ 次的，因此所有多项式的次数和不超过 $2 n$，故最后的部分可以简单使用分治 NTT 实现。因此下面讨论如何求一个极长连续段所对应的生成函数。</p>
+		<hr />
+		<p>不难发现这个生成函数只由两个变量控制：$n$ (极长连续段长度) 和 $k$ (要求的连续整数个数)。在一组数据中，$k$ 是固定的，$n$ 可以变化。我们希望它能在 $O \left( n \operatorname{poly} \left( \log n \right) \right)$ 的时间内完成。</p>
+		<p>设 $F_{n, i}$ 表示答案 ($n$ 个连续段，$f_{n, i}$ 为在 $F_{n, i}$ 的基础上要求最后一个连续段在并集中；再规定 $\displaystyle F_n \left( x \right) = \sum_i F_{n, i} \cdot x^i, f_n \left( x \right) = \sum_i f_{n, i} \cdot x^i$，由定义知 $\displaystyle F_{n, i} = \sum_{m \leq n} f_{m, i}$。</p>
+		<p>考虑<del>智障 DP</del>，可得 $$ f_{n, i} = - \left( f_{n-1, i-1} + f_{n-2, i-2} + \cdots + f_{n-k, i-k} + f_{n-\left( k + 1 \right), i-k} + \cdots + f_{0, i-k} \right) \tag 1 \label 1 $$</p>
+		<p>即，\begin{align*}
+f_n \left( x \right) &amp;= - \left[ x \cdot f_{n-1} \left( x \right) + x^2 \cdot f_{n-2} \left( x \right) + \cdots + x^{k-1} \cdot f_{n-\left( k - 1 \right)} \left( x \right) + x^k \left( f_{n-k} \left( x \right) + f_{n-\left( k + 1 \right)} \left( x \right) + \cdots \right) \right] \\
+&amp;= - \left[ x \cdot f_{n-1} \left( x \right) + x^2 \cdot f_{n-2} \left( x \right) + \cdots + x^{k-1} \cdot f_{n-\left( k - 1 \right)} \left( x \right) + x^k \cdot F_{n-k} \left( x \right) \right]
+\end{align*}</p>
+		<p>根据组合意义不难得到 $\deg f_n \left( x \right) = n + k - 1$，考虑在 $\eqref 1$ 式中代入 $i = n + k - 1$，得 $\displaystyle f_{n, n + k - 1} = - \sum_{i=1}^k f_{n - i, n + k - 1 - i}$，并注意到 $F_{n, n + k - 1} = f_{n, n + k - 1}$，故有 $\displaystyle F_{n, n + k - 1} = - \sum_{i=1}^k F_{n - i, n + k - 1 - i}$，解之得 $$ \sum_{n \geq 0} F_{n, n + k - 1} \cdot x^{n + k - 1} = \frac {1 - x^k} {1 - x^{k + 1}} \tag 2 \label 2 $$</p>
+		<p>在 $\eqref 1$ 中代入 $n = n + 1, i = i + 1$，得 $$ f_{n+1, i+1} = - \left( f_{n, i} + f_{n-1, i-1} + \cdots + f_{n-\left( k - 1 \right), i-\left( k - 1 \right)} + f_{n-k, i-\left( k - 1 \right)} + \cdots + f_{0, i-\left( k - 1 \right)} \right) \tag 3 \label 3 $$</p>
+		<p>代入 $\displaystyle F_{n, i} = \sum_{m \leq n} f_{m, i}$ 得 \begin{align*}
+f_{n, i} &amp;= - \left( f_{n-1, i-1} + f_{n-2, i-2} + \cdots + f_{n-\left( k - 1 \right), i-\left( k - 1 \right)} + F_{n-k, i-k} \right) \tag 4 \label 4 \\
+f_{n+1, i+1} &amp;= - \left( f_{n, i} + f_{n-1, i-1} + \cdots + f_{n-\left( k - 2 \right), i-\left( k - 2 \right)} + F_{n-\left( k - 1 \right), i-\left( k - 1 \right)} \right) \tag 5 \label 5
+\end{align*}</p>
+		<p>$\eqref 5 - \eqref 4$ 并化简得 $$ F_{n+1, i+1} - F_{n-k, i-k} = F_{n, i+1} - F_{n-k, i-k+1} \tag 6 \label 6 $$</p>
+		<p>反复利用 $\eqref 6$ 式即数学归纳法，可归纳证明：$$ \color {red} {\sum_{n \geq 0} F_{n, n + k - r} \cdot x^{n + k - r} = \left( \frac {1 - x^k} {1 - x^{k + 1}} \right)^r} \tag 7 \label 7 $$</p>
+		<p>利用 $\eqref 7$ 式及二项式展开，并注意到 $\left( k, k + 1 \right) = 1$，我们就得到了一个 $O \left( \dfrac {n^2} {k^2} \right)$ 的算法，当 $k$ 不太小时已经可以通过了。</p>
+		<p>考虑我们现在所要求的，即 $\displaystyle F_n \left( x \right) = \sum_{i=0}^{n + k - 1} F_{n, i} \cdot x^i$，利用 $\eqref 7$ 可知 $$ F_{n, i} = \left[ x^i \right] \left( \frac {1 - x^k} {1 - x^{k + 1}} \right)^{n + k - i} \tag 8 \label 8 $$</p>
+		<p>差评！连所要求的次数 $x^i$ 都不是固定的，好在右边有一个指数 $k - i$，我们将其转成固定的：$$ F_{n, i} = \left[ x^{n + k} \right] \left( \frac {x - x^{k + 1}} {1 - x^{k + 1}} \right)^{n + k - i} \tag 9 \label 9 $$</p>
+		<p>然而暴力计算还是需要 $O \left( n + k \right)$ 次多项式乘法，不可接受。</p>
+		<p>令 $N = n + k$，我们尝试使用二元生成函数的技巧，即定义 $\displaystyle G \left( x, t \right) = \sum_{i \geq 0} \left( \frac {x - x^{k + 1}} {1 - x^{k + 1}} \cdot t \right)^i$，这样 $\left[ x^N \right] G \left( x, t \right)$ 就是一个关于 $t$ 的多项式，且它的系数就是 $F_n \left( t \right)$ 的翻转。</p>
+		<p>令 $P \left( x \right) = \dfrac 1 {1 - x t}, Q \left( x \right) = \dfrac {x - x^{k + 1}} {1 - x^{k + 1}}$，则有 $G \left( x, t \right) = P \left( Q \left( x \right) \right)$。</p>
+		<p>于是我们将原问题转化为求复合函数的某一项系数的问题，使用扩展 Lagrange 反演，设 $Q \left( x \right)$ 的复合逆为 $R \left( x \right)$，则有 \begin{align*}
+\left[ x^N \right] P \left( Q \left( x \right) \right) &amp;= \frac 1N \left[ x^{N-1} \right] P' \left( x \right) \left( \frac x {R \left( x \right)} \right)^N \\
+&amp;= \frac 1N \left[ x^{N-1} \right] \frac t {\left( 1 - x t \right)^2} \left( \frac x {R \left( x \right)} \right)^N
+\end{align*}
+		<p>其中 $R \left( x \right)$ 满足 $\dfrac {R \left( x \right) - R^{k+1} \left( x \right)} {1 - R^{k+1} \left( x \right)} = x$，令 $S \left( x \right) = \dfrac x {R \left( x \right)}$ 并代入化简，得 $$ S^k \left( x \right) - S^{k+1} \left( x \right) = x^k - x^{k+1} \tag {10} \label {10} $$</p>
+		<p>注意到 $\left[ x^0 \right] S \left( x \right) = 1$，且该条件和 $\eqref {10}$ 即可唯一确定幂级数 $S \left( x \right)$。</p>
+		<p>由于 $S \left( x \right)$ 只和 $k$ 相关，因此不难在程序开头使用 Newton 迭代或分治多项式技巧预处理。</p>
+		<p>得到 $S \left( x \right)$ 后，注意到 $\left[ x^N \right] P \left( Q \left( x \right) \right) = \dfrac 1N \left[ x^{N-1} \right] \dfrac t {\left( 1 - x t \right)^2} \cdot S^N \left( x \right)$，而 $\dfrac t {\left( 1 - x t \right)^2} = t + 2 t^2 x + 3 t^3 x^2 + 4 t^4 x^3 + \cdots$，因此可以通过多项式快速幂/$\exp$ 求出 $S^N \left( x \right)$ 后得到 $\left[ x^N \right] P \left( Q \left( x \right) \right)$，即 $\left[ x^N \right] G \left( x, t \right)$。</p>
+		<p>纵观整个操作过程，预处理 $S \left( x \right)$ 可以在 $O \left( n \log n \right)$ 或 $O \left( n \log^2 n \right)$ 时间内完成，处理每一个给定的 $n$ 也可以在 $O \left( n \log n \right)$ 或 $O \left( n \log^2 n \right)$ 时间内完成，故这一部分的总时间复杂度为 $O \left( n \log n \right)$ 或 $O \left( n \log^2 n \right)$。</p>
+		<p>算上最后的分治 NTT，总时间复杂度为 $O \left( n \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+#define EB emplace_back
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 530000, mod = 998244353, iv2 = (mod + 1) / 2, root = 31;
+typedef int vec[N], *pvec;
+typedef std::vector &lt;int&gt; vector;
+
+vec inv, harm;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (inv[1] = harm[1] = 1, i = 2; i &lt; N; ++i) inv[i] = ll(mod - mod / i) * inv[mod % i] % mod, add(harm[i] = harm[i - 1], inv[i]);
+}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3, B4, B5, B6, B7;
+
+	void Mul(vector &amp;a, vector &amp;b, vector &amp;ret) {
+		int degA = a.size() - 1, degB = b.size() - 1;
+		if (!(degA || degB)) {ret.EB((ll)a[0] * b[0] % mod); return;}
+		NTT_init(lg2(degA + degB) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		memcpy(B1, a.data(), (degA + 1) &lt;&lt; 2), memset(B1 + (degA + 1), 0, (n - degA - 1) &lt;&lt; 2);
+		memcpy(B2, b.data(), (degB + 1) &lt;&lt; 2), memset(B2 + (degB + 1), 0, (n - degB - 1) &lt;&lt; 2);
+		DNTT(B1, B3), DNTT(B2, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * B3[i] % mod;
+		DNTT(B1, B3), std::reverse(B3 + 1, B3 + n); ret.clear(), ret.reserve(degA + degB + 1);
+		for (i = 0; i &lt;= degA + degB; ++i) ret.EB(B3[i] * iv % mod);
+	}
+
+	void Diff(int deg, pvec a, pvec b) {for (int i = 1; i &lt;= deg; ++i) b[i - 1] = (ll)a[i] * i % mod;}
+
+	void Exp(int deg, pvec a, pvec b) {
+		int i, len; ll iv = iv2; pvec c = B7; assert(!*a);
+		if (*b = 1, deg &lt;= 1) return;
+		if (b[1] = a[1], deg == 2) return;
+
+		memset(b + 2, 0, i = 8 &lt;&lt; lg2(deg - 1)), memset(c, 0, i), memset(B1, 0, i),
+		*c = 1, neg(c[1] = b[1]);
+
+		for (len = 1; 1 &lt;&lt; len &lt; deg; ++len) {
+			NTT_init(len + 1), iv = (iv &gt;&gt; 1) + iv2;
+
+			DNTT(c, B2), DNTT(b, B3);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B3[i] * B2[i] % mod; DNTT(B4, B5);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B5[i] = B5[n - i] * iv % mod;
+
+			memset(B5, 0, n &lt;&lt; 1), DNTT(B5, B4);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B2[i] % mod; DNTT(B4, B5);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B5[i] = B5[n - i] * (mod - iv) % mod;
+
+			memcpy(B5, c, n &lt;&lt; 1), DNTT(B5, B6);
+			Diff(n &gt;&gt; 1, b, B1), DNTT(B1, B4);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B6[i] % mod; DNTT(B4, B6);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) reduce(B5[i] = (a[i] - B6[n - i + 1] * iv % mod * inv[i]) % mod);
+
+			memset(B5, 0, n &lt;&lt; 1), DNTT(B5, B4);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B3[i] % mod; DNTT(B4, B5);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B5[n - i] * iv % mod;
+
+			if (2 &lt;&lt; len &gt;= deg) return;
+
+			DNTT(b, B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B4[i] = B4[n - i] * iv % mod;
+
+			memset(B4, 0, n &lt;&lt; 1), DNTT(B4, B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) c[i] = B4[n - i] * (mod - iv) % mod;
+		}
+	}
+}
+
+int n, U, K, limit, cnt = 0;
+vec b, c, f, I, J;
+vec E0, E1, E2, C1, C2, C3, C4, C5, C6, C7;
+vector g[N];
+
+void CDQ(int L, int w) {
+	int i, R = L + (1 &lt;&lt; w), M; ll iv;
+	if (!w) {
+		if (L) {
+			reduce(I[L] = (ll(E1[L] - E2[L]) * inv[L] - (L == K) + (L == K + 1)) % mod);
+			E0[L] = (ll)L * I[L] % mod;
+			E1[L] = ((ll)E1[L] * inv[L] + (ll)K * I[L]) % mod;
+			E2[L] = ((ll)E2[L] * inv[L] + (K + 1ll) * I[L]) % mod;
+		} else *E1 = *E2 = 1;
+		return;
+	}
+	CDQ(L, w - 1);
+	if ((M = (1 &lt;&lt; (w - 1)) + L) &gt; limit) return;
+	Poly::NTT_init(w), iv = mod - (mod - 1) / Poly::n;
+	if (L) {
+		memcpy(C2, E0, 4 &lt;&lt; w), memcpy(C5, E0 + L, 2 &lt;&lt; w), memset(C5 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
+		memcpy(C3, E1, 4 &lt;&lt; w), memcpy(C6, E1 + L, 2 &lt;&lt; w), memset(C6 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
+		memcpy(C4, E2, 4 &lt;&lt; w), memcpy(C7, E2 + L, 2 &lt;&lt; w), memset(C7 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
+		Poly::DNTT(C2, C1), Poly::DNTT(C3, C2), Poly::DNTT(C4, C3), Poly::DNTT(C5, C4), Poly::DNTT(C6, C5), Poly::DNTT(C7, C6);
+		for (i = 0; i &lt; Poly::n; ++i)
+			C2[i] = ((ll)C1[i] * C5[i] + (ll)C2[i] * C4[i]) % mod,
+			C3[i] = ((ll)C1[i] * C6[i] + (ll)C3[i] * C4[i]) % mod;
+		Poly::DNTT(C2, C1), Poly::DNTT(C3, C2);
+		for (i = M; i &lt; R; ++i)
+			E1[i] = (E1[i] + C1[Poly::n - (i - L)] * iv % mod * K) % mod,
+			E2[i] = (E2[i] + C2[Poly::n - (i - L)] * iv % mod * (K + 1)) % mod;
+	} else {
+		memcpy(C2, E0, 2 &lt;&lt; w), memset(C2 + M, 0, 2 &lt;&lt; w),
+		memcpy(C3, E1, 2 &lt;&lt; w), memset(C3 + M, 0, 2 &lt;&lt; w),
+		memcpy(C4, E2, 2 &lt;&lt; w), memset(C4 + M, 0, 2 &lt;&lt; w),
+		Poly::DNTT(C2, C1), Poly::DNTT(C3, C2), Poly::DNTT(C4, C3);
+		for (i = 0; i &lt; Poly::n; ++i)
+			C2[i] = (ll)C1[i] * C2[i] % mod,
+			C3[i] = (ll)C1[i] * C3[i] % mod;
+		Poly::DNTT(C2, C1), Poly::DNTT(C3, C2);
+		for (i = M; i &lt; R; ++i)
+			E1[i] = (E1[i] + C1[Poly::n - i] * iv % mod * K) % mod,
+			E2[i] = (E2[i] + C2[Poly::n - i] * iv % mod * (K + 1)) % mod;
+	}
+	CDQ(M, w - 1);
+}
+
+int solve(int L, int R) {
+	if (L + 1 == R) return L;
+	int M = (L + R) / 2, id = cnt++, lp = solve(L, M), rp = solve(M, R);
+	return Poly::Mul(g[lp], g[rp], g[id]), id;
+}
+
+void get_poly(int n, vector &amp;ret) {
+	int i, deg = n + K;
+	memset(J, 0, 1 &lt;&lt; (lg2(deg - 1) + 3));
+	for (i = 0; i &lt; deg; ++i) J[i] = (ll)I[i] * deg % mod;
+	Poly::Exp(deg, J, f), ret.clear(), ret.reserve(deg);
+	for (i = 0; i &lt; deg; ++i) ret.EB(f[i] * ll(deg - i) % mod * inv[deg] % mod);
+}
+
+int main() {
+	int i, j, x, top = 0, ans = 0, id; init();
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; K;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; x, up(U, x), ++c[x];
+	for (i = 1; i &lt;= U; ++i) c[i] += c[i - 1];
+	for (i = K; i &lt;= U; ++i) if (c[i] == c[i - K] + K) b[top++] = i;
+	for (j = 0, i = 1; i &lt;= top; ++i)
+		if (b[i] != b[i - 1] + 1) up(limit, i - j), j = i;
+	limit += K - 1, CDQ(0, 19);
+	for (j = 0, i = 1; i &lt;= top; ++i)
+		if (b[i] != b[i - 1] + 1) get_poly(i - j, g[cnt++]), j = i;
+	id = solve(0, cnt), j = g[id].size();
+	for (i = 1; i &lt; j; ++i) ans = (ans + (ll)harm[i] * g[id][i]) % mod;
+	cout &lt;&lt; int(ans * ll(mod - n) % mod) &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>Min-Max 容斥过程中不要忘记中间 $-1$ 的系数，而且最后答案需要乘以 $-1$ (因为大小为奇数的集合的贡献是正的)。</p>
+		<p><strong>坑2：</strong>在多组多项式操作 (比如多次 $\exp$) 的过程中不要忘记清空数组。</p>
+	</body>
+</html>

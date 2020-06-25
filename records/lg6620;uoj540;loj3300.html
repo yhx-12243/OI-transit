@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6620][uoj540][loj3300][多省联测 A 组 2020]组合数问题</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>请计算 $$ \left( \sum_{k=0}^n f \left( k \right) \cdot x^k \cdot \binom nk \right) \bmod p \tag 1 \label 1 $$ 的值。其中 $n, x, p$ 为给定的整数，$f \left( k \right)$ 为给定的一个 $m$ 次多项式 $f \left( k \right) = a_0 + a_1 k + a_2 k^2 + \cdots + a_m k^m$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个非负整数 $n, x, p, m$ ($1 \leq n, x, p \leq 10^9; 0 \leq m \leq \min \left\{ n, 1000 \right\}$)。</p>
+		<p>第二行包含 $m + 1$ 个整数 $a_0, a_1, a_2, \cdots, a_m$ ($0 \leq a_i \leq 10^9$)，表示多项式 $f \left( x \right)$ 的<em>系数</em>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $\eqref 1$ 式的值。</p>
+
+		<h3>题解</h3>
+		<p>熟悉的同学<del>一眼就</del>能发现这就是在 <a href="../index.html?redirect=450" target="_blank">[清华集训2016]如何优雅地求和</a> 中出现的模型，按照那题的思路，将 $f \left( x \right)$ 拆成下降幂的和，并利用 $k^\underline m \dbinom nk = n^\underline m \dbinom {n - m} {k - m}$，则有 $$ \sum_{k=0}^n k^\underline m \binom nk x^k = n^\underline m \sum_{k=m}^n \binom {n - m} {k - m} x^k = n^\underline m x^m \sum_{k=0}^{n-m} \binom {n - m} k x^k = n^\underline m x^m \left( 1 + x \right)^{n-m} $$</p>
+		<p>最后只需要将 $f \left( x \right)$ 转成下降幂形式即可，时间复杂度 $O \left( m^2 \right)$，并对模数也没有特殊要求。</p>
+		<hr />
+		<p>不过，题目给出的是一般形式的多项式，将一般多项式转成下降幂多项式 (变基) 目前只能做到 $O \left( m \log^2 m \right)$，相比那道题的从点值直接转下降幂的 $O \left( \log m \right)$ 稍微差了一点，因此我们想去尝试这道题能否在一个 $\log$ 之内解决。</p>
+		<p>既然题目中给的 $f \left( x \right)$ 是一般幂次形式，因此或许应该对每个 $m$ 求一求 $$ \sum_{k=0}^n k^m \cdot x^k \cdot \binom nk \tag 2 \label 2 $$ 的值。</p>
+		<p>这个时候吸收恒等式显然用不了，那我们该如何处理这种带直系幂次 ($k^i$) 的题呢？</p>
+		<p>对于这种问题，一个比较常见的套路是通过构造多项式，然后代入 $\mathrm e^x$ —— 就和 <a href="../index.html?redirect=762" target="_blank">[soj440]求和</a> 差不多。</p>
+		<p>我们令 $\displaystyle F \left( t \right) = \sum_{k \geq 0} t^k \cdot x^k \cdot \binom nk$，然后代入 $t \gets \mathrm e^t$，得 $$ F \left( \mathrm e^t \right) = \sum_{k \geq 0} \mathrm e^{k \cdot t} \cdot x^k \cdot \binom nk = \sum_{k \geq 0} x^k \binom nk \sum_{m \geq 0} \frac {k^m t^m} {m !} = \sum_{m \geq 0} \left( \sum_{k \geq 0} k^m \cdot x^k \cdot \binom nk \right) \frac {t^m} {m !} $$ 瞧！它的 $\left[ t^i \right]$ 项系数的 $i !$ 倍就是当 $m = i$ 时 $\eqref 2$ 式的值。</p>
+		<p>另一方面，注意到 $\displaystyle F \left( t \right) = \sum_{k \geq 0} t^k \cdot x^k \cdot \binom nk = \left( 1 + x \cdot t \right)^n$，于是有 $\displaystyle \color {red} {F \left( \mathrm e^t \right) = \left( 1 + x \cdot \mathrm e^t \right)^n}$。</p>
+		<p>也就是说，我们只需要求出 $\left( 1 + x \cdot \mathrm e^t \right)^n$ 展开式中的前 $m$ 项系数，就能得到对所有 $m$ $\eqref 2$ 式的值，从而可以在 $O \left( m \log m \right)$ 时间内完成计算。</p>
+		<p>最后要注意的一点是，这个算法要求多项式快速幂或 $\ln$/$\exp$，要求阶乘有逆元 (最好是素模数)，如果要应用到这道题的话可以使用 <abbr title="Chinese Remainder Theorem, 孙子定理">CRT</abbr> 或<a href="../index.html?redirect=869" target="_blank">这道题</a>中的技巧 (卷积时直接带上二项式系数)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define gcd std::__gcd
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef unsigned long long u64;
+const int N = 1054;
+
+int mod, modc, modn;
+int n, d, x;
+int C[N][N];
+int cc[N], cn[N], g[N];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+ll PowerMod(ll a, int n, ll mod, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+int exgcd(int a, int b, int &amp;x, int &amp;y) {
+	if (b) {int d = exgcd(b, a % b, y, x); return y -= a / b * x, d;}
+	else return x = 1, y = 0, a;
+}
+
+void init_binom(int mod) {
+	int i, j;
+	for (*C[0] = i = 1; i &lt;= d; ++i)
+		for (*C[i] = j = 1; j &lt;= i; ++j)
+			C[i][j] = C[i - 1][j] + C[i - 1][j - 1] - mod, C[i][j] += C[i][j] &gt;&gt; 31 &amp; mod;
+}
+
+void solve_coprime() {
+	int i, j, ix;
+	if (modc == 1) return;
+	fprintf(stderr, "solve coprime %d\n", modc), init_binom(modc);
+
+	assert(exgcd(x, modc, ix, i) == 1),
+	ix += ix &gt;&gt; 31 &amp; modc, ix = (x - 1ll) * ix % modc;
+
+	*cc = PowerMod(x, n, modc);
+	for (i = 1; i &lt;= d; ++i) {
+		int &amp;ret = cc[i]; ret = (ll)n * *cc % mod;
+		for (j = 1; j &lt; i; ++j)
+			ret = (ret + ((ll)n * C[i - 1][j] + mod - C[i - 1][j - 1]) % mod * cc[j]) % mod;
+		ret = (ll)ret * ix % mod;
+	}
+}
+
+void bconv(int *a, int *b, int *c) {
+	int i, j; u64 R; static int ret[N];
+	for (i = 0; i &lt;= d; ++i, ret[i] = R % modn)
+		for (R = j = 0; j &lt;= i; ++j) {
+			R += (u64)a[j] * b[i - j] % modn * C[i][j];
+			if (!(~j &amp; 15)) R %= modn;
+		}
+	memcpy(c, ret, (d + 1) &lt;&lt; 2);
+}
+
+void solve_noncoprime() {
+	if (modn == 1 || n &gt; d + 54) return;
+	fprintf(stderr, "solve non-coprime %d\n", modn), init_binom(modn);
+	*cn = 1, *g = x, std::fill(g + 1, g + (d + 1), x - 1);
+	for (int n0 = n; n0; n0 &gt;&gt;= 1, bconv(g, g, g)) if (n0 &amp; 1) bconv(cn, g, cn);
+}
+
+int main() {
+	int i, $, U1, U2, ans = 0;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; x &gt;&gt; mod &gt;&gt; d;
+	for (modn = gcd&lt;int&gt;(++x, mod); ($ = gcd&lt;int&gt;((ll)modn * modn % mod, mod)) != modn; modn = $);
+	modc = mod / modn, assert(exgcd(modc, modn, U1, U2) == 1),
+	U1 = ll(U1 + modn) * modc % mod, U2 = ll(U2 + modc) * modn % mod,
+
+	solve_coprime(), solve_noncoprime();
+	for (i = 0; i &lt;= d; ++i) cin &gt;&gt; $, ans = (ans + ((ll)U1 * cn[i] + (ll)U2 * cc[i]) % mod * $) % mod;
+	cout &lt;&lt; ans &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>如果使用 <abbr title="Chinese Remainder Theorem, 孙子定理">CRT</abbr>，那么 <code>exgcd</code> 后注意所得到的参数可能是负数，需先将其调非负。</p>
+		<p><strong>坑2：</strong>如果使用下降幂的方法，转换及计算时注意避免使用逆元。</p>
+	</body>
+</html>

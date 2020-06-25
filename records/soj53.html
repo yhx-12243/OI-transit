@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[soj53]夏威夷群岛变成州</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>求点数为 $n$ 边数<strong>不超过</strong> $m$ 的有标号连通图个数。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, m$ ($n \leq 10^{18}; n - 1 \leq m \leq \dbinom n2$)，分别表示图的点数和边数上限。</p>
+		<p>当 $n &gt; 100$ 时，保证 $m \in \left\{ n - 1, n, \dbinom n2 \right\}$。</p>
+		<p>当 $n &gt; 2000$ 时，保证 $m \leq n$。</p>
+		<p>当 $n &gt; 10^6$ 时，保证 $m = n - 1$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示连通图的数量模 $998244353$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>当 $n &gt; 10^6$ 时，$m = n - 1$，即统计树的个数，由<a href="../index.html?redirect=460" target="_blank">这里</a>的结论知答案为 $n^{n-2}$，使用快速幂解决即可。</p>
+		<p>当 $n &gt; 2000$ 时，除了树外还需要统计基环树的个数，使用 Prufer 序列或生成函数解决，详见 <a href="../index.html?redirect=619" target="_blank">[soj486]不科学的图论</a>。</p>
+		<p>当 $n &gt; 100$ 时，除了树和基环树外还要统计所有连通图的个数，使用减法原理 (补集转化) 或指数生成函数的 $\ln$ 即可。</p>
+		<p>接下来重点介绍 $n \leq 100$，$m$ 任意时的算法。</p>
+		<p>考虑一个暴力 DP，设 $g_{v, e}$ 表示 $v$ 个点，$e$ 条边的有标号<strong>图</strong>的数量 (即 $g_{v, e} = \dbinom {v \left( v - 1 \right) / 2} e$)，$c_{v, e}$ 表示 $v$ 个点，$e$ 条边的有标号<strong>连通图</strong>的数量，由减法原理不难得到 $$ c_{v, e} = g_{v, e} - \sum_{v' &lt; v, e' \leq e} \binom {v - 1} {v' - 1} \cdot c_{v', e'} \cdot g_{v - v', e - e'} $$ 意义即枚举 $1$ 号点所在的连通块。</p>
+		<p>这样做的时间复杂度是 $O \left( n^6 \right)$，不能通过 $n = 100$ 的数据。</p>
+		<hr />
+		<p>那该怎么优化呢？对于连通图，连通分量这种<strong>类似子集划分</strong>的问题，我们可以尝试使用 Stirling 反演。</p>
+		<p>具体地，定义 $p_{v, e, n}$ 表示对于 $V = \left\{ 1, 2, \cdots, v \right\}$ 的 $n$ 个非空子集的划分 $V = V_1 \cup V_2 \cup \cdots \cup V_n$，强制不同集合之间没有连边 (即至少有 $V_1, V_2, \cdots, V_n$ 这 $n$ 个 “连通分量”，但一个 “连通分量” 未必是连通分量)，这样的有标号图的个数。</p>
+		<p>再定义 $c_{v, e, n}$ 表示 $v$ 个点 $e$ 条边，连通分量个数为 $n$ 的有标号图的数量，由定义有 $c_{v, e} = c_{v, e, 1}$。</p>
+		<p>由第二类 Stirling 数的性质，可知 $$ p_{v, e, n} = \sum_{m \geq n} {m \brace n} c_{v, e, m} $$</p>
+		<p>由 Stirling 反演公式，得 $$ c_{v, e} = c_{v, e, 1} = \sum_{m \geq 1} \left( -1 \right)^{m - 1} {m \brack 1} p_{v, e, m} = \sum_{m \geq 1} \left( -1 \right)^{m-1} \left( m - 1 \right) ! \cdot p_{v, e, m} \tag 1 \label 1 $$</p>
+		<p>考虑 $p_{v, e, n}$，并注意到当我们得到一个固定的集合划分 $V = V_1 \cup V_2 \cup \cdots \cup V_n$ 后，其实方案数是容易计算的 —— 因为总共可用的边数为 $\dbinom {\left| V_1 \right|} 2 + \dbinom {\left| V_2 \right|} 2 + \cdots + \dbinom {\left| V_n \right|} 2$，我们要从中选出 $e$ 条边，故方案数为 $\dbinom {\binom {\left| V_1 \right|} 2 + \binom {\left| V_2 \right|} 2 + \cdots + \binom {\left| V_n \right|} 2} e$。</p>
+		<p>注意到这个式子的上面只和划分方式有关，下面只和 $e$ 有关，因此我们可以用状态 $f_{v, \lambda, n}$ 表示 $v$ 个点，$n$ 个子集的划分，$\dbinom {\left| V_1 \right|} 2 + \dbinom {\left| V_2 \right|} 2 + \cdots + \dbinom {\left| V_n \right|} 2 = \lambda$ 的方案数。</p>
+		<p>代入 $\eqref 1$ 可得 $$ c_{v, e} = \sum_{n \geq 1} \left( -1 \right)^{n-1} \left( n - 1 \right) ! \sum_{\lambda \geq e} f_{v, \lambda, n} \binom \lambda e = \sum_\lambda \binom \lambda e \sum_{n \geq 1} \left( -1 \right)^{n-1} \left( n - 1 \right) ! \cdot f_{v, \lambda, n} \tag 2 \label 2 $$</p>
+		<p>然鹅这样状态数还是太多，我们尝试将 $n$ 消掉。</p>
+		<p>考虑赋予它一个组合意义：即固定划分中包含 $1$ 的集合为 "<strong>主集合</strong>"，其余集合为 "<strong>辅集合</strong>"，不同的辅集合之间的次序可以任意交换，且每一个辅集合具有 $-1$ 的权值。这样，一种划分的权值和就等于 $\left( -1 \right)^{n-1} \left( n - 1 \right) !$。</p>
+		<p>按照刚才所述的意义进行 DP，$f_{v, \lambda}$ 中 $v$ 表示集合大小为 $v$，$\lambda$ 意义同上。转移时每次枚举主集合的大小，考虑加入一个辅集合即可。</p>
+		<p>最终按照 $\eqref 2$ 式即可暴力计算 $c_{v, e}$ 以及它的前缀和。总时间复杂度 $O \left( n^4 \right)$ (状态数为 $O \left( n^3 \right)$，转移只需枚举一个大小，故为 $O \left( n^4 \right)$)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 1000054, mod = 998244353, iv2 = (mod + 1) / 2;
+
+int inv[N], fact[N], finv[N];
+
+inline void fma(int &amp;x, const int y, const int z) {x = (x + (ll)y * z) % mod;}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(int n) {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt;= n; ++i) inv[i] = ll(mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+inline ll Cb(int a, int b) {return (ll)fact[a + b] * finv[a] % mod * finv[b] % mod;}
+inline ll C(int n, int r) {return n &lt; r ? 0 : (ll)fact[n] * finv[r] % mod * finv[n - r] % mod;}
+
+ll V, E;
+
+namespace tree {int main() {return cout &lt;&lt; (int)PowerMod(V % mod, (V - 2) % (mod - 1)) &lt;&lt; '\n', 0;}}
+
+namespace complete {
+	int G[N], conn[N];
+
+	void Ln(int n, int *f, int *g) {
+		int i, j, R;
+		for (i = 1; i &lt;= n; ++i) {
+			for (R = (ll)i * f[i] % mod, j = 1; j &lt; i; ++j)
+				R = (R - (ll)g[j] * f[i - j]) % mod;
+			g[i] = R + (R &gt;&gt; 31 &amp; mod);
+		}
+		for (i = 2; i &lt;= n; ++i) g[i] = (ll)g[i] * inv[i] % mod;
+	}
+
+	int main(){
+		int i; init(V);
+		G[1] = *G = 1;
+		for (i = 2; i &lt;= V; ++i) G[i] = G[i - 1] * 2 % mod;
+		for (i = 2; i &lt;= V; ++i) G[i] = (ll)G[i] * G[i - 1] % mod;
+		for (i = 2; i &lt;= V; ++i) G[i] = (ll)G[i] * finv[i] % mod;
+		Ln(V, G, conn);
+		return cout &lt;&lt; int((ll)conn[V] * fact[V] % mod) &lt;&lt; '\n', 0;
+	}
+}
+
+namespace pseudotree {
+	int main() {
+		int i, ans = 0; init(V), assert(V &gt; 2);
+		for (i = V - 3; i &gt;= 0; --i) ans = ((ll)ans * V + finv[i]) % mod;
+		return cout &lt;&lt; int(((ll)ans * fact[V - 1] % mod * iv2 + PowerMod(V, V - 2)) % mod) &lt;&lt; '\n', 0;
+	}
+}
+
+namespace general {
+	const int N = 108, M = 5400;
+
+	int C2[N];
+	int f[N][M];
+
+	int main() {
+		int i, j, k, cur, ans = 0;
+		for (i = 1; i &lt; V; ++i) C2[i + 1] = C2[i] + i;
+		init(C2[V]);
+		for (i = 1; i &lt;= V; ++i)
+			for (f[i][C2[i]] = 1, j = 0; j &lt;= C2[i]; ++j) if ((cur = f[i][j]))
+				for (k = 1; i + k &lt;= V; ++k)
+					fma(f[i + k][j + C2[k]], mod - cur, Cb(i - 1, k));
+		for (cur = 1, j = 0; j &lt;= C2[V]; ++j)
+			ans = (ans + (ll)cur * f[V][j]) % mod,
+			cur = (cur * 2ll + mod - C(j, E)) % mod;
+		return cout &lt;&lt; ans &lt;&lt; '\n', 0;
+	}
+}
+
+int main() {
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; V &gt;&gt; E;
+	if (E == V - 1) return tree::main();
+	if (E == V) return pseudotree::main();
+	if (2 * E &gt;= V * (V - 1ll)) return complete::main();
+	return general::main();
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>最终统计答案时不要爆 <code>int</code>，如 <code>cur = (cur * 2 + mod - C(j, E)) % mod</code>。</p>
+		<p><strong>坑2：</strong>(对于 $n \leq 10^{18}$ 的部分) 快速幂时底数记得取模，指数可以使用 Fermat 小定理降次或使用 <code>long long</code>。</p>
+	</body>
+</html>

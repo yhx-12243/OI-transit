@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[loj6728]U 群把妹王</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n \times m$ 个格子，每个格进行染色，可以选择 $k$ 种颜色之一。对于集合 $S, T$，你需要计数有多少种格子的染色方案，满足：</p>
+		<ul>
+			<li>对于每一行的图案拿出来，和它相同的图案总共有 $r$ 行 (含自身)，则 $r \in S$。</li>
+			<li>对于每一列的图案拿出来，和它相同的图案总共有 $c$ 列 (含自身)，则 $c \in T$。</li>
+		</ul>
+		<p>答案对 $P = 998244353$ 取模。</p>
+		<p>为了让这道题看起来代码比较健康，保证 $1 \in S \cap T$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含五个正整数 $n, m, k, a, b$，分别表示方格表的大小，颜色的个数和集合 $S, T$ 的大小。</p>
+		<p>第二行包含 $a$ 个正整数，从小到大表示集合 $S$ 中的数，保证所有数不重复。</p>
+		<p>第三行包含 $b$ 个正整数，从小到大表示集合 $T$ 中的数，保证所有数不重复。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足要求的染色数对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>考虑一维的情形，此时考虑每种颜色，它出现的次数一定在 $\left\{ 0 \right\} \cup S$ 中，考虑到所有格子之间是有序的，因此考虑使用指数生成函数，一种颜色的生成函数为 $\displaystyle f_S \left( x \right) = 1 + \sum_{i \in S} \frac {x^i} {i !}$，因此最终答案就等于 $$ n ! \left[ x^n \right] f_S^k \left( x \right) = n ! \left[ x^n \right] \left( 1 + \sum_{i \in S} \frac {x^i} {i !} \right)^k $$</p>
+		<p>对于二维的情形，显然不能简单地将其乘起来，因为二维的情形行和列是之间是相互制约的。</p>
+		<p>我们换一种思路，和 <a href="../index.html?redirect=1006" target="_blank">[soj53]夏威夷群岛变成州</a> 类似，从集合容斥 (反演) 的角度出发，计算出有相同情况的方案数。</p>
+		<p><span class="text-muted">(还是先考虑一维)</span> 具体地，计算出对于一个集合划分 $\left\{ 1, 2, \cdots, n \right\} = \mathcal B_1 \cup \mathcal B_2 \cup \cdots \cup \mathcal B_\kappa$，在要求一个集合中的所有格子颜色必须相同，不同集合的格子颜色不一定相同，这样的染色方案数，最后通过某种容斥系数合并出答案。</p>
+		<p>首先，确定了划分后，染色方案数是明显的，即 $k^\kappa$。</p>
+		<p>那现在就是容斥系数的问题了。首先，可知对于一个划分 $\mathcal B_1 \cup \mathcal B_2 \cup \cdots \cup \mathcal B_\kappa$，它可能会将一些它的 "粗分" 的元素统计进来 ("粗分" 即多个集合合并为一个集合，"细分" 即一个集合拆分为多个集合)，考察一种颜色，设在一个大小为 $sz$ 的集合中会产生 $U_{sz}$ 的权值，那么由指数生成函数的定义，它在最终大小为 $Size$ 的集合中就会产生 $\displaystyle Size ! \left[ x^{Size} \right] \exp \left( \sum_i U_i \frac {x^i} {i !} \right)$ 的权值。</p>
+		<p>而我们希望 $\displaystyle \exp \left( \sum_i U_i \frac {x^i} {i !} \right) = 1 + \sum_{i \in S} \frac {x^i} {i !}$，也就是说，令 $\displaystyle \sum_i U_i \frac {x^i} {i !} = \ln \left( 1 + \sum_{i \in S} \frac {x^i} {i !} \right)$。</p>
+		<p>那么，对于划分的集合数量为 $\kappa$ 的情形，贡献的总和，按照第二类 Stirling 数类似的推法，就等于 $$ \color {teal} {n ! \left[ x^n \right] \frac 1 {\kappa !} \left( \sum_i U_i \frac {x^i} {i !} \right)^\kappa} $$</p>
+		<p>设这个数为 $R_\kappa$，那么不难发现答案就是 $\displaystyle \sum_\kappa R_\kappa k^\kappa$。</p>
+		<p style="color: red">(ps: 事实上，对于一维的情形，$\displaystyle \sum_{j=1}^n R_j k^j = \sum_{j=1}^n n ! \left[ x^n \right] \frac 1 {j !} \left( \sum_i U_i \frac {x^i} {i !} \right)^j k^j = n ! \left[ x^n \right] \exp \left( k \sum_i U_i \frac {x^i} {i !} \right) = n ! \left[ x^n \right] \exp \left( k \ln \left( 1 + \sum_{i \in S} \frac {x^i} {i !} \right) \right) = n ! \left[ x^n \right] \left( 1 + \sum_{i \in S} \frac {x^i} {i !} \right)^k$，和之前得到的结果一致)</p>
+		<p>考虑二维的情形，不难发现在这个容斥集合划分的过程中，行和列之间是独立的，因此我们可以对行求出一份系数 $R_i$，也对列求出一份系数 $C_j$，那么在这种情况下的方案数就是 “有 $i$ 个独立行、$j$ 个独立列” 的方案数，即 $k^{i j}$。</p>
+		<p>综上，答案就等于 $$ \color {fuchsia} {\sum_i \sum_j R_i C_j k^{i j}} $$</p>
+		<p>注意到 $k^{i j}$ 的乘法在指数上，因此就不能展开成 $k^i \cdot k^j$，如果强行要展开，可以使用 <a href="../index.html?tag=Chirp%20Z-transform" target="_blank">Chirp-Z transform</a> 的技巧，有 $k^{i j} = k^{\binom {i + j} 2} \cdot k^{-\binom i2} \cdot k^{-\binom j2}$。</p>
+		<p>不管怎么说，我们这次肯定需要把 $R_i$ 和 $C_j$ 算出来了，而不能像一维的情形直接化简。</p>
+		<p>由于我们需要求多个多项式的同次项系数，<del>根据套路</del>，我们新建一个元 $t$，将问题转化为二元生成函数：$$ F \left( x, t \right) = \sum_\kappa \frac 1 {\kappa !} \left( \sum_i U_i \frac {x^i} {i !} \right)^\kappa t^\kappa = \exp \left( t \sum_i U_i \frac {x^i} {i !} \right) = \exp \left( t \ln \left( 1 + \sum_{i \in S} \frac {x^i} {i !} \right) \right) $$</p>
+		<p>而我们所要求的，就是 $\displaystyle n ! \left[ x^n \right] \exp \left( t \ln \left( 1 + \sum_{i \in S} \frac {x^i} {i !} \right) \right)$，它是一个关于 $t$ 的幂级数。</p>
+		<p>很好，和 <a href="../index.html?redirect=1007" target="_blank">[ZJOI2020]抽卡</a> 一样，我们又将这道题转化为了求复合函数的某一项系数的问题，因此可以使用扩展 Lagrange 反演：设 $\displaystyle P \left( x \right) = \mathrm e^{x t}, Q \left( x \right) = \ln \left( 1 + \sum_{i \in S} \frac {x^i} {i !} \right)$，则 $F \left( x, t \right) = P \left( Q \left( x \right) \right)$，设 $Q \left( x \right)$ 的复合逆为 $R \left( x \right)$ <span style="color: red">(ps: 注意到 $1 \in S$，因此 $Q \left( x \right)$ 的最低次项为 $1 \cdot x^1$)</span>，则有 \begin{align*}
+\left[ x^n \right] F \left( x, t \right) &amp;= \left[ x^n \right] P \left( Q \left( x \right) \right) \\
+&amp;= \frac 1n \left[ x^{n-1} \right] P' \left( x \right) \left( \frac x {R \left( x \right)} \right)^n \\
+&amp;= \frac 1n \left[ x^{n-1} \right] t \cdot \mathrm e^{x t} \left( \frac x {R \left( x \right)} \right)^n
+\end{align*}</p>
+		<p>其中 $R \left( x \right)$ 满足 $\displaystyle 1 + \sum_{i \in S} \frac {R^i \left( x \right)} {i !} = \mathrm e^x$，并注意到 $\left| S \right| \leq 5$，因此可以通过 Newton 迭代或分治多项式技巧在 $O \left( \left| S \right| n \log n \right)$ 或 $O \left( \left| S \right| n \log^2 n \right)$ 时间内得到。</p>
+		<p>而 $t \cdot \mathrm e^{x t} = t + t^2 x + \dfrac {t^3 x^2} {2 !} + \dfrac {t^4 x^3} {3 !} + \cdots$，也是一个 $t, x$ 幂次分离的形式，因此求出 $\left( \dfrac x {R \left( x \right)} \right)^n$ 后可以直接得到 $\left[ x^n \right] P \left( Q \left( x \right) \right)$，即 $\left[ x^n \right] F \left( x, t \right)$。</p>
+		<p>也就是说，我们可以在 $O \left( a n \log n \right)$ 的时间内求得所有 $R_i$，同理也可以在 $O \left( b m \log m \right)$ 的时间内求得所有 $C_j$，最后简单使用 Chirp-Z transform 将其合并即可。故总时间复杂度为 $O \left( a n \log n + b m \log m \right)$ (当然可以写两只 $\log$ 的分治多项式技巧来加快速度)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 530000, mod = 998244353, iv2 = (mod + 1) / 2, root = 31;
+typedef int vec[N], *pvec;
+
+vec inv, fact, finv;
+
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+inline void sub(int &amp;x, const int y) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init() {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = ll(mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt; N; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+namespace Poly {
+	int l, n;
+	vec rev, x, y;
+
+	void NTT_init(int len) {
+		if (l == len) return; n = 1 &lt;&lt; (l = len);
+		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
+		*x = 1, *rev = 0;
+		for (int i = 1; i &lt; n; ++i)
+			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
+	}
+
+	void DNTT(int *d, int *t) {
+		int i, *j, *k, len = 1, delta = n, R;
+		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
+		for (i = 0; i &lt; l; ++i) {
+			delta &gt;&gt;= 1;
+			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
+			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
+				for (k = j; k &lt; j + len; ++k)
+					R = (ll)y[k - j] * k[len] % mod,
+					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
+					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
+			len &lt;&lt;= 1;
+		}
+	}
+
+	vec B1, B2, B3, B4, B5, B6, B7;
+
+	void Mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (ll)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1);
+		int i; ll iv = mod - (mod - 1) / n;
+		DNTT(a, c), DNTT(b, B1);
+		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
+		DNTT(B1, c), std::reverse(c + 1, c + n);
+		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	}
+
+	void Diff(int deg, pvec a, pvec b) {for (int i = 1; i &lt;= deg; ++i) b[i - 1] = (ll)a[i] * i % mod;}
+
+	void Exp(int deg, pvec a, pvec b) {
+		int i, len; ll iv = iv2; pvec c = B7; assert(!*a);
+		if (*b = 1, deg &lt;= 1) return;
+		if (b[1] = a[1], deg == 2) return;
+
+		memset(b + 2, 0, i = 8 &lt;&lt; lg2(deg - 1)), memset(c, 0, i), memset(B1, 0, i),
+		*c = 1, neg(c[1] = b[1]);
+
+		for (len = 1; 1 &lt;&lt; len &lt; deg; ++len) {
+			NTT_init(len + 1), iv = (iv &gt;&gt; 1) + iv2;
+
+			DNTT(c, B2), DNTT(b, B3);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B3[i] * B2[i] % mod; DNTT(B4, B5);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B5[i] = B5[n - i] * iv % mod;
+
+			memset(B5, 0, n &lt;&lt; 1), DNTT(B5, B4);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B2[i] % mod; DNTT(B4, B5);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B5[i] = B5[n - i] * (mod - iv) % mod;
+
+			memcpy(B5, c, n &lt;&lt; 1), DNTT(B5, B6);
+			Diff(n &gt;&gt; 1, b, B1), DNTT(B1, B4);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B6[i] % mod; DNTT(B4, B6);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) reduce(B5[i] = (a[i] - B6[n - i + 1] * iv % mod * inv[i]) % mod);
+
+			memset(B5, 0, n &lt;&lt; 1), DNTT(B5, B4);
+			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B3[i] % mod; DNTT(B4, B5);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B5[n - i] * iv % mod;
+
+			if (2 &lt;&lt; len &gt;= deg) return;
+
+			DNTT(b, B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B4[i] = B4[n - i] * iv % mod;
+
+			memset(B4, 0, n &lt;&lt; 1), DNTT(B4, B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) c[i] = B4[n - i] * (mod - iv) % mod;
+		}
+	}
+}
+
+namespace maker {
+	int n, lim, a[9];
+	vec c, f, F, E[5], EI;
+	vec C1, C2, C3, C4, C5;
+
+	void solve(int L, int w) {
+		int i, $, R = L + (1 &lt;&lt; w), M; ll iv;
+		if (!w) {
+			if (L) {
+				int d, c = (ll(E[1][L] - E[0][L] + mod) * inv[L] + EI[L] + ll(L == *a - 1) * finv[*a]) % mod;
+				for ($ = 2; $ &lt; n; ++$)
+					if (d = L - *a + $[a] + 1, d &gt;= 0) c = (c + (ll)$[E][d] * finv[*a - $[a]]) % mod;
+				f[L] = c % mod, F[L] = (ll)L * f[L] % mod;
+				for ($ = 0; $ &lt; n; ++$) $[E][L] = ((ll)$[E][L] * inv[L] + (ll)$[a] * f[L]) % mod;
+				sub(EI[L], E[0][L]);
+			} else for ($ = 0; $ &lt; n; ++$) $[E][0] = 1;
+			return;
+		}
+		solve(L, w - 1);
+		if ((M = (1 &lt;&lt; (w - 1)) + L) &gt; lim) return;
+		Poly::NTT_init(w), iv = mod - (mod - 1) / Poly::n;
+		if (L) {
+			memcpy(C2, F, 4 &lt;&lt; w), memcpy(C3, F + L, 2 &lt;&lt; w), memset(C3 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w), Poly::DNTT(C2, C1), Poly::DNTT(C3, C2);
+			for ($ = 0; $ &lt; n; ++$) {
+				memcpy(C4, $[E], 4 &lt;&lt; w), memcpy(C5, $[E] + L, 2 &lt;&lt; w), memset(C5 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w), Poly::DNTT(C4, C3), Poly::DNTT(C5, C4);
+				for (i = 0; i &lt; Poly::n; ++i) C3[i] = ((ll)C1[i] * C4[i] + (ll)C2[i] * C3[i]) % mod;
+				Poly::DNTT(C3, C5);
+				for (i = M; i &lt; R; ++i) $[E][i] = ($[E][i] + C5[Poly::n - (i - L)] * iv % mod * $[a]) % mod;
+				if (!$) {
+					Poly::DNTT(c, C3);
+					for (i = 0; i &lt; Poly::n; ++i) C3[i] = (ll)C3[i] * C4[i] % mod;
+					Poly::DNTT(C3, C4);
+					for (i = M; i &lt; R; ++i) EI[i] = (EI[i] + C4[Poly::n - (i - L)] * iv) % mod;
+				}
+			}
+		} else {
+			memcpy(C2, F, 2 &lt;&lt; w), memset(C2 + M, 0, 2 &lt;&lt; w), Poly::DNTT(C2, C1);
+			for ($ = 0; $ &lt; n; ++$) {
+				memcpy(C3, $[E], 2 &lt;&lt; w), memset(C3 + M, 0, 2 &lt;&lt; w), Poly::DNTT(C3, C2);
+				for (i = 0; i &lt; Poly::n; ++i) C3[i] = (ll)C1[i] * C2[i] % mod;
+				Poly::DNTT(C3, C4);
+				for (i = M; i &lt; R; ++i) $[E][i] = ($[E][i] + C4[Poly::n - i] * iv % mod * $[a]) % mod;
+				if (!$) {
+					Poly::DNTT(c, C3);
+					for (i = 0; i &lt; Poly::n; ++i) C2[i] = (ll)C2[i] * C3[i] % mod;
+					Poly::DNTT(C2, C3);
+					for (i = M; i &lt; R; ++i) EI[i] = (EI[i] + C3[Poly::n - i] * iv) % mod;
+				}
+			}
+		}
+		solve(M, w - 1);
+	}
+
+	int main(int _n, int *_a, int _lim, pvec result) {
+		int i; n = _n, *a = _a[n - 1], lim = _lim;
+		for (i = 1; i &lt; n; ++i) a[i] = *a - _a[i - 1];
+		for (i = 0; i &lt; lim; ++i) c[i] = mod - finv[i + 1];
+		memset(f, 0, 1 &lt;&lt; (lg2(lim) + 3)), memset(F, 0, lim &lt;&lt; 2), memset(EI, 0, lim &lt;&lt; 2);
+		for (i = 0; i &lt; 5; ++i) memset(E[i], 0, lim &lt;&lt; 2);
+		solve(0, 19);
+		for (i = 0; i &lt; lim; ++i) f[i] = (ll)f[i] * lim % mod;
+		Poly::Exp(lim, f, F);
+		for (i = 1; i &lt;= lim; ++i) result[i] = (ll)F[lim - i] * finv[i - 1] % mod * fact[lim - 1] % mod;
+		return 0;
+	}
+}
+
+int R, C, n, q, nr, nc;
+int ri[9], ci[9];
+vec rf, cf, f, qa, qb;
+
+int main() {
+	int i, qi, ans = 0; init();
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; R &gt;&gt; C &gt;&gt; q &gt;&gt; nr &gt;&gt; nc, qi = PowerMod(q, mod - 2);
+	for (i = 0; i &lt; nr; ++i) cin &gt;&gt; ri[i];
+	for (i = 0; i &lt; nc; ++i) cin &gt;&gt; ci[i];
+	maker::main(nr, ri, R, rf), maker::main(nc, ci, C, cf);
+	n = R + C, qa[1] = *qa = 1;
+	for (i = 2; i &lt;= n; ++i) qa[i] = (ll)qa[i - 1] * q % mod;
+	for (i = 2; i &lt;= n; ++i) qa[i] = (ll)qa[i] * qa[i - 1] % mod;
+	n = max(R, C), qb[1] = *qb = 1;
+	for (i = 2; i &lt;= n; ++i) qb[i] = (ll)qb[i - 1] * qi % mod;
+	for (i = 2; i &lt;= n; ++i) qb[i] = (ll)qb[i] * qb[i - 1] % mod;
+	for (i = 1; i &lt;= R; ++i) rf[i - 1] = (ll)rf[i] * qb[i] % mod;
+	for (i = 1; i &lt;= C; ++i) cf[i - 1] = (ll)cf[i] * qb[i] % mod;
+	rf[R] = cf[C] = 0;
+	Poly::Mul(R + C - 2, rf, cf, f);
+	for (i = 2; i &lt;= R + C; ++i) ans = (ans + (ll)f[i - 2] * qa[i]) % mod;
+	cout &lt;&lt; ans &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>这道题中需要使用两次分治多项式技巧 (或 Newton 迭代)，在两次之间记得清空相关数组。</p>
+		<p><strong>坑2：</strong><abbr title="Chirp Z-transform, Chirp Z变换">CZT</abbr> 中处理 $k^{-\binom i2}$ 的时候可以使用前缀积的方法来避免不必要的 <code>PowerMod</code>。</p>
+	</body>
+</html>

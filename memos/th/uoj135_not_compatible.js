@@ -26,10 +26,10 @@ window.onload = function () {
 			 || window.oRequestAnimationFrame
 			 || window.msRequestAnimationFrame
 			 || (cb => setTimeout(cb, 83.333)),
-		  CLK = window.performance && window.performance.now ? () => window.performance.now() : () => Date.now();
+		  CLK = performance.now ? () => performance.now() : () => Date.now();
 
 	// ---------------- basic ---------------- //
-	let w, h, x0, y0, d, r, R, n, m, t = -1, T, ready = false;
+	let w, h, x0, y0, d, r, R, n, m, t, T, ready = false;
 	let bullets, bullets_raw, bonuses, bonuses_raw;
 	let min_score, max_score, score_distribution;
 
@@ -103,15 +103,12 @@ window.onload = function () {
 			bullets_raw.push(l);
 		}
 		bullets_raw.sort((x, y) => x[7] === y[7] ? x[6] - y[6] : Number(x[7] - y[7]));
-		if (n > 0) {
-			min_score = Number(bullets_raw[0][7]);
-			max_score = Number(bullets_raw[n - 1][7]);
-			switch (score_distribution = get_score_distribution(bullets_raw.map(x => Number(x[7])))) {
-				case 1: break;
-				case 2: min_score = Math.log(min_score), max_score = Math.log(max_score); break;
-			}
-		} else
-			score_distribution = 1;
+		min_score = Number(bullets_raw[0][7]);
+		max_score = Number(bullets_raw[n - 1][7]);
+		switch (score_distribution = get_score_distribution(bullets_raw.map(x => Number(x[7])))) {
+			case 1: break;
+			case 2: min_score = Math.log(min_score), max_score = Math.log(max_score); break;
+		}
 
 		report_status('解析文件中 (59%) ...');
 		if (!checkRange(m = pi(lines[2 + n]), 0, 32767, 3 + n, 'm')) return;
@@ -177,16 +174,12 @@ window.onload = function () {
 		mem1 : null,
 		allow_keys : [87, 88, 65, 68, 81, 90, 69, 67],
 		reset() {this.ks = new Set(), this.mem0 = this.mem1 = 0;},
-		insert(c) {if (this.ks instanceof Set && this.allow_keys.includes(c)) this.ks.add(c), this.mem0 = c;},
-		erase(c) {if (this.ks instanceof Set && this.allow_keys.includes(c)) this.ks.delete(c), this.mem0 === c && (this.mem1 = c);},
+		insert(c) {if (this.ks instanceof Set) this.ks.add(c), this.mem0 = c;},
+		erase(c) {if (this.ks instanceof Set) this.ks.delete(c), this.mem0 === c && (this.mem1 = c);},
 		query() {
 			let c = this.mem1; this.mem0 = this.mem1 = 0;
-			if (this.ks.has(87) && this.ks.has(65)) return 'Q';
-			if (this.ks.has(88) && this.ks.has(65)) return 'Z';
-			if (this.ks.has(87) && this.ks.has(68)) return 'E';
-			if (this.ks.has(88) && this.ks.has(68)) return 'C';
 			for (let i of this.allow_keys) if (this.ks.has(i)) return String.fromCharCode(i);
-			return c ? String.fromCharCode(c) : 'S';
+			return this.allow_keys.includes(c) ? String.fromCharCode(c) : 'S';
 		}
 	}, KBQ = {
 		queue : null,
@@ -211,17 +204,15 @@ window.onload = function () {
 	}, sx_transform = x => x, move_hook, shift_key = false;
 
 	document.addEventListener('keydown', function (e) {
-		if (!~t) return;
-		let c = e.which || e.keyCode;
-		if ((c = sx_transform(37 <= c && c <= 40 ? (e.preventDefault(), [65, 87, 68, 88][c - 37]) : c)) && !e.repeat) KBD.insert(c);
+		let c = sx_transform(e.which || e.keyCode);
+		if (!e.repeat && c) KBD.insert(c);
 		KBQ.push_back(c);
 		if (c === 16) shift_key = true;
 	});
 
 	document.addEventListener('keyup', function (e) {
-		if (!~t) return;
-		let c = e.which || e.keyCode;
-		if ((c = sx_transform(37 <= c && c <= 40 ? (e.preventDefault(), [65, 87, 68, 88][c - 37]) : c)) && !e.repeat) KBD.erase(c);
+		let c = sx_transform(e.which || e.keyCode);
+		if (!e.repeat && c) KBD.erase(c);
 		if (c === 16) shift_key = false;
 		if (c === 17)
 			$('player-graze-circle').style.visibility = ($('player-graze-circle').style.visibility ? '' : 'hidden');
@@ -279,11 +270,13 @@ window.onload = function () {
 		ci.setAttribute('r', Math.max(r * SC, 2));
 		ci.style.fill = `url(#GR${g})`;
 		if (vx || vy) {
-			let ratio = (tb - ta) * SC;
-			(this.movement = ci.animate([
-				{transform : 'translate(0px, 0px)'},
-				{transform : `translate(${vx*ratio}px, ${vy*ratio}px)`},
-			], {duration : (tb - ta) * TSC * 1e3, fill : 'forwards'})).finish();
+			let am = document.createElementNS(NS, 'animateMotion'), ratio = (tb - ta) * SC;
+			am.setAttribute('begin', 'indefinite');
+			am.setAttribute('path', `M0,0L${vx*ratio},${vy*ratio}`);
+			am.setAttribute('dur', (tb - ta) * TSC + 's');
+			am.setAttribute('fill', 'freeze');
+			ci.appendChild(am);
+			this.movement = am;
 		}
 		this.circle = ci;
 	}
@@ -315,8 +308,7 @@ window.onload = function () {
 
 	function main_loop(e) {
 		if (e) FPS.update(e);
-		let tz = CLK() - begin_time, tg = Math.min(Math.floor(tz * tsc * .001), T), offset;
-		let i, dx, dy, dist, danger, ratio, delta = BigInt(0);
+		let tz = CLK() - begin_time, tg = Math.min(Math.floor(tz * tsc * .001), T), ofs, dx, dy, danger, delta = BigInt(0);
 		console.assert(t <= tg + 1, 'Strange things happen');
 		for (; t <= tg; ++t) {
 			if (!is_auto && t && operate_seq[t - 1] === 'S')
@@ -335,26 +327,27 @@ window.onload = function () {
 				} else
 					operate_seq[t - 1] = 'S';
 			}
-			tz = CLK() - begin_time, offset = tz - t * TSC * 1e3;
+			tz = CLK() - begin_time;
 			if (appears.hasOwnProperty(t)) {
 				let tdf = document.createDocumentFragment();
-				for (i of appears[t])
-					tdf.appendChild(bullets[i].circle);
+				for (let i of appears[t]) tdf.appendChild(bullets[i].circle);
 				stgm.appendChild(tdf);
-				for (i of appears[t])
-					if (bullets[i].hasOwnProperty('movement')) bullets[i].movement.currentTime = offset;
+				ofs = t * TSC - tz * .001;
+				for (let i of appears[t])
+					if (bullets[i].hasOwnProperty('movement'))
+						bullets[i].movement.beginElementAt(ofs);
 			}
 			danger = false;
 			for (i = 0; i < n; ++i) if (bullets[i].alive(t)) {
-				[dx, dy] = bullets[i].position(t), dist = Math.hypot(xi - dx, yi - dy);
-				if (dist <= R + bullets[i].r + 1e-9) {
+				[dx, dy] = bullets[i].position(t), ofs = Math.hypot(xi - dx, yi - dy);
+				if (ofs <= R + bullets[i].r + 1e-9) {
 					if (!grazedQ[i])
 						bullets[i].circle.style.fill = 'url(#GRZD)',
 						score += bullets[i].g, grazedQ[i] = true;
 					bullets[i].circle.classList.add('bullet-close');
 				} else
 					bullets[i].circle.classList.remove('bullet-close');
-				danger = danger || dist <= r + bullets[i].r + 1e-9;
+				danger = danger || ofs <= r + bullets[i].r + 1e-9;
 			}
 			if (danger)
 				last_shot = t, $('player').classList.add('danger');
@@ -366,7 +359,7 @@ window.onload = function () {
 				else break;
 			}
 			if (disappears.hasOwnProperty(t))
-				for (i of disappears[t]) stgm.removeChild(bullets[i].circle);
+				for (let i of disappears[t]) stgm.removeChild(bullets[i].circle);
 		}
 		if (delta) {
 			score += delta, $('delta-score').innerHTML = `+ ${delta}`, bonus_up.play();
@@ -381,11 +374,7 @@ window.onload = function () {
 			$('next-bonus-amount').innerHTML = 'N/A';
 		report_stage_status(FPS.info());
 		if (t <= T) RAF(main_loop);
-		else {
-			if (disappears.hasOwnProperty(T + 1))
-				for (i of disappears[T + 1]) stgm.removeChild(bullets[i].circle);
-			setTimeout(game_end, 1500);
-		}
+		else setTimeout(game_end, 1500);
 	}
 
 	async function game_init(type) {
@@ -477,9 +466,9 @@ window.onload = function () {
 				insert_to(disappears, bullets[i].tb + 1, i);
 			}
 			$('stage-bullet-definitions').appendChild(gradients_fragment);
-			setTimeout(count_down, 50, '3');
-			setTimeout(count_down, 1050, '2');
-			setTimeout(count_down, 2050, '1');
+			setTimeout(() => count_down('3'), 50);
+			setTimeout(() => count_down('2'), 1050);
+			setTimeout(() => count_down('1'), 2050);
 			setTimeout(game_begin, 3050);
 		}, 50);
 	}
@@ -494,12 +483,21 @@ window.onload = function () {
 	}
 
 	function game_end() {
-		for (let i = 0; i < n; ++i)
-			bullets[i].circle.style.fill = `url(#GR${bullets[i].g})`,
+		if (disappears.hasOwnProperty(T + 1))
+			for (let i of disappears[T + 1]) stgm.removeChild(bullets[i].circle);
+		for (let i = 0; i < n; ++i) {
+			bullets[i].circle.style.fill = `url(#GR${bullets[i].g})`;
 			bullets[i].circle.classList.remove('bullet-close');
+			if (bullets[i].hasOwnProperty('movement')) {
+				let old_movement = bullets[i].movement, new_movement = old_movement.cloneNode();
+				old_movement.setAttribute('fill', 'remove');
+				old_movement.endElement();
+				bullets[i].circle.replaceChild(new_movement, old_movement);
+				bullets[i].movement = new_movement;
+			}
+		}
 		report_status('<span class="text-info">游戏已结束，您可以点击上方的蓝色按钮导出决策文件</span>');
 		report_stage_status('已结束');
-		t = -1;
 		$('player-body-circle').setAttribute('cx', 1e18);
 		$('player-body-circle').setAttribute('cy', 1e18);
 		$('player-graze-circle').setAttribute('cx', 1e18);

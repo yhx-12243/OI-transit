@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[loj3298][BJOI2020]封印</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给出只包含小写字母 $\texttt a, \texttt b$ 的两个字符串 $s, t$，有 $q$ 次询问，每次询问 $s \left[ l .. r \right]$ 和 $t$ 的最长公共子串长度。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个字符串 $s$ ($1 \leq \left| s \right| \leq 2 \times 10^5$)。</p>
+		<p>第二行包含一个字符串 $t$ ($1 \leq \left| t \right| \leq 2 \times 10^5$)。</p>
+		<p>第三行包含一个正整数 $q$ ($1 \leq q \leq 2 \times 10^5$)。</p>
+		<p>接下来 $q$ 行，每行两个正整数 $l_i, r_i$ ($1 \leq l_i \leq r_i \leq \left| s \right|$)，表示一组询问。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示 $s \left[ l_i .. r_i \right]$ 和 $t$ 的最长公共子串长度。</p>
+
+		<h3>题解</h3>
+		<p>对于 "<strong>最长公共子串</strong>" 型的问题，我们不难想到使用后缀数据结构，如后缀自动机来处理它。</p>
+		<p>注意到 $s \left[ l .. r \right]$ 是会变的，而 $t$ 是一个固定的串，因此先对 $t$ 建立自动机。</p>
+		<p>考察 $\operatorname {LCS} \left( p, t \right)$，其中 $p$ 为任意字符串，可以通过如下方法获得：将 $p$ 在 $\operatorname {SAM} \left( t \right)$ 中匹配一遍，设最终到达了点 $x$，那么，$p$ 的后缀和 $t$ 的子串的交集中最长者 (即 $p$ 的最长后缀满足它是 $t$ 的子串) 就一定在 $Z \left( x \right)$ 中。</p>
+		<p>而具体是 $Z \left( x \right)$ 中哪个串，可以在匹配过程中获得 —— 如果存在这条边，则长度 $+ 1$，否则跳回父节点并令长度等于 $val \left( p_x \right)$。</p>
+		<p>因此，我们只需要在跳后缀自动机的每一步，计算出这样一个最长长度，最终将其取 $\max$ 就等于 $\operatorname {LCS} \left( p, t \right)$。</p>
+		<p>因此，如果每次询问都有 $l_i = 1$ 的话，我们就有这样一个算法：</p>
+		<p>将 $s$ 在 $\operatorname {SAM} \left( t \right)$ 上跳一遍，每一步维护一个长度 $len_i$，它的意义就是 $s \left[ 1 .. i \right]$ 的后缀和 $t$ 的子串的交集中长度的最大值，那么如果询问 $\operatorname {LCS} \left( s \left[ 1 .. i \right], t \right)$，答案就等于 $\max \left\{ len_1, len_2, \cdots, len_i \right\}$，而这显然可以通过维护前缀 $\max$ 做到线性。</p>
+		<p>但是这个算法不适用于 $l_i &gt; 1$ 的情形 —— 因为最长的后缀的左端点可能比 $l$ 还小，也就是说它会越界。</p>
+		<p>不过，这个问题并不是很大，我们还是可以列出答案的<em>表达式</em>：$$ \operatorname {LCS} \left( s \left[ l .. r \right], t \right) = \max_{l \leq i \leq r} \min \left\{ len_i, i - l + 1 \right\} $$</p>
+		<p>这个又该怎么处理呢？考虑 $\min$ 取右边的条件，即 $len_i \geq i - l + 1 \Leftrightarrow i - len_i \leq l - 1$。根据 $len_i$ 的定义不难得知 $i - len_i$ 是关于 $i$ 单调递增的 (即右端点靠右时左端点不可能更靠左)，因此存在一个和 $l$ 有关的常数 $leap_l$，满足当 $l \leq i \leq leap_l$ 时有 $len_i \geq i - l + 1$，$leap_l &lt; i \leq r$ 时有 $len_i &lt; i - l + 1$。</p>
+		<p>首先容易使用双指针得到所有的 $leap_i$，这样对于每组询问，我们就将其拆成了两部分：\begin{align*}
+\operatorname {LCS} \left( s \left[ l .. r \right], t \right) &amp;= \max \left\{ \max_{l \leq i \leq leap_l} \left( i - l + 1 \right), \max_{leap_i &lt; i \leq r} len_i \right\} \\
+&amp;= \max \left\{ leap_l - l + 1, \max_{leap_i &lt; i \leq r} len_i \right\}
+\end{align*}</p>
+		<p>不难发现右边就是一个简单的 <abbr title="Range Maximum Query, 区间最值查询">RMQ</abbr> 模型，可以使用 <abbr title="Sparse Table, 稀疏表">ST</abbr> 表或线段树完成。</p>
+		<p>总时间复杂度 $O \left( \left| s \right| + \left| t \right| + q \right)$ 或 $O \left( \left| s \right| \log \left| s \right| + \left| t \right| + q \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+using std::cin;
+using std::cout;
+
+const int N = 400054, LN = 18, TH = 18;
+
+int n, m, q;
+int len[N], leap[N];
+char s[N], t[N];
+int pre[N], suf[N], bel[N];
+int L, st[LN][N / TH], *lay = *st;
+
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+namespace SAM {
+	int p, np = 1, cnt = 1;
+	int pa[N], d[N][2], val[N];
+
+	#define q d[p][x]
+	int extend(int x) {
+		for (p = np, val[np = ++cnt] = val[p] + 1; p &amp;&amp; !q; q = np, p = pa[p]);
+		if (!p) pa[np] = 1;
+		else if (val[p] + 1 == val[q]) pa[np] = q;
+		else {
+			int nq = ++cnt;
+			val[nq] = val[p] + 1, memcpy(d[nq], d[q], 8);
+			pa[nq] = pa[q], pa[np] = pa[q] = nq;
+			for (int Q = q; p &amp;&amp; q == Q; q = nq, p = pa[p]);
+		}
+		return np;
+	}
+	#undef q
+}
+
+void build_sparse_table(int *a) {
+	int i, j, k, I, *f, *g = lay;
+	for (I = i = 0; I &lt; n; ++i, I += TH) {
+		pre[I] = a[I], bel[I] = i;
+		for (j = 1; j &lt; TH &amp;&amp; I + j &lt; n; ++j) pre[I + j] = max(pre[I + j - 1], a[I + j]), bel[I + j] = i;
+		for (--j, suf[I + j] = a[I + j]; --j &gt;= 0; suf[I + j] = max(suf[I + j + 1], a[I + j]));
+		lay[i] = suf[I];
+	}
+	for (k = L = i, j = 0; 1 &lt;&lt; (j + 1) &lt;= L; ++j)
+		for (f = g, g = st[j + 1], k -= 1 &lt;&lt; j, i = 0; i &lt; k; ++i)
+			g[i] = max(f[i], f[i + (1 &lt;&lt; j)]);
+}
+
+inline int RMQ(int x, int y) {
+	if (y &lt; x + TH) return *std::max_element(len + x, len + (y + 1));
+	int xb = bel[x] + 1, yb = bel[y], c = lg2(yb - xb);
+	return max(max(suf[x], pre[y]), xb &lt; yb ? max(st[c][xb], st[c][yb - (1 &lt;&lt; c)]) : 0);
+}
+
+int main() {
+	int i, j = 0, l, r, x, y, id;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; s &gt;&gt; t &gt;&gt; q, n = strlen(s), m = strlen(t);
+	for (i = 0; i &lt; m; ++i) SAM::extend(t[i] - 97);
+	x = 1, y = 0;
+	for (i = 0; i &lt; n; ++i) {
+		for (id = s[i] - 97; x &amp;&amp; !SAM::d[x][id]; x = SAM::pa[x], y = SAM::val[x]);
+		len[i] = (x ? (x = SAM::d[x][id], ++y) : (x = 1, y = 0));
+	}
+	for (*leap = -1, j = i = n - 1; i &gt;= 0; --i)
+		for (; j &gt; i - len[i]; --j) leap[j] = i;
+	build_sparse_table(len);
+	for (; q; --q)
+		cin &gt;&gt; l &gt;&gt; r,
+		cout &lt;&lt; (leap[--l] &lt; --r ? max(leap[l] - l + 1, RMQ(leap[l] + 1, r)) : r - l + 1) &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>大多数 <abbr title="Range Maximum Query, 区间最值查询">RMQ</abbr> 问题可以使用 Fake $O \left( n \right) - O \left( 1 \right)$ 的 <abbr title="Sparse Table, 稀疏表">ST</abbr> 算法 (即小区间暴力大区间使用前后缀) 处理，以加快速度。</p>
+		<p><strong>坑2：</strong>注意一些边界问题，如当 $t$ 只由一个字符构成时 $len_i$ 可能会等于 $0$。</p>
+	</body>
+</html>
