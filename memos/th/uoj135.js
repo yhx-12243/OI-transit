@@ -1,11 +1,9 @@
 window.onload = function () {
 	if (!window.BigInt) {
-		alert('很抱歉，您的浏览器不支持 BigInt，请升级浏览器后再进入此页面 :)');
-		return;
+		return alert('很抱歉，您的浏览器不支持 BigInt，请升级浏览器后再进入此页面 :)');
 	}
 	if (!Element.prototype.animate) {
-		alert('很抱歉，您的浏览器不支持 Element.animate，请升级浏览器后再进入此页面 :)');
-		return;
+		return alert('很抱歉，您的浏览器不支持 Element.animate，请升级浏览器后再进入此页面 :)');
 	}
 
 	const $ = document.getElementById.bind(document),
@@ -19,14 +17,14 @@ window.onload = function () {
 				{transform : 'translateY(25px)', opacity : 0},
 				{opacity : 1},
 				{transform : 'translateY(-25px)', opacity : 0},
-			], {duration : 250, fill : 'forwards', easing: 'cubic-bezier(0, 0.75, 1, 0.25)'}),
+			], {duration : 250, fill : 'forwards', easing: 'cubic-bezier(0,0.75,1,0.25)'}),
+		  CLK = window.performance && window.performance.now ? () => window.performance.now() : () => Date.now(),
 		  RAF = window.requestAnimationFrame
 			 || window.webkitRequestAnimationFrame
 			 || window.mozRequestAnimationFrame
 			 || window.oRequestAnimationFrame
 			 || window.msRequestAnimationFrame
-			 || (cb => setTimeout(cb, 83.333)),
-		  CLK = window.performance && window.performance.now ? () => window.performance.now() : () => Date.now();
+			 || (cb => setTimeout(cb, 83.333, CLK()));
 
 	// ---------------- basic ---------------- //
 	let w, h, x0, y0, d, r, R, n, m, t = -1, T, ready = false;
@@ -315,9 +313,14 @@ window.onload = function () {
 
 	function main_loop(e) {
 		if (e) FPS.update(e);
-		let tz = CLK() - begin_time, tg = Math.min(Math.floor(tz * tsc * .001), T), offset;
+		let tz = CLK() - begin_time, tg = Math.min(Math.floor(tz * tsc * .001), T + 1), offset;
 		let i, dx, dy, dist, danger, ratio, delta = BigInt(0);
 		console.assert(t <= tg + 1, 'Strange things happen');
+		if (tg > T) {
+			if (disappears.hasOwnProperty(tg))
+				for (i of disappears[tg]) stgm.removeChild(bullets[i].circle);
+			return setTimeout(game_end, 1000);
+		}
 		for (; t <= tg; ++t) {
 			if (!is_auto && t && operate_seq[t - 1] === 'S')
 				operate_seq[t - 1] = (shift_key ? MOUSE.query(xi, yi) : query_key_func());
@@ -380,12 +383,7 @@ window.onload = function () {
 			$('next-bonus-time').innerHTML = 'N/A',
 			$('next-bonus-amount').innerHTML = 'N/A';
 		report_stage_status(FPS.info());
-		if (t <= T) RAF(main_loop);
-		else {
-			if (disappears.hasOwnProperty(T + 1))
-				for (i of disappears[T + 1]) stgm.removeChild(bullets[i].circle);
-			setTimeout(game_end, 1500);
-		}
+		RAF(main_loop);
 	}
 
 	async function game_init(type) {

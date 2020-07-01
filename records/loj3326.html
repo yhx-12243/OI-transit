@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[loj3326][SNOI2020]字符串</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有两个长度为 $n$ 的由小写字母组成的字符串 $a, b$，取出他们所有长为 $k$ 的子串 (各有 $n - k + 1$ 个)，这些子串分别组成集合 $A, B$。</p>
+		<p>现在要修改 $A$ 中的串，使得 $A$ 和 $B$ 完全相同。你每次可以任意次选择修改 $A$ 中一个串的一段后缀，花费为这段后缀的长度。总花费为每次修改花费之和，求总花费的最小值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($1 \leq k \leq n \leq 1.5 \times 10^5$)，分别表示字符串长度和子串的长度。</p>
+		<p>第二行包含一个由小写字母组成的字符串 $a$ ($\left| a \right| = n$)。</p>
+		<p>第三行包含一个由小写字母组成的字符串 $b$ ($\left| b \right| = n$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示总花费的最小值。</p>
+
+		<h3>题解</h3>
+		<p>设 $A = \left\{ a_1, a_2, \cdots, a_m \right\}, B = \left\{ b_1, b_2, \cdots, b_m \right\}$ ($m = n - k + 1$)，那么最终的方案一定可以看成一个<strong>匹配</strong>：<span style="color: olive">即存在 $1 \sim m$ 的排列 $p_1, p_2, \cdots, p_m$，使得 $a_1$ 最终变成 $b_{p_1}$，$a_2$ 最终变成 $b_{p_2}$，……，$a_m$ 最终变成 $b_{p_m}$</span>。</p>
+		<p>确定完匹配后，这个方案其实也就确定了：对于一个串 $a_i$，它肯定是一次性地变成 $b_{p_i}$，从而花费 $k - \operatorname{LCP} \left( a_i, b_{p_i} \right)$ 个单位。</p>
+		<p>于是，总花费就等于 $$ \sum_{i=1}^m \left( k - \operatorname{LCP} \left( a_i, b_{p_i} \right) \right) = k \cdot m - \sum_{i=1}^m \operatorname{LCP} \left( a_i, b_{p_i} \right) $$</p>
+		<p>考虑对这 $2 m$ 个串建立 Trie 树，称诸 $a_i$ 所在的点为<strong>黑点</strong>，$b_i$ 所在的点为<strong>白点</strong>。我们的目标就是找一个黑白点配对使得 <abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr> (<abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 深度) 之和最大，由 Trie (树) 上两点距离公式知等价于<strong>最小化配对的距离和</strong>。</p>
+		<p>根据 <a href="../index.html?redirect=344" target="_blank">[uoj388]配对树</a> 的经验，我们可以对每条边计算贡献：</p>
+		<p>对于树上的每条边 $\left( u, v \right)$ 设将它切断后，所得两个子树中两种颜色的点的数量差为 $D$ (两个子树的的 $\left| D \right|$ 一定是相等的)，那么它就会对答案 (距离和) 产生 $\left| D \right|$ 的贡献 (对于原题的花费就是产生 $\dfrac {\left| D \right|} 2$ 的贡献)。</p>
+		<p>于是不考虑这棵树的尺寸，我们可以得到一个如下算法：</p>
+		<p>用 $S_x$ 表示以 $x$ 为根的子树中两种颜色点的数量差，它当然也可以看成黑点有 $1$ 的权值，白点有 $-1$ 的权值后权值的代数和。那么就可以像处理 <code>size[]</code> 一样得到 $S_x$，最后 $\displaystyle \frac 12 \sum_x \left| S_x \right|$ 就是答案。</p>
+		<p>或者等价地，将 $S$ 进行树上逆差分后 (子树差分) 后相当于每个黑点有 $1$ 的权值，白点有 $-1$ 的权值，最后做树上逆部分和 (子树和) 恢复即可。</p>
+		<p>这样操作的时间复杂度为 $O \left( N \right)$，其中 $N$ 为 Trie 的大小。</p>
+		<hr />
+		<p>然而这道题中出现了 $m$ 个长度为 $k$ 的子串，因此 Trie 树的大小可以达到 $O \left( m k \right) = O \left( n^2 \right)$，于是暴力建树复杂度就没有保证了。</p>
+		<p>不过，考察这棵 Trie 树，如 $A$ 的 Trie 树，不难发现它其实就是 <strong>$a$ 的后缀树</strong>！</p>
+		<p>于是我们可以将 $a$ 翻转后建立它的后缀自动机，我们就得到了 $a$ 的后缀树的结构。</p>
+		<p>那现在两个串在一起的情况也不难了，我们只需要建立 $\left\{ a^R, b^R \right\}$ 的<strong>多串后缀自动机</strong> (广义后缀自动机) $M$，那么整棵 Trie 就是 $M$ 的一个子结构！</p>
+		<p>因此我们可以在 $M$ 上实行上面的算法，即可求出答案。</p>
+		<p>但是一个要注意的问题是，后缀树中的路径是 “压缩” 过的，后缀树中的一条边可能代表原 Trie 中的多条边。因此对于后缀树的每条边，我们相当于要在一条边的 "不同位置" 上进行赋值最后做前缀和，难道需要使用数据结构来维护？</p>
+		<p>事实上并不需要，考虑后缀树中的一条边，我们在其上进行赋值的 "位置" 其实是固定的 —— 因为串的长度 ($k$) 是固定的。换种角度说，我们把后缀树中每个点所代表的串中最短串长 $&gt; k$ 的点全部删去 (剩下的结构显然还是树)，那么在剩下的树中，我们每次<strong>只会在叶节点上进行赋值</strong>。</p>
+		<p>因此建完后缀树后直接套用上面的算法即可，时间复杂度 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 154000;
+
+namespace SAM {
+	const int N = 600054;
+
+	int p, np, cnt = 1;
+	int pa[N], d[N][26], val[N];
+	int child[N][26], deg[N];
+
+	#define q d[p][x]
+	#define try_split(v) { \
+		if (val[p] + 1 == val[q]) v = q; \
+		else { \
+			int nq = ++cnt; \
+			val[nq] = val[p] + 1, memcpy(d[nq], d[q], 104); \
+			pa[nq] = pa[q], v = pa[q] = nq; \
+			for (int Q = q; p &amp;&amp; q == Q; q = nq, p = pa[p]); \
+		} \
+	}
+
+	int extend(int x) {
+		if (p = np, q) try_split(np)
+		else {
+			for (val[np = ++cnt] = val[p] + 1; p &amp;&amp; !q; q = np, p = pa[p]);
+			if (p) try_split(pa[np]) else pa[np] = 1;
+		}
+		return np;
+	}
+	#undef q
+
+	inline void build() {for (int i = 2; i &lt;= cnt; ++i) child[pa[i]][deg[pa[i]]++] = i;}
+}
+
+int n, K;
+int w[SAM::N];
+char s[N], t[N];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+void dfs(int x) {
+	int i, y;
+	for (i = 0; i &lt; SAM::deg[x]; ++i) dfs(y = SAM::child[x][i]), w[x] += w[y];
+}
+
+int main() {
+	int i, x; ll ans = 0;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; K &gt;&gt; s &gt;&gt; t, std::reverse(s, s + n), std::reverse(t, t + n);
+	for (SAM::np = 1, i = 0; i &lt; n; ++i) SAM::extend(s[i] - 97);
+	for (SAM::np = 1, i = 0; i &lt; n; ++i) SAM::extend(t[i] - 97);
+	SAM::build();
+	for (x = 1, i = 0; i &lt; K - 1; ++i) x = SAM::d[x][s[i] - 97];
+	for (; i &lt; n; ++i, ++w[x])
+		for (x = SAM::d[x][s[i] - 97]; SAM::val[SAM::pa[x]] &gt;= K; x = SAM::pa[x]);
+	for (x = 1, i = 0; i &lt; K - 1; ++i) x = SAM::d[x][t[i] - 97];
+	for (; i &lt; n; ++i, --w[x])
+		for (x = SAM::d[x][t[i] - 97]; SAM::val[SAM::pa[x]] &gt;= K; x = SAM::pa[x]);
+	dfs(1);
+	for (i = 2; i &lt;= SAM::cnt; ++i) if (w[i] &gt; 0)
+		x = min(SAM::val[i], K) - SAM::val[SAM::pa[i]],
+		assert(x &gt; 0), ans += (ll)x * w[i];
+	cout &lt;&lt; ans &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意做子树和后所有正数的和与所有负数 (绝对值) 的和其实是相等的 (因为串长总和相等)，因此我们只需要统计所有正数的和就是答案，这样也避免了除以 $2$。</p>
+		<p><strong>坑2：</strong>注意多串后缀自动机 (广义后缀自动机) 的写法，不要建立出多余的重点导致结构错误。</p>
+	</body>
+</html>

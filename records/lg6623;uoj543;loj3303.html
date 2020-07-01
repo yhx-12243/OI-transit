@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6623][uoj543][loj3303][多省联测 A 组 2020]树</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个顶点的有根树 $T$，从 $1$ 开始编号，根节点为 $1$ 号点，每个点有一个正整数权值 $v_i$。</p>
+		<p>设 $x$ 号点的子树内 (包含 $x$ 自身) 的所有点的编号为 $c_1, c_2, \dots, c_k$，则定义 $x$ 的价值为：$$ val \left( x \right) = \left( v_{c_1} + d \left( c_1, x \right) \right) \oplus \left( v_{c_2} + d \left( c_2, x \right) \right) \oplus \cdots \oplus \left( v_{c_k} + d \left( c_k, x \right) \right) $$</p>
+		<p>其中 $d \left( x, y \right)$ 表示树上 $x$ 号结点与 $y$ 号结点间唯一简单路径所包含的边数，特别地，$d \left( x, x \right) = 0$。$\oplus$ 表示按位异或运算。</p>
+		<p>你需要求出 $\displaystyle \sum_{i=1}^n val \left( i \right)$ 的结果。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行一个包含正整数 $n$ ($n \leq 525010$)，表示树的大小。</p>
+		<p>第二行包含 $n$ 个正整数 $v_1, v_2, \cdots, v_n$ ($v_i \leq 525010$)，依次表示各个顶点的权值。</p>
+		<p>第三行包含 $n - 1$ 个正整数 $p_2, p_3, \cdots, p_n$ ($1 \leq p_i \leq n$)，依次表示 $2$ 号点到 $n$ 号点的父节点编号。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $\displaystyle \sum_{i=1}^n val \left( i \right)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>注意到题目中涉及了<strong>异或</strong>运算，引导我们<strong>按位考虑</strong>，即对于每个 $x$，考虑每一位对 $val \left( x \right)$ 的贡献。</p>
+		<p>固定 $d$，现在只考虑二进制右起第 $d$ 位 (从 $0$ 编号，即位权为 $2^d$ 的位)，考虑计算所有点在这一位上的权值。</p>
+		<p>我们选取一个顶点 $y$，不难发现它<strong>只对</strong>它的所有祖先节点存在贡献，且这些贡献值 ($0/1$) 按照深度顺序满足<strong style="color: fuchsia">连续 $2^d$ 个 $0$，紧接着连续 $2^d$ 个 $1$，然后又是连续 $2^d$ 个 $0$，后跟 $2^d$ 个 $1$</strong> 这样一种 (以 $2^{d+1}$ 为周期的) 周期序列。当然，由于 $v_i$ 的存在，这些周期序列的<strong>初相</strong>可能不相同，即可能在不同的位置进行 $0, 1$ 的切换。</p>
+		<p>对于连续一大块 $0$ 和 $1$，不难想到<strong>树上差分</strong>的技术。考虑树上逆差分 (子树差分)，那么一个点 $y$ 对树上逆差分序列的贡献就是它的若干级祖先上的 $1$，其中这些下标构成一个差为 $2^d$ 的等差数列。</p>
+		<p>此时，如果暴力打差分标记的话，时间复杂度会变成 $\displaystyle O \left( \sum_d \frac {n^2} {2^d} \right)$ 而无法接受，因此我们得进一步分析。</p>
+		<p>仍然考虑顶点 $y$，设它的权值为 $v_y$，深度为 $dep_y$，那么设它对深度为 $q$ 的祖先的贡献总和 (即不仅仅是第 $d$ 位) 就应当等于 $v_y + \left( dep_y - q \right) = \left( v_y + dep_y \right) - q$。也就是说，<span style="color: teal">对于同一个来源，它所影响的点中，深度加贡献的和都是相同的</span>。</p>
+		<p>因此，考虑它对逆差分序列的贡献中，$1$ 所在的深度 $q$，就是使得 $\left( v_y + dep_y \right) - q$ 恰好为 $0$ 的位置，因此这些值恰好就是 $\left( v_y + dep_y \right), \left( v_y + dep_y \right) - 2^d, \left( v_y + dep_y \right) - 2 \cdot 2^d, \cdots$。</p>
+		<p>回到<em>固定 $d$ 的情形</em>，此时可知整个差分序列其实它也是一个周期为 $2^d$ 的序列，因此我们只需要维护<strong>一个周期</strong>内的值，然后最后部分和做回来的时候只需要取对应位置上的值即可。</p>
+		<p>最后一个小小的问题就是对于点 $x$，我们只需要求 “满足 $y \in subtree \left( x \right)$ 的 $y$” 所产生的贡献和，而不需要其它点的。</p>
+		<p>于是这貌似需要对每棵子树统计前清空，那又会退化到 $O \left( n^2 \right)$。<del>当然你也可以用 dsu on tree (树上启发式合并) 多一个 $\log$ 解决</del>，但这里完全没必要，<strong>注意到异或标记是可减的</strong>，因此我们只需要记录它在入栈时和出栈时的<strong>标记差</strong>即可 <span class="text-muted">(当然这里的差也是异或，因为在 $\mathbb F_2^n$ 下进行)</span>。</p>
+		<p>最终时间复杂度为 $O \left( n \log v_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef unsigned int u32;
+const int N = 2100000, LN = 21;
+
+int n;
+int p[N], fc[N], nc[N], dep[N];
+u32 diff[N], mask[LN], a[N];
+
+inline void link(int x, int px) {p[x] = px, nc[x] = fc[px], fc[px] = x;}
+
+void dfs(int x) {
+	int i, y; u32 &amp;r = a[x];
+	for (i = 0; i &lt; LN; ++i) diff[(dep[x] + r) &amp; mask[i]] ^= 1 &lt;&lt; i;
+	for (i = 0; i &lt; LN; ++i) r ^= diff[dep[x] &amp; mask[i]] &amp; (1 &lt;&lt; i);
+	for (y = fc[x]; y; y = nc[y]) dep[y] = dep[x] + 1, dfs(y), r ^= a[y];
+	for (i = 0; i &lt; LN; ++i) r ^= diff[dep[x] &amp; mask[i]] &amp; (1 &lt;&lt; i);
+}
+
+int main() {
+	int i, x;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; LN; ++i) mask[i] = ~(-1 &lt;&lt; i);
+	for (i = 1; i &lt;= n; ++i) cin &gt;&gt; a[i];
+	for (i = 2; i &lt;= n; ++i) cin &gt;&gt; x, link(i, x);
+	dfs(1);
+	cout &lt;&lt; std::accumulate(a + 1, a + (n + 1), 0ull) &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意一个点的贡献可以达到 $\max v_i + \left( \max n - 1 \right) = 1050019 &gt; 2^{20}$，因此需要存储 $21$ 位。</p>
+		<p><strong>坑2：</strong>所有 $21$ 种标记可以压缩到一个数组中存储，不过要注意的是读写时下标要先对 $2^d$ 取模。</p>
+	</body>
+</html>

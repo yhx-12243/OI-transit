@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6622][uoj542][loj3302][多省联测 A 组 2020]信号传递</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>一条道路上从左至右排列着 $m$ 个信号站，初始时从左至右依次编号为 $1, 2, \cdots, m$，相邻信号站之间相隔 $1$ 单位长度。每个信号站只能往它右侧的任意信号站传输信号 (称为普通传递)，每单位长度距离需要消耗 $1$ 单位时间。道路的最左侧有一个控制塔，它在最左侧信号站的左侧，与其相隔 $1$ 单位长度。控制塔能与任意信号站进行双向信号传递 (称为特殊传递)，但每单位长度距离需要消耗 $k$ 个单位时间。</p>
+		<p>对于给定的长度为 $n$ 的信号传递序列 $S$，传递规则如下：</p>
+		<ol>
+			<li><p>共 $n - 1$ 次信号传递，第 $i$ 次信号传递将把信号从 $S_i$ 号信号站传递给 $S_{i+1}$ 号。</p></li>
+			<li><p>若 $S_{i+1}$ 号信号站在 $S_i$ 号右侧，则将使用普通传递方式，从 $S_i$ 号直接传递给 $S_{i+1}$ 号。</p></li>
+			<li><p>若 $S_{i+1}$ 号信号站在 $S_i$ 号左侧，则将使用特殊传递方式，信号将从 $S_i$ 号传递给控制塔，再由控制塔传递给 $S_{i+1}$ 号。</p></li>
+			<li><p>若 $S_i = S_{i+1}$，则信号无须传递。</p></li>
+		</ol>
+		<p>阿基作为大工程师，他能够任意多次交换任意两个信号站的位置，即他能够重排信号站的顺序，这样会使得 $S$ 消耗的传递时间改变。现在阿基想知道，在他重排信号站顺序后，$S$ 所消耗的传递时间最小能是多少。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, k$ ($2 \leq n \leq 10^5; 2 \leq m \leq 23; 1 \leq k \leq 100$)，分别代表信号传递序列 $S$ 的长度，信号站个数，特殊传递单位长度距离的时间消耗。</p>
+		<p>第二行包含 $n$ 个正整数 $S_1, S_2, \cdots, S_n$ ($1 \leq S_i \leq m$)，表示信号传递序列。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示传递时间的最小可能值。</p>
+
+		<h3>题解</h3>
+		<p>考虑最终传递时间 $T$ 的表达式，可知它仅仅和每个有序对 $\left( S_i, S_{i+1} \right)$ 出现的次数有关，和具体的顺序无关。</p>
+		<p>于是，我们可以预先统计出对于 $\forall u \neq v$，有序对 $\left( u, v \right)$ 作为 $\left( S_i, S_{i+1} \right)$ ($1 \leq i &lt; n$) 一共出现了多少次，记这个值为 $G_{u, v}$，<strong>特别地，$G_{u, u}$ 恒为 $0$</strong>。当然你可以从图论的角度理解，把它当成有向边 $u \to v$ 的边权。</p>
+		<p>然后我们需要找 $1, 2, \cdots, m$ 的一个排列 $p$ (按照图论的说法就是 Hamilton 路径)，然后对于每一条边 $u \to v$，如下计算贡献：$$ w \left( u \to v \right) = G_{u, v} \cdot \begin{cases} pos_v - pos_u &amp; \text{$p$ 中 $u$ 在 $v$ 前面} \\ k \left( pos_u + pos_v \right) &amp; \text{$p$ 中 $u$ 在 $v$ 后面} \end{cases} \tag 1 \label 1 $$ 其中 $pos_i$ 表示 $i$ 在排列 $p$ 中的位置。</p>
+		<p>于是考虑状态压缩 DP，设 $f_S$ 表示当前排列前 $\left| S \right|$ 项所构成的集合为 $S$ 时，这些项的最小贡献和 (即确定了 Hamilton 路径的前 $\left| S \right|$ 项)。</p>
+		<p>考虑添加一项 $v$，我们需要对所有 $u \in S$ 计算 $w \left( u \to v \right)$。可惜 $S$ 集合是作为一个整体，我们无法得到 $pos_u$ 的值。</p>
+		<p>但是，注意到 $\eqref 1$ 中 $pos_u$ 和 $pos_v$ 是分离的，我们可以将 $pos_u$ 的贡献和 $pos_v$ 的贡献分开计算，在枚举到 $v$ 时统一计算所有 $pos_v$ 的贡献。</p>
+		<p>那么，<span style="color: teal">添加一项 $u$ 所产生的贡献</span>的表达式就变为了 $$ pos_u \cdot \left[ \sum_{i \in S} \left( k \cdot G_{u, i} + G_{i, u} \right) + \sum_{i \notin S} \left( k \cdot G_{i, u} - G_{u, i} \right) \right] \tag 2 \label 2 $$</p>
+		<p>哈！就只和 $pos_u$ 有关了。为方便起见，我们记 $before_{i, u} = k \cdot G_{u, i} + G_{i, u}, after_{i, u} = k \cdot G_{i, u} - G_{u, i}$，代入 $\eqref 2$ 式即得其简化版 $$ pos_u \cdot \left( \sum_{i \in S} before_{i, u} + \sum_{i \notin S} after_{i, u} \right) \tag 3 \label 3 $$</p>
+		<hr />
+		<p>于是现在正式定义状态：<span style="color: fuchsia">定义 $f_S$ 表示排列前 $\left| S \right|$ 项构成的集合为 $S$ 时，这些项的 $\eqref 3$ 式之和的最小值 (注意第 $i$ 个加入 $S$ 中项的 $pos$ 值为 $i$)</span>。</p>
+		<p>显然边界为 $f_\varnothing = 0$。考虑转移，设我们加入了一个新元素 $u$ ($u \notin S$)，那么就应有 $$ f_{S \cup \left\{ u \right\}} \downarrow f_S + \left( \left| S \right| + 1 \right) \cdot \left( \sum_{i \in S} before_{i, u} + \sum_{i \notin S} after_{i, u} \right) \tag 4 \label 4 $$</p>
+		<p>如果直接按照 $\eqref 4$ 式进行 DP，那么状态数为 $2^m$，转移有 $m$ 种，每次转移计算复杂度为 $O \left( m \right)$，总时间复杂度 $O \left( 2^m \cdot m^2 \right)$，无法通过。</p>
+		<p>考虑如何减少转移中计算 $\eqref 3$ 的复杂度。一种比较简单的方法是记 $\displaystyle cross_{S, u} = \sum_{i \in S} before_{i, u} + \sum_{i \notin S} after_{i, u}$ 然后沿 $S$ 递推计算 (每次递推增加一项减少一项)。可惜这样做的空间复杂度是 $O \left( 2^m \cdot m \right)$ 的，如果不加常数优化无法通过。</p>
+		<p style="color: red">(ps: 事实上，我们可以通过强制规定 $u \notin S$，这样总状态数就是 $2^{m-1} \cdot m$ 的 <span class="text-muted">[固定 $u$，然后 $S \subseteq \left\{ 1, 2, \cdots, m \right\} \setminus \left\{ u \right\}$]</span>，通过合适的方法存储就只需要 $368 \,\mathrm{MiB}$ 空间，于是这样就可以通过)</p>
+		<p>然而没有那么麻烦，空间复杂度是可以做到 $O \left( 2^m \right)$ 的。</p>
+		<p>首先，对于一般的子集和的枚举，使用格雷码优化技术可以使得相邻两个元素之间只相差一项，而做到 $O \left( 1 \right)$ 转移。而这道题中，由于 DP 的偏序保证了对于 $\forall A \subset B$，$A$ 必须在 $B$ 之前枚举到，而这是格雷码所做不到的。</p>
+		<p>考虑按照一般的二进制数枚举 $S$，即 $\mathcal R = \left[ \varnothing, \left\{ 1 \right\}, \left\{ 2 \right\}, \left\{ 1, 2 \right\}, \left\{ 3 \right\}, \left\{ 1, 3 \right\}, \left\{ 2, 3 \right\}, \left\{ 1, 2, 3 \right\}, \left\{ 4 \right\}, \cdots \right]$，不难发现<strong style="color: teal">后一个集合的大小始终不会超过前一个集合的大小再加 $1$</strong>。</p>
+		<p>进一步地，<strong style="color: green">对于 $\mathcal R$ 中相邻两个集合 $X, Y$，将 $Y$ 中的最小元去掉后，恒有 $Y \subseteq X$</strong>。</p>
+		<p>这引导我们使用 “栈” 的思想去处理：即设当前 $S = \left\{ a_1, a_2, \cdots, a_\kappa \right\}$ ($a_i &lt; a_{i+1}$)，我们用类似栈的结构记录 $cross_{\varnothing, u}, cross_{\left\{ a_\kappa \right\}, u}, cross_{\left\{ a_{\kappa - 1}, a_\kappa \right\}, u}, \cdots, cross_{\left\{ a_1, a_2, \cdots, a_\kappa \right\}, u}$，这样当 $S$ 变成下一个数的时候我们只需要找到新的栈顶 (其实就是 <code>ctz</code>) 然后 $O \left( m \right)$ 更新即可。当然更新是还是增加一个 $before$，减少一个 $after$。</p>
+		<p>于是，最终算法的时间复杂度为 $O \left( 2^m \cdot m \right)$，空间复杂度为 $O \left( 2^m \right)$，就可以通过了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define popc __builtin_popcount
+#define ctz __builtin_ctz
+using std::cin;
+using std::cout;
+
+const int N = 23;
+
+int n, U, ALL;
+int G[N][N], before[N][N], after[N][N], cross[N][N];
+int f[1 &lt;&lt; N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+int main() {
+	int i, j, u, v, R;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; i &gt;&gt; n &gt;&gt; U &gt;&gt; u, ALL = ~(-1 &lt;&lt; n);
+	for (--u; --i; cin &gt;&gt; v, ++G[u][--v], u = v);
+	for (i = 0; i &lt; n; ++i)
+		for (G[i][i] = u = 0; u &lt; n; ++u) before[i][u] = G[u][i] * U + G[i][u], cross[0][u] += after[i][u] = G[i][u] * U - G[u][i];
+	memset(f, 63, sizeof f), *f = 0;
+	for (i = 0; i &lt; ALL; ++i) {
+		if ((j = popc(i))) for (v = ctz(i), u = 0; u &lt; n; ++u) cross[j][u] = cross[j - 1][u] + before[v][u] - after[v][u];
+		for (R = ALL &amp; ~i; R; R &amp;= R - 1) u = ctz(R), down(f[i | 1 &lt;&lt; u], f[i] + cross[j][u] * (j + 1));
+	}
+	cout &lt;&lt; f[ALL] &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意整个图结构是有向的，$before_{u, v}$ 不一定等于 $before_{v, u}$，实现时不要搞混了。</p>
+		<p><strong>坑2：</strong>在使用栈时小心数组越界，比如当当前 $S = \varnothing$ 的时候。</p>
+	</body>
+</html>

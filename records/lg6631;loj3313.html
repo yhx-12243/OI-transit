@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6631][loj3313][ZJOI2020]序列</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个长度为 $n$ 的非负整数序列 $a_1, a_2, \dots, a_n$。每一步你可以从以下三种操作中选择一种执行：</p>
+		<ul>
+			<li>选择一个区间 $[l, r]$，将下标在这个区间里的所有数都减 $1$。</li>
+			<li>选择一个区间 $[l, r]$，将下标在这个区间里且下标为奇数的所有数都减 $1$。</li>
+			<li>选择一个区间 $[l, r]$，将下标在这个区间里且下标为偶数的所有数都减 $1$。</li>
+		</ul>
+		<p>求最少需要多少步才能将序列中的所有数都变成 $0$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含一个正整数 $n$ ($n \leq 10^5$)，表示序列长度。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_1, a_2, \cdots, a_n$ ($a_i \leq 10^9$)，描述这个序列。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组测试数据，输出一行一个整数，表示所需步数的最小值。</p>
+
+		<h3>题解</h3>
+		<p>稍微转化一下条件，即可以<em style="color: fuchsia">将一个区间中的数任意减一个整数 $x$</em> (当然要满足减后所有数非负)，花费 $x$ 的代价。</p>
+		<p>这样就只有 $3$ 种本质不同的操作了。</p>
+		<p>进一步，如果我们将上述条件中的<strong>整数 $x$</strong> 改成<strong>实数 $x$</strong>，其实最优解也不变 —— 因为最优解中每种操作的贡献总和一定是一个整数，容易调整证明。</p>
+		<p>对于实数的最优化问题，最先想到的很可能是网络流/费用流，但是对这道题来说网络流/费用流的建模可能并不容易，而且也很难进一步优化 (以通过 $10^5$ 规模的数据)。</p>
+		<p>因此，我们考虑退一步，使用<strong>线性规划建模</strong>，就是俗称的 “列不等式最大化变量”。</p>
+		<p>我们将不同区间的操作看成不同的，这样就有 $M = O \left( n^2 \right)$ 个操作，设这些操作所对应的下标集合分别为 $I_1, I_2, \cdots, I_M$。<span class="text-muted">(如当 $n = 4$ 时 $M = 12$，下标集合有 $\left\{ 1 \right\}, \left\{ 2 \right\}, \left\{ 3 \right\}, \left\{ 4 \right\}, \left\{ 1, 2 \right\}, \left\{ 2, 3 \right\}, \left\{ 3, 4 \right\}, \left\{ 1, 2, 3 \right\}, \left\{ 2, 3, 4 \right\}, \left\{ 1, 2, 3, 4 \right\}, \left\{ 1, 3 \right\}, \left\{ 2, 4 \right\}$)</span></p>
+		<p>设第 $i$ 种操作我们使用了 $x_i$ 个单位，这样我们就可以得到 $n$ 个方程：$$ \forall 1 \leq i \leq n, \sum_{j=1}^M \left[ i \in I_j \right] x_j \color {red} = a_i \tag 1 \label 1 $$</p>
+		<p>当然，这些变量仍然满足非负性约束：$x_1, x_2, \cdots, x_M \geq 0$。</p>
+		<p>而我们的目标也很清晰：就是<strong style="color: red">最小化 $\displaystyle \sum_{i=1}^M x_i$ 的值</strong>。</p>
+		<p>根据<a href="../index.html?redirect=167" target="_blank">这里</a>的经验，它是一个<strong>最小化</strong>型的线性规划，不是标准形。因此，我们仍然应用<a href="../index.html?redirect=" target="_blank">线性规划对偶定理</a>将其转化为一个<strong>最大化</strong>型的线性规划，同时也是为了将变量的个数降下来。</p>
+		<p>但是，注意到这里 $\eqref 1$ 式中的式子是<strong>等号</strong>，而要最小化的线性规划，里面的不等式应该是 "$\geq$"，因此我们需要将一个 "$=$" 拆成两个 "$\geq$"。即，原线性规划应写作 \begin{align*}
+&amp; \text{最小化} &amp; x_1 + x_2 + \cdots + x_M \\
+&amp; \text{满足约束} &amp; \left[ 1 \in I_1 \right] x_1 + \left[ 1 \in I_2 \right] x_2 + \cdots + \left[ 1 \in I_M \right] x_M &amp; \geq a_1 \\
+&amp; &amp; \left[ 2 \in I_1 \right] x_1 + \left[ 2 \in I_2 \right] x_2 + \cdots + \left[ 2 \in I_M \right] x_M &amp; \geq a_2 \\
+&amp; &amp; &amp; \cdots \\
+&amp; &amp; \left[ n \in I_1 \right] x_1 + \left[ n \in I_2 \right] x_2 + \cdots + \left[ n \in I_M \right] x_M &amp; \geq a_n \\
+&amp; &amp; -\left[ 1 \in I_1 \right] x_1 - \left[ 1 \in I_2 \right] x_2 - \cdots - \left[ 1 \in I_M \right] x_M &amp; \geq -a_1 \\
+&amp; &amp; -\left[ 2 \in I_1 \right] x_1 - \left[ 2 \in I_2 \right] x_2 - \cdots - \left[ 2 \in I_M \right] x_M &amp; \geq -a_2 \\
+&amp; &amp; &amp; \cdots \\
+&amp; &amp; -\left[ n \in I_1 \right] x_1 - \left[ n \in I_2 \right] x_2 - \cdots - \left[ n \in I_M \right] x_M &amp; \geq -a_n \\
+&amp; &amp; x_1, x_2, \cdots, x_M &amp; \geq 0
+\end{align*}</p>
+		<p>于是它的对偶形式即为 \begin{align*}
+&amp; \text{最大化} &amp; a_1 \left( y_1 - z_1 \right) + a_2 \left( y_2 - z_2 \right) + \cdots + a_n \left( y_n - z_n \right) \\
+&amp; \text{满足约束} &amp; \left[ 1 \in I_1 \right] \left( y_1 - z_1 \right) + \left[ 2 \in I_1 \right] \left( y_2 - z_2 \right) + \cdots + \left[ n \in I_1 \right] \left( y_n - z_n \right) &amp; \leq 1 \\
+&amp; &amp; \left[ 1 \in I_2 \right] \left( y_1 - z_1 \right) + \left[ 2 \in I_2 \right] \left( y_2 - z_2 \right) + \cdots + \left[ n \in I_2 \right] \left( y_n - z_n \right) &amp; \leq 1 \\
+&amp; &amp; &amp; \cdots \\
+&amp; &amp; \left[ 1 \in I_M \right] \left( y_1 - z_1 \right) + \left[ 2 \in I_M \right] \left( y_2 - z_2 \right) + \cdots + \left[ n \in I_M \right] \left( y_n - z_n \right) &amp; \leq 1 \\
+&amp; &amp; y_1, y_2, \cdots, y_n, z_1, z_2, \cdots, z_n &amp; \geq 0
+\end{align*}</p>
+		<p>发现这个线性规划中 $y_i - z_i$ 总是成对出现的，因此我们可以换元 $Y_i = y_i - z_i \in \mathbb R$，从而问题就转化为一个<strong>对 $Y_i$ 无非负性约束</strong>的线性规划：</p>
+		<p>于是它的对偶形式即为 \begin{align*}
+&amp; \text{最大化} &amp; a_1 Y_1 + a_2 Y_2 + \cdots + a_n Y_n \\
+&amp; \text{满足约束} &amp; \sum_{j \in I_1} Y_j &amp; \leq 1 \\
+&amp; &amp; \sum_{j \in I_2} Y_j &amp; \leq 1 \\
+&amp; &amp; &amp; \cdots \\
+&amp; &amp; \sum_{j \in I_M} Y_j &amp; \leq 1 \\
+\end{align*}</p>
+		<p>这个线性规划的实际意义就是，你需要对每个 $i$ 赋一个权值 $Y_i$，满足每个区间 $\left[ l, r \right]$，每个 “跳跃区间” $\left[ l, r \right]$ ($\left\{ l, l + 2, \cdots, r \right\}$) 的权值总和不超过 $1$，并最大化 $\displaystyle \sum_{i=1}^n a_i Y_i$ 的值。</p>
+		<p>不难证明这个矩阵是全幺模矩阵，因此它存在整数最优解。</p>
+		<p>其次，若存在一个 $Y_i &lt; -1$，我们将其改成 $-1$ 后，答案不变劣，且一定不违反约束条件。</p>
+		<p class="text-muted">(简单证明：反之，设某个区间为 $&gt; 1$，那么一定可以写作 $L + \left( -1 \right) + R &gt; 1$，从而 $L + R &gt; 2 \Rightarrow \max \left\{ L, R \right\} &gt; 1$，矛盾)</p>
+		<p>又当 $l = r$ 时即知 $Y_i \leq 1$，因此在最优解中每个 $Y_i$ 只有三种选择：$\color {fuchsia} {\left\{ -1, 0, 1 \right\}}$。</p>
+		<p>于是就可以愉快地 DP 了。首先，对于只有区间没有 “跳跃区间” 的情形，我们可以用 $f_{i, j}$ 表示考虑前 $i$ 个数，当前 $\displaystyle \max_{0 \leq c \leq i} \sum_{c &lt; k \leq i} Y_k = j$ 时 $\displaystyle \sum_{k=1}^i a_i Y_i$ 的最大值 (由定义知 $j \in \left\{ 0, 1 \right\}$)，然后转移时直接枚举 $Y_i = -1, 0, 1$ 并 (合法地) 更新答案即可。</p>
+		<p>那有 “跳跃区间” 的情形也是类似的：直接用 $f_{i, j, k, l}$ 表示考虑前 $i$ 个数，后缀和的最大值为 $j$，末端点为奇数的跳跃后缀和的最大值为 $k$，末端点为偶数的条件后缀和的最大值为 $l$ 时，$\displaystyle \sum_{k=1}^i a_i Y_i$ 的最大值，转移还是照旧。</p>
+		<p>最终时间复杂度 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 100054;
+const ll INF = 0x3f3f3f3f3f3f3f3fll;
+
+int n;
+ll a[N], dp[2][2][2][2], (*cur)[2][2] = *dp, (*nxt)[2][2] = dp[1];
+
+inline void up(ll &amp;x, const ll y) {x &lt; y ? x = y : 0;}
+inline ll max(const ll x, const ll y) {return x &lt; y ? y : x;}
+
+void work() {
+	int i, j, k, l, y, nj, nk, nl; ll c;
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; a[i];
+	memset(nxt, 192, sizeof *dp), nxt[0][0][0] = 0;
+	for (i = 0; i &lt; n; ++i) {
+		std::swap(cur, nxt), memset(nxt, 192, sizeof *dp);
+		for (j = 0; j &lt; 2; ++j) for (k = 0; k &lt; 2; ++k) for (l = 0; l &lt; 2; ++l)
+			if ((c = cur[j][k][l]) &gt; -INF) for (y = -1; y &lt;= 1; ++y) {
+				nj = max(0, j + y),
+				nk = (i &amp; 1 ? k : max(0, k + y)),
+				nl = (i &amp; 1 ? max(0, l + y) : l);
+				if (nj &lt; 2 &amp;&amp; nk &lt; 2 &amp;&amp; nl &lt; 2)
+					up(nxt[nj][nk][nl], c + y * a[i]);
+			}
+	}
+	for (c = j = 0; j &lt; 2; ++j) for (k = 0; k &lt; 2; ++k) for (l = 0; l &lt; 2; ++l) up(c, nxt[j][k][l]);
+	cout &lt;&lt; c &lt;&lt; '\n';
+}
+
+int main() {
+	int T;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 “取等” 型的线性规划在对偶时需要拆成双倍的不等式，然后通过换元 $Y_i = y_i - z_i$ 得到<strong>无非负性约束</strong>的线性规划。当然如果在熟练后可以直接转化到这一步 (<strong>取等</strong>线性规划对偶为<strong>无非负性约束</strong>的线性规划)。</p>
+		<p><strong>坑2：</strong>转移时记得新的 $j', k', l' \in \left\{ 0, 1 \right\}$，故应先对 $0$ 取 $\max$ (空区间)，如果超过 $1$ 则不进行转移。</p>
+	</body>
+</html>

@@ -51,9 +51,10 @@ const
 			'lbn187' : '',
 			'lych_cys' : 'https://blog.csdn.net/lych_cys/',
 			'lyx_cjz' : '',
+			'lzoiexplorer2004' : 'https://www.cnblogs.com/cszmc2004/',
 			'Memory_of_winter' : 'https://www.cnblogs.com/Memory-of-winter/',
 			'memset0c' : 'https://memset0.cn/',
-			'miaom' : 'https://mioam.github.io/',
+			'miaom' : '',
 			'mrsrz' : 'https://mrsrz.github.io/',
 			'msuwakow' : 'https://www.cnblogs.com/suwakow/',
 			'nbdhhzh' : '',
@@ -66,7 +67,7 @@ const
 			'skylee' : 'https://skylee03.cnblogs.com/',
 			'StudyingFather' : 'https://studyingfather.com/',
 			'suncongbo' : 'https://www.cnblogs.com/suncongbo/',
-			'wanglichao1121' : 'https://wanglichao1121.coding.me/',
+			'wanglichao1121' : '',
 			'weng_233' : '',
 			'weng_weijie' : '',
 			'wzf2000' : 'https://wzf2000.top/',
@@ -229,7 +230,7 @@ const
 		$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
 
 		if (getStorage('check-version') !== 'off') {
-			let local_ver = '7.3.0', prompt_str;
+			let local_ver = '7.3.1', prompt_str;
 			$.ajax('https://yhx-12243.github.io/OI-transit/additional_files/others/version', {
 				type : 'GET',
 				cache : false,
