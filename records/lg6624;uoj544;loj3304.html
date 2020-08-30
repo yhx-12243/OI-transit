@@ -87,20 +87,29 @@ inline void connect(int u, int v) {
 	for (; A; A &amp;= A - 1) con[ctz(A)] = B;
 }
 
-linear gauss(int n) {
-	int i, j, k; linear det(1), coe;
+int gauss(int n) {
+	int i, j, k; bool incr = false; linear det(1), coe;
 	static linear *m[N];
 	for (i = 0; i &lt; n; ++i) m[i] = mat[i];
 	for (i = 0; i &lt; n; ++i) {
-		for (j = i; j &lt; n &amp;&amp; !m[j][i].b; ++j);
-		if (j == n) return linear(0);
+		for (j = i; j &lt; n &amp;&amp; !m[j][i].a; ++j);
+		if (j == n) {
+			for (j = i; j &lt; n &amp;&amp; !m[j][i].b; ++j);
+			if (incr || j == n) return 0;
+			if (i != j) det = -det, std::swap(m[i], m[j]);
+			incr = true, det *= linear(m[i][i].b, 0), coe = linear(m[i][i].b, 0).inv();
+			for (j = 0; j &lt; n; ++j) m[i][j] *= coe;
+			for (k = i + 1; k &lt; n; ++k)
+				for (coe = -linear(m[k][i].b, 0), j = i; j &lt; n; ++j) m[k][j] += coe * m[i][j];
+			continue;
+		}
 		if (i != j) det = -det, std::swap(m[i], m[j]);
 		det *= m[i][i], coe = m[i][i].inv();
 		for (j = 0; j &lt; n; ++j) m[i][j] *= coe;
 		for (k = i + 1; k &lt; n; ++k)
 			for (coe = -m[k][i], j = i; j &lt; n; ++j) m[k][j] += coe * m[i][j];
 	}
-	return det;
+	return incr ? det.a : det.b;
 }
 
 int main() {
@@ -119,7 +128,7 @@ int main() {
 				for (v = 0; v &lt; V; ++v)
 					if (G[u][v] &amp;&amp; !(G[u][v] % i)) mat[u][u] -= mat[u][v] = linear(mod - 1, mod - G[u][v]);
 			}
-			ans = (ans + (ll)phi[i] * gauss(V - 1).b) % mod;
+			ans = (ans + (ll)phi[i] * gauss(V - 1)) % mod;
 		}
 	}
 	cout &lt;&lt; ans &lt;&lt; '\n';

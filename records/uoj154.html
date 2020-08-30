@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[uoj154]列队</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定代数结构 $G$ 和正整数 $n$，你需要判定 $G$ 是否是群，如果是群，并求出 $G$ 到 $n$ 元对称群 $S_n$ 的单同态个数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 10$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含两个正整数 $n, m$ ($n \leq 1000; m \leq 30$)，分别表示对称群的元数和代数结构 $G$ 的阶数 $\left| G \right|$。</p>
+		<p>接下来 $m$ 行，每行 $m$ 个正整数 $B_{i, j}$ ($1 \leq B_{i, j} \leq G$)，描述 $G$ 的乘法表。即我们用 $1 \sim n$ 表示 $G$ 中的元素，则 $B_{i, j}$ 表示 $i \circ j$ 的值。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示单同态个数对 $998244353$ 取模的结果，如果 $G$ 不是群，那么只需输出 $0$。</p>
+
+		<h3>题解</h3>
+		<p>首先，群的判定可以通过定义 (封闭性、结合律、单位元存在性、逆存在性) 在 $O \left( \left| G \right|^3 \right)$ 时间内完成。当然对于一般的乘法表判定是否是群也可以通过生成元和 Light 算法在 $O \left( \left| G \right|^2 \log \left| G \right| \right)$ 时间内完成，不过这个算法和本题无关 (因为本题 $\left| G \right|$ 不超过 $30$)，这里就不再赘述。</p>
+		<p>因此下面可以假设 $G$ 就是一个群。首先，对于群 $G, H$，记 $G$ 到 $H$ 的<strong>同态</strong>数量为 $\operatorname{homo} \left( G, H \right)$，<strong>单同态</strong>数量为 $\operatorname{mono} \left( G, H \right)$。</p>
+		<p>考虑一个同态 $f : G \to H$，记 $K = \ker f$，由群同态基本定理知 $\left. G \middle / K \right.$ 和 $\operatorname{im} f$ 之间存在同构 $\phi$，那么将同构 $\phi$ 的陪域扩展到 $H$ 即得 $\left. G \middle / K \right.$ 到 $H$ 的一个<strong>单同态</strong>。</p>
+		<p>也就是说，$G \to H$ 的每一个同态都对应到 $\left. G \middle / N \right.$ 到 $H$ 的一个单同态，其中 $N$ 是 $H$ 的一个不变子群。</p>
+		<p>于是，有 $$ \operatorname{homo} \left( G, H \right) = \sum_{N \trianglelefteq G} \operatorname{mono} \left( \left. G \middle / N \right., H \right) $$</p>
+		<p>根据上式，我们就可以将计算 $\operatorname{mono} \left( G, H \right)$ 的问题转化为若干个计算 $\operatorname{homo} \left( G, H \right)$ 的子问题 (类似于反演)。</p>
+		<hr />
+		<p>那现在考虑一个更简单的问题：给定群 $G$，计算它到 $S_n$ 的<strong>同态</strong>个数。</p>
+		<p>$f$ 是 $G$ 到 $S_n$ 的一个同态，考虑置换群 $H = \operatorname{im} f \leq S_n$。</p>
+		<p>定义 $i$ 的特征染色 $\chi_i$ 为：$i$ 位置为黑色，其余位置为白色。考虑 $H$ 中的所有置换对 $\chi_i$ 作用的结果 (即轨道 $H \cdot \chi_i$)，考虑黑色出现的所有位置构成的集合，记作 $A_i$。那么不难发现对于 $A_i$ 中的其它元素 $j$，一定有 $A_j = A_i$，也就是说，诸 $\left\{ A_i \right\}$ 构成了 $\left[ n \right]$ 的一个等价类划分。</p>
+		<p>那现在考虑一个等价类 $A_1$，不妨设 $A_1 = \left\{ 1, 2, \cdots, k \right\}$，也就是说，$H$ 中所有置换对 $\left\{ 1, 2, \cdots, k \right\}$ 的作用，是可以将 $A_1$ 中任意一个元素变换为另一个元素的。</p>
+		<p>现在考虑染色 $\chi_1$ 的轨道 $H \cdot \chi_1$，可知 $\left| H \cdot \chi_1 \right| = k$。由轨道——稳定子群定理，$\left| H_{\chi_1} \right| = \dfrac {\left| H \right|} {\left| H \cdot \chi_1 \right|} = \dfrac 1k \cdot \left| H \right|$。</p>
+		<p>考察 $f^{-1} \left( H_{\chi_1} \right)$ 和 $f^{-1} \left( H \right)$，注意到 $\left| f^{-1} \left( H_{\chi_1} \right) \right| = \left| \ker f \right| \left| H_{\chi_1} \right|$ 和 $\left| f^{-1} \left( H \right) \right| = \left| \ker f \right| \left| H \right|$ 得 $$ f^{-1} \left( H_{\chi_1} \right) = \frac 1k \cdot \left| f^{-1} \left( H \right) \right| = \frac {\left| G \right|} k $$</p>
+		<p>也就是说，存在一个 $G$ 的 $\dfrac {\left| G \right|} k$ 阶子群，它所导出的所有 $k$ 个左陪集在 $f$ 下产生的置换分别将黑色位置分别移到 $1, 2, \cdots, k$。</p>
+		<p>因此，给定 $f$ 后 $G$ 的结构就比较清晰了：首先，$H = \operatorname{im} f$ 将 $\left[ n \right]$ 划分为了若干个等价类，设大小分别为 $k_1, k_2, \cdots$，对于其中每个 $k_i$，在 $G$ 中存在一个对应的 $\dfrac {\left| G \right|} {k_i}$ 阶子群 (可以相同)，它导出的所有 $k_i$ 个左陪集分别将某个元素移到所有的位置。</p>
+		<hr />
+		<p>理清 $G$ 的结构后，我们要尝试从 $G$ 构造 $f$。</p>
+		<p>任给一个 $\left\{ 1, 2, \cdots, n \right\}$ 的等价类划分，设大小分别为 $k_1, k_2, \cdots$。对每个等价类取定一个代表元，不妨设等价类为 $A_1 = \left\{ 1, 2, \cdots, k \right\}$，代表元为 $1$。</p>
+		<p>我们在 $G$ 中任意寻找一个大小为 $\dfrac {\left| G \right|} k$ 的子群 $S$，令它的像为特征染色 $\chi_1$ 的稳定子群。那么 $S$ 导出的 $k$ 个左陪集，应当将 $1$ 移到 $1, 2, \cdots, k$。</p>
+		<p>记这 $k$ 个左陪集分别为 $S, g_2 S, g_3 S, \cdots, g_k S$，显然 $S$ 中的元素的像 (置换) 将 $1$ 移到 $1$。</p>
+		<p>合理调整 $g_i$ 的顺序，并假设 $g_i S$ 中元素的像 (置换) 将 $1$ 映射到 $i$。</p>
+		<p>于是，对于这样一种 $g_i$ 的顺序，考虑其中任意一个置换 $g = g_i \circ s_1$ ($s_1 \in S$)，我们有 $$ g \left( j \right) = \left( g_i \circ s_1 \right) \left( \left( g_j \circ s_2 \right) \left( 1 \right) \right) = \left( g_i \circ s_1 \circ g_j \circ s_2 \right) \left( 1 \right) = \left( g_i \circ s_1 \circ g_j \right) \left( 1 \right) $$ (其中最后一个等号由于左陪集的定义，和 $s_2 \in S$ 的取值无关)</p>
+		<p>也就是说 $g \left( j \right)$ 由 $g \circ g_j$ 唯一确定，和 $s_2$ 无关，于是这个定义没有歧义 (合理)，我们也就得到一个所有元素在 $A_1$ 中唯一的变换。</p>
+		<p>别忘了，我们还能调整 $g_i$ 的顺序，而这有 $\left( k - 1 \right) !$ 种调整的方式，每种方式都能对应到一个 $A_1$ 中独一无二的变换。</p>
+		<p>现在，我们既通过 $f$ 研究了 $G$ 的结构，又通过 $G$ 构造了合适的 $f$，现在就可以统计这样的 $f$ 的个数了。</p>
+		<p>首先，我们需要对 $\left\{ 1, 2, \cdots, n \right\}$ 进行等价类划分，而等价类划分可以看成<strong>带标号无序组</strong>，因此可以想到使用多项式 exp 来处理。</p>
+		<p>考虑一个大小为 $k$ 的等价类，我们需要一个大小为 $\dfrac {\left| G \right|} k$ 的子群作为其稳定子群的原像。对于每个这样的子群，都能得到 $\left( k - 1 \right) !$ 种该等价类中变换的方式。</p>
+		<p>因此，大小为 $k$ 的等价类，可行的变换一共有 $c \cdot \left( k - 1 \right) !$ 种，其中 $c$ 为 $G$ 中大小为 $\dfrac {\left| G \right|} k$ 的子群数量，从而在生成函数中产生 $c \cdot \left( k - 1 \right) ! \cdot \dfrac {x^k} {k !} = c \cdot \dfrac {x^k} k$ 的贡献。</p>
+		<p>那么，设 $$ f \left( x \right) = \sum_k \frac {x^k} k \sum_{H \leq G, \left| H \right| = \frac {\left| G \right|} k} 1 = \sum_{H \leq G} \frac {x^{\left| G \right| / \left| H \right|}} {\left| G \right| / \left| H \right|} $$</p>
+		<p>则答案 ($G$ 到 $S_n$ 的同态个数) 就等于 $n ! \left[ x^n \right] \exp f \left( x \right)$。</p>
+		<hr />
+		<p>这题的实现也需要好好讨论一下。先考虑原问题是 $\operatorname{homo} \left( G, H \right)$ 的情形。</p>
+		<p>首先由于 $n \leq 1000$，那么可以考虑使用暴力 exp 处理。</p>
+		<p>其次，我们需要知道 $G$ 的各个大小的子群数量，或更暴力地，知道 $G$ 的所有子群 (状压表示)。</p>
+		<p>反正 $\left| G \right| \leq 30$，那么枚举 $G$ 的所有子群可以使用 bfs：首先队列中只有平凡群 $\left\{ e \right\}$，然后对于每个子群 $H$，枚举不在它中的元素 $g$，(通过陪集) 计算 $\left&lt; H \cup \left\{ g \right\} \right&gt;$ 加入队列，并注意去重。</p>
+		<p>事实上，$30$ 阶以内的群的子群数量不超过 $M = 67$ (在 $Z_2^4$ 处取到)，因此直接搜索的复杂度不会超过 $O \left( M \left| G \right|^2 \right)$，从而计算 $\operatorname{homo} \left( G, H \right)$ 的总时间复杂度为 $O \left( M \left| G \right|^2 + n^2 \right)$。</p>
+		<p>接下来分析计算 $\operatorname{mono} \left( G, H \right)$ 的复杂度。</p>
+		<p>如果暴力递归计算，则需要得到 $G$ 的所有<strong>不变子群</strong> $N$ (可通过枚举所有子群并检验不变性来得到)，并计算商群递归处理。</p>
+		<p>$30$ 阶以内的群的不变子群数量最大值为 $M_N = 67$ (仍在 $Z_2^4$ 处取到)，而且在搜索的过程中还可能搜到相同的不变子群，那么就需要群 Hash 等复杂的方法。</p>
+		<p>其实可以利用同态的性质，或<strong>群同构第三定理</strong>来简化过程。</p>
+		<p>考虑我们递归解决规模为 $\left. G \middle / N \right.$ 的子问题，我们需要枚举 $\left. G \middle / N \right.$ 的子群和不变子群。</p>
+		<p>由<strong>群同构第三定理</strong>，$\left. G \middle / N \right.$ 的子群和不变子群对应 $G$ 的子群和不变子群 (中满足 $N$ 是其子群者)，如果继续递归，所得到的商群 $\dfrac {\left. G \middle / N \right.} {\left. H \middle / N \right.}$ 其实是同构于 $\left. G \middle / H \right.$ 的。</p>
+		<p>因此在整个过程中所涉及到的群，其实都是 $G$ 的商群。</p>
+		<p>也就是说，我们只需要一次 bfs 得到 $G$ 的所有子群和不变子群，然后按照阶数从大到小的顺序枚举不变子群 $N$，解决规模为 $\left. G \middle / N \right.$ 的问题。</p>
+		<p>由群同构第三定理，此时商群的子群和不变子群就是 $G$ 的子群和不变子群中满足 $N$ 是其子群者，因此这些不变子群的答案都是已知的，像 Möbius 反演一样操作即可。</p>
+		<p>于是总时间复杂度为 $O \left( M \left| G \right|^2 + M_N \cdot M + M_N \cdot n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define popc __builtin_popcount
+#define ctz __builtin_ctz
+using std::cin;
+using std::cout;
+using std::vector;
+
+typedef unsigned int u32;
+typedef long long ll;
+typedef unsigned long long u64;
+typedef std::unordered_set &lt;u32&gt; set;
+const int N = 34, M = 1054, mod = 998244353;
+
+bool check_associativity_BF(const vector&lt;vector&lt;int&gt;&gt; &amp;A) {
+	int i, j, k, n = A.size();
+	for (i = 0; i &lt; n; ++i)
+		for (j = 0; j &lt; n; ++j)
+			for (k = 0; k &lt; n; ++k)
+				if (A[A[i][j]][k] != A[i][A[j][k]]) return false;
+	return true;
+}
+
+struct group {
+	int n;
+	vector&lt;int&gt; iv;
+	vector&lt;vector&lt;int&gt;&gt; mul;
+
+	group () {}
+	group (int n_, int (*mul_)[N]) : n(-1) {
+		int i, j, ei, ej, e = -1;
+		if (n_ &lt;= 0) return;
+
+		for (i = 0; i &lt; n_; ++i) {
+			if ((u32)mul_[i][i] &gt;= (u32)n_) return;
+			if (mul_[i][i] == i) {
+				if (~e) return;
+				e = i;
+			}
+		}
+		if (!~e) return;
+
+		mul = vector&lt;vector&lt;int&gt;&gt;(n_, vector&lt;int&gt;(n_, 0));
+		for (i = 0; i &lt; n_; ++i) {
+			ei = (i &amp;&amp; i != e ? i : i ^ e);
+		 	for (j = 0; j &lt; n_; ++j)
+				ej = (j &amp;&amp; j != e ? j : j ^ e),
+				mul[ei][ej] = (mul_[i][j] &amp;&amp; mul_[i][j] != e ? mul_[i][j] : mul_[i][j] ^ e);
+		}
+
+		iv.clear(), iv.reserve(n_);
+		for (i = 0; i &lt; n_; ++i) {
+			e = -1;
+			for (j = 0; j &lt; n_; ++j)
+				if (!mul[i][j]) {
+					if (~e) return;
+					e = j;
+				}
+			if (!~e) return;
+			iv.EB(e);
+		}
+		for (i = 0; i &lt; n_; ++i) if (iv[iv[i]] != i) return;
+
+		if (check_associativity_BF(mul)) n = n_;
+	}
+
+	void print() const {
+		int i, j;
+		fprintf(stderr, "Group of order %d:\n * |", n);
+		for (i = 0; i &lt; n; ++i) fprintf(stderr, "%3d", i);
+		fputs("\n---+", stderr);
+		for (i = 0; i &lt; n; ++i) fputs("---", stderr);
+		fputc(10, stderr);
+		for (i = 0; i &lt; n; ++i) {
+			fprintf(stderr, "%3d|", i);
+			for (j = 0; j &lt; n; ++j)
+				fprintf(stderr, "%3d", mul[i][j]);
+			fputc(10, stderr);
+		}
+		fputc(10, stderr);
+	}
+
+	inline u32 generate(u32 A) const {
+		int i; u32 I, S, T, ALL = ~(-2u &lt;&lt; (n - 1));
+		for (; A != ALL; A = I) {
+			for (S = I = A; S; S &amp;= S - 1)
+				for (T = A; T; T &amp;= T - 1)
+					I |= 1u &lt;&lt; mul[ctz(S)][ctz(T)];
+			if (A == I) return A;
+		}
+		return ALL;
+	}
+
+	vector&lt;int&gt; subgroups() const {
+		int i, g; u32 I, S, T, ALL = ~(-2u &lt;&lt; (n - 1));
+		vector&lt;int&gt; Q(1, 1u); set Qs({1u});
+		for (i = 0; i &lt; (int)Q.size(); ++i)
+			for (S = Q[i], I = ~S &amp; ALL; I; I &amp;= I - 1) {
+				T = generate(S | (I &amp; -I));
+				if (Qs.emplace(T).second) Q.EB(T);
+			}
+		return std::sort(Q.begin(), Q.end()), Q;
+	}
+
+	bool is_normal(u32 S) const {
+		int g, h; u32 I = S;
+		for (; I; I &amp;= I - 1)
+			for (h = ctz(I), g = 0; g &lt; n; ++g)
+				if (!(S &gt;&gt; mul[ mul[g][h] ][ iv[g] ] &amp; 1)) return false;
+		return true;
+	}
+} G;
+
+int n, m;
+int mul[N][N];
+int inv[M], fact[M], finv[M];
+int F[M];
+
+void init() {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt; M; ++i) inv[i] = ll(mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt; M; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+}
+
+void Exp(int n, int *a) {
+	int i, j; u64 R;
+	static u64 u[1054]; assert(!*a);
+	for (i = 0; i &lt;= n; ++i) u[i] = (u64)i * a[i] % mod;
+	for (*a = i = 1; i &lt;= n; ++i) {
+		for (R = u[i], j = 1; j &lt; i; ++j) {
+			R += u[j] * a[i - j];
+			if (!(j &amp; 15)) R %= mod;
+		}
+		a[i] = R % mod * inv[i] % mod;
+	}
+}
+/*
+	\sum_{N \trianglelefteq G} #mono(N) = #homo(G)
+	use `the third theorem on isomorphisms` to iterate
+*/
+int n_monomorphisms(const group &amp;G, int K) {
+	int i, j, n; ll ret;
+	vector&lt;int&gt; sg = G.subgroups(), nsg, f;
+	std::remove_copy_if(sg.begin(), sg.end(), std::back_inserter(nsg),
+		[&amp;G] (const u32 &amp;S) -&gt; bool {return !G.is_normal(S);});
+	f.resize(n = nsg.size(), 0);
+	for (i = n - 1; i &gt;= 0; --i) {
+		memset(F, 0, (K + 1) &lt;&lt; 2);
+		for (u32 S : sg) if (!(nsg[i] &amp; ~S)) ++F[G.n / popc(S)];
+		for (j = 0; j &lt;= K; ++j) F[j] = (ll)F[j] * inv[j] % mod;
+		Exp(K, F), ret = (ll)F[K] * fact[K];
+		for (j = i + 1; j &lt; n; ++j) if (!(nsg[i] &amp; ~nsg[j])) ret -= f[j];
+		ret %= mod, f[i] = ret + (ret &gt;&gt; 63 &amp; mod);
+	}
+	return f.front();
+}
+
+void work() {
+	int i, j;
+	cin &gt;&gt; n &gt;&gt; m;
+	for (i = 0; i &lt; m; ++i) for (j = 0; j &lt; m; ++j) cin &gt;&gt; mul[i][j], --mul[i][j];
+	G = group(m, mul), cout &lt;&lt; (~G.n ? n_monomorphisms(G, n) : 0) &lt;&lt; '\n';
+}
+
+int main() {
+	int T; init();
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $n$ 的大小是 $1000$ 而不是 $30$，因此相关数组和预处理时注意范围。</p>
+		<p><strong>坑2：</strong>注意表达式中 $\left| G \right| / \left| H \right|$ 的含义，在递推计算的过程中 $G$ 其实对应原先群 $G_0$ 的一个商群，因此 $H, G$ 都是商群的子群，从而对应到 $G_0$ 即 $H_0$ 是满足 $N \trianglelefteq H_0 \leq G_0$ 的群，比值 $\left| G \right| / \left| H \right|$ 表示陪集个数，因此可以直接用 $\left| G_0 \right| / \left| H_0 \right|$ 计算。</p>
+	</body>
+</html>

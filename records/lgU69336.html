@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lgU69336]红黑树计数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定正整数 $n$，求有多少棵 $n$ 个节点的红黑树。</p>
+		<p>两棵红黑树被视为不同当且仅当它们不同构 (这里区分左右子树) 或某个节点的颜色不同。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 10^5$)，表示红黑树的节点个数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $n$ 个点的红黑树数量对 $998244353$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p class="hidden">完了感觉最近做的题目越来越水了怎么办啊 QAQ</p>
+		<p>按照传统的定义，红黑树有一个量被称为 "黑高"，即根节点到任意一个 (哨兵) 叶节点所经过的<span style="color: black">黑色</span>节点数 (这里不计算哨兵节点的贡献，由红黑树的性质知这个值对于一棵固定的树是常量)。</p>
+		<p>由于这里不是有标号计数，因此考虑<strong>一般生成函数</strong>。设 "黑高" 为 $h$ 的树的生成函数表达式为 $T_h \left( x \right)$。</p>
+		<p>则易得边界 $T_1 \left( x \right) = x + 2 x + x^3$ (根必须是<span style="color: black">黑色</span>，根的子节点必须是<span style="color: red">红色</span>)。</p>
+		<p>考虑通过递推得到 $T_{h+1}$。首先，对于 "黑高" 为 $h + 1$ 的红黑树，它的根显然必须是<span style="color: black">黑色</span>，因此这里先占去一个 $x$，剩下两棵独立的子树，它们的黑高都需要为 $h$。</p>
+		<p>但是，这两棵子树的根不一定是<span style="color: black">黑色</span>，它可以是<span style="color: red">红色</span>。因此我们需要记一个辅助函数 $R \left( x \right)$ 表示根为<span style="color: red">红色</span>且黑高为 $h$ 的树对应的生成函数。</p>
+		<p>由于红色节点的子节点必须为黑色，因此可得 $R \left( x \right)$ 的表达式：$$ R \left( x \right) = x \cdot T_h^2 \left( x \right) $$</p>
+		<p>于是，有 \begin{align*}
+T_{h+1} \left( x \right) &amp;= x \cdot \left( T_h \left( x \right) + R \left( x \right) \right)^2 \\
+&amp;= x \cdot \left( T_h \left( x \right) + x \cdot T^2_h \left( x \right) \right)^2 \\
+&amp;= x \cdot T_h^2 \left( x \right) \cdot \left( 1 + x \cdot T_h \left( x \right) \right)^2 \tag 1 \label 1
+\end{align*}</p>
+		<p>记 $\operatorname{ord} f = \min \left\{ c \mid c \in \mathbb N \wedge \left[ x^c \right] f \left( x \right) \neq 0 \right\}$ 表示 $f$ 的最低系数非零项的次数，则结合 $T_1 \left( x \right) = x \left( 1 + x \right)^2$ 不难证明 $\operatorname{ord} T_h = 2^h - 1$ (这也可以通过 "黑高为 $h$ 的红黑树至少有 $2^h - 1$ 个节点" 的组合来理解)。</p>
+		<p>因此当 $h &gt; \log_2 \left( n + 1 \right)$ 的时候 $\left[ x^n \right] T_h \left( x \right) = 0$，从而没必要去计算它。从而我们只需通过 $\eqref 1$ 式计算出 $T_1, T_2, \cdots$ 等 $O \left( \log n \right)$ 个生成函数即可，总时间复杂度 $O \left( n \log^2 n \right)$。</p>
+		<p style="color: red">(番外：关于红黑树计数，有一个比上述方法所得到的式子更漂亮统一的式子：设 $n$ 个点的红黑树的生成函数 $T \left( x \right)$，则 $T \left( x \right) = x \cdot \left( 1 + x \right)^2 \cdot \left( 1 + T \left( x^2 \left( 1 + x \right)^2 \right) \right)$，可惜这个式子并不方便直接计算，证明可以(wo)参(ye)见(bu)论(hui)文)</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define lg2 std::__lg
+using std::cin;
+using std::cout;
+
+typedef unsigned long long u64;
+const int N = 530000, mod = 998244353, iv2 = (mod + 1) / 2, unity = 31;
+typedef int vec[N], *pvec;
+
+vec inv, fact, finv;
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+u64 PowerMod(u64 a, int n, u64 c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+namespace poly_base {
+	int l, n; u64 iv; vec w2;
+
+	void init(int n = N, bool dont_calc_factorials = true) {
+		int i, t;
+		for (inv[1] = 1, i = 2; i &lt; n; ++i) inv[i] = u64(mod - mod / i) * inv[mod % i] % mod;
+		if (!dont_calc_factorials) for (*finv = *fact = i = 1; i &lt; n; ++i) fact[i] = (u64)fact[i - 1] * i % mod, finv[i] = (u64)finv[i - 1] * inv[i] % mod;
+		t = min(n &gt; 1 ? lg2(n - 1) : 0, 21),
+		*w2 = 1, w2[1 &lt;&lt; t] = PowerMod(unity, 1 &lt;&lt; (21 - t));
+		for (i = t; i; --i) w2[1 &lt;&lt; (i - 1)] = (u64)w2[1 &lt;&lt; i] * w2[1 &lt;&lt; i] % mod;
+		for (i = 1; i &lt; n; ++i) w2[i] = (u64)w2[i &amp; (i - 1)] * w2[i &amp; -i] % mod;
+	}
+
+	inline void NTT_init(int len) {n = 1 &lt;&lt; (l = len), iv = mod - (mod - 1) / n;}
+
+	void DIF(int *a) {
+		int i, *j, *k, len = n &gt;&gt; 1, R, *o;
+		for (i = 0; i &lt; l; ++i, len &gt;&gt;= 1)
+			for (j = a, o = w2; j != a + n; j += len &lt;&lt; 1, ++o)
+				for (k = j; k != j + len; ++k)
+					R = (u64)*o * k[len] % mod, reduce(k[len] = *k - R), reduce(*k += R - mod);
+	}
+
+	void DIT(int *a) {
+		int i, *j, *k, len = 1, R, *o;
+		for (i = 0; i &lt; l; ++i, len &lt;&lt;= 1)
+			for (j = a, o = w2; j != a + n; j += len &lt;&lt; 1, ++o)
+				for (k = j; k != j + len; ++k)
+					reduce(R = *k + k[len] - mod), k[len] = u64(*k - k[len] + mod) * *o % mod, *k = R;
+	}
+
+	inline void DNTT(int *a) {DIF(a);}
+	inline void IDNTT(int *a) {
+		DIT(a), std::reverse(a + 1, a + n);
+		for (int i = 0; i &lt; n; ++i) a[i] = a[i] * iv % mod;
+	}
+
+	inline void DIF(int *a, int *b) {memcpy(b, a, n &lt;&lt; 2), DIF(b);}
+	inline void DIT(int *a, int *b) {memcpy(b, a, n &lt;&lt; 2), DIT(b);}
+	inline void DNTT(int *a, int *b) {memcpy(b, a, n &lt;&lt; 2), DNTT(b);}
+	inline void IDNTT(int *a, int *b) {memcpy(b, a, n &lt;&lt; 2), IDNTT(b);}
+}
+
+int n, G;
+vec f, w;
+
+int main() {
+	namespace pb = poly_base;
+	int i, j, deg; u64 t, ans = 0;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n, deg = lg2(4 * n + 3) + 1, pb::init(1 &lt;&lt; deg);
+	G = lg2(n + 1), *f = 1;
+	for (i = 0; i &lt; 1 &lt;&lt; (deg - 1); ++i) w[2 * i] = pb::w2[i], w[2 * i + 1] = mod - pb::w2[i];
+	for (i = 1; i &lt;= G; ++i) {
+		pb::NTT_init(min(deg, 2 * i)), pb::DNTT(f);
+		for (j = 0; j &lt; pb::n; ++j)
+			t = (1 + (u64)w[j] * f[j]) % mod * f[j] % mod,
+			f[j] = t * t % mod * w[j] % mod;
+		pb::IDNTT(f), ans += f[n];
+		if (n + 1 &lt; pb::n) memset(f + (n + 1), 0, (pb::n - n - 1) &lt;&lt; 2);
+	}
+	cout &lt;&lt; int(ans % mod) &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>计算 $T_{h+1} \left( x \right) = x \cdot T_h^2 \left( x \right) \cdot \left( 1 + x \cdot T_h \left( x \right) \right)^2$ 的时候可以一次完成，不过注意 DFT 的长度，不要太小了。</p>
+	</body>
+</html>

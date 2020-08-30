@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg4500][uoj411][loj2528][soj109][ZJOI2018]树</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>九条可怜是一个热爱出题的女孩子。</p>
+		<p>虽然出题本身是一件非常有趣的事情，但是要把题目给出成正式比赛，就不是那么有趣了：造数据总是一件让人心力憔悴的事情。</p>
+		<p>在 <samp>ZJOI2018 Day 1</samp> 中，可怜出了一道和树相关的非常有趣的题，她打算采用一种常用的方式随机生成一棵 $n$ 个节点的有根树：</p>
+		<ul>
+			<li>节点 $1$ 作为树的根。</li>
+			<li>对于 $i \in \left[ 2, n \right]$，独立地从 $\left[ 1, i \right)$ 中等概率随机选取一个节点作为 $i$ 的父亲。</li>
+		</ul>
+		<p>可怜不是很想考虑这样随机出来的数据能不能卡掉暴力，毕竟乱搞也是 OI 比赛的一部分。</p>
+		<p>可怜比较在意的是题目的区分度，以及是不是所有可能的分数都出现了。因此，可怜希望任何两个测试点的树是有区别的：这样就可能会有错误的程序能只通过其中一个点。</p>
+		<p>因此，可怜想要计算，通过上面的方法独立的随机生成 $k$ 棵 $n$ 个节点的有根树 $T_1$ 至 $T_k$，他们两两同构的概率是多少。</p>
+		<p>两棵 $n$ 个节点的有根树 $T_1$ 和 $T_2$ 同构当且仅当存在长度为 $n$ 的排列 $p$，满足 $p_1 = 1$，且对于 $\forall i \in \left[ 2, n \right]$，若 $i$ 在 $T_1$ 的父亲是 $f$，则 $p_i$ 在 $T_2$ 的父亲是 $p_f$。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含三个正整数 $n, k, p$ ($n \leq 2000; k \leq 10^9; 10^8 \leq p \leq 10^9$ 且 $p$ 是素数)，分别表示树的顶点个数，树的个数以及模数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示两两同构的概率对 $p$ 取模后的值。即如果答案的最简分数表示为 $\dfrac ab$，输出 $a \cdot b^{-1} \bmod p$。</p>
+
+		<h3>题解</h3>
+		<p>先转化题意，显然两棵树同构是一个等价关系，因此我们可以将 $\mathcal T$ 划分为若干个等价类 $\mathcal T = E_1 \cup E_2 \cup \cdots \cup E_\lambda$，于是我们就要求 $\displaystyle \sum_{i=1}^\lambda \left| E_i \right|^k$。</p>
+		<p>考虑 DP —— 记 $f_i$ 表示 $i$ 个点时的答案，那么它也就等于将其去掉后森林的答案，因此我们转而考虑有根森林的等价类。</p>
+		<p>而森林中树的大小是参差不齐的，因此我们需要按照大小为 $1, 2, \cdots, n$ 的顺序依次在森林中加入对应大小的树。</p>
+		<p>因此，我们记 $g_{i, s}$ 表示所有树大小不超过 $i$ 的大小为 $s$ 的森林所对应的答案 (各等价类大小的 $k$ 次方和)。那么由定义 $f_i = g_{i-1, i-1}, g_{1, s} = 1$。</p>
+		<p>考虑转移，那么就是在森林中加入若干个大小为 $i$ 的树。枚举加入了 $d$ 个，那么有 $$ g_{i, s} = \sum_{0 \leq d \leq \left \lfloor \frac si \right \rfloor} g_{i - 1, s - d \cdot i} \cdot I_{i, d} \cdot \binom s {d \cdot i}^k $$ 其中 $I_{i, d}$ 表示对于所有 $d$ 棵大小为 $i$ 的树构成的带标号有根森林，各等价类大小的 $k$ 次方和。</p>
+		<hr />
+		<p>下面考虑求解 $I_{i, d}$，我们换一个字母，用 $I_{n, m}$ 表示，即 $m$ 棵大小为 $n$ 的树。</p>
+		<p>首先，对于带标号的问题，外面的标号已经由一个二项式系数解决，实际 DP 时可以统统除以阶乘然后直接乘，因此里面的标号设为 $1 \sim n$ 也无妨。</p>
+		<p>因此，在一般情况下，这个标号分配方案就等于 $\dbinom {m \cdot n} {n, n, \cdots, n}$，但是这里不行，因为同构的两棵树之间换一下标号，得到的还是同一棵树。</p>
+		<p>考虑一个 $m$ 维的，元素为 $n$ 阶树等价类的向量的全集 $X$，两个向量 F-等价当且仅当 $n$ 阶树构成的等价类集合相同。<span style="color: red">(ps: 这里用 F-等价表示两个向量的等价，以区别树的等价</span></p>
+		<p>设 $n$ 阶树的等价类划分为 $\mathcal T_n = E_1 \cup E_2 \cup \cdots \cup E_\lambda$，然后记 $\displaystyle P_n \left( \delta \right) = \sum_{i=1}^\lambda \left| E_i \right|^\delta$。那么，可以发现 $X$ 中每个元素其实就是一个<strong>染色</strong> —— 对于每个位置分配一个 $E_i$。</p>
+		<p>于是问题就转化为了等价类计数的问题，考虑使用 Pólya 定理来处理。</p>
+		<hr />
+		<p>使用多元生成函数的 Pólya 定理，定义 $f \left( t_1, t_2, \cdots, t_\lambda \right) = t_1^k + t_2^k + \cdots + t_\lambda^k$。</p>
+		<p>那么，最后我们要求的即为 $F \left( \left| E_1 \right|, \left| E_2 \right|, \cdots, \left| E_\lambda \right| \right)$。</p>
+		<p>在 $X$ 上作用的变换群显然是 $S_m$，因此我们将其代入 $S_m$ 的循环指标，就得到一个关于 $f \left( \left| E_1 \right|, \left| E_2 \right|, \cdots, \left| E_\lambda \right| \right),$ $f \left( \left| E_1 \right|^2, \left| E_2 \right|^2, \cdots, \left| E_\lambda \right|^2 \right), \cdots, f \left( \left| E_1 \right|^m, \left| E_2 \right|^m, \cdots, \left| E_\lambda \right|^m \right)$，亦即 $P_n \left( k \right), P_n \left( 2 k \right), \cdots, P_n \left( m k \right)$ 的表达式。</p>
+		<p>假设我们已经知道了这些 $P_n \left( i k \right)$，那么考虑 Pólya 定理，其实质就是对于一个大小为 $c$ 的循环给出 $P_n \left( c k \right)$ 的贡献。而置换可以由循环之间的<strong>带标号无序组</strong>来刻画，因此可以使用多项式 exp 来解决。</p>
+		<p>但是这里有个致命的问题 —— 每个轨道的贡献不一定是 $1$！</p>
+		<p>具体地，考虑一个轨道 (F-等价类)，设其中包含了 $\kappa_i$ 个 $E_i$ 中的元素，那么在<strong>最终分配标号</strong>的时候，这些树它们之间的标号是可以任意互换的，因此最后还需要除以 $\kappa_i !$。</p>
+		<p>也就是说，对于一个轨道，它会产生 $\displaystyle \prod_{i=1}^\lambda \dfrac 1 {\left( \kappa_i ! \right)^k}$ 倍的贡献。</p>
+		<p>哇槽轨道还带权！不过不要怕，我们可以使用<strong>广义 Pólya 定理</strong>！</p>
+		<hr />
+		<p>回忆广义 Burnside 引理的表达式：$$ \sum_{\mathcal O \in \left. X \middle / G \right.} \omega \left( G_\mathcal O \right) \left| \mathcal O \right| = \sum_{g \in G} \omega \left( g \right) \left| X^g \right| $$ <span style="color: red">(ps: 这里 $\left. X \middle / G \right.$ 表示在 $G$ 的作用下 $X$ 划分成的所有等价类的集合，$\omega \left( g \right)$ 表示置换的权值，$\displaystyle \omega \left( H \right) = \sum_{g \in H} \omega \left( g \right)$ 表示子群的权值)</span></p>
+		<p>我们当然希望对于满足 $\left( \kappa_1, \kappa_2, \cdots, \kappa_\lambda \right)$ 的轨道 $\mathcal O$，有 $\displaystyle \omega \left( G_\mathcal O \right) \left| \mathcal O \right| = \prod_{i=1}^\lambda \dfrac 1 {\left( \kappa_i ! \right)^k}$。</p>
+		<p>考察 $G_\mathcal O$ 的结构，可得 $G_\mathcal O = S_{\kappa_1} \times S_{\kappa_2} \times \cdots \times S_{\kappa_\lambda}$。<span style="color: red">(ps: 这里用 $G \times H$ 表示群 $G$ 和群 $H$ 的直积)</span></p>
+		<p>注意到在 Pólya 定理中，一个置换的权值仅仅和它的循环指标相关，因此有 $Z_{G_\mathcal O} = Z_{S_{\kappa_1}} \cdot Z_{S_{\kappa_2}} \cdot \cdots \cdot Z_{S_{\kappa_\lambda}}$，从而有 $\omega \left( G_\mathcal O \right) = \omega \left( S_{\kappa_1} \right) \omega \left( S_{\kappa_2} \right) \cdots \omega \left( S_{\kappa_\lambda} \right)$。</p>
+		<p>那这个形式其实还是挺漂亮的。不过注意到 $\left| \mathcal O \right| = \dfrac {\left| G \right|} {\left| G_\mathcal O \right|} = \dfrac {m !} {\kappa_1 ! \kappa_2 ! \cdots \kappa_\lambda !}$，而 $m !$ 可以看成常数，因此对比前式可知要 $$ \omega \left( G_\mathcal O \right) = \prod_{i=1}^\lambda \frac 1 {\left( \kappa_i ! \right)^{k-1}} \Rightarrow \omega \left( S_\kappa \right) = \frac 1 {\left( \kappa ! \right)^{k-1}} $$</p>
+		<p>而现在我们需要知道每个循环大小所产生的贡献，记大小为 $c$ 的循环产生的贡献为 $\chi_c$，于是通过对称群 $S_\kappa$ 的权值我们可以通过 $\chi_1, \chi_2, \cdots$ 来推导出 $\chi_\kappa$。</p>
+		<p>其实，这里面的置换还是可以由循环之间的带标号无序组来刻画，因此之前的多项式 exp 仍是可行的。</p>
+		<p>具体地，设 $\displaystyle f \left( x \right) = \sum_{i \geq 1} \chi_i \dfrac {x^i} {i !}$，则 $\displaystyle \exp f \left( x \right) = 1 + \sum_{i \geq 1} \omega \left( S_i \right) \dfrac {x^i} {i !} = \sum_{i \geq 0} \dfrac {x^i} {\left( i ! \right)^k}$，于是做一次多项式 ln 就能得到诸 $\chi_i$ 了。</p>
+		<hr />
+		<p>到这里为止，还剩最后一个<del>历史遗留问题</del>：当时我们是假设已经知道了 $P_n \left( k \right), P_n \left( 2 k \right), \cdots, P_n \left( m k \right)$，但事实上除了 $P_n \left( k \right)$ 我们是不知道的。</p>
+		<p>因此我们还需要不仅仅要 DP 所有等价类的 $k$ 次方和，还有 $2 k$ 次方和，$3 k$ 次方和……</p>
+		<p>不过注意到 $d \cdot i \leq n$，也就是说，对于 $i$ 阶树的等价类，我们只需要知道其 $k$ 次方和，$2 k$ 次方和，……，$\left \lfloor \dfrac ni \right \rfloor \cdot k$ 次方和。这是一个调和级数。</p>
+		<p>于是我们对多组 $\left( i, d \cdot k \right)$ ($i \cdot d \leq n$) 分别计算即可，那么 exp/ln 部分的时间复杂度为 (采用暴力 exp/ln) $$ \sum_{i \cdot d \leq n} \left( \frac n {i \cdot d} \right)^2 = O \left( n^2 \right) $$ </p>
+		<p>其余部分转移的时间复杂度为 $$ \sum_{i=1}^n \sum_{e=1}^{\left \lfloor \frac ni \right \rfloor} \sum_{s=1}^{\left \lfloor \frac ne \right \rfloor} \left \lfloor \frac si \right \rfloor = O \left( n^2 \right) $$ (别忘了平方的倒数和不超过 $\zeta \left( 2 \right) = O \left( 1 \right)$)</p>
+		<p>因此总时间复杂度 $O \left( n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef unsigned long long u64;
+const int N = 2054;
+
+int mod;
+int n, K;
+int inv[N], fact[N], finv[N];
+int pK[N], iK[N], factK[N], finvK[N];
+int f[N][N], g[N][N];
+int perm_coef[N][N], B1[N];
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+void init(int n) {
+	int i;
+	for (inv[1] = 1, i = 2; i &lt;= n; ++i) inv[i] = ll(mod - mod / i) * inv[mod % i] % mod;
+	for (*finv = *fact = i = 1; i &lt;= n; ++i) fact[i] = (ll)fact[i - 1] * i % mod, finv[i] = (ll)finv[i - 1] * inv[i] % mod;
+	for (*factK = i = 1; i &lt;= n; ++i) pK[i] = PowerMod(i, K), factK[i] = (ll)factK[i - 1] * pK[i] % mod;
+	finvK[n] = PowerMod(factK[n], mod - 2);
+	for (i = n; i; --i) finvK[i - 1] = (ll)finvK[i] * pK[i] % mod, iK[i] = (ll)factK[i - 1] * finvK[i] % mod;
+}
+
+void Ln(int n, int *a, int *b) {
+	int i, j; u64 R; assert(*a == 1);
+	static u64 u[N];
+	for (i = 1; i &lt;= n; ++i) {
+		for (R = (u64)i * a[i], j = 1; j &lt; i; ++j) {
+			R += u[j] * a[i - j];
+			if (!(j &amp; 15)) R %= mod;
+		}
+		u[i] = mod - R % mod;
+	}
+	for (i = 1; i &lt;= n; ++i) b[i] = (mod - u[i]) * inv[i] % mod;
+}
+
+void Exp(int n, int *a, int *b) {
+	int i, j; u64 R;
+	static u64 u[N]; assert(!*a);
+	for (i = 0; i &lt;= n; ++i) u[i] = (u64)i * a[i] % mod;
+	for (*b = i = 1; i &lt;= n; ++i) {
+		for (R = u[i], j = 1; j &lt; i; ++j) {
+			R += u[j] * b[i - j];
+			if (!(j &amp; 15)) R %= mod;
+		}
+		b[i] = R % mod * inv[i] % mod;
+	}
+}
+
+int main() {
+	int i, j, k, d, jk, di, lim, iKJ;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; K &gt;&gt; mod, init(n);
+	std::fill(f[1] + 1, f[1] + (n + 1), 1), std::fill(*g, *g + (n + 1), 1);
+	for (i = 0; i &lt;= n; ++i)
+		for (j = 1; j &lt;= n; ++j) g[j][i] = (ll)g[j - 1][i] * finvK[i] % mod;
+	for (j = 1; j &lt;= n; ++j) Ln(n / j, g[j], perm_coef[j]);
+	for (i = 2; i &lt;= n; ++i) {
+		lim = n / i, iKJ = 1; // (i !)^(-jK)
+		for (j = 1; j &lt;= lim; ++j) iKJ = (ll)iKJ * iK[i] % mod, f[i][j] = (ll)iKJ * g[j][i - 1] % mod;
+		for (j = 1; j &lt;= lim; ++j) {
+			d = lim / j;
+			for (*B1 = 0, k = 1, jk = j; k &lt;= d; ++k, jk += j) B1[k] = (ll)perm_coef[j][k] * f[i][jk] % mod;
+			Exp(d, B1, B1);
+			for (k = n / j; k; --k) for (d = 1, di = i; di &lt;= k; ++d, di += i)
+				g[j][k] = (g[j][k] + (ll)g[j][k - di] * B1[d]) % mod;
+		}
+	}
+	cout &lt;&lt; int((ll)f[n][1] * pK[n] % mod) &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在预处理时可以预处理阶乘的 $k$ 次幂以及 $-k$ 次幂以加速计算。</p>
+		<p><strong>坑2：</strong>在各个循环的时候注意界，不要跑满导致复杂度错误。</p>
+	</body>
+</html>

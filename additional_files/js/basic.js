@@ -51,7 +51,7 @@ const
 			'lbn187' : '',
 			'lych_cys' : 'https://blog.csdn.net/lych_cys/',
 			'lyx_cjz' : '',
-			'lzoiexplorer2004' : 'https://www.cnblogs.com/cszmc2004/',
+			'lzoiexplorer2004' : '',
 			'Memory_of_winter' : 'https://www.cnblogs.com/Memory-of-winter/',
 			'memset0c' : 'https://memset0.cn/',
 			'miaom' : '',
@@ -230,7 +230,7 @@ const
 		$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
 
 		if (getStorage('check-version') !== 'off') {
-			let local_ver = '7.3.1', prompt_str;
+			let local_ver = '7.4.0', prompt_str;
 			$.ajax('https://yhx-12243.github.io/OI-transit/additional_files/others/version', {
 				type : 'GET',
 				cache : false,

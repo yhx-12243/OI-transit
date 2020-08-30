@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[hdu4702]Group/[loj177]生成子群阶数</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定若干个 $n$ 元置换构成的集合 $S$，求 $S$ 生成的子群大小 $\left| \left&lt; S \right&gt; \right|$。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。对于每组数据：</p>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 50; m \leq 100$)，分别表示置换的大小和个数。</p>
+		<p>接下来 $m$ 行，每行 $n$ 个正整数 $\sigma_1, \sigma_2, \cdots, \sigma_n$ ($1 \leq \sigma_i \leq n$)，描述一个 $n$ 元置换。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示生成子群 $\left&lt; S \right&gt;$ 的大小。</p>
+
+		<h3>题解</h3>
+		<p>对于这类大小 $n$ 不是特别小 (这里指的是 $n$ 不是很大但 $n !$ 巨大) 的置换，研究它们生成的子群的理论被称为<strong>计算群论</strong>。而计算群论中最基础的算法就是 Schreier-Sims 算法。</p>
+		<p>那下面简单介绍一下 Schreier-Sims 算法。</p>
+		<p>考虑我们要求 $\left| G \right|$，其中 $G = \left&lt; S \right&gt;$，一个比较直观的思路是：</p>
+		<p>如果我们有一个子群链 $\left&lt; S \right&gt; = G_0 \geq G_1 \geq G_2 \geq \cdots \geq G_k = \left\{ e \right\}$}，那么由 Lagrange 定理，有 $$ \left| G \right| = \prod_{i=0}^{k-1} \frac {\left| G_i \right|} {\left| G_{i+1} \right|} = \prod_{i=0}^{k-1} \left[ G_i : G_{i+1} \right] $$</p>
+		<p>于是我们就尝试去构造这样一个子群链。</p>
+		<p>按照 <a href="../index.html?redirect=1029" target="_blank">[uoj154]列队</a> 的思想，对于一个置换群 $G$，对 $\forall 1 \leq i \leq n$，定义特征染色 $\chi_i$，则诸轨道 $G \cdot \chi_i$ 构成了 $\left[ n \right]$ 的一个划分。</p>
+		<p>现在不妨固定特征染色 $\chi_1$。之前考虑了轨道，那么现在就需要考虑它的稳定子群，即 $G_{\chi_1}$。</p>
+		<p>由轨道——稳定子群定理，有 $\left[ G : G_{\chi_1} \right] = \left| G \cdot \chi_1 \right|$，而这个大小显然不超过 $n$，因此这个数值是可接受的。</p>
+		<p>而且，这个稳定子群它<strong>固定了元素 $1$</strong>，也就是说它可以被嵌入到 $n - 1$ 元置换群中，而它不就是原问题的一个子问题吗？</p>
+		<p>如果我们对其进行递归求解，那不就得到了我们所要的子群链了吗？</p>
+		<hr />
+		<p>以上是我们的主要思路，接下来考虑具体的过程。</p>
+		<p>首先，由于 $G$ 是置换群，那么可以比较容易知道 $G \cdot \chi_1$ 的大小，以及这些元素的轨道。但是目前我们无法得到 $G_{\chi_1}$，或者说无法<strong>表示</strong>群 $G_{\chi_1}$。</p>
+		<p style="color: red">(ps: 要知道，$G_{\chi_1}$ 也是一个庞大的置换群，目前也只能用生成集来表示)</p>
+		<p>因此，Schreier 和 Sims 选择了<strong>增量构造法</strong>，即逐渐向 $S$ 中添加元素，然后对子群链中的每个子群进行维护。</p>
+		<p>初始时，$S = \varnothing$，那么 $G = \left\{ e \right\}$，这些都是平凡的。那现在考虑向 $S$ 中添加一个新元素 $g$，观察会有什么样的变化。</p>
+		<hr />
+		<p>首先，我们需要检验 $g$ 是否已经在 $\left&lt; S \right&gt;$ 中。</p>
+		<p>也就是说，我们维护的<del>数据结构</del><ins style="color: blue">群论结构</ins>需要滋磁查询一个置换是否在 $\left&lt; S \right&gt;$ 中。</p>
+		<p>我们仍然考虑递归求解，那么此时不能显然只存储轨道划分了，我们需要存储一下 $G_{\chi_1}$ 导出的陪集的有关信息。</p>
+		<p style="color: red">(ps: 由于 $G_{\chi_1}$ 不一定是不变子群，因此下面需要统一使用左陪集还是右陪集，那么本文接下来一律使用右陪集)</p>
+		<p>其实，虽然 $G_{\chi_1}$ 很大，但它导出的陪集并不多，我们可以在每个陪集中取一个代表元，构成一个集合。这个集合在计算群论中其实由它专业的术语：<strong>截面</strong>。它的正式定义如下：</p>
+		<p><strong style="color: green">截面 (Transversal)：对于群 $G$ 和它的子群 $H \leq G$，设 $H$ 导出的左陪集集合为 $C_1, C_2, \cdots, C_k$，则<em>包含单位元的</em>集合 $R = \left\{ r_1, r_2, \cdots, r_k \right\}$ (其中 $r_i \in C_i$) 称为 $H$ 的一个左截面，同理可以定义右截面</strong>。</p>
+		<p>由于现在统一了使用右陪集，因此只需要考虑右截面。</p>
+		<p>考虑 $G_{\chi_1}$ 的一个右截面 $R = \left\{ r_0 = e, r_1, r_2, \cdots, r_{k-1} \right\}$，它满足如下性质：</p>
+		<ul>
+			<li><p>由定义知对于 $i \neq j$ 有 $H r_i \neq H r_j$，即 $r_i \circ r_j^{-1} \notin H$。</p></li>
+			<li><p>考虑陪集 $H r_i$，任取其中元素 $h_0 \circ r_i$，那么有 $\left( h_0 \circ r_i \right)^{-1} \left( 1 \right) = \left( r_i^{-1} \circ h_0^{-1} \right) \left( 1 \right) = r_i^{-1} \left( h_0^{-1} \left( 1 \right) \right) = r_i^{-1} \left( 1 \right)$，也就是说，同一个陪集中的置换，具有相同的 $1$ 的<strong>原像</strong>；而不同陪集中的置换则有不相同的原像。</p></li>
+			<li><p>那么，对于 $\forall g \in G$，我们根据 $g$ 中 $1$ 的原像 $g^{-1} \left( 1 \right)$ 就可以<strong>唯一确定</strong>它所在的陪集 $H r_i$，也就是说，$H g \cap R$ 包含唯一元素，我们称其为 $g$ 的<strong>标准置换</strong>，记作 $\operatorname{norm} g$。</p></li>
+		</ul>
+		<p>现在，判断 $g$ 是否在 $\left&lt; S \right&gt;$ 中就是一件不难的事情了：</p>
+		<p>我们希望找到一个 $r_i$ 使得 $\left( r_i \circ g \right) \left( 1 \right) = 1$，也就是说 $r_i \circ g \in H \Leftrightarrow r_i \in H g^{-1}$，也就是说求 $\operatorname{norm} \left( g^{-1} \right)$。</p>
+		<p>注意到置换群的特殊性，一个置换的<strong>标准置换</strong>可以比较方便地求出：假设我们要求 $\operatorname{norm} g$，则可以先求出 $g^{-1} \left( 1 \right)$，找到 $1$ 的原像和它相同的 $r_i$ 即可。当然，如果不存在显然可以说明 $g \notin \left&lt; S \right&gt;$。</p>
+		<p>找到了对应的 $r_i$ 后，我们就得到了一个固定元素 $1$ 的置换 $r_i \circ g$。那么，易知 $g \in G \Leftrightarrow r_i \circ g \in G_{\chi_1}$，于是我们成功转化为了子问题。</p>
+		<hr />
+		<p>现在就可以继续我们的增量构造了。</p>
+		<p>首先，可以假设欲添加元素 $g \notin \left&lt; S \right&gt;$，否则问题已经解决。</p>
+		<p>那么，改变了 $S$ 后，首当其冲的就是截面 $R$，我们看看 $R$ 会发生哪些变化。</p>
+		<p>回到置换群，$R$ 中每个元素记录的是 $1$ 的不同的<strong>原像</strong>。从这一点考虑，我们只需要知道 $1$ 多了哪些原像即可。</p>
+		<p>设原先 $1$ 的原像集合为 $A_1$，那么，当新增置换 $g$ 后，考虑置换 $r_i \circ g$ ($r_i \in R$)，也就是说对于 $\forall p \in A_1$，假设 $r_i \left( p \right) = 1$，现在 $\left( r_i \circ g \right)^{-1} \left( 1 \right) = \left( g^{-1} \circ r_i^{-1} \right) \left( 1 \right) = g^{-1} \left( r_i^{-1} \left( 1 \right) \right) = g^{-1} \left( p \right)$ 也成了 $1$ 的原像。</p>
+		<p>然后我们只需要枚举 $S$ 中元素继续搜索即可。</p>
+		<p>从图论的角度来看，就是：把原先的轨道划分看成连通块，作出 $g$ 对应的循环图 $G_g$，将这些边对应的连通块 "连通" 起来，就得到了新的轨道划分。于是我们先去找这些连接两个不同连通块的边 (即 $g$)，然后再将其它连通块中的值包涵起来。</p>
+		<hr />
+		<p>我们现在已经成功处理了生成集 $S$ 的变化对截面 $R$ 的影响，现在就需要处理截面 $R$ 的影响对稳定子群 $G_{\chi_1}$ 生成集 $S'$ 的影响。</p>
+		<p>看起来 $\left&lt; S' \right&gt;$ 中添加了很多的置换，但是我们所维护的 $S'$ 的增量必须是有限的，而且最好是可接受的。</p>
+		<p>那如何得到稳定子群的 $\left&lt; S' \right&gt;$ 呢？这里我们需要用到一个引理：<strong>Schreier 引理</strong>。</p>
+		<p><strong style="color: orange">(Schreier 引理) 设群 $H$ 是群 $G = \left&lt; S \right&gt;$ 的子群，$R$ 为 $H$ 的一个右截面，定义集合 $\displaystyle S' = \left\{ \left( r \circ s \right) \circ \left( \operatorname{norm} \left( r \circ s \right) \right)^{-1} \middle | r \in R, s \in S \right\} $，则 $H = \left&lt; S' \right&gt;$</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>显然，$\left&lt; S' \right&gt; \subseteq H$。下证 $H \subseteq \left&lt; S' \right&gt;$。</p>
+				<p>注意到 $e \in R$，因此 $H$ 中任意一个元素 $h$ 可以表示成：$$ h = r \circ s_1 \circ s_2 \circ \cdots \circ s_k $$ 其中 $r \in R; s_1, s_2, \cdots, s_k \in S$。特别地，这里可以取 $r = e$。</p>
+				<p>接下来对 $k$ 归纳证明：形如上式表示的元素一定在 $\left&lt; S' \right&gt;$ 中。</p>
+				<p>当 $k = 0$ 时，$h = r \in H \cap R = \left\{ e \right\}$，故 $h \in \left&lt; S' \right&gt;$。</p>
+				<p>设结论对 $k - 1$ 成立，考虑 $k$，有 \begin{align*}
+h &amp;= r \circ s_1 \circ s_2 \circ \cdots \circ s_k \\
+&amp;= \left( r \circ s_1 \right) \circ \left( \operatorname{norm} \left( r \circ s_1 \right) \right)^{-1} \circ \operatorname{norm} \left( r \circ s_1 \right) \circ s_2 \circ \cdots \circ s_k
+\end{align*}</p>
+				<p>注意到 $\left( r \circ s_1 \right) \circ \left( \operatorname{norm} \left( r \circ s_1 \right) \right)^{-1} \in \left&lt; S' \right&gt;, \operatorname{norm} \left( r \circ s_1 \right) \in R$，故 $h \in \left&lt; S' \right&gt; \Leftrightarrow \operatorname{norm} \left( r \circ s_1 \right) \circ s_2 \circ \cdots \circ s_k \in \left&lt; S' \right&gt;$，即 $k - 1$ 的子问题，由归纳假设知结论成立。</p>
+			</div>
+		</div>
+		<p>有了 Schreier 引理后，我们就对 $\left&lt; S' \right&gt;$ 有一个有限的刻画了。</p>
+		<p>由 Schreier 引理，我们可以通过 Cartesian 积 $R \times S$ 来构造 $S'$。因此，在增量构造中，$R$ 对 $S$ 的影响就可以如下处理：</p>
+		<p>设 $R$ 中新增了元素 $r$，我们枚举 $S$ 中所有的元素，向 $G_{\chi_1}$ 中尝试添加 $\left( r \circ s \right) \circ \left( \operatorname{norm} \left( r \circ s \right) \right)^{-1}$。</p>
+		<p>当然，由于之前是先在 $S$ 中增加 $g$，因此我们也需要枚举 $r \in R$ 并加入 $\left( r \circ g \right) \circ \left( \operatorname{norm} \left( r \circ g \right) \right)^{-1}$。</p>
+		<p>事实上，这两个搜索可以并到一起进行：</p>
+		<ol>
+			<li><p>在 "$S$ 影响 $R$" 的过程中，我们枚举 $\pi = r \circ g$，转到步骤 2。</p></li>
+			<li><p>如果 $G_{\chi_1} \pi \cap R = \varnothing$ (即 $\operatorname{norm} \pi$ 不存在)，则将其加入 $R$，并继续搜索 $\pi' = \pi \circ s$，回到第二步。</p>
+			<p>否则，由于 $\operatorname{norm} \pi = \operatorname{norm} \left( r \circ g \right)$ 存在，因此直接向 $G_{\chi_1}$ 中尝试添加 $\pi \circ \left( \operatorname{norm} \pi \right)^{-1}$ 即可。</p></li>
+		</ol>
+		<p>这个过程就可以用算法来描述了，即 <strong>Schreier-Sims 算法</strong>，具体实现见 "代码" 部分。注意代码为了实现方便，在合适的地方直接用置换的逆来表示，但本质相同。</p>
+		<hr />
+		<p>最后来分析一下它的时间复杂度。</p>
+		<p>首先还是考虑固定元素 $1$ 的群论结构 (维护 $\left[ G : G_{\chi_1} \right]$ 的)，可以证明 $\left| S \right| = O \left( n \right)$ (更精确地，$\left| S \right| &lt; \dfrac 32 n$)。</p>
+		<p>考虑计算 <code>test</code> 函数的时间复杂度，易知它的时间复杂度为 $O \left( n^2 \right)$。</p>
+		<p>对于每个群论结构，它调用 <code>update_generator</code> 的次数 (仅考虑通过 <code>test</code>$ 的)，为 $O \left( n \right)$，调用的 <code>update_transversal</code> 中使得截面 $R$ 大小改变的次数也为 $O \left( n \right)$。</p>
+		<p>于是调用的 <code>update_transversal</code> 中使得截面 $R$ 大小不变的次数就不超过 $O \left( n^2 \right)$，这也可以通过结论 "$S'$ 中每个元素可以通过 $R \times S$ 来构造" 中看出。</p>
+		<p>故该群论结构调用子结构的 $\texttt{test}$ 函数至多 $O \left( n^2 \right)$ 次，摊到该结构上的时间复杂度为 $O \left( n^4 \right)$，从而 Schreier-Sims 算法的总时间复杂度为 $O \left( n^5 \right)$。</p>
+		<p style="color: red">(ps: $O \left( n^5 \right)$ 的确是该算法的上确界，已经被 Knuth 证明。但在随机数据下的期望是 $O \left( n^4 \right)$ 的)</p>
+		<p>另外提一句，$50 !$ 是超过 $128$ 位整数范围所能表示的最大整数，因此在最后计算时需要使用高精度。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "<a href="uploads/1.h" download="decimal.h">decimal.h</a>"
+#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef unsigned char u8;
+const int N = 50;
+
+int L, n;
+
+namespace permutation_base {
+    typedef u8 perm[N], *pperm;
+    typedef const u8 *cperm;
+
+    inline void mul(cperm g, cperm h, pperm ret, int n = L) {for (int i = 0; i &lt; n; ++i) ret[i] = g[h[i]];}
+    inline void inv(cperm g, pperm ret, int n = L) {for (int i = 0; i &lt; n; ++i) ret[g[i]] = i;}
+    inline void mulinv(cperm g, cperm h, pperm ret, int n = L) {for (int i = 0; i &lt; n; ++i) ret[h[i]] = g[i];}
+    inline void read(pperm g, int n = L) {for (int i = 0, x; i &lt; n; ++i) cin &gt;&gt; x, g[i] = x - 1;}
+}
+
+using namespace permutation_base;
+
+struct schreier_sims {
+    int n_gen, size;
+    bool flag[N];
+    perm transversal[N], generator[N * 2];
+    schreier_sims *succ;
+
+    inline void reset(int size_, schreier_sims *successor = NULL) {
+        size = size_, n_gen = 0, succ = successor,
+        memset(flag, false, size - 1), flag[size - 1] = true,
+        std::iota(transversal[size - 1], transversal[size - 1] + size, 0);
+    }
+
+    inline int index() const {return std::count(flag, flag + size, true);}
+
+    inline bool test(cperm g) const {
+        int pos = g[size - 1]; perm h;
+        return flag[pos] &amp;&amp; (!succ || (mul(transversal[pos], g, h, size), succ-&gt;test(h)));
+    }
+
+    inline void update_transversal(cperm g) {
+        int pos = g[size - 1]; perm h;
+        if (flag[pos]) {
+            if (succ) mul(transversal[pos], g, h, size), succ-&gt;update_generator(h);
+        } else {
+            flag[pos] = true, inv(g, transversal[pos], size);
+            for (int i = 0; i &lt; n_gen; ++i) mul(generator[i], g, h, size), update_transversal(h);
+        }
+    }
+
+    inline void update_generator(cperm g) {
+        perm h;
+        if (!test(g)) {
+            memcpy(generator[n_gen++], g, size &lt;&lt; 2);
+            for (int i = 0; i &lt; size; ++i) if (flag[i]) mulinv(g, transversal[i], h, size), update_transversal(h);
+        }
+    }
+} ss[N];
+
+void work() {
+    int i; static perm x; Decimal ans = 1;
+    for (i = 0; i &lt; L; ++i) ss[i].reset(i + 1, i ? ss + (i - 1) : NULL);
+    for (i = 0; i &lt; n; ++i) read(x), ss[L - 1].update_generator(x);
+    for (i = 0; i &lt; L; ++i) ans *= ss[i].index();
+    cout &lt;&lt; ans &lt;&lt; '\n';
+}
+
+int main() {
+    std::ios::sync_with_stdio(false), cin.tie(NULL);
+    for (; cin &gt;&gt; L &gt;&gt; n; ) work();
+    return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意在不同的群论结构中，置换的大小是不尽相同的，因此在运算时需要注意。</p>
+		<p><strong>坑2：</strong>用数组代替 <code>std::vector</code> 可以适当加速，不过注意由于递归的存在不能使用静态变量。</p>
+		<p><strong>坑3：</strong>注意 $\left| S \right|$ 不一定 $&lt; n$，因此表示生成集的数组不能只开到 $n$。</p>
+	</body>
+</html>

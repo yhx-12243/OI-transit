@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1381D]The Majestic Brown Tree Snake</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一棵 $n$ 个顶点的无根树，有一条 "蛇" 陷入了树中，蛇头和蛇尾分别位于树中的顶点 $a$ 和顶点 $b$ 上。蛇的身体占据了 $a \leadsto b$ 上的 (唯一) 简单路径。</p>
+		<p>蛇想要翻身 —— 即希望蛇头位于顶点 $b$ 处，蛇尾位于顶点 $a$ 处。不幸的是，蛇只能通过如下两种方式移动自己的身体：</p>
+		<ul>
+			<li><p>选择 $a' \in N \left( a \right)$，且 $a'$ 不在蛇的身体上，那么将蛇头移至 $a'$，蛇尾向蛇头方向移动一格以保持长度不变。</p></li>
+			<li><p>选择 $b' \in N \left( b \right)$，且 $b'$ 不在蛇的身体上，那么将蛇尾移至 $b'$，蛇头向蛇尾方向移动一格以保持长度不变。</p></li>
+		</ul>
+		<img class="center-block" src="uploads/245.png" alt="树上的蛇" />
+		<p>如果我们用 $\left( h, t \right)$ 表示蛇头在 $h$，蛇尾在 $t$ 的蛇，那么上图中的蛇是可以翻身的：$\left( 4, 7 \right) \to \left( 5, 1 \right) \to \left( 4, 2 \right) \to \left( 1, 3 \right) \to \left( 7, 2 \right) \to \left( 8, 1 \right) \to \left( 7, 4 \right)$。</p>
+		<p>现在给定这棵无根树和陷入其中的蛇，你需要判定这条蛇能否翻身。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 100$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含三个正整数 $n, a, b$ ($2 \leq n \leq 10^5; \sum n \leq 10^5; 1 \leq a, b \leq n; a \neq b$)，分别表示树的顶点个数，蛇头和蛇尾的位置。</p>
+		<p>接下来 $n - 1$ 行，每行两个正整数 $u_i, v_i$ ($1 \leq u_i &lt; v_i \leq n; u_i \neq v_i$)，描述树上的一条边。保证这 $n - 1$ 条边恰好构成一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个字符串，如果蛇能翻身，则输出 <code>YES</code>，否则输出 <code>NO</code>。</p>
+
+		<h3>题解</h3>
+		<p>观察题目这个例子中蛇的翻身过程，可以找到一个规律：设蛇的长度为 $L = \operatorname{dist} \left( a, b \right)$，则存在一个点 (下称为<strong>关键点</strong>)，以它为根时存在至少三个深度 $\geq L$ 的子树。</p>
+		<p>对应于上面的例子，即 $L = 2$，点 $1$ 即为关键点 (因为它存在 $1 \to 2 \to 3, 1 \to 4 \to 5, 1 \to 7 \to 8$)。</p>
+		<p>此外，由运动的可逆性知，如果蛇可以从位置 $\mathcal A$ 到达位置 $\mathcal B$，那么蛇在 $\mathcal A$ 处可翻身当且仅当蛇在 $\mathcal B$ 处可翻身，证明略。</p>
+		<p>于是，关键点的基本性质就是：<strong style="color: blue">如果 $p$ 是关键点，且 $p$ 在蛇的身体上，则该蛇可翻身</strong>。</p>
+		<p>具体地，只需要将蛇头 (或蛇尾) 移至 $p$，设蛇为 $\left( p, x \right)$，$p$ 的 ($\geq$) 三棵子树中深度为 $L$ 的点分别为 $x, y, z$，那么只需要 $\left( p, x \right) \to \left( y, p \right) \to \left( p, z \right) \to \left( x, p \right)$ 即可。</p>
+		<p>因此，上述结论的一个直接推论即：<strong style="color: fuchsia">如果蛇可以到达一个位置，满足该位置 $p$ 在蛇身上，那么该蛇可翻身</strong>。</p>
+		<p>那么，蛇能到达这样一个位置是否是它可翻身的充要条件呢？答案是肯定的，即：</p>
+		<p><strong style="color: green">如果蛇不能到达任何一个占据关键点的位置，抑或是根本不存在关键点，则蛇无法翻身</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>为了方便起见，假设蛇可以到达树上的<strong>每一个点</strong>，否则我们可以将无法到达的点删去，在更小的树中讨论 (此时条件仍然满足)。</p>
+				<p>考虑树的直径 $D$，我们证明每时每刻蛇的身体所占据的 $L$ 条边和 $D$ 的交集非空。</p>
+				<p>反之，由于蛇可以到达任意点，因此一定存在某个时刻，蛇的一端是 $D$ 的某个顶点 (记为 $p$)，但没有一条边在 $D$ 上。</p>
+				<p>此时，由直径的性质不难证明此时 $p$ 是关键点，矛盾。</p>
+				<p>故每时每刻蛇的身体所占据的 $L$ 条边和 $D$ 的交集非空，在这个条件下容易证明蛇无法翻身。</p>
+			</div>
+		</div>
+		<p>因此，现在只需要判定蛇是否能到达任意一个关键点即可。</p>
+		<p>不难发现，设有两个关键点 $p, q$，若蛇能到达 $p$ 的位置，则蛇也一定能到达 $q$ 的位置，只需考虑沿路径 $p \leadsto q$ 移动即可。</p>
+		<p>因此我们只需找到任意一个关键点 $r$，判断蛇的一端能否到达 $r$。</p>
+		<hr />
+		<p>下面为了方便起见，我们将原树看作以 $r$ 为根的有根树。</p>
+		<p>首先，如果蛇的两端 $a, b$ 本身就是祖先关系，那么蛇直接向上爬就可以满足要求，此时答案一定是 <code>YES</code>。</p>
+		<p>否则，说明 $c = \operatorname{LCA} \left( a, b \right) \notin \left\{ a, b \right\}$。我们将题面中的两种操作分别用 <samp>L</samp> 和 <samp>R</samp> 表示。那么，如果存在一种成功的策略，那么它一定满足如下两种形式之一：</p>
+		<ol>
+			<li><samp>AA...ABB...BAA...ABB...B...</samp></li>
+			<li><samp>BB...BAA...ABB...BAA...A...</samp></li>
+		</ol>
+		<p>注意到如果两个点一旦满足祖先关系，我们就找到了解，因此我们约定上面的策略在 "<strong>第一次两个点满足祖先关系</strong>" 时中止。</p>
+		<p>此时，不难证明在中间所有的过程中，蛇头和蛇尾的 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 始终为 $c$。</p>
+		<p>下面我们对这两种策略进行更细致地分析：</p>
+		<blockquote>
+			<p>首先，由于两种情况是对称的，因此我们只需考虑其中一种即可。不妨考虑第一种。</p>
+			<p>考虑第一轮操作 <span style="color: navy">(这里指 <samp>A</samp> 的极长连续段)</span>，注意到第二轮操作会将第一轮操作延伸出去的 $a$ 弹回去，因此第一次操作后，后续的步骤就只和 $a'$ 的深度有了，和 $a'$ 具体在哪个子树中无关。</p>
+			<p>换句话说，我们可以直接假设第一轮操作后 $a$ 到达最深的叶节点，这个策略在偏序意义下是不劣的。</p>
+			<p>因此，我们就得到了一个贪心策略：</p>
+		</blockquote>
+		<p>不妨还是第一种情形。首先，将 $a$ 移至其所在子树中最深的叶节点，然后将 $b$ 移至其所在子树中最深的叶节点，如此往复，直至它们有一个时刻满足祖先关系，返回 <code>YES</code>。</p>
+		<p>当然，并不是所有情况都可以的，如果它们一旦出现了循环 (等价地，最深的深度不再严格递增)，说明已经到达了尽头，返回 <code>NO</code>。</p>
+		<p>在具体的实现的过程中，由我们操作的过程知该轮操作的端点的深度是单调不减的，因此另一个端点的深度是单调不增的。也就是说，除了链 $a \leadsto b$，其余的点我们都不需要考虑 (而只需要考虑子树最大深度)。</p>
+		<p>于是，我们只需要每时每刻记录两个端点关于 $c$ 的相对深度，这样每轮操作可以 $O \left( 1 \right)$ 处理，又深度是严格递增的，因此操作轮数不超过 $O \left( n \right)$ <span class="text-muted">(通过更精细地分析可得轮数不超过 $O \left( \sqrt n \right)$</span>，因此判定的总时间复杂度为 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+const int N = 100054, M = N * 2;
+
+int n, D, E, root;
+int to[M], first[N], next[M];
+int p[N], dep[N], deg[N];
+int f[N], g[N], fsec[N], count[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E, ++deg[u];
+	to[++E] = u, next[E] = first[v], first[v] = E, ++deg[v];
+}
+
+void dfs(int x) {
+	int i, y; f[x] = fsec[x] = 0;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x]) {
+			p[y] = x, dep[y] = dep[x] + 1, dfs(y);
+			if (f[y] + 1 &gt; f[x]) fsec[x] = f[x], f[x] = f[y] + 1;
+			else up(fsec[x], f[y] + 1);
+		}
+}
+
+void solve(int x) {
+	int i, y, &amp;c = count[x]; c = 0;
+	for (i = first[x]; i; i = next[i])
+		if (p[y = to[i]] == x) solve(y), c += f[y] + 1 &gt;= D;
+}
+
+void solve2(int x) {
+	int i, y; count[x] += g[x] &gt;= D;
+	for (i = first[x]; i; i = next[i])
+		if (p[y = to[i]] == x) g[y] = max(g[x], f[x] == f[y] + 1 ? fsec[x] : f[x]) + 1, solve2(y);
+}
+
+inline int LCA(int x, int y) {
+	for (; x != y; dep[x] &gt; dep[y] ? x = p[x] : y = p[y]);
+	return x;
+}
+
+namespace zigzag {
+	int root;
+	int p[N], dep[N], f[N];
+	int a[N], b[N];
+
+	void dfs(int x) {
+		int i, y; f[x] = 0;
+		for (i = first[x]; i; i = next[i])
+			if ((y = to[i]) != p[x]) p[y] = x, dep[y] = dep[x] + 1, dfs(y), up(f[x], f[y] + 1);
+	}
+
+	inline int LCA(int x, int y) {
+		for (; x != y; dep[x] &gt; dep[y] ? x = p[x] : y = p[y]);
+		return x;
+	}
+
+	void init(int root_) {root = root_, p[root] = dep[root] = 0, dfs(root);}
+
+	inline bool check(int A, int B, int lca) {
+		int La = 0, Lb = 0, step, pa, pb, maxa, maxb;
+		if (A == lca || B == lca) return true;
+		for (; A != lca; A = p[A]) a[La++] = A;
+		a[La++] = A, std::reverse(a, a + La);
+		for (; B != lca; B = p[B]) b[Lb++] = B;
+		b[Lb++] = B, std::reverse(b, b + Lb);
+		for (maxa = pa = La - 1, maxb = pb = Lb - 1; ; ) {
+			step = f[ a[pa] ], pa += step, pb -= step;
+			if (pb &lt;= 0) return true;
+			if (pa &lt;= maxa) return false;
+			maxa = pa;
+			step = f[ b[pb] ], pb += step, pa -= step;
+			if (pa &lt;= 0) return true;
+			if (pb &lt;= maxb) return false;
+			maxb = pb;
+		}
+	}
+}
+
+void work() {
+	int i, u, v, a, b, c;
+	cin &gt;&gt; n &gt;&gt; a &gt;&gt; b, E = 0;
+	memset(first, 0, (n + 1) &lt;&lt; 2), memset(deg, 0, (n + 1) &lt;&lt; 2);
+	for (i = 1; i &lt; n; ++i) cin &gt;&gt; u &gt;&gt; v, addedge(u, v);
+	dfs(1), c = LCA(a, b),
+	assert(D = dep[a] + dep[b] - dep[c] * 2),
+	solve(1), solve2(1);
+	for (root = 1; root &lt;= n &amp;&amp; count[root] &lt; 3; ++root);
+	if (root &gt; n) {cout &lt;&lt; "NO\n"; return;}
+	zigzag::init(root), c = zigzag::LCA(a, b),
+	cout &lt;&lt; (zigzag::check(a, b, c) || zigzag::check(b, a, c) ? "YES\n" : "NO\n");
+}
+
+int main() {
+	int T;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>寻找关键点可以使用换根 DP：即找以每个点为根最深叶节点的深度，并判断这样的子树数量是否 $\geq 3$。</p>
+		<p><strong>坑2：</strong><abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 可以暴力求。操作过程中需时刻判定深度是否 $\leq 0$ (返回 <code>YES</code>) 或不严格递增了 (返回 <code>NO</code>)，防止死循环。</p>
+	</body>
+</html>

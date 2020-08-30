@@ -211,7 +211,7 @@ window.onload = function () {
 	document.addEventListener('keydown', function (e) {
 		if (!~t) return;
 		let c = e.which || e.keyCode;
-		if ((c = sx_transform(37 <= c && c <= 40 ? (e.preventDefault(), [65, 87, 68, 88][c - 37]) : c)) && !e.repeat) KBD.insert(c);
+		if ((c = sx_transform(37 <= c && c <= 40 ? (e.preventDefault(), [65, 87, 68, sx_transform(88)][c - 37]) : c)) && !e.repeat) KBD.insert(c);
 		KBQ.push_back(c);
 		if (c === 16) shift_key = true;
 	});
@@ -219,7 +219,7 @@ window.onload = function () {
 	document.addEventListener('keyup', function (e) {
 		if (!~t) return;
 		let c = e.which || e.keyCode;
-		if ((c = sx_transform(37 <= c && c <= 40 ? (e.preventDefault(), [65, 87, 68, 88][c - 37]) : c)) && !e.repeat) KBD.erase(c);
+		if ((c = sx_transform(37 <= c && c <= 40 ? (e.preventDefault(), [65, 87, 68, sx_transform(88)][c - 37]) : c)) && !e.repeat) KBD.erase(c);
 		if (c === 16) shift_key = false;
 		if (c === 17)
 			$('player-graze-circle').style.visibility = ($('player-graze-circle').style.visibility ? '' : 'hidden');
@@ -316,12 +316,12 @@ window.onload = function () {
 		let tz = CLK() - begin_time, tg = Math.min(Math.floor(tz * tsc * .001), T + 1), offset;
 		let i, dx, dy, dist, danger, ratio, delta = BigInt(0);
 		console.assert(t <= tg + 1, 'Strange things happen');
-		if (tg > T) {
-			if (disappears.hasOwnProperty(tg))
-				for (i of disappears[tg]) stgm.removeChild(bullets[i].circle);
-			return setTimeout(game_end, 1000);
-		}
 		for (; t <= tg; ++t) {
+			if (t > T) {
+				if (disappears.hasOwnProperty(tg))
+					for (i of disappears[tg]) stgm.removeChild(bullets[i].circle);
+				return setTimeout(game_end, 1000);
+			}
 			if (!is_auto && t && operate_seq[t - 1] === 'S')
 				operate_seq[t - 1] = (shift_key ? MOUSE.query(xi, yi) : query_key_func());
 			if (t && operate_seq[t - 1] !== 'S') {

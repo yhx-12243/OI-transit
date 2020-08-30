@@ -10,176 +10,185 @@
 		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 	</head>
 	<body>
-		<h3>完整多项式模板 (乘除、指对、分治、求值、插值) <sub><del class="text-muted">(先不卡了版)</del></sub></h3>
+		<h3>完整多项式模板 (乘除、指对、分治、求值、插值) <sub class="text-muted">(三周年翻新版)</sub></h3>
 
-		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">// This is a polynomial template for C++11
+		<h4>目录</h4>
+		<pre><a href="#poly-base">namespace poly_base</a> (变换基础)
+<a href="#poly">namespace poly</a> (多项式初等函数)
+<a href="#CDQ-NTT">namespace CDQ_NTT</a> (分治多项式技巧)
+<a href="#poly-evaluation">namespace poly_evaluation</a> (多点求值)
+<a href="#poly-interpolation">namespace poly_interpolation</a> (快速插值)
+<a href="#linear-recur">namespace linear_recur</a> (常系数线性齐次递推式)
+<a href="#miscellaneous">namespace miscellaneous</a> (杂项)
+</pre>
+
+		<h4>模板</h4>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">// This is a NEW polynomial template for C++11
 #include &lt;bits/stdc++.h&gt;
 #define EB emplace_back
 #define lg2 std::__lg
 
-typedef long long ll;
-const int N = 530000, mod = 998244353, iv2 = (mod + 1) / 2, root = 31;
+typedef unsigned long long u64;
+const int N = 530000, mod = 998244353, iv2 = (mod + 1) / 2, unity = 31;
 typedef int vec[N], *pvec;
 typedef std::pair &lt;int, int&gt; pr;
 typedef std::vector &lt;int&gt; vector;
 
-vec inv;
+vec inv, fact, finv;
 
 inline int min(const int x, const int y) {return x &lt; y ? x : y;}
 inline int max(const int x, const int y) {return x &lt; y ? y : x;}
 inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
 inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
-ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+u64 PowerMod(u64 a, int n, u64 c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
 
-void init() {
-	int i;
-	for (inv[1] = 1, i = 2; i &lt; N; ++i) inv[i] = ll(mod - mod / i) * inv[mod % i] % mod;
+namespace <span id="poly-base">poly_base</span> {
+	int l, n; u64 iv; vec w2;
+
+	void init(int n = N, bool dont_calc_factorials = true) {
+		int i, t;
+		for (inv[1] = 1, i = 2; i &lt; n; ++i) inv[i] = u64(mod - mod / i) * inv[mod % i] % mod;
+		if (!dont_calc_factorials) for (*finv = *fact = i = 1; i &lt; n; ++i) fact[i] = (u64)fact[i - 1] * i % mod, finv[i] = (u64)finv[i - 1] * inv[i] % mod;
+		t = min(n &gt; 1 ? lg2(n - 1) : 0, 21),
+		*w2 = 1, w2[1 &lt;&lt; t] = PowerMod(unity, 1 &lt;&lt; (21 - t));
+		for (i = t; i; --i) w2[1 &lt;&lt; (i - 1)] = (u64)w2[1 &lt;&lt; i] * w2[1 &lt;&lt; i] % mod;
+		for (i = 1; i &lt; n; ++i) w2[i] = (u64)w2[i &amp; (i - 1)] * w2[i &amp; -i] % mod;
+	}
+
+	inline void NTT_init(int len) {n = 1 &lt;&lt; (l = len), iv = mod - (mod - 1) / n;}
+
+	void DIF(int *a) {
+		int i, *j, *k, len = n &gt;&gt; 1, R, *o;
+		for (i = 0; i &lt; l; ++i, len &gt;&gt;= 1)
+			for (j = a, o = w2; j != a + n; j += len &lt;&lt; 1, ++o)
+				for (k = j; k != j + len; ++k)
+					R = (u64)*o * k[len] % mod, reduce(k[len] = *k - R), reduce(*k += R - mod);
+	}
+
+	void DIT(int *a) {
+		int i, *j, *k, len = 1, R, *o;
+		for (i = 0; i &lt; l; ++i, len &lt;&lt;= 1)
+			for (j = a, o = w2; j != a + n; j += len &lt;&lt; 1, ++o)
+				for (k = j; k != j + len; ++k)
+					reduce(R = *k + k[len] - mod), k[len] = u64(*k - k[len] + mod) * *o % mod, *k = R;
+	}
+
+	inline void DNTT(int *a) {DIF(a);}
+	inline void IDNTT(int *a) {
+		DIT(a), std::reverse(a + 1, a + n);
+		for (int i = 0; i &lt; n; ++i) a[i] = a[i] * iv % mod;
+	}
+
+	inline void DIF(int *a, int *b) {memcpy(b, a, n &lt;&lt; 2), DIF(b);}
+	inline void DIT(int *a, int *b) {memcpy(b, a, n &lt;&lt; 2), DIT(b);}
+	inline void DNTT(int *a, int *b) {memcpy(b, a, n &lt;&lt; 2), DNTT(b);}
+	inline void IDNTT(int *a, int *b) {memcpy(b, a, n &lt;&lt; 2), IDNTT(b);}
 }
 
-namespace Poly {
-	int l, n;
-	vec rev, x, y;
+namespace <span id="poly">poly</span> {
+	using namespace poly_base;
 
-	// Input and output
-	void in(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) scanf("%d", f + i);}
-
-	void out(int deg, pvec f, const char *_name) {
-		printf("%s(x) =", _name);
-		for (int i = 0; i &lt;= deg; ++i) printf(" %+d x^%d", (int)(f[i] - (mod &amp; -(f[i] &gt;= iv2))), i);
-		putchar(10);
-	}
-
-	void series(int deg, pvec f) {for (int i = 0; i &lt;= deg; ++i) printf("%d%c", f[i], i == deg ? 10 : 32);}
-
-	#define fy_out(deg, f) Poly::out(deg, f, #f)
-
-	// Fast Number Theory Transform
-	void NTT_init(int len) {
-		if (l == len) return; n = 1 &lt;&lt; (l = len);
-		ll g = PowerMod(root, 1 &lt;&lt; (23 - l));
-		*x = 1, *rev = 0;
-		for (int i = 1; i &lt; n; ++i)
-			x[i] = x[i - 1] * g % mod, rev[i] = rev[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; (l - 1);
-	}
-
-	void DNTT(int *d, int *t) {
-		int i, *j, *k, len = 1, delta = n, R;
-		for (i = 0; i &lt; n; ++i) t[rev[i]] = d[i];
-		for (i = 0; i &lt; l; ++i) {
-			delta &gt;&gt;= 1;
-			for (k = x, j = y; j &lt; y + len; k += delta, ++j) *j = *k;
-			for (j = t; j &lt; t + n; j += len &lt;&lt; 1)
-				for (k = j; k &lt; j + len; ++k)
-					R = (ll)y[k - j] * k[len] % mod,
-					k[len] = (*k - R &lt; 0 ? *k - R + mod : *k - R),
-					*k = (*k + R &gt;= mod ? *k + R - mod : *k + R);
-			len &lt;&lt;= 1;
-		}
-	}
-
-	vec B1, B2, B3, B4, B5, B6, B7;
+	vec B1, B2, B3, B4, B5, B6;
 
 	// Multiplication (use one buffer, 3-dft of length 2n)
-	void Mul(int deg, pvec a, pvec b, pvec c) {
-		if (!deg) {*c = (ll)*a * *b % mod; return;}
-		NTT_init(lg2(deg) + 1);
-		int i; ll iv = mod - (mod - 1) / n;
-		DNTT(a, c), DNTT(b, B1);
-		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * c[i] % mod;
-		DNTT(B1, c), std::reverse(c + 1, c + n);
-		for (i = 0; i &lt; n; ++i) c[i] = c[i] * iv % mod;
+	void mul(int deg, pvec a, pvec b, pvec c) {
+		if (!deg) {*c = (u64)*a * *b % mod; return;}
+		NTT_init(lg2(deg) + 1), DNTT(a, c), DNTT(b, B1);
+		for (int i = 0; i &lt; n; ++i) c[i] = (u64)c[i] * B1[i] % mod;
+		IDNTT(c);
 	}
 
-	// Inversion (use four buffers, 5-dft)
-	void Inv(int deg, pvec a, pvec b) {
-		int i, len; ll iv = 1; assert(*a);
+	// Inversion (use three buffers, 5-dft)
+	void inv(int deg, pvec a, pvec b) {
+		int i, len; assert(*a);
 		if (*b = PowerMod(*a, mod - 2), deg &lt;= 1) return;
 		memset(b + 1, 0, i = 8 &lt;&lt; lg2(deg - 1)), memset(B1, 0, i), *B1 = *a;
 
 		for (len = 0; 1 &lt;&lt; len &lt; deg; ++len) {
-			NTT_init(len + 1), iv = (iv &gt;&gt; 1) + iv2;
+			NTT_init(len + 1);
 
-			memcpy(B1 + (n &gt;&gt; 1), a + (n &gt;&gt; 1), n &lt;&lt; 1), DNTT(b, B2), DNTT(B1, B3);
-			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
-			for (i = n &gt;&gt; 1; i &lt; n; ++i) B4[i] = B4[n - i] * iv % mod;
+			memcpy(B1 + (n &gt;&gt; 1), a + (n &gt;&gt; 1), n &lt;&lt; 1), DIF(b, B2), DIF(B1, B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (u64)B3[i] * B2[i] % mod; DIT(B3);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B3[i] = B3[n - i] * iv % mod;
 
-			memset(B4, 0, n &lt;&lt; 1), DNTT(B4, B3);
-			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
-			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B4[n - i] * (mod - iv) % mod;
+			memset(B3, 0, n &lt;&lt; 1), DIF(B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (u64)B3[i] * B2[i] % mod; DIT(B3);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B3[n - i] * (mod - iv) % mod;
 		}
 	}
 
-	// Division and Modulo Operation (use buffer 4, 5)
-	void DivMod(int degA, int degB, pvec a, pvec b, pvec q, pvec r) {
-		if (degA &lt; degB) {memcpy(r, a, degA + 1 &lt;&lt; 2); memset(r + (degA + 1), 0, degB - degA &lt;&lt; 2); return;}
-		int degQ = degA - degB, i, j = (degQ ? 1 &lt;&lt; lg2(degQ) + 2 : 4);
-		for (i = 0; i &lt;= degQ &amp;&amp; i &lt;= degB; ++i) B4[i] = b[degB - i];
-		for (; i &lt; j; ++i) B4[i] = 0;
-		Inv(degQ + 1, B4, B5);
-		for (i = 0; i &lt;= degQ; ++i) B4[i] = a[degA - i];
-		for (; i &lt; n; ++i) B4[i] = B5[i] = 0;
-		Mul(degQ * 2, B4, B5, q);
-		std::reverse(q, q + (degQ + 1));
-		NTT_init(lg2(degA) + 1);
-		for (i = degQ + 1; i &lt; n; ++i) q[i] = 0;
-		for (i = 0; i &lt;= degB; ++i) B4[i] = b[i];
-		for (; i &lt; n; ++i) B4[i] = 0;
-		Mul(degA, B4, q, r);
-		for (i = 0; i &lt; degB; ++i) reduce(r[i] = a[i] - r[i]);
+	// Division and Modulo Operation (use five buffers)
+	void div_mod(int A, int B, pvec a, pvec b, pvec q, pvec r) {
+		if (A &lt; B) {memcpy(r, a, (A + 1) &lt;&lt; 2), memset(r + (A + 1), 0, (B - A) &lt;&lt; 2); return;}
+		int Q = A - B, i, l_ = Q ? lg2(Q) + 1 : 0; NTT_init(l_);
+		for (i = 0; i &lt;= Q &amp;&amp; i &lt;= B; ++i) B4[i] = b[B - i];
+		memset(B4 + i, 0, (n - i) &lt;&lt; 2), inv(i = Q + 1, B4, B5);
+
+		std::reverse_copy(a + B, a + (A + 1), B4), NTT_init(++l_),
+		memset(B4 + i, 0, (n - i) &lt;&lt; 2), memset(B5 + i, 0, (n - i) &lt;&lt; 2),
+		mul(2 * Q, B4, B5, q), std::reverse(q, q + (Q + 1)),
+		memset(q + i, 0, (n - i) &lt;&lt; 2);
+
+		if (!B) return;
+		NTT_init(lg2(2 * B - 1) + 1);
+		for (i = 0; i &lt;= Q &amp;&amp; i &lt; B; ++i) B2[i] = b[i], B3[i] = q[i];
+		memset(B2 + i, 0, (n - i) &lt;&lt; 2), memset(B3 + i, 0, (n - i) &lt;&lt; 2),
+		mul(2 * (B - 1), B2, B3, r), memset(r + i, 0, (n - i) &lt;&lt; 2);
+		for (i = 0; i &lt; B; ++i) reduce(r[i] = a[i] - r[i]);
 	}
 
-	// Multiplication with std::vector (use three buffers, 3-dft)
-	void Mul(vector &amp;a, vector &amp;b, vector &amp;ret) {
-		int degA = a.size() - 1, degB = b.size() - 1;
-		if (!(degA || degB)) {ret.EB((ll)a[0] * b[0] % mod); return;}
-		NTT_init(lg2(degA + degB) + 1);
-		int i; ll iv = mod - (mod - 1) / n;
-		memcpy(B1, a.data(), (degA + 1) &lt;&lt; 2), memset(B1 + (degA + 1), 0, (n - degA - 1) &lt;&lt; 2);
-		memcpy(B2, b.data(), (degB + 1) &lt;&lt; 2), memset(B2 + (degB + 1), 0, (n - degB - 1) &lt;&lt; 2);
-		DNTT(B1, B3), DNTT(B2, B1);
-		for (i = 0; i &lt; n; ++i) B1[i] = (ll)B1[i] * B3[i] % mod;
-		DNTT(B1, B3), std::reverse(B3 + 1, B3 + n); ret.clear(), ret.reserve(degA + degB + 1);
-		for (i = 0; i &lt;= degA + degB; ++i) ret.EB(B3[i] * iv % mod);
+	// Multiplication with std::vector (use two buffers, 3-dft)
+	void mul(vector &amp;a, vector &amp;b, vector &amp;ret) {
+		int A = a.size() - 1, B = b.size() - 1;
+		if (!(A || B)) {ret.EB((u64)a[0] * b[0] % mod); return;}
+		NTT_init(lg2(A + B) + 1),
+		memcpy(B1, a.data(), (A + 1) &lt;&lt; 2), memset(B1 + (A + 1), 0, (n - A - 1) &lt;&lt; 2),
+		memcpy(B2, b.data(), (B + 1) &lt;&lt; 2), memset(B2 + (B + 1), 0, (n - B - 1) &lt;&lt; 2),
+		DNTT(B1), DNTT(B2);
+		for (int i = 0; i &lt; n; ++i) B1[i] = (u64)B1[i] * B2[i] % mod;
+		IDNTT(B1), ret.assign(B1, B1 + (A + B + 1));
 	}
 
 	// Differential
-	void Diff(int deg, pvec a, pvec b) {for (int i = 1; i &lt;= deg; ++i) b[i - 1] = (ll)a[i] * i % mod;}
+	void diff(int deg, pvec a, pvec b) {for (int i = 1; i &lt;= deg; ++i) b[i - 1] = (u64)a[i] * i % mod;}
 
 	// Integral
-	void Intg(int deg, pvec a, pvec b, int ct = 0) {for (int i = deg; i; --i) b[i] = (ll)a[i - 1] * inv[i] % mod; *b = ct;}
+	void intg(int deg, pvec a, pvec b, int constant = 0) {for (int i = deg; i; --i) b[i] = (u64)a[i - 1] * ::inv[i] % mod; *b = constant;}
 
-	// f'[x] / f[x] (use five buffers, 6.5-dft)
-	void DifQuo(int deg, pvec a, pvec b) {
+	// f'[x] / f[x] (use four buffers, 6.5-dft)
+	void dif_quo(int deg, pvec a, pvec b) {
 		assert(*a);
 		if (deg &lt;= 1) {*b = PowerMod(*a, mod - 2, a[1]); return;}
 
-		int i, len = lg2(deg - 1); ll iv = mod - ((mod - 1) &gt;&gt; (len + 1));
-		Inv((deg + 1) / 2, a, B5), NTT_init(len + 1),
-		memset(B5 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(B5, B2),
+		int i, len = lg2(deg - 1);
+		inv((deg + 1) / 2, a, B4), NTT_init(len + 1),
+		memset(B4 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DIF(B4, B2),
 
-		Diff(deg, a, B1), memcpy(B5, B1, n &lt;&lt; 1),
-		memset(B5 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DNTT(B5, B3);
+		diff(deg, a, B1), memcpy(B3, B1, n &lt;&lt; 1),
+		memset(B3 + (n &gt;&gt; 1), 0, n &lt;&lt; 1), DIF(B3);
 
-		for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod;
-		DNTT(B3, b), *b = *b * iv % mod;
+		for (i = 0; i &lt; n; ++i) B3[i] = (u64)B3[i] * B2[i] % mod;
+		DIT(B3, b), *b = *b * iv % mod;
 		for (i = 1; i &lt; n &gt;&gt; 1; ++i) b[i] = b[n - i] * iv % mod;
 		memset(b + (n &gt;&gt; 1), 0, n &lt;&lt; 1);
 
-		DNTT(b, B4), DNTT(a, B3);
-		for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B4[i] % mod; DNTT(B3, B4);
-		for (i = n &gt;&gt; 1; i &lt; n; ++i) B4[i] = (B4[n - i] * iv + mod - B1[i]) % mod;
+		DIF(b, B4), DIF(a, B3);
+		for (i = 0; i &lt; n; ++i) B3[i] = (u64)B3[i] * B4[i] % mod; DIT(B3);
+		for (i = n &gt;&gt; 1; i &lt; n; ++i) B3[i] = (B3[n - i] * iv + mod - B1[i]) % mod;
 
-		memset(B4, 0, n &lt;&lt; 1), DNTT(B4, B3);
-		for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
-		for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B4[n - i] * (mod - iv) % mod;
+		memset(B3, 0, n &lt;&lt; 1), DIF(B3);
+		for (i = 0; i &lt; n; ++i) B3[i] = (u64)B3[i] * B2[i] % mod; DIT(B3);
+		for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B3[n - i] * (mod - iv) % mod;
 	}
 
 	// Logarithm (use DifQuo)
-	inline void Ln(int deg, pvec a, pvec b) {assert(*a == 1), --deg ? (DifQuo(deg, a, b), Intg(deg, b, b)) : void(*b = 0);}
+	inline void ln(int deg, pvec a, pvec b) {assert(*a == 1), --deg ? (dif_quo(deg, a, b), intg(deg, b, b)) : void(*b = 0);}
 
-	// Exponentiation (use seven buffers, 12-dft)
-	void Exp(int deg, pvec a, pvec b) {
-		int i, len; ll iv = iv2; pvec c = B7; assert(!*a);
+	// Exponentiation (use six buffers, 12-dft)
+	// WARNING : this implementation of exponentiation is SLOWER than the CDQ_NTT ver.
+	void exp(int deg, pvec a, pvec b) {
+		int i, len; pvec c = B6; assert(!*a);
 		if (*b = 1, deg &lt;= 1) return;
 		if (b[1] = a[1], deg == 2) return;
 
@@ -187,101 +196,108 @@ namespace Poly {
 		*c = 1, neg(c[1] = b[1]);
 
 		for (len = 1; 1 &lt;&lt; len &lt; deg; ++len) {
-			NTT_init(len + 1), iv = (iv &gt;&gt; 1) + iv2;
+			NTT_init(len + 1);
 
-			DNTT(c, B2), DNTT(b, B3);
-			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B3[i] * B2[i] % mod; DNTT(B4, B5);
-			for (i = n &gt;&gt; 1; i &lt; n; ++i) B5[i] = B5[n - i] * iv % mod;
+			DIF(c, B2), DIF(b, B3);
+			for (i = 0; i &lt; n; ++i) B4[i] = (u64)B3[i] * B2[i] % mod; DIT(B4);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B4[i] = B4[n - i] * iv % mod;
 
-			memset(B5, 0, n &lt;&lt; 1), DNTT(B5, B4);
-			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B2[i] % mod; DNTT(B4, B5);
-			for (i = n &gt;&gt; 1; i &lt; n; ++i) B5[i] = B5[n - i] * (mod - iv) % mod;
+			memset(B4, 0, n &lt;&lt; 1), DIF(B4);
+			for (i = 0; i &lt; n; ++i) B4[i] = (u64)B4[i] * B2[i] % mod; DIT(B4);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B4[i] = B4[n - i] * (mod - iv) % mod;
 
-			memcpy(B5, c, n &lt;&lt; 1), DNTT(B5, B6);
-			Diff(n &gt;&gt; 1, b, B1), DNTT(B1, B4);
-			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B6[i] % mod; DNTT(B4, B6);
-			for (i = n &gt;&gt; 1; i &lt; n; ++i) reduce(B5[i] = (a[i] - B6[n - i + 1] * iv % mod * inv[i]) % mod);
+			memcpy(B4, c, n &lt;&lt; 1), DIF(B4);
+			diff(n &gt;&gt; 1, b, B1), DIF(B1, B5);
+			for (i = 0; i &lt; n; ++i) B4[i] = (u64)B4[i] * B5[i] % mod; DIT(B4);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) reduce(B5[i] = (a[i] + B4[n - i + 1] * (mod - iv) % mod * ::inv[i]) % mod);
 
-			memset(B5, 0, n &lt;&lt; 1), DNTT(B5, B4);
-			for (i = 0; i &lt; n; ++i) B4[i] = (ll)B4[i] * B3[i] % mod; DNTT(B4, B5);
+			memset(B5, 0, n &lt;&lt; 1), DIF(B5);
+			for (i = 0; i &lt; n; ++i) B5[i] = (u64)B5[i] * B3[i] % mod; DIT(B5);
 			for (i = n &gt;&gt; 1; i &lt; n; ++i) b[i] = B5[n - i] * iv % mod;
 
 			if (2 &lt;&lt; len &gt;= deg) return;
 
-			DNTT(b, B3);
-			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
-			for (i = n &gt;&gt; 1; i &lt; n; ++i) B4[i] = B4[n - i] * iv % mod;
+			DIF(b, B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (u64)B3[i] * B2[i] % mod; DIT(B3);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) B3[i] = B3[n - i] * iv % mod;
 
-			memset(B4, 0, n &lt;&lt; 1), DNTT(B4, B3);
-			for (i = 0; i &lt; n; ++i) B3[i] = (ll)B3[i] * B2[i] % mod; DNTT(B3, B4);
-			for (i = n &gt;&gt; 1; i &lt; n; ++i) c[i] = B4[n - i] * (mod - iv) % mod;
+			memset(B3, 0, n &lt;&lt; 1), DIF(B3);
+			for (i = 0; i &lt; n; ++i) B3[i] = (u64)B3[i] * B2[i] % mod; DIT(B3);
+			for (i = n &gt;&gt; 1; i &lt; n; ++i) c[i] = B3[n - i] * (mod - iv) % mod;
 		}
 	}
 }
 
-namespace CDQ_NTT {
-	vec f, g, C1, C2, C3, C4, C5;
+namespace <span id="CDQ-NTT">CDQ_NTT</span> {
+	using namespace poly_base;
+
+	int lim;
+	vec f, g, C1;
+	int fn[N * 2], gn[N * 2];
+
+	inline void register_g(pvec g) {for (int i = 1; 1 &lt;&lt; (i - 1) &lt;= lim; ++i) NTT_init(i), DIF(g, gn + (1 &lt;&lt; i));}
 
 	// Standard CDQ-NTT Algorithm, type `UK`
 	void solve(int L, int w) {
-		int i, R = L + (1 &lt;&lt; w), M; ll iv;
+		int i, R = L + (1 &lt;&lt; w), M;
 		if (!w) {
 			// something depend on problem
 			return;
 		}
 		solve(L, w - 1);
-		if ((M = (1 &lt;&lt; (w - 1)) + L) &gt; n) return;
-		Poly::NTT_init(w), iv = mod - (mod - 1) / Poly::n;
-		memcpy(C2, f + L, 2 &lt;&lt; w), memset(C2 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
-		Poly::DNTT(C2, C1), Poly::DNTT(g, C2);
-		for (i = 0; i &lt; Poly::n; ++i) C3[i] = (ll)C1[i] * C2[i] % mod;
-		Poly::DNTT(C3, C1);
-		for (i = M; i &lt; R; ++i) f[i] = (f[i] + C1[Poly::n - (i - L)] * iv) % mod;
+		if ((M = (1 &lt;&lt; (w - 1)) + L) &gt; lim) return;
+		NTT_init(w);
+		pvec ga = gn + (1 &lt;&lt; w);
+		memcpy(C1, f + L, 2 &lt;&lt; w), memset(C1 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
+		DIF(C1);
+		for (i = 0; i &lt; n; ++i) C1[i] = (u64)C1[i] * ga[i] % mod;
+		DIT(C1);
+		for (i = M; i &lt; R; ++i) f[i] = (f[i] + C1[n - (i - L)] * iv) % mod;
 		solve(M, w - 1);
 	}
 
-	// Standard CDQ-NTT Algorithm, type `UU`
 	void solve(int L, int w) {
-		int i, R = L + (1 &lt;&lt; w), M; ll iv;
+		int i, R = L + (1 &lt;&lt; w), M;
 		if (!w) {
 			// something depend on problem
 			return;
 		}
 		solve(L, w - 1);
-		if ((M = (1 &lt;&lt; (w - 1)) + L) &gt; n) return;
-		Poly::NTT_init(w), iv = mod - (mod - 1) / Poly::n;
+		if ((M = (1 &lt;&lt; (w - 1)) + L) &gt; lim) return;
+		NTT_init(w);
 		if (L) {
-			memcpy(C2, f, 4 &lt;&lt; w), memcpy(C3, g, 4 &lt;&lt; w),
-			memcpy(C4, f + L, 2 &lt;&lt; w), memset(C4 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
-			memcpy(C5, g + L, 2 &lt;&lt; w), memset(C5 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
-			Poly::DNTT(C2, C1), Poly::DNTT(C3, C2), Poly::DNTT(C4, C3), Poly::DNTT(C5, C4);
-			for (i = 0; i &lt; Poly::n; ++i) C5[i] = ((ll)C1[i] * C4[i] + (ll)C2[i] * C3[i]) % mod;
-			Poly::DNTT(C5, C1);
-			for (i = M; i &lt; R; ++i) f[i] = (f[i] + C1[Poly::n - (i - L)] * iv) % mod;
+			pvec fa = fn + (1 &lt;&lt; w), ga = gn + (1 &lt;&lt; w);
+			memcpy(C1, f + L, 2 &lt;&lt; w), memset(C1 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
+			memcpy(C2, g + L, 2 &lt;&lt; w), memset(C2 + (1 &lt;&lt; (w - 1)), 0, 2 &lt;&lt; w),
+			DIF(C1), DIF(C2);
+			for (i = 0; i &lt; n; ++i) C1[i] = ((u64)C1[i] * ga[i] + (u64)C2[i] * fa[i]) % mod;
+			DIT(C1);
+			for (i = M; i &lt; R; ++i) f[i] = (f[i] + C1[n - (i - L)] * iv) % mod;
 		} else {
-			memcpy(C2, f, 2 &lt;&lt; w), memset(C2 + M, 0, 2 &lt;&lt; w),
-			memcpy(C3, g, 2 &lt;&lt; w), memset(C3 + M, 0, 2 &lt;&lt; w),
-			Poly::DNTT(C2, C1), Poly::DNTT(C3, C2);
-			for (i = 0; i &lt; Poly::n; ++i) C3[i] = (ll)C1[i] * C2[i] % mod;
-			Poly::DNTT(C3, C1);
-			for (i = M; i &lt; R; ++i) f[i] = (f[i] + C1[Poly::n - i] * iv) % mod;
+			memcpy(C1, f, 2 &lt;&lt; w), memset(C1 + M, 0, 2 &lt;&lt; w),
+			memcpy(C2, g, 2 &lt;&lt; w), memset(C2 + M, 0, 2 &lt;&lt; w),
+			DIF(C1), DIF(C2),
+			memcpy(fn + (1 &lt;&lt; (w - 1)), C1, 2 &lt;&lt; w),
+			memcpy(gn + (1 &lt;&lt; (w - 1)), C2, 2 &lt;&lt; w);
+			for (i = 0; i &lt; n; ++i) C1[i] = (u64)C1[i] * C2[i] % mod;
+			DIT(C1);
+			for (i = M; i &lt; R; ++i) f[i] = (f[i] + C1[n - i] * iv) % mod;
 		}
 		solve(M, w - 1);
 	}
 }
 
-namespace PolyEvaluation {
-	using namespace Poly;
+namespace <span id="poly-evaluation">poly_evaluation</span> {
+	using namespace poly_base;
 
 	int cnt = 0, lc[N], rc[N];
-	vec Prd_, E1, E2, E3, E4;
+	vec Prd_, E1, E2, E3;
 	vector g[N], tmp_;
 
 	int solve(int L, int R) {
 		if (L + 1 == R) return L;
 		int M = (L + R) / 2, id = cnt++, lp = solve(L, M), rp = solve(M, R);
-		Mul(g[lp], g[rp], g[id]);
-		return lc[id] = lp, rc[id] = rp, id;
+		return poly::mul(g[lp], g[rp], g[id]), lc[id] = lp, rc[id] = rp, id;
 	}
 
 	void recursion(int id, int L, int R, const vector &amp;poly) {
@@ -289,22 +305,22 @@ namespace PolyEvaluation {
 		int i, n = poly.size() - 1, M = (L + R) / 2, lp = lc[id], rp = rc[id],
 			dl = min(n, g[lp].size() - 1), dr = min(n, g[rp].size() - 1);
 		if (L + 2 == R) return
-			tmp_.EB((poly[n] + (ll)poly[n - 1] * g[rp].back()) % mod),
-			tmp_.EB((poly[n] + (ll)poly[n - 1] * g[lp].back()) % mod);
+			tmp_.EB((poly[n] + (u64)poly[n - 1] * g[rp].back()) % mod),
+			tmp_.EB((poly[n] + (u64)poly[n - 1] * g[lp].back()) % mod);
 
 		vector ly, ry; ly.reserve(dl + 1), ry.reserve(dr + 1);
-		NTT_init(lg2(dl + dr) + 1); ll iv = mod - (mod - 1) / Poly::n;
-		memcpy(E1, poly.data(), (n + 1) &lt;&lt; 2), DNTT(E1, E2), memset(E1, 0, (n + 1) &lt;&lt; 2);
+		NTT_init(lg2(dl + dr) + 1);
+		memcpy(E1, poly.data(), (n + 1) &lt;&lt; 2), DIF(E1, E2), memset(E1, 0, (n + 1) &lt;&lt; 2);
 
-		memcpy(E1, g[rp].data(), (dr + 1) &lt;&lt; 2), DNTT(E1, E3), memset(E1, 0, (dr + 1) &lt;&lt; 2);
-		for (i = 0; i &lt; Poly::n; ++i) E3[i] = (ll)E3[i] * E2[i] % mod;
-		DNTT(E3, E4), std::reverse(E4 + 1, E4 + Poly::n);
-		for (i = n - dl; i &lt;= n; ++i) ly.EB(E4[i] * iv % mod);
+		memcpy(E1, g[rp].data(), (dr + 1) &lt;&lt; 2), DIF(E1, E3), memset(E1, 0, (dr + 1) &lt;&lt; 2);
+		for (i = 0; i &lt; poly::n; ++i) E3[i] = (u64)E3[i] * E2[i] % mod;
+		DIT(E3), std::reverse(E3 + 1, E3 + poly::n);
+		for (i = n - dl; i &lt;= n; ++i) ly.EB(E3[i] * iv % mod);
 
-		memcpy(E1, g[lp].data(), (dl + 1) &lt;&lt; 2), DNTT(E1, E3), memset(E1, 0, (dl + 1) &lt;&lt; 2);
-		for (i = 0; i &lt; Poly::n; ++i) E3[i] = (ll)E3[i] * E2[i] % mod;
-		DNTT(E3, E4), std::reverse(E4 + 1, E4 + Poly::n);
-		for (i = n - dr; i &lt;= n; ++i) ry.EB(E4[i] * iv % mod);
+		memcpy(E1, g[lp].data(), (dl + 1) &lt;&lt; 2), DIF(E1, E3), memset(E1, 0, (dl + 1) &lt;&lt; 2);
+		for (i = 0; i &lt; poly::n; ++i) E3[i] = (u64)E3[i] * E2[i] % mod;
+		DIT(E3), std::reverse(E3 + 1, E3 + poly::n);
+		for (i = n - dr; i &lt;= n; ++i) ry.EB(E3[i] * iv % mod);
 
 		recursion(lp, L, M, ly), recursion(rp, M, R, ry);
 	}
@@ -316,18 +332,18 @@ namespace PolyEvaluation {
 		for (i = 0; i &lt; m; ++i) g[i].clear(), g[i].EB(1), g[i].EB(neg(q = pts[i]));
 
 		id = solve(0, cnt = m), memcpy(Prd_, g[id].data(), (m + 1) &lt;&lt; 2);
-		Inv(n + 1, Prd_, E2), memset(Prd_, 0, (m + 1) &lt;&lt; 2);
-		if (n &gt; 0) memset(E2 + (n + 1), 0, (Poly::n - n - 1) &lt;&lt; 2);
+		poly::inv(n + 1, Prd_, E2), memset(Prd_, 0, (m + 1) &lt;&lt; 2);
+		if (n &gt; 0) memset(E2 + (n + 1), 0, (poly::n - n - 1) &lt;&lt; 2);
 
-		std::reverse_copy(f, f + (n + 1), E1), Mul(2 * n, E1, E2, E3),
+		std::reverse_copy(f, f + (n + 1), E1), mul(2 * n, E1, E2, E3),
 		memset(E1, 0, (n + 1) &lt;&lt; 2), memset(E2, 0, (n + 1) &lt;&lt; 2);
 
 		return tmp_.clear(), tmp_.reserve(m), recursion(id, 0, m, vector(E3 + max(n - m + 1, 0), E3 + (n + 1))), tmp_;
 	}
 }
 
-namespace PolyInterpolation {
-	using namespace PolyEvaluation;
+namespace <span id="poly-interpolation">poly_interpolation</span> {
+	using namespace poly_evaluation;
 
 	vec I1, I2, I3, I4, I5;
 	pvec iresult;
@@ -337,15 +353,14 @@ namespace PolyInterpolation {
 		int i, M = (L + R) / 2, lp = lc[id], rp = rc[id];
 		irecursion(lp, L, M), irecursion(rp, M, R);
 		NTT_init(lg2(R - L - 1) + 1);
-		ll iv = mod - (mod - 1) / Poly::n;
-		memcpy(I1, iresult + L, (M - L) &lt;&lt; 2), memset(I1 + (M - L), 0, (Poly::n - (M - L)) &lt;&lt; 2);
-		memcpy(I2, iresult + M, (R - M) &lt;&lt; 2), memset(I2 + (R - M), 0, (Poly::n - (R - M)) &lt;&lt; 2);
-		memcpy(I3, g[lp].data(), (M - L + 1) &lt;&lt; 2), memset(I3 + (M - L + 1), 0, (Poly::n - (M - L + 1)) &lt;&lt; 2);
-		memcpy(I4, g[rp].data(), (R - M + 1) &lt;&lt; 2), memset(I4 + (R - M + 1), 0, (Poly::n - (R - M + 1)) &lt;&lt; 2);
-		DNTT(I1, I5), DNTT(I2, I1), DNTT(I3, I2), DNTT(I4, I3);
-		for (i = 0; i &lt; Poly::n; ++i) I4[i] = ((ll)I1[i] * I2[i] + (ll)I3[i] * I5[i]) % mod;
-		DNTT(I4, I5); std::reverse(I5 + 1, I5 + Poly::n);
-		for (i = 0; i &lt; R - L; ++i) iresult[L + i] = I5[i] * iv % mod;
+		memcpy(I1, iresult + L, (M - L) &lt;&lt; 2), memset(I1 + (M - L), 0, (poly::n - (M - L)) &lt;&lt; 2);
+		memcpy(I2, iresult + M, (R - M) &lt;&lt; 2), memset(I2 + (R - M), 0, (poly::n - (R - M)) &lt;&lt; 2);
+		memcpy(I3, g[lp].data(), (M - L + 1) &lt;&lt; 2), memset(I3 + (M - L + 1), 0, (poly::n - (M - L + 1)) &lt;&lt; 2);
+		memcpy(I4, g[rp].data(), (R - M + 1) &lt;&lt; 2), memset(I4 + (R - M + 1), 0, (poly::n - (R - M + 1)) &lt;&lt; 2);
+		DIF(I1), DIF(I2), DIF(I3), DIF(I4);
+		for (i = 0; i &lt; n; ++i) I1[i] = ((u64)I1[i] * I4[i] + (u64)I2[i] * I3[i]) % mod;
+		DIT(I1), std::reverse(I1 + 1, I1 + n);
+		for (i = 0; i &lt; R - L; ++i) iresult[L + i] = I1[i] * iv % mod;
 	}
 
 	void imain(int n, pr *pts, pvec ret) {
@@ -354,16 +369,138 @@ namespace PolyInterpolation {
 		for (i = 0; i &lt; n; ++i) g[i].clear(), g[i].EB(1), g[i].EB(neg(q = pts[i].first));
 
 		id = solve(0, cnt = n), memcpy(Prd_, g[id].data(), (n + 1) &lt;&lt; 2);
-		Inv(n, Prd_, E2), memset(Prd_, 0, n &lt;&lt; 2);
-		if (n &gt; 1) memset(E2 + n, 0, (Poly::n - n) &lt;&lt; 2);
+		poly::inv(n, Prd_, E2), memset(Prd_, 0, n &lt;&lt; 2);
+		if (n &gt; 1) memset(E2 + n, 0, (poly::n - n) &lt;&lt; 2);
 
-		for (i = 0; i &lt; n; ++i) E1[i] = ll(n - i) * g[id][i] % mod;
-		Mul(2 * (n - 1), E1, E2, E3),
+		for (i = 0; i &lt; n; ++i) E1[i] = u64(n - i) * g[id][i] % mod;
+		poly::mul(2 * (n - 1), E1, E2, E3),
 		memset(E1, 0, n &lt;&lt; 2), memset(E2, 0, n &lt;&lt; 2);
 
 		tmp_.clear(), tmp_.reserve(n), recursion(id, 0, n, vector(E3, E3 + n));
 		for (i = 0; i &lt; n; ++i) ret[i] = PowerMod(tmp_[i], mod - 2, pts[i].second);
 		iresult = ret, irecursion(id, 0, n), std::reverse(ret, ret + n);
+	}
+}
+
+namespace <span id="linear-recur">linear_recur</span> {
+	using namespace poly_base;
+
+	int ld;
+	vec f, g, L1, L2, L3;
+
+	void __builtin_divmod(int d) {
+		int i; NTT_init(ld);
+		std::reverse_copy(f + d, f + 2 * d, L3);
+		memset(L3 + d, 0, (n - d) &lt;&lt; 2);
+		DNTT(L3);
+		for (i = 0; i &lt; n; ++i) L3[i] = (u64)L3[i] * L2[i] % mod;
+		IDNTT(L3);
+		std::reverse(L3, L3 + d), memset(L3 + d, 0, (n - d) &lt;&lt; 2);
+		DNTT(L3);
+		for (i = 0; i &lt; n; ++i) L3[i] = (u64)L3[i] * L1[i] % mod;
+		IDNTT(L3);
+		for (i = 0; i &lt; d; ++i) reduce(f[i] -= L3[i]);
+		memset(f + d, 0, d &lt;&lt; 2);
+	}
+
+	void solve(int Q, int d) {
+		int i, df = 1, z = lg2(Q); bool alive = false;
+		assert(d &gt; 0), ld = lg2(2 * d - 1) + 1;
+		if (d == 1) alive = true, *f = 1;
+
+		NTT_init(ld),
+		std::reverse_copy(g + 1, g + (d + 1), L1),
+		memset(L1 + d, 0, (n - d) &lt;&lt; 2),
+		poly::inv(d, L1, L2);
+
+		NTT_init(ld),
+		memset(L2 + d, 0, (n - d) &lt;&lt; 2),
+		memcpy(L1, g, d &lt;&lt; 2),
+		memset(L1 + d, 0, (n - d) &lt;&lt; 2),
+		DIF(L1), DIF(L2);
+
+		for (; --z &gt;= 0; ) {
+			df = df &lt;&lt; 1 | (Q &gt;&gt; z &amp; 1);
+			if (df &lt; d) continue;
+			if (!alive) alive = true, f[df &gt;&gt; 1] = 1;
+			NTT_init(ld), DNTT(f);
+			for (i = 0; i &lt; n; ++i) f[i] = (u64)f[i] * f[i] % mod;
+			IDNTT(f);
+			if (df &amp; 1) std::copy_backward(f, f + (2 * d - 1), f + 2 * d), *f = 0;
+			__builtin_divmod(d);
+		}
+	}
+}
+
+namespace <span id="miscellaneous">miscellaneous</span> {
+	using namespace poly_base;
+
+	vec M1, M2, M3, M4;
+	vec Ma[200];
+
+	// calculate b(x) = a(x + c), poly_base::init need 'false'
+	void translate(int deg, pvec a, int c, pvec b) {
+		if (!deg) {*b = *a; return;}
+		int i; u64 pc = 1; NTT_init(lg2(deg) + 2);
+		for (i = 0; i &lt;= deg; ++i) M1[i] = (u64)a[i] * fact[i] % mod;
+		memset(M1 + i, 0, (n - i) &lt;&lt; 2);
+		for (i = deg; i &gt;= 0; --i, pc = pc * c % mod) M2[i] = finv[deg - i] * pc % mod;
+		DIF(M1), DIF(M2);
+		for (i = 0; i &lt; n; ++i) M1[i] = (u64)M1[i] * M2[i] % mod;
+		DIT(M1);
+		for (i = 0; i &lt;= deg; ++i) b[i] = M1[n - deg - i] * iv % mod * finv[i] % mod;
+	}
+
+	inline int __builtin_inner(int len, pvec a, pvec b) {
+		int i = 0; u64 ans = 0;
+		#define term(k) (u64)a[i + k] * b[i + k]
+		for (; i + 15 &lt; len; i += 16) {
+			ans = (ans + term(0) + term(1) + term(2) + term(3)
+					   + term(4) + term(5) + term(6) + term(7)
+					   + term(8) + term(9) + term(10) + term(11)
+					   + term(12) + term(13) + term(14) + term(15)
+				) % mod;
+		}
+		#undef term
+		for (; i &lt; len; ++i) ans += (u64)a[i] * b[i];
+		return ans % mod;
+	}
+
+	// compositional inverse
+	void cinv(int deg, pvec a, pvec b) {
+		assert(!*a), *b = 0;
+		if (--deg &lt;= 0) return;
+		int i, j, k, d, B, *c;
+
+		NTT_init(lg2(2 * deg - 1)),
+		memcpy(M1, a + 1, deg &lt;&lt; 2), memset(M1 + deg, 0, (n - deg) &lt;&lt; 2),
+		poly::inv(deg, M1, M2),
+
+		NTT_init(lg2(2 * deg - 1) + 1),
+		memset(M2 + deg, 0, (n - deg) &lt;&lt; 2),
+
+		DIF(M2, M1), B = sqrt(deg),
+		memset(*Ma, 0, n &lt;&lt; 2), **Ma = 1;
+		for (j = 1; j &lt;= B; ++j) {
+			DIF(Ma[j - 1], M3), c = Ma[j];
+			for (i = 0; i &lt; n; ++i) M3[i] = (u64)M3[i] * M1[i] % mod;
+			DIT(M3), *c = *M3 * iv % mod;
+			for (i = 1; i &lt; deg; ++i) c[i] = M3[n - i] * iv % mod;
+			memset(c + i, 0, (n - i) &lt;&lt; 2);
+		}
+		DIF(Ma[B], M1), memset(M3, 0, n &lt;&lt; 2), *M3 = M4[deg - 1] = 1;
+
+		for (d = 0; ; ) {
+			for (k = 0; k &lt; B &amp;&amp; d &lt; deg; ++k, ++d)
+				b[d + 1] = (u64)__builtin_inner(d + 1, Ma[k + 1], M4 + (deg - d - 1)) * inv[d + 1] % mod;
+			if (d &gt;= deg) break;
+			DIF(M3);
+			for (i = 0; i &lt; n; ++i) M3[i] = (u64)M3[i] * M1[i] % mod;
+			DIT(M3), *M3 = *M3 * iv % mod;
+			for (i = 1; i &lt; deg; ++i) M3[i] = M3[n - i] * iv % mod;
+			memset(M3 + i, 0, (n - i) &lt;&lt; 2),
+			std::reverse_copy(M3, M3 + deg, M4);
+		}
 	}
 }
 </code><script>syntax_highlight()</script>

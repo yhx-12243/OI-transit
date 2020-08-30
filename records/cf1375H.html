@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1375H]Set Merging</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个大小为 $n$ 的排列 $a_1, a_2, \cdots, a_n$ 以及 $n$ 个集合 $S_1, S_2, \cdots, S_n$，其中 $S_i = \left\{ a_i \right\}$。你有一个变量 $cnt$，初始时它的值为 $n$。</p>
+		<p>你可以进行若干次操作，每次操作的步骤如下：</p>
+		<ul>
+			<li>取 $1 \leq u, v \leq cnt$ 满足 $\max S_u &lt; \min S_v$。</li>
+			<li>令 $cnt \gets cnt + 1$，并令 $S_{cnt} = S_u \cup S_v$。</li>
+		</ul>
+		<p>当然，你的操作序列需要满足如下要求：</p>
+		<p>有 $q$ 个条件，其中每个条件给定了两个正整数 $l_i, r_i$ ($1 \leq l_i \leq r_i \leq n$)，它表示了在最终 $cnt$ 个集合 $S_1, S_2, \cdots, S_{cnt}$ 中，<strong>至少要存在一个集合 $S_{k_i}$</strong>，它等于集合 $\left\{ a_u \mid l_i \leq u \leq r_i \right\}$。</p>
+		<p>其次，你需要保证最终 $cnt \leq 2.2 \times 10^6$，注意你<strong>不需要最小化</strong> $cnt$。保证在给定条件下存在至少一组解。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($n \leq 2^{12}; q \leq 2^{16}$)，分别表示排列的大小 (初始集合的个数) 和条件的个数。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($1 \leq a_i \leq n$)，描述初始集合中的元素，保证 $a_1, a_2, \cdots, a_n$ 构成一个排列。</p>
+		<p>接下来 $q$ 行，每行两个正整数 $l_i, r_i$ ($1 \leq l_i \leq r_i \leq n$)，描述一个限制条件。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $cnt_E$ ($n \leq cnt_E \leq 2.2 \times 10^6$)，表示最终 $cnt$ 的值，也等于操作结束后集合的数量。</p>
+		<p>接下来 $\left( cnt_E - n \right)$ 行，其中的第 $i$ 行包含两个整数 $u_i, v_i$ ($1 \leq u_i, v_i &lt; n + i$)，表示第 $i$ 次操作选取的两个集合下标，你需要满足 $\max S_{u_i} &lt; \min S_{v_i}$。</p>
+		<p>最后一行输出 $q$ 个整数 $k_1, k_2, \cdots, k_q$ ($1 \leq k_i \leq cnt_E$)，表示 $S_{k_i} = \left\{ a_u \mid l_i \leq u \leq r_i \right\}$。</p>
+
+		<h3>题解</h3>
+		<p>先考虑问题的一般情况：$q = \dfrac {n \left( n + 1 \right)} 2$，且你需要对原排列的<strong>每个区间</strong>构建出对应的集合。</p>
+		<p>如果暴力构建显然是 $O \left( n^3 \right)$ 的无法接受，我们考虑在 $O \left( n^2 \right)$ 的次数内解决它。</p>
+		<p>既然我们要在 $O \left( n^2 \right)$ 的次数内构建出 $O \left( n^2 \right)$ 个集合，那么平摊下来留给每个集合构建次数应当是 $O \left( 1 \right)$。</p>
+		<p>那如何 $O \left( 1 \right)$ 构建指定的集合呢？考虑两个集合合并时的条件：<strong>值域不相交</strong>，因此考虑使用分治进行维护。</p>
+		<p>具体地，我们将原序列按照值域在 $\left[ 1, \left \lfloor \dfrac n2 \right \rfloor \right]$ 中还是 $\left[ \left \lfloor \dfrac n2 \right \rfloor + 1, n \right]$ 中将其分为两个子序列 $L, H$，先对 $L, H$ 递归解决。考虑剩下的区间，这之中的每个区间我们可以根据值域拆成两部分：一部分是 $L$ 的子序列 $L'$，另一部分是 $H'$ 的子序列。</p>
+		<p>由于我们需要的是集合，和顺序无关，因此 $L', H'$ 都是在我们在子问题中所解决的，因此我们只需要将这两个集合合并一下即可得到原序列中一个区间的答案。</p>
+		<p>于是，在每一轮分治中，归并的过程中只需要合并至多 $\dfrac {n^2} 2$ 次，于是总合并次数满足这样的递推式：$$ T \left( n \right) = 2 T \left( \frac n2 \right) + \frac {n^2} 2 \Rightarrow T \left( n \right) = n^2 + O \left( n \right) $$</p>
+		<hr />
+		<p>考虑原问题，此时 $q$ 不是很大，暴力 $n^2$ 构建就无法接受了。</p>
+		<p>不过，如果我们把 $q$ 理解为 (所需区间的) 询问，上述算法可以看成一个<strong>预处理出所有区间的答案，然后 $O \left( 1 \right)$ 回答每组询问</strong>。</p>
+		<p>众所周知，对于这个问题还存在一个暴力构建算法，即<strong>不做任何预处理，每次 $O \left( n \right)$ 回答询问</strong>。</p>
+		<p>那我们尝试着将这两种算法平衡一下，那用什么平衡呢？对，就是<strong>分块算法</strong>。</p>
+		<p>我们取块大小 $B$，将值域 $\left[ 1, n \right]$，每 $B$ 个数分成一组，分成 $\left[ 1, B \right], \left[ B + 1, 2 B \right], \cdots, \left[ m B + 1, n \right]$，然后对每个块分别跑上述 $O \left( B^2 \right)$ 的算法。</p>
+		<p>然后对于每组询问，根据上面分治的经验，它可以拆分成 $\dfrac nB + O \left( 1 \right)$ 个子序列，故只需要 $\dfrac nB + O \left( 1 \right)$ 次合并即可构建出所需的集合。</p>
+		<p>于是总合并次数即为 $n B + \dfrac {q n} B + O \left( n + q \right)$，取 $B = \sqrt q$ 时合并次数达到最小值 $2 n \sqrt q + O \left( n + q \right)$，代入 $n = 2^{12}, q = 2^{16}$ 发现它刚好就是 $2^{21}$，略小于 $2.2 \times 10^6$，故总合并次数就是 $2 n \sqrt q + O \left( n + q \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int N = 4100, BL = 8, B = 1 &lt;&lt; BL;
+
+int C2[N];
+inline int merge(int, int);
+
+struct block {
+	vector v, f;
+	block () {}
+	block (const vector &amp;val) {
+		const int n = val.size(); assert(n);
+		if (n == 1) {v.EB(val.back()), f.EB(val.back()); return;}
+		vector::const_iterator middle = val.begin() + n / 2;
+		*this = block(vector(val.begin(), middle)) + block(vector(middle, val.end()));
+	}
+	inline int operator () (int L, int R) const {
+		L = std::lower_bound(v.begin(), v.end(), L) - v.begin();
+		R = std::upper_bound(v.begin(), v.end(), R) - v.begin() - 1;
+		return L &lt;= R ? f[L + C2[R]] : 0;
+	}
+	friend inline block operator + (const block &amp;L, const block &amp;R) {
+		int i, j, Ln = L.v.size(), Rn = R.v.size(), n = Ln + Rn;
+		block ret; ret.v.resize(n), ret.f.clear(), ret.f.reserve(C2[n + 1]);
+		std::merge(L.v.begin(), L.v.end(), R.v.begin(), R.v.end(), ret.v.begin());
+		for (j = 0; j &lt; n; ++j)
+			for (i = 0; i &lt;= j; ++i)
+				ret.f.EB(merge(L(ret.v[i], ret.v[j]), R(ret.v[i], ret.v[j])));
+		return ret;
+	}
+};
+
+int n, m, q, O;
+int p[N], ans[66000];
+block s[B];
+pr op[2200000];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int merge(int A, int B) {return A &amp;&amp; B ? (op[O] = pr(A, B), ++O) : A | B;}
+
+int main() {
+	int i, j, L, R, len; vector t, u;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (i = 1; i &lt; N; ++i) C2[i] = C2[i - 1] + i;
+	cin &gt;&gt; n &gt;&gt; q, O = n, m = ((n - 1) &gt;&gt; BL) + 1;
+	for (i = 1; i &lt;= n; ++i) cin &gt;&gt; j, p[--j] = i;
+	for (i = 0; i &lt; m; ++i) {
+		L = i &lt;&lt; BL, R = min((i + 1) &lt;&lt; BL, n),
+		t.clear(), t.reserve(len = R - L);
+		for (j = L; j &lt; R; ++j) t.EB(p[j]);
+		s[i] = block(t);
+	}
+	for (i = 0; i &lt; q; ++i) {
+		cin &gt;&gt; L &gt;&gt; R;
+		for (j = 0; j &lt; m; ++j) ans[i] = merge(ans[i], s[j](L, R));
+	}
+	cout &lt;&lt; O &lt;&lt; '\n';
+	for (i = n; i &lt; O; ++i) cout &lt;&lt; op[i].first &lt;&lt; ' ' &lt;&lt; op[i].second &lt;&lt; '\n';
+	for (i = 0; i &lt; q; ++i) cout &lt;&lt; ans[i] &lt;&lt; (i == q - 1 ? '\n' : ' ');
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意块大小是 $\sqrt q$ 不是 $\sqrt n$ 或其它，不要开错了。</p>
+		<p><strong>坑2：</strong>合并时可以用归并排序的思想来减少多余的 $\log B$ (上面这份代码偷懒直接用 <code>std::lower_bound</code> 了)。</p>
+	</body>
+</html>
