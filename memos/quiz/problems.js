@@ -367,7 +367,7 @@ const problem_list = [
 			'answer' : '1 2 3\n',
 			'ub' : false,
 			'ce' : false,
-			'explanation' : '<strong>递归替换抑制</strong>规则表明，如果在应用宏替换时遇到当前宏名，则会返回第一次进入该宏名时的结果。'
+			'explanation' : '<strong>递归替换抑制</strong>规则表明，如果在应用宏替换时遇到递归过程中出现过的宏名，则会保留宏名不再进行替换。'
 		},
 		{ // 47
 			'lang' : 'C++11',

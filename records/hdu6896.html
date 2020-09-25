@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[hdu6896]Math Class</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个 $n$ 次多项式 $\displaystyle f \left( x \right) = \sum_{i=0}^n a_i x^i$，现在分别给出 $f \left( 0 \right), f \left( 1 \right), \cdots, f \left( n \right)$ 在 $\hspace{-0.444em} \pmod p$ 下的值，请还原出这个多项式。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。第一行包含一个正整数 $T$ ($1 \leq T \leq 50$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含两个正整数 $n, p$ ($1 \leq n \leq p - 2; 3 \leq p \leq 5 \times 10^5; \sum p \leq 10^6; p$ 是素数)，分别表示多项式的次数和模数。</p>
+		<p>第二行包含 $n + 1$ 个正整数，其中第 $i$ 个表示 $f \left( i - 1 \right) \bmod p$ 的值，保证该值在 $\left[ 0, p - 1 \right]$ 中。</p>
+
+		<h3>输出格式</h3>
+		<p>对于第 $i$ 组数据，第一行输出 <code>Case #<em>i</em>:</code>。</p>
+		<p>第二行输出 $n + 1$ 个整数 $a_0, a_1, \cdots, a_n$，从低到高表示多项式 $f \left( x \right)$ 的系数模 $p$ 的值。</p>
+		<p>可以证明，在给定的条件下，$f \left( x \right)$ 在模 $p$ 意义下存在且唯一。
+
+		<h3>题解</h3>
+		<p>注意到题目是一个插值的模型，但是直接实现<a href="../index.html?redirect=425" target="_blank">多项式插值</a>却是 $O \left( n \log^2 n \right)$ 的，且模数 $p$ 不一定适合 NTT，这将带来更大的常数以至于根本无法通过此题。</p>
+		<p>但是，我们可以发现这道题中的模数 $p$ 并不是很大，它和 $n$ 是同一个数量级的。这提示我们像 <a href="../index.html?redirect=480" target="_blank">[soj70]解方程</a> 一样用类似 <abbr title="Chirp Z-transform, Chirp Z变换">CZT</abbr> 的方法对整个值域做 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr> (求值)。</p>
+		<p>在那道题中，我们实现了从一个不超过 $p - 2$ 次的多项式得到 $0 \sim p - 1$ 的点值的程序。它是一个求值问题，那反过来插值该怎么处理呢？</p>
+		<hr />
+		<p>首先我们考虑那个变换的逆变换。</p>
+		<p>由于我们寻找了原根，而原根在模 $p$ 意义下其实就是 $p - 1$ 次单位根，因此这个变换实际上就是一个长度为 $p - 1$ 的 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr>。</p>
+		<p>那么，它的逆变换就很显然了 —— 即 <abbr title="Inverse Discrete Fourier Transform, 逆离散傅里叶变换">IDFT</abbr>，具体来说就是再做一遍 <abbr title="Chirp Z-transform, Chirp Z变换">CZT</abbr> 后，翻转后 $p - 2$ 项，最后对每一项除以 $p - 1$ (即取相反数)。</p>
+		<p>理清它的逆变换后我们就可以考虑插值了：方便起见先考虑 $n = p - 1$ 的情形。</p>
+		<p>当 $n = p - 1$ 时，所有 $\left\{ 0, 1, \cdots, p - 1 \right\}$ 到其自身的函数和所有不超过 $p - 1$ 次的多项式之间存在一个一一对应，因此我们只需找到这个唯一的多项式即可。</p>
+		<p>考虑直接对点值做 <abbr title="Inverse Discrete Fourier Transform, 逆离散傅里叶变换">IDFT</abbr>，但是注意到这个 <abbr title="Inverse Discrete Fourier Transform, 逆离散傅里叶变换">IDFT</abbr> 的输入只是 $1, 2, \cdots, p - 1$ 处的点值，因此它的输出其实是一个 $p - 2$ 次多项式，满足在 $1 \sim p - 1$ 处的点值重合，$0$ 处的点值不一定重合。</p>
+		<p>设这样的多项式为 $f_0 \left( x \right)$，由 Newton 插值法知，最终的多项式 $$ f \left( x \right) \equiv f_0 \left( x \right) + c \left( x - 1 \right) \left( x - 2 \right) \cdots \left( x - \left( p - 1 \right) \right) \tag 1 \label 1 $$ 其中 $c$ 为常数。</p>
+		<p>而我们有 $x^{p-1} - 1 \equiv \left( x - 1 \right) \left( x - 2 \right) \cdots \left( x - \left( p - 1 \right) \right) \pmod p$ (证明见 <a href="../index.html?redirect=602" target="_blank">[soj69]解方程</a>)，代入 $\eqref 1$ 式可得 $$ f \left( x \right) \equiv f_0 \left( x \right) + c \left( x^{p-1} - 1 \right) $$</p>
+		<p>代入初始条件可解得 $c \equiv f_0 \left( 0 \right) - f \left( 0 \right) \pmod p$，从而我们就完成了插值。</p>
+		<p>此时的时间复杂度显然是 $O \left( p \log p \right)$ —— 即 <abbr title="Chirp Z-transform, Chirp Z变换">CZT</abbr> 的复杂度，不过需要使用 <abbr title="Fast Fourier Transform, 快速傅里叶变换">FFT</abbr> 而不能使用 NTT。</p>
+		<hr />
+		<p>现在考虑一般 $n$ 的情形。显然 <abbr title="Chirp Z-transform, Chirp Z变换">CZT</abbr> 一定是长度为 $p - 1$ 的变换，<del>并没有对短长度变换的福利</del>。因此我们现在要插小多项式又该如何处理呢？</p>
+		<p>我们可以这样操作：首先对于我们不知道的点值，随便假设一通 (很可能是错误的)，然后对一套完整的点值 ($p - 1$) 个按照上述方法进行插值，得到一个 $p - 1$ 次多项式 $A \left( x \right)$。</p>
+		<p>记 $M \left( x \right) = x \left( x - 1 \right) \left( x - 2 \right) \cdots \left( x - n \right)$，让 $A \left( x \right)$ 和 $M \left( x \right)$ 做带余除法，设 $A \left( x \right) = M \left( x \right) \cdot Q \left( x \right) + R \left( x \right)$，其中 $\deg R \left( x \right) \leq \deg M \left( x \right) - 1 = n$。</p>
+		<p>注意到 $M \left( 0 \right) = M \left( 1 \right) = \cdots = M \left( n \right) = 0$，因此对于 $\forall i \in \left[ 0, n \right]$ 有 $R \left( i \right) = A \left( i \right) = f \left( i \right)$，而又有 $\deg R \left( x \right) \leq n$，由唯一性知 $R \left( x \right)$ 就是我们所要求的多项式。</p>
+		<p>因此现在剩下两个问题：<strong>快速求 $M \left( x \right)$</strong> 和<strong>做带余除法</strong>。</p>
+		<ol>
+			<li><p>快速求 $M \left( x \right)$。</p>
+			<p>如果暴力实现，那将是一个分治 <abbr title="Fast Fourier Transform, 快速傅里叶变换">FFT</abbr>，时间复杂度 $O \left( n \log^2 n \right)$，无法接受。</p>
+			<p>不过由 $M \left( x \right)$ 的定义 $M \left( x \right) = x \left( x - 1 \right) \left( x - 2 \right) \cdots \left( x - n \right)$ 可知 $M \left( x \right)$ 对所有 $i \in \left[ 0, p - 1 \right]$ 的点值都是可以 $O \left( 1 \right)$ 的，因此我们只需要求出点值后 "插值" 回去即可 $O \left( p \log p \right)$ 完成。</p></li>
+			<li><p>做带余除法。</p>
+			<p>和一般多项式一样，直接实现除法需要通过求逆，虽然时间复杂度确实是一只 $\log$，但算上浮点的 <abbr title="Fast Fourier Transform, 快速傅里叶变换">FFT</abbr> 后常数还是很大。</p>
+			<p>考虑优化整个求逆式子。注意到我们实际上是在对 $M^R \left( x \right) = \left( 1 - x \right) \left( 1 - 2 x \right) \cdots \left( 1 - n x \right)$ 求逆，而将恒等式 $x^{p-1} - 1 \equiv \left( x - 1 \right) \left( x - 2 \right) \cdots \left( x - \left( p - 1 \right) \right) \pmod p$ 翻转后可以得到 $$ 1 - x^{p-1} \equiv \left( 1 - x \right) \left( 1 - 2 x \right) \cdots \left( 1 - \left( p - 1 \right) x \right) \pmod p $$</p>
+			<p>而 $\left( 1 - x^{p-1} \right)^{-1} \equiv 1 + x^{p-1} \pmod {x^p, p}$，因此有 \begin{align*}
+&amp; M^R \left( x \right) \cdot \left[ \left( 1 - \left( n + 1 \right) x \right) \cdots \left( 1 - \left( p - 1 \right) x \right) \left( 1 + x^{p-1} \right) \right] \\
+=&amp; \left[ \left( 1 - x \right) \left( 1 - 2 x \right) \cdots \left( 1 - n x \right) \right] \cdot \left[ \left( 1 - \left( n + 1 \right) x \right) \cdots \left( 1 - \left( p - 1 \right) x \right) \left( 1 + x^{p-1} \right) \right] \\
+=&amp; \left( 1 - x \right) \left( 1 - 2 x \right) \cdots \left( 1 - \left( p - 1 \right) x \right) \cdot \left( 1 + x^{p-1} \right) \\
+\equiv&amp; \left( 1 - x^{p-1} \right) \cdot \left( 1 + x^{p-1} \right) \\
+\equiv&amp; 1 \pmod {x^p, p}
+\end{align*}</p>
+			<p>从而有 $\left[ M^R \left( x \right) \right]^{-1} = \left( 1 - \left( n + 1 \right) x \right) \cdots \left( 1 - \left( p - 1 \right) x \right) \left( 1 + x^{p-1} \right)$，因此可以通过类似求 $M \left( x \right)$ 的方法求得 $\left[ M^R \left( x \right) \right]^{-1}$。</p>
+			<p>剩下的部分就按照普通多项式除法时间即可，常数已经差不多足以通过了。</p>
+		</ol>
+		<p>于是，整个问题就在 $O \left( p \log p \right)$ 的时间内彻底解决啦。</p>
+		<p style="color: red">(ps: 当然，另一种不同的思路是通过使用 Lagrange 插值法，通过 $0 \sim n$ 处的点值还原出全套点值，然后直接插值)</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+using std::cin;
+using std::cout;
+
+typedef unsigned long long u64;
+typedef long double ld;
+const int N = 530000;
+constexpr ld pi = 3.14159265358979323846264l;
+
+struct C {
+	ld r, i;
+	C () {}
+	C (ld real, ld imag = 0.0) : r(real), i(imag) {}
+	inline C operator + (const C &amp;B) const {return C(r + B.r, i + B.i);}
+	inline C operator - (const C &amp;B) const {return C(r - B.r, i - B.i);}
+	inline C operator * (const C &amp;B) const {return C(r * B.r - i * B.i, r * B.i + i * B.r);}
+	inline C operator * (ld k) const {return C(r * k, i * k);}
+	inline C operator / (ld k) const {return *this * (1.l / k);}
+	inline C conj() const {return C(r, -i);}
+};
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+namespace rpoly_base {
+	int l, n; ld iv; C w2[N];
+
+	void init(int n = N) {
+		int i, t = min(n &gt; 1 ? lg2(n - 1) : 0, 21); ld angle = pi;
+		for (*w2 = C(1), i = 0; i &lt;= t; ++i) angle *= .5l, w2[1 &lt;&lt; i] = C(cosl(angle), sinl(angle));
+		for (i = 3; i &lt; n; ++i) if (i &amp; (i - 1)) w2[i] = w2[i &amp; (i - 1)] * w2[i &amp; -i];
+	}
+
+	inline void FFT_init(int len) {n = 1 &lt;&lt; (l = len), iv = 1.l / n;}
+
+	void DIF(C *a) {
+		int i, len = n &gt;&gt; 1; C *j, *k, *o, R;
+		for (i = 0; i &lt; l; ++i, len &gt;&gt;= 1)
+			for (j = a, o = w2; j != a + n; j += len &lt;&lt; 1, ++o)
+				for (k = j; k != j + len; ++k)
+					R = *o * k[len], k[len] = *k - R, *k = *k + R;
+	}
+
+	void DIT(C *a) {
+		int i, len = 1; C *j, *k, *o, R;
+		for (i = 0; i &lt; l; ++i, len &lt;&lt;= 1)
+			for (j = a, o = w2; j != a + n; j += len &lt;&lt; 1, ++o)
+				for (k = j; k != j + len; ++k)
+					R = *k + k[len], k[len] = (*k - k[len]) * *o, *k = R;
+	}
+}
+
+namespace rpb = rpoly_base;
+
+int n, p, tag = 0;
+int g, ig, w[2 * N];
+int fact[N], finv[N];
+int a[N], b[N];
+int f0[N], f1[N], f1r[N], f2[N];
+int M1[2 * N], M2[2 * N];
+C FM1[2 * N], FM2[2 * N];
+C B1[2 * N], B2[2 * N];
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; p;}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (p - x);}
+
+inline int FP(int n, int r) {return (u64)fact[n] * finv[n - r] % p;}
+
+int find_primitive_root() {
+	int i, j = 0, k;
+	for (i = 2; j != p - 1; ++i)
+		for (j = 1, k = i; k != 1; ++j, k = (u64)k * i % p);
+	return i - 1;
+}
+
+void czt(int *a, int *b) {
+	int i;
+	for (i = 0; i &lt; p - 1; ++i) FM2[p - i - 2] = C((u64)M2[i] * a[i] % p);
+	memset(FM2 + i, 0, (rpb::n - i) * sizeof(C)), rpb::DIF(FM2);
+	for (i = 0; i &lt; rpb::n; ++i) FM2[i] = FM2[i] * FM1[i]; rpb::DIT(FM2);
+	for (i = 0; i &lt; p - 1; ++i) b[i] = (u64)llroundl(FM2[rpb::n - (p - 2) - i].r * rpb::iv) % p * M2[i] % p;
+}
+
+// calc f0(x) mod f1(x), deg f0 &lt;= p - 1, deg f1 = n + 1
+void div_mod() {
+	int A = p - 1, B = n + 1, Q = A - B, i;
+	for (i = 0; i &lt;= Q; ++i) B1[i] = C(f0[A - i]), B2[i] = C(f2[i]);
+	memset(B1 + i, 0, (rpb::n - i) * sizeof(C)), memset(B2 + i, 0, (rpb::n - i) * sizeof(C));
+	rpb::DIF(B1), rpb::DIF(B2);
+	for (i = 0; i &lt; rpb::n; ++i) B1[i] = B1[i] * B2[i];
+	rpb::DIT(B1), std::reverse(B1 + 1, B1 + rpb::n);
+	for (i = 0; i &lt;= Q; ++i) a[Q - i] = (u64)llroundl(B1[i].r * rpb::iv) % p;
+
+	for (i = 0; i &lt; B; ++i) B1[i] = C(f1[i]); memset(B1 + i, 0, (rpb::n - i) * sizeof(C));
+	for (i = 0; i &lt; B &amp;&amp; i &lt;= Q; ++i) B2[i] = C(a[i]); memset(B2 + i, 0, (rpb::n - i) * sizeof(C));
+	rpb::DIF(B1), rpb::DIF(B2);
+	for (i = 0; i &lt; rpb::n; ++i) B1[i] = B1[i] * B2[i];
+	rpb::DIT(B1), std::reverse(B1 + 1, B1 + rpb::n);
+	for (i = 0; i &lt; B; ++i) reduce(b[i] = f0[i] - int((u64)llroundl(B1[i].r * rpb::iv) % p));
+}
+
+void work() {
+	int i;
+	cin &gt;&gt; n &gt;&gt; p, g = find_primitive_root(), rpb::FFT_init(lg2(p - 2) + 2);
+	assert(0 &lt; n &amp;&amp; n &lt; p - 1);
+	for (*w = i = 1; i &lt; 2 * p - 1; ++i) w[i] = (u64)w[i - 1] * g % p;
+	ig = w[p - 2], *FM1 = *M1 = *M2 = 1;
+	for (i = 1; i &lt; 2 * p - 3; ++i)
+		M1[i] = (u64)w[i - 1] * M1[i - 1] % p,
+		M2[i] = (u64)w[2 * p - i - 1] * M2[i - 1] % p,
+		FM1[i] = C(M1[i]);
+	memset(FM1 + i, 0, (rpb::n - i) * sizeof(C)), rpb::DIF(FM1);
+	for (*fact = i = 1; i &lt; p; ++i) fact[i] = (u64)fact[i - 1] * i % p;
+	for (finv[p - 1] = i = p - 1; i; --i) finv[i - 1] = (u64)finv[i] * i % p;
+
+	for (i = 0; i &lt;= n; ++i) cin &gt;&gt; a[i];
+	memset(a + i, 0, (p - i) &lt;&lt; 2);
+	for (i = 0; i &lt; p - 1; ++i) b[i] = a[w[i]];
+	czt(b, f0), std::reverse(f0 + 1, f0 + (p - 1));
+	for (i = 0; i &lt; p - 1; ++i) neg(f0[i]);
+	reduce(f0[i] = *f0 - *a), *f0 = *a;
+
+	if (n == p - 2) {
+		for (i = 1; i &lt; p; ++i) f1[i] = (i &amp; 1 ? p - 1 : 1);
+	} else {
+		for (i = 0; i &lt; p - 1; ++i) b[i] = (w[i] &lt;= n ? 0 : FP(w[i], n + 1));
+		czt(b, f1), std::reverse(f1 + 1, f1 + (p - 1));
+		for (i = 0; i &lt; p - 1; ++i) neg(f1[i]);
+	}
+
+	for (i = 0; i &lt;= n; ++i) a[i] = FP(i + (p - n - 1), p - n - 1);
+	memset(a + i, 0, (p - i) &lt;&lt; 2);
+	for (i = 0; i &lt; p - 1; ++i) b[i] = a[w[i]];
+	czt(b, f2), std::reverse(f2 + 1, f2 + (p - 1));
+	for (i = 0; i &lt; p - 1; ++i) neg(f2[i]);
+	std::reverse(f2, f2 + (p - n)), f2[p - 1] = 1;
+
+	div_mod();
+
+	cout &lt;&lt; "Case #" &lt;&lt; ++tag &lt;&lt; ':' &lt;&lt; '\n';
+	for (i = 0; i &lt;= n; ++i) cout &lt;&lt; b[i] &lt;&lt; (i == n ? '\n' : ' ');
+}
+
+int main() {
+	int T; rpb::init();
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $5 \times 10^5$ 的范围直接使用一般的 <code>double</code> 做 <abbr title="Fast Fourier Transform, 快速傅里叶变换">FFT</abbr> 会爆精度，需要使用 <code>long double</code> 或拆系数 FFT/双模数 NTT 等。</p>
+		<p><strong>坑2：</strong><abbr title="Fast Fourier Transform, 快速傅里叶变换">FFT</abbr> 返回的值都比较大，通常是 <code>long long</code> 级别的，因此一定要取模后再与其它量相乘，避免溢出。</p>
+	</body>
+</html>

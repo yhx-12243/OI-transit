@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1383F]Special Edges</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style>
+			.fbi-warning, .fbi-warning a {color: white}
+			.fbi-warning:hover {color: red}
+		</style>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $n$ 个顶点，$m$ 条边的<strong>有向</strong>图 (网络) $G$，其中每条边有一个非负整数的容量。其中有 $k$ 条边 —— 它们在原图中的编号为 $1, 2, \cdots, k$ —— 是特殊的。在初始情况下它们的容量均为 $0$。</p>
+		<p>现在有 $q$ 组询问，对于每组询问，会给定 $k$ 个非负整数 $w_1, w_2, \cdots, w_k$，你需要求出：如果将编号为 $i$ 的特殊边的容量改为 $w_i$ (对 $i = 1, 2, \cdots, k$)，那么从 $1$ 到 $n$ 的<strong>最大流</strong>会是多少？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含四个正整数 $n, m, k, q$ ($2 \leq n \leq 10^4; 1 \leq m \leq 10^4; 1 \leq k \leq \min \left\{ 10, m \right\}; 1 \leq q \leq 2 \times 10^5$)，分别表示顶点的个数，边的个数，特殊边的个数以及询问的个数。</p>
+		<p>接下来 $m$ 行，每行三个非负整数 $u, v, w$ ($1 \leq u, v \leq n; 0 \leq w \leq 25$)，描述图中有一条从 $u$ 到 $v$，容量为 $w$ 的有向边、</p>
+		<p>其中，边的编号按照输入顺序指定。其中 $1, 2, \cdots, k$ 号边的容量均为 $0$。</p>
+		<p>最后 $q$ 行，每行 $k$ 个非负整数 $w_1, w_2, \cdots, w_k$ ($0 \leq w_i \leq 25$)，描述一组询问。其中 $w_i$ 表示 $i$ 号边新的容量。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示在重新定容后的图中最大流的值。</p>
+
+		<h3>题解</h3>
+		<h4 class="fbi-warning text-center"><del>Warning：珍 爱 生 命，远 离 C F 1 3 8 3 F。</h4>
+		<p>注意到特殊边不多，因此我们考虑<strong>最大流最小割定理</strong>将最大流转化为最小割。</p>
+		<p>而最小割这个模型就更具体一些，因为它就实实在在地等于若干条边的容量之和。</p>
+		<p>因此对于每组询问，我们可以考虑枚举这 $k$ 条边哪些边在割上，哪些边不在割上，那么剩下的问题就和就和这些特殊边的容量无关了 —— 对于在割上的边，它相当于已经不复存在了，删去它即可；对于不在割上的边，我们不能割它，即相当于容量为 $+ \infty$。</p>
+		<p>于是，我们将原问题转化为了 $2^k$ 个和 $w_i$ 无关的问题 —— 即对于这 $k$ 条边的每一种 $\left( 0, + \infty \right)$，求出原图的最小割 (最大流)，然后在询问时枚举哪些边在割上最后取 $\min$ 即可，询问部分的时间复杂度即为 $O \left( 2^k \cdot q \right)$，这部分是可以接受的。</p>
+		<hr />
+		<p>考虑计算这 $2^k$ 种组合的最大流，暴力计算的时间复杂度为 $O \left( 2^k \cdot \operatorname{flow} \left( n, m \right) \right)$ 显然过不去，因此，我们像<a href="../index.html?redirect=406" target="_blank">这道题</a>一样利用这些图之间的联系，进行更快速的转移。</p>
+		<p>首先，对于容量为 $0$ 的情形，我们可以直接当成边不存在，于是每次操作就相当于加入一条边权为 $+ \infty$ 的边，重新计算最大流。</p>
+		<p>我们在加边之前保留原来的残量网络，在残量网络上继续增广。注意到 $w \leq 25$，因此我们可以直接加入边权为 $25$ 的边，因此在增广的过程中至多增广 $25$ 次，这部分的时间复杂度为 $O \left( \left( \max w \right) \cdot \left( n + m \right) \right)$，一共有 $2^k$ 次这样的操作，故总时间复杂度为 $O \left( \operatorname{flow} \left( n, m \right) + 2^k \cdot \left( \max w \right) \cdot \left( n + m \right) + 2^k \cdot q \right)$。</p>
+		<hr />
+		<p>这个复杂度<strong>理论上</strong>是可以过了，但是由于网络流的大常数，我们需要对其进行亿点卡常。</p>
+		<p>一些卡常的要点就见“坑”部分了，<del>总之这个题就很鸡贼，把你 TLE 到怀疑人生~</del></p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define popc __builtin_popcount
+#define ctz __builtin_ctz
+using std::cin;
+using std::cout;
+
+const int N = 10054, M = 20054, INF = 0x6666666;
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+namespace Flow {
+	#define ad(x) (((x - 1) ^ 1) + 1)
+
+	struct edge {
+		int u, v, f, nxt;
+		edge (int u0 = 0, int v0 = 0, int f0 = 0, int next = 0)
+			: u(u0), v(v0), f(f0), nxt(next) {}
+	} e[M];
+
+	int V = 2, E = 0, si = 1, ti = 2, flow;
+	int first[N];
+	int dep[N], cur[N], que[N];
+
+	inline void addedge(int u, int v, int f) {
+		e[++E] = edge(u, v, f, first[u]), first[u] = E;
+		e[++E] = edge(v, u, 0, first[v]), first[v] = E;
+	}
+
+	bool bfs() {
+		int h, t = 1, i, x, y;
+		memset(dep, -1, (V + 1) &lt;&lt; 2);
+		que[0] = si, dep[si] = 0;
+		for (h = 0; h &lt; t; ++h) {
+			if ((x = que[h]) == ti) return true;
+			for (i = first[x]; i; i = e[i].nxt)
+				if (dep[y = e[i].v] == -1 &amp;&amp; e[i].f)
+					que[t++] = y, dep[y] = dep[x] + 1;
+		}
+		return false;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		for (int &amp;i = cur[x]; i; i = e[i].nxt)
+			if (dep[e[i].v] == dep[x] + 1 &amp;&amp; e[i].f) {
+				a = min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c, e[ad(i)].f += c;
+				if ((f += c) == lim) return f;
+			}
+		return f;
+	}
+
+	int Dinic() {
+		for (; bfs(); flow += dfs(si, INF))
+			memcpy(cur, first, (V + 1) &lt;&lt; 2);
+		return flow;
+	}
+
+	int pre[N], tag[N], stamp = 0;
+	int stack[N];
+
+	bool small_flow_bfs() {
+		int h, t = 1, x, y, i, j, c, top;
+		*que = si, tag[si] = ++stamp;
+		for (h = 0; h &lt; t; ++h)
+			for (i = first[x = que[h]]; i; i = e[i].nxt) {
+				if (tag[y = e[i].v] != stamp &amp;&amp; e[i].f) {
+					pre[y] = i;
+					if (y == ti) {
+						c = INT_MAX, top = 0;
+						for (j = pre[ti]; ; j = pre[ e[j].u ]) {
+							down(c, e[j].f), stack[++top] = j;
+							if (e[j].u == si) break;
+						}
+						for (flow += c; top; --top)
+							e[stack[top]].f -= c, e[ad(stack[top])].f += c;
+						return true;
+					}
+					tag[y] = stamp, que[t++] = y;
+				}
+			}
+		return false;
+	}
+
+	int small_flow() {
+		for (; small_flow_bfs(); );
+		return flow;
+	}
+}
+
+int V, E, K, ALL, q;
+int ex[1025], flow[1025], cut[1025];
+int f[1025][M];
+
+int main() {
+	int i, j, u, v, w, ans, _[10];
+	char *_c = new char;
+	std::mt19937 gen(time(NULL) + (size_t)_c); delete _c;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; V &gt;&gt; E &gt;&gt; K &gt;&gt; q, ALL = ~(-1 &lt;&lt; K);
+	Flow::V = V, Flow::si = 1, Flow::ti = V;
+	for (i = 0; i &lt; E; ++i) cin &gt;&gt; u &gt;&gt; v &gt;&gt; w, Flow::addedge(u, v, w);
+	*flow = Flow::Dinic();
+	for (u = 1; u &lt;= 2 * E; ++u) f[0][u] = Flow::e[u].f;
+	for (i = 1; i &lt;= ALL; ++i) {
+		w = -1;
+		for (j = i; j; j &amp;= j - 1)
+			if (flow[i &amp; ~(j &amp; -j)] &gt; w) w = flow[i &amp; ~(j &amp; -j)], v = j;
+			else if (flow[i &amp; ~(j &amp; -j)] == w &amp;&amp; gen() &amp; 1) v = j;
+		Flow::flow = w, w = i &amp; ~(v &amp; -v);
+		for (u = 1; u &lt;= 2 * E; ++u) Flow::e[u].f = f[w][u];
+		Flow::e[2 * ctz(v) + 1].f = 25, flow[i] = Flow::small_flow();
+		for (u = 1; u &lt;= 2 * E; ++u) f[i][u] = Flow::e[u].f;
+	}
+	for (i = 0; i &lt;= ALL; ++i) cut[i ^ ALL] = flow[i];
+	for (; q; --q) {
+		for (i = 0; i &lt; K; ++i) cin &gt;&gt; _[i];
+		for (i = 1; i &lt;= ALL; ++i) ex[i] = ex[i &amp; (i - 1)] + _[ctz(i)];
+		for (ans = *cut, i = 1; i &lt;= ALL; ++i) down(ans, ex[i] + cut[i]);
+		cout &lt;&lt; ans &lt;&lt; '\n';
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意网络流加边时是单向边，不要加成双向边了。</p>
+		<p><strong>坑2：</strong>下面就是<del style="color: red; text-shadow: 0px -1px 2px">精彩卡常</del>时间了：</p>
+		<p style="color: red">(ps: 事实上，原 System Test 的强度是很弱的，$5 \,\mathrm s$ 时间绰绰有余，但自从被<del>一群毒瘤</del> Hack 之后这题的时限就<del>变得非常 Ynoi 了</del>)</p>
+		<ul>
+			<li>加边时边权千万不要设为 $+ \infty$，要设为 $25$，用于剪枝。</li>
+			<li>在残量网络上增广的过程，复杂度都是能被卡到 $O \left( 25 m \right)$ 的，而普通 <code>dfs</code> 会因为系统栈等其它原因造成常数的劣势，因此可以考虑像费用流一样找到一条路径就倒回去填上，它的复杂度也是 $O \left( 25 m \right)$ 但常数更小。</li>
+			<li>邻接表的 <code>next[]</code> 数组可以嵌入到边中，减小缓存开销。</li>
+			<li>在枚举 $2^k$ 种情况时，每一种情况都需要找一个 "基准"，从那个 "基准" 加一条边增广得来 (当然如果你是删边退流那已经无话可说了)，此时可以选择一个原来流量比较大的 "基准" 进行增广，减少增广次数。</li>
+			<li>最后可以对这 $k$ 条边进行随机化，或者当有多个相同流量的 "基准" 时随机化，避免被定向 Hack。</li>
+			<li>……</li>
+		</ul>
+		<p>或者你可以参考一下这道题的<a href="https://codeforces.com/contest/1383/submission/88284903" target="_blank">标程</a> (它贼稳，现在稳居 rk1 且不到 1s)，主要思路是记录下每次增广的耗时 (对，就是那个所谓的 <code>clock</code>)，然后用一个类似堆的玩意去尽量最小化总时间，具体细节还是见那份代码吧~</p>
+	</body>
+</html>

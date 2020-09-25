@@ -24,7 +24,7 @@ window.onload = function () {
 			 || window.mozRequestAnimationFrame
 			 || window.oRequestAnimationFrame
 			 || window.msRequestAnimationFrame
-			 || (cb => setTimeout(cb, 83.333, CLK()));
+			 || (x => setTimeout(x, 83.333, CLK()));
 
 	// ---------------- basic ---------------- //
 	let w, h, x0, y0, d, r, R, n, m, t = -1, T, ready = false;
@@ -320,6 +320,11 @@ window.onload = function () {
 			if (t > T) {
 				if (disappears.hasOwnProperty(tg))
 					for (i of disappears[tg]) stgm.removeChild(bullets[i].circle);
+				$('cur-time').innerHTML = T.toString().padStart(5, '0');
+				$('cur-score').innerHTML = score.toString();
+				$('next-bonus-time').innerHTML = 'N/A',
+				$('next-bonus-amount').innerHTML = 'N/A';
+				report_stage_status(FPS.info());
 				return setTimeout(game_end, 1000);
 			}
 			if (!is_auto && t && operate_seq[t - 1] === 'S')
@@ -387,9 +392,9 @@ window.onload = function () {
 	}
 
 	async function game_init(type) {
-		let cb, di = d * Math.SQRT1_2;
+		let nseq, di = d * Math.SQRT1_2;
 
-		if (!ready) return report_status('<span class="text-danger">配置未成功，请选择文件！');
+		if (!ready) return report_status('<span class="text-danger">配置未成功，请选择文件！</span>');
 		sc = pf($('scale').value), SC = 1. / sc;
 		if (!(.001 <= sc && sc <= 1000))
 			return report_status(`<span class="text-danger">尺寸比例尺 1 : ${sc} 不在范围 [10<sup>-3</sup>, 10<sup>3</sup>] 中</span>`);
@@ -404,8 +409,8 @@ window.onload = function () {
 		if (sw > 2000 && sh > 1500 && !confirm('过大的比例尺会降低视觉体验，确定继续？'))
 			return $('scale').value = get_recommend_scale().toString();
 		if (is_auto = type) {
-			operate_seq = await load_strategy();
-			if (!operate_seq) return;
+			if (nseq = await load_strategy()) operate_seq = nseq;
+			else return;
 		} else {
 			operate_seq = 'S'.repeat(T);
 		}
@@ -533,4 +538,4 @@ window.onload = function () {
 			alert('尚未找到决策，请先开始游戏');
 		}
 	});
-}
+};

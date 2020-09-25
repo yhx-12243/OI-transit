@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1383C]String Transformation 2</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有两个长度为 $n$ 的字符串，它们只由前 $20$ 个小写字母 (即 $\texttt a \sim \texttt t$) 组成。现在可以对其进行若干次操作，每次操作的规则如下：</p>
+		<ol>
+			<li><p>选择若干个下标 $p_1, p_2, \cdots, p_k$ ($1 \leq p_1 &lt; p_2 &lt; \cdots &lt; p_k \leq n; k \geq 1$)，使得 $A_{p_1} = A_{p_2} = \cdots = A_{p_k} = x$ ($x$ 表示任意一个字符，即 $A$ 中所有这些下标所对应的字符都相同，记为 $x$)。</p></li>
+			<li><p>在前 $20$ 个小写字母 ($\texttt a \sim \texttt t$) 中任选一个字符 $y$。</p></li>
+			<li><p>令这些字符都变为 $y$。更正式地，对 $\forall 1 \leq i \leq k$，令 $A_{p_i} \gets y$。</p>
+			<p style="color: red">(ps: 你只能改变字符串 $A$)</p></li>
+		</ol>
+		<p>现在的目标是让 $A$ 与 $B$ 相等，求至少需要做多少次操作。</p>
+
+		<h3>输入格式</h3>
+		<p>本题包含多组数据，第一行包含一个正整数 $T$ ($T \leq 10$)，表示数据组数。</p>
+		<p>对于每组数据，第一行包含一个正整数 $n$ ($\sum n \leq 10^5$)，表示字符串的长度。</p>
+		<p>第二行包含一个长度为 $n$ 的，仅由前 $20$ 个小写字母构成的字符串 $A$。</p>
+		<p>第三行包含一个长度为 $n$ 的，仅由前 $20$ 个小写字母构成的字符串 $B$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示操作次数的最小值。</p>
+
+		<h3>题解</h3>
+		<p>设做的 $k$ 次操作分别为 $u_1 \to v_1, u_2 \to v_2, \cdots, u_k \to v_k$，那么这个操作序列是可行的，当且仅当对每个位置 $i$ ($1 \leq i \leq n$)，存在一个操作序列的<strong>子序列</strong>，使得它们 "首尾相接" 后恰好是 $A_i \to B_i$。</p>
+		<p>首先，忽略满足 $A_i = B_i$ 的 $i$，因此剩下我们只需要关心对于 $\forall u, v \in \left\{ \texttt a, \texttt b, \cdots, \texttt t \right\}$，<strong>是否存在</strong>一个 $i$ 满足 $A_i = u, B_i = v$。也就是说，我们可以在一个 $20$ 个顶点的有向简单图中去考虑问题。</p>
+		<p>首先，显然不同弱连通分量的答案是相互独立的，只需分别求解后相加即可。因此下面考虑一个 $G$ 为弱连通图的情形。</p>
+		<p>若 $G = \left( V, E \right)$ 为 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，那么答案显然是 $\left| V \right| - 1$ —— 构造直接按照一个拓扑序依次替换即可，而它显然也是下界，因为一个连通图至少需要有这么多条边。</p>
+		<p>那如果 $G$ 不是 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，情况又会怎么样呢？</p>
+		<p>一个初步的想法是，我们选取若干个点，将其删去。设我们删去了 $c$ 个点，假设剩下 $\left| V \right| - c$ 个点构成了 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，那么对这些点只需要进行 $\left| V \right| - c - 1$ 次操作，而对于删去的 $c$ 个点我们初始将它们变为拓扑序中的首节点，最后从拓扑序中的尾节点再将它们变回来，共 $2 c$ 次操作完成操作。</p>
+		<p>也就是说，我们得到了一个操作次数为 $\left( \left| V \right| - c - 1 \right) + 2 c = \left( \left| V \right| - 1 \right) + c$ 的方案。</p>
+		<p>根据上面的分析可知，当 $c$ 越小时，方案越优。也就是说，设点数最大的无环导出子图的点数为 $\left| V \right| - c_\min$ (换句话说即至少删去 $c_\min$ 个点才能使得图无环)，那么存在一组操作次数为 $\left( \left| V \right| - 1 \right) + c_\min$ 的方案。</p>
+		<hr />
+		<p>那这个方案是否是最优的呢？下面就来证明它的最优性，即 <strong style="color: green">$\left( \left| V \right| - 1 \right) + c_\min$ 确实是操作次数的一个下界</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>设 $u_1 \to v_1, u_2 \to v_2, \cdots, u_k \to v_k$ 是一组可行操作，记 $c = k - \left( \left| V \right| - 1 \right)$。由之前的性质知显然 $c \geq 0$。我们尝试构造一个大小为 $\left| V \right| - c$ 的无环导出子图从而完成证明。</p>
+				<p>考虑在一张无边的 $\left| V \right|$ 阶有向图 $H$ 中依次加入有向边 $u_1 \to v_1, u_2 \to v_2, \cdots, u_k \to v_k$，但满足如下规则：</p>
+				<ul>
+					<li>如果加入一条边 $u_i \to v_i$ 时，$u_i$ 和 $v_i$ 在同一个弱连通分量中，则<strong>不加入这条边</strong> (或者说把这条边标灰)，同时将点 $v_i$ 标黑。</li>
+				</ul>
+				<p>由 $G$ 的连通性可知最后 $H$ 的基图是一棵树，从而 $H$ 一定是一个 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>。</p>
+				<p>而且，$H$ 中的黑点数不超过非树边的个数，即 $c$。</p>
+				<p>称 $H$ 中不是黑点的点为白点，设这些白点按照拓扑序分别为 $w_1, w_2, \cdots, w_\kappa$。考虑 $G$ 中的这些白点。下面证明 $G \left[ \left\{ w_1, w_2, \cdots, w_\kappa \right\} \right]$ 是 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>。</p>
+				<p>反之，若 $G$ 中存在边 $w_j \to w_i$ ($i &lt; j$)，那么 $H$ 中考虑灰边一定有 $w_j$ 到 $w_i$ 的路径 $w_j \leadsto w_i$，设这条路径中经过的白点中拓扑序最小的是 $w_t$。</p>
+				<ol>
+					<li>若连向 $w_t$ 的边 $\left( f, w_t \right)$ 是灰边，则 $w_t$ 是黑点，矛盾。</li>
+					<li>若连向 $w_t$ 的边 $\left( f, w_t \right)$ 不是灰边，则由边的加入顺序知 $w_j$ 的拓扑序应在 $w_i$ 前，矛盾。</li>
+				</ol>
+				<p>综上，$G \left[ \left\{ w_1, w_2, \cdots, w_\kappa \right\} \right]$ 确实是 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，而 $\kappa \geq \left| V \right| - c$，证毕。</p>
+			</div>
+		</div>
+		<p>于是我们只需要对每个弱连通分量求出最大无环导出子图即可，是所有暴力搜索和状态压缩 DP 都可以通过，单组数据时间复杂度 $O \left( n + \left| \Sigma \right| 2^\left| \Sigma \right| \right)$ ($\left| \Sigma \right|$ 表示字符集大小)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define popc __builtin_popcount
+#define ctz __builtin_ctz
+using std::cin;
+using std::cout;
+
+const int N = 100054, V = 20, ALL = 1048575;
+
+int n;
+char A[N], B[N];
+int G[V], p[V];
+bool DAG[ALL + 2];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+void work() {
+	int i, j, u, v, extra = V, ans = 0;
+	cin &gt;&gt; n &gt;&gt; A &gt;&gt; B;
+	memset(G, 0, sizeof G), std::iota(p, p + V, 0);
+	for (i = 0; i &lt; n; ++i) if ((u = A[i] - 97) != (v = B[i] - 97)) G[u] |= 1 &lt;&lt; v, p[ancestor(u)] = ancestor(v);
+	*DAG = true;
+	for (i = 1; i &lt;= ALL; ++i) {
+		DAG[i] = false;
+		for (j = i; j &amp;&amp; !DAG[i]; j &amp;= j - 1)
+			v = ctz(j), DAG[i] = DAG[i] || (DAG[i &amp; ~(1 &lt;&lt; v)] &amp;&amp; !(G[ctz(j)] &amp; i));
+		if (DAG[i]) down(extra, V - popc(i));
+	}
+	for (i = 0; i &lt; V; ++i) ans += p[i] != i;
+	cout &lt;&lt; ans + extra &lt;&lt; '\n';
+}
+
+int main() {
+	int T;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>事实上不用每个连通块单独计算，我们可以将式子 $\left( \left| V \right| - 1 \right) + c_\min$ 加起来，得到 $n - C + c'_\min$，其中 $C$ 为 $G$ 的弱连通块个数，由 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> 的性质可知 $c'_\min$ 就等于在原图至少要删去多少个点才能使得图无环。</p>
+		<p><strong>坑2：</strong>多组数据记得把图清空。</p>
+	</body>
+</html>

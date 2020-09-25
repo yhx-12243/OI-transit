@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1383E]Strange Operation</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个长度为 $n$ 的 $\texttt 0/\texttt 1$ 串 $s$，现在可以对其进行<strong>不超过</strong> $n - 1$ 次 (可以是 $0$ 次) 操作，操作规则如下：</p>
+		<ul>
+			<li>设当前的字符串为 $s$，选择下标 $1 \leq i &lt; \left| s \right|$，并令 $s_i \gets \max \left\{ s_i, s_{i+1} \right\}$，然后删除字符 $s_{i+1}$，得到一个长度为 $\left| s \right| - 1$ 的字符串 (记作 $t$)，最后令 $s \gets t$。</li>
+		</ul>
+		<p>可以注意到，每次操作后，字符串 $\left| s \right|$ 的长度会减少 $1$。</p>
+		<p>求若干次操作后，一共可以得到多少种不同的字符串 $s$ 呢？</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个由 $\texttt 0/\texttt 1$ 构成的字符串 $s$ ($1 \leq \left| s \right| \leq 10^6$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示可以得到的不同字符串数量模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>设 $n = \left| s \right|$。首先，如果这个字符串全由 $\texttt 0$ 构成，那么答案很平凡，就等于 $n$。因此下面假设字符串中至少有一个 $\texttt 1$。</p>
+		<p>我们考虑这个操作实际上就是一个取 "或" 的过程。因此，如果初始状态下 $s$ 中有 $\texttt 1$，那么最终 $s$ 中肯定也会有 $\texttt 1$。</p>
+		<p>考虑最左侧的 $\texttt 1$ 前的 $\texttt 0$ 和最右侧 $\texttt 1$ 后的 $\texttt 0$，可以看出这两部分和中间部分在始末的变化是互相独立的。也就是说，设原问题的答案为 $ans$，将这些 $\texttt 0$ 去掉后的答案为 $ans'$，则 $ans = ans' \cdot \left( l + 1 \right) \cdot \left( r + 1 \right)$，其中 $l, r$ 表示两侧的 $\texttt 0$ 个数。</p>
+		<p>故以下假设 $s$ 的两端均为 $\texttt 1$。设 $s$ 中共有 $m + 1$ ($m \in \mathbb N$) 个 $\texttt 1$，相邻两个 $\texttt 1$ 之间的 $\texttt 0$ 的<strong>数量</strong>分别为 $a_1, a_2, \cdots, a_m$。</p>
+		<p>首先，显然可知这种 $s$ 经操作后两端仍为 $\texttt 1$，因此我们可以用一个数组 (可以为空) 来唯一表示一个两端均为字符串：即 $\left[ a_1, a_2, \cdots, a_m \right]$。</p>
+		<hr />
+		<p>考虑每次操作，可以对这个数组产生怎样的影响。</p>
+		<ol>
+			<li>"合并" 两个 $\texttt 0$，或一个 $\texttt 1$ 和一个 $\texttt 0$：使某个 $a_i \gets a_i - 1$。</li>
+			<li>"合并" 两个 $\texttt 1$：在数组中去掉一个 $0$。</li>
+		</ol>
+		<p>那么，<strong style="color: fuchsia">$\left[ a_1, a_2, \cdots, a_m \right]$ 可以通过操作得到 $\left[ b_1, b_2, \cdots, b_r \right]$，当且仅当存在 $\left[ a_1, a_2, \cdots, a_m \right]$ 的子序列 $\left[ c_1, c_2, \cdots, c_r \right]$，使得 $b_1 \leq c_1, b_2 \leq c_2, \cdots, b_r \leq c_r$</strong>。</p>
+		<p>于是给定数组 $\mathbf b$ 后的判定问题就简单了：我们只需贪心寻找当前往后第一个 $\geq b_i$ 的 $a_j$，看看最后能不能找完即可。</p>
+		<p>当我们获得了有效的判定算法后，剩下的 DP 就变得不难了：</p>
+		<p>设 $f_i$ 表示只考虑 $\left[ a_1, a_2, \cdots, a_i \right]$ 并使用 $a_i$，可以得到多少种不同的 $\mathbf b$。更严谨地，<strong style="color: blue">有多少个 $\mathbf b$ 数组通过上述贪心算法所得到的 $\mathbf a$ 的末下标恰好为 $i$</strong>。</p>
+		<p>那么有边界 $f_0 = 0$，答案就是 $\displaystyle \sum_{i=1}^m f_i$。</p>
+		<p>考虑转移，通过定义去刷表：设当前达到 $a_i$，考虑在 $\mathbf b$ 末端添加元素 $x$，于是它可以转移到 <strong>$a_{i+1}, a_{i+2}, \cdots, a_n$ 中首个 $\geq x$ 的元素</strong> (若不存在则无法转移)，设为 $a_j$，然后令 $f_j \gets f_i$。</p>
+		<p>可惜地是，直接这样做是 $O \left( n^2 \right)$ 的，我们要考虑类似前缀和优化的思想。</p>
+		<p>那么首先将<em>刷表</em>转化为<em>填表</em>：即 $f_i$ 可以从多少个 $f_j$ 中转移过来。</p>
+		<p>枚举末端添加的元素 $x = 0, 1, \cdots, a_i$。记该元素为 $x$，那么能从它转移过来的 $j$ 需要满足 $$ \max \left\{ a_{j+1}, a_{j+2}, \cdots, a_{i-1} \right\} &lt; x $$</p>
+		<p>显然满足上述条件的 $j$ 的范围为一段区间。设这些 $j$ 对应的 $f$ 的和为 $g_x$，那么 $$ f_i = \sum_{x=0}^{a_i} g_x $$</p>
+		<p>这是一个类似单调的栈的结构，因此我们可以考虑添加一个 $a_i$ 后，$j$ 的影响，以及 $g_x$ 的影响。</p>
+		<ol>
+			<li>如果 $x \leq a_i$，那么该不等式不再成立，从而左端点被重赋为 $i$。</li>
+			<li>如果 $x &gt; a_i$，那么对不等式不影响，从而不需要改变。</li>
+		</ol>
+		<p>考虑暴力实现这两个过程 (求和与重赋左端点)，可以发现它们都是 $O \left( a_i \right)$ 的，因此这样做的总时间复杂度就为 $O \left( \sum a_i \right) = O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 1000054, mod = 1000000007;
+
+int n, m = 0;
+int a[N], f[N];
+char s[N];
+
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void sub(int &amp;x, const int y) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+
+namespace pb_ds {
+	int f[N], global = 0;
+
+	inline int get(int i) {return f[i] + global &gt;= mod ? f[i] + global - mod : f[i] + global;}
+	inline void add(int x) {::add(global, x);}
+	inline void reset(int i) {for (; i &gt;= 0; --i) f[i] = mod - global;}
+}
+
+int main() {
+	int i, j, cnt; ll cur, ans = 1;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; s, n = strlen(s);
+	for (cnt = i = 0; i &lt; n; ++i)
+		if (s[i] &amp; 1) a[m++] = cnt, cnt = 0;
+		else ++cnt;
+	a[m++] = cnt;
+	if (!--m) return cout &lt;&lt; n &lt;&lt; '\n', 0;
+	pb_ds::add(1);
+	for (i = 1; i &lt; m; ++i) {
+		for (cur = j = 0; j &lt;= a[i]; ++j) cur += pb_ds::get(j);
+		f[i] = cur % mod, pb_ds::reset(a[i]), pb_ds::add(f[i]), ans += f[i];
+	}
+	cout &lt;&lt; ans % mod * (*a + 1) % mod * (a[m] + 1) % mod &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意空数组 $\left[ \, \right]$ 表示的串 ($\texttt 1$) 在 DP 时不会被统计到，因此最后答案还需要 $+ 1$，或者直接令答案等于 $\displaystyle \sum_{i=0}^m f_i$ 也可以。</p>
+		<p><strong>坑2：</strong>注意不要忘记特判全 $\texttt 0$ 的串。</p>
+	</body>
+</html>

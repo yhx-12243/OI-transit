@@ -380,7 +380,7 @@ window.onload = function () {
 	async function game_init(type) {
 		let cb, di = d * Math.SQRT1_2;
 
-		if (!ready) return report_status('<span class="text-danger">配置未成功，请选择文件！');
+		if (!ready) return report_status('<span class="text-danger">配置未成功，请选择文件！</span>');
 		sc = pf($('scale').value), SC = 1. / sc;
 		if (!(.001 <= sc && sc <= 1000))
 			return report_status(`<span class="text-danger">尺寸比例尺 1 : ${sc} 不在范围 [10<sup>-3</sup>, 10<sup>3</sup>] 中</span>`);
@@ -533,4 +533,4 @@ window.onload = function () {
 			alert('尚未找到决策，请先开始游戏');
 		}
 	});
-}
+};

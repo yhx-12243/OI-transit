@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1396D]Rainbow Rectangles</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在一个 $L \times L$ 的正方形网格上，一共有 $n$ 个糖果，其中第 $i$ 个糖果位于第 $y_i$ 行第 $x_i$ 列。</p>
+		<p>糖果一共分为 $k$ 种。你需要选择网格中的一个<strong>子矩形</strong>，使得该矩形中<strong>包含 $k$ 种颜色的糖果各至少一个</strong>。当然，每个小方格必须要么完全在子矩形中，要么完全不在子矩形中。</p>
+		<p>求一共有多少种满足条件的子矩形。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, k, L$ ($1 \leq k \leq n \leq 2000; 1 \leq L \leq 10^9$)，分别表示糖果的数量，糖果的种类数和网格的大小。</p>
+		<p>接下来 $n$ 行，每行三个非负整数 $x_i, y_i, c_i$ ($0 \leq x_i, y_i &lt; L; 1 \leq c_i \leq k$)，表示在位置 $\left( x_i, y_i \right)$ 有一个第 $c_i$ 种糖果，其中行、列从 $0$ 开始编号。</p>
+		<p>保证所有糖果的坐标互不相同，且保证每种糖果至少有一个。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的子矩形数量模 $10^9 + 7$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>先考虑这个问题的一维版本：有多少个区间 $\left[ l, r \right]$，包含每种糖果至少一个。</p>
+		<p>而这是简单的 —— 我们只需记 $f_i$ 表示最小的 $j \in \left[ i, L \right]$ 使得 $\left[ i, j \right]$ 满足条件，那么有：</p>
+		<ul>
+			<li>$f_i$ 单调递增，即 $f_i \leq f_{i+1}$。</li>
+			<li>$\left[ l, r \right]$ 满足条件当且仅当 $r \geq f_l$。</li>
+		</ul>
+		<p>因此我们只需要使用双指针求出所有 $f_i$ 后计算 $\displaystyle \sum_{i=0}^{L-1} \left( L - f_i \right)$，而对于 $L \leq 10^9$ 只需做一个简单的离散化即可。</p>
+		<p style="color: red">(ps: 因为可以离散化，所以下面假设整个网格的长宽都是 $O \left( n \right)$ 级别的)</p>
+		<hr />
+		<p>考虑二维的情形，首先如果固定矩形的上下边界 (即考虑对于<strong>一组</strong>上下边界求答案)，那么可以将每一列的糖果 "合并" 起来，转化成一维的情形 $O \left( n \right)$ 解决。</p>
+		<p>那么将这个算法一般化就需要枚举上下边界，从而时间复杂度 $O \left( n^3 \right)$，无法接受。</p>
+		<p>因此我们考虑<strong>只固定一个边界 (比如上边界)</strong>，并能在一个可接受 (如 $O \left( n \log n \right)$) 的时间内完成，那么再算上枚举上边界的 $O \left( n \right)$，整个问题的时间复杂度就可以接受了 (如 $O \left( n^2 \log n \right)$)。</p>
+		<p>那么现在考虑固定上边界的情形。</p>
+		<p>还是按照之前的思路 —— 维护 $f_i$ 数组。我们要对于每个下边界，求出与其对应的 $\displaystyle \sum_{i=0}^{L-1} f_i$ 的值。</p>
+		<p>因此尝试思考改变一行时，对 $f_i$ 数组的影响。</p>
+		<p class="text-muted">直观感受一下可以发现，如果我们从上往下枚举下边界 (每次增加一行)，那么 $f_i$ 的影响是类似<strong>区间分裂</strong>的操作，反之若从下往上枚举下边界 (每次减少一行)，那么 $f_i$ 的影响是类似<strong>区间合并</strong>的。</p>
+		<p>而我们对区间合并比区间分裂要熟悉，因此考虑从下往上枚举下边界，即考虑<strong>减少一行</strong>对 $f_i$ 数组的影响。</p>
+		<p>由于糖果总数是 $O \left( n \right)$ 的，因此更细一点就是考虑<strong style="color: navy">删除一个糖果 $\alpha$ 后对 $f_i$ 的影响</strong>。</p>
+		<p>设该糖果的类型为 $c$，列标为 $k$，显然我们只需考虑颜色为 $c$ 的糖果。首先对于 $i \in \left( k, L \right)$，$f_i$ 的值是不会改变的。</p>
+		<p>然后考虑删除 $\alpha$ 后，位于它左边的颜色为 $c$ 的糖果中最靠右的那个 (<strong>前趋</strong>)，设其列标为 $j$，那么对于 $i \in \left( j, k \right]$ (可能是空集)，$f_i$ 的值<strong>可能</strong>受影响。</p>
+		<p>具体地，即设位于 $\alpha$ 右边的颜色为 $c$ 的糖果中最靠左的那个 (<strong>后继</strong>) 的列标为 $s$，那么我们所需要做的操作就是对 $\forall i \in \left( j, k \right]$，令 $f_i \gets \max \left\{ f_i, s \right\}$。</p>
+		<p style="color: red">(ps: 事实上，在删除 $\alpha$ 之前，对于 $\forall i &gt; k$，一定有 $f_i \geq s$，因此上述可以操作也可以简化为<span style="color: blue">对于 $\forall i \in \left( j, L \right)$，令 $f_i \gets \max \left\{ f_i, s \right\}$</span>)</p>
+		<p>于是现在只需考虑怎么维护即可。首先，我们可以对每一种颜色的糖果按照从上往下的顺序做扫描线，求出每个糖果的前趋 ($j$) 和后继 ($k$)。</p>
+		<p>然后考虑修改操作，注意到 $f_i$ 是单调数组，因此我们所需要滋磁的操作有<strong>二分查找</strong>、<strong>区间赋值</strong>以及<strong>区间求和</strong>，于是使用线段树即可 <span class="text-muted">(当然你也可以用 Chtholly 树)</span>。</p>
+		<p>于是对固定上边界的情形我们就成功做到了 $O \left( n \log n \right)$，从而原问题可以在 $O \left( n^2 \log n \right)$ 时间内解决。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+using std::vector;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::set &lt;int&gt; set;
+const int N = 2054, mod = 1000000007;
+
+int n, C, L, L2, Xn, Yn;
+int x_[N], y_[N], c_[N];
+int Xs[N], Ys[N];
+vector&lt;pr&gt; a[N], event[N];
+set s;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void sub(int &amp;x, const int y) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+
+namespace DC {
+	int F[N]; pr D[N];
+
+	int Discretize(int n) {
+		int i, cnt = 0; std::sort(D, D + n);
+		for (i = 0; i &lt; n; ++i)
+			F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+}
+
+namespace ST {
+	#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+	#define exist_pd if (~x[id].tag) push_down(x[id], x[lc], x[rc])
+
+	struct node {int v, coef, sum, tag;} x[N * 2];
+
+	inline void update(node &amp;ret, const node &amp;l, const node &amp;r) {ret.v = r.v, add(ret.sum = l.sum, r.sum);}
+
+	inline void cover(node &amp;ret, int v) {ret.tag = ret.v = v, ret.sum = (ll)ret.v * ret.coef % mod;}
+
+	inline void push_down(node &amp;ret, node &amp;l, node &amp;r) {cover(l, ret.tag), cover(r, ret.tag), ret.tag = -1;}
+
+	void build(int id, int L, int R) {
+		x[id].tag = -1;
+		if (L == R) {x[id].v = c_[L], x[id].coef = y_[L], x[id].sum = (ll)x[id].v * x[id].coef % mod; return;}
+		segc; build(lc, L, M), build(rc, M + 1, R);
+		add(x[id].coef = x[lc].coef, x[rc].coef), update(x[id], x[lc], x[rc]);
+	}
+
+	void adj(int id, int L, int R, int ql, int qr, int v) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return cover(x[id], v);
+		segc; exist_pd;
+		if (ql &lt;= M) adj(lc, L, M, ql, qr, v);
+		if (qr &gt; M) adj(rc, M + 1, R, ql, qr, v);
+		update(x[id], x[lc], x[rc]);
+	}
+
+	int bisect(int id, int L, int R, int v) {
+		if (v &gt; x[id].v) return R + 1;
+		for (; L &lt; R; ) {
+			segc; exist_pd;
+			id = (v &lt;= x[lc].v ? (R = M, lc) : (L = M + 1, rc));
+		}
+		return L;
+	}
+}
+
+int main() {
+	int i, j, x, y, z, _, ans = 0, cur;
+	set::iterator it; bool ret;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; C &gt;&gt; L;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; x_[i] &gt;&gt; y_[i] &gt;&gt; c_[i], DC::D[i] = pr(x_[i], i);
+	Xn = DC::Discretize(n), Xs[Xn] = L;
+	for (i = 0; i &lt; Xn; ++i) Xs[i] = DC::D[i].first;
+	for (i = 0; i &lt; n; ++i) x_[i] = DC::F[i], DC::D[i] = pr(y_[i], i);
+	Yn = DC::Discretize(n), Ys[Yn] = L;
+	for (i = 0; i &lt; Yn; ++i) Ys[i] = DC::D[i].first;
+	for (i = 0; i &lt; n; ++i) y_[i] = DC::F[i], a[--c_[i]].EB(x_[i], y_[i]);
+	for (i = 0; i &lt; C; ++i) std::sort(a[i].begin(), a[i].end());
+	std::adjacent_difference(Xs, Xs + Xn, x_), ++*x_,
+	std::adjacent_difference(Ys, Ys + Yn, y_), ++*y_, L2 = L * (Ys[Yn - 1] + 1ll) % mod;
+	for (x = Xn - 1; x &gt;= 0; --x) {
+		memset(c_, 0, Yn &lt;&lt; 2), *c_ = *Ys;
+		for (i = 0; i &lt;= x; ++i) event[i].clear();
+		for (i = 0; i &lt; C; ++i) {
+			for (; !a[i].empty() &amp;&amp; a[i].back().first &gt; x; a[i].pop_back());
+			if (a[i].empty()) return cout &lt;&lt; ans &lt;&lt; '\n', 0;
+			s.clear(), s.emplace(-1), s.emplace(Yn);
+			for (j = (int)a[i].size() - 1; j &gt;= 0; --j) {
+				std::tie(z, y) = a[i][j], std::tie(it, ret) = s.emplace(y);
+				if (ret) _ = *std::prev(it), event[z].EB(_ + 1, Ys[*++it]);
+			}
+			for (int e : s) {
+				if (~e) up(c_[j + 1], Ys[e]);
+				j = e;
+			}
+		}
+		for (i = 1; i &lt; Yn; ++i) up(c_[i], c_[i - 1]);
+		ST::build(1, 0, Yn - 1), cur = 0;
+		for (i = 0; i &lt;= x; ++i) {
+			cur = (cur + ll(L2 - ST::x[1].sum + mod) * x_[i]) % mod;
+			for (const pr &amp;e : event[i]) {
+				z = ST::bisect(1, 0, Yn - 1, e.second);
+				if (e.first &lt; z) ST::adj(1, 0, Yn - 1, e.first, z - 1, e.second);
+			}
+		}
+		ans = (ans + ll(Xs[x + 1] - Xs[x]) * cur) % mod;
+	}
+	cout &lt;&lt; ans &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>离散化后其实对于每个位置都对应着一个系数 (外部扫描和线段树内部都需要)，不要写混了。(代码中的实现是先固定右边界然后用 $f_i$ 维护上下)</p>
+		<p><strong>坑2：</strong>多次扫描时记得清空相应的数组，以及对空数组的处理 (<code>return</code>)。</p>
+	</body>
+</html>

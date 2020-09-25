@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[loj6737]指数公式</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你有一个正整数集合 $S$，现在请你回答对于 $1 \leq k \leq n$，有多少种将编号为 $1 \sim k$ 的球放入一些盒子的方案，使得每个盒子里球的数量都属于 $S$。你只想知道答案的奇偶性。</p>
+		<p>注意：球可以区分，盒子不可以区分。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个长度为 $n$ 的 $\texttt 0/\texttt 1$ 串 ($1 \leq n \leq 2 \times 10^6$)，其中第 $i$ 位为 $1$ 当且仅当 $i \in S$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个长度为 $n$ 的 $\texttt 0/\texttt 1$ 串，其中第 $i$ 位表示 $k = i$ 时的答案模 $2$ 的值。</p>
+
+		<h3>题解</h3>
+		<p class="hidden">双 倍 经 验（大雾</p>
+		<p>对于基础的球和盒子的问题，考虑建立生成函数模型。根据题意，这是一个<strong>有标号无序组</strong>，</p>
+		<p>记指数生成函数 $\displaystyle f \left( x \right) = \sum_{i \in S} \frac {x^i} {i !}$，则答案的指数生成函数即为 $g \left( x \right) = \exp f \left( x \right)$。</p>
+		<p>不过这里的问题是整个运算需要在模 $2$ 下进行，也就是说这些阶乘分母可能不存在。</p>
+		<p>也就是说数域为 $\mathbb F_2$。根据 <a href="../index.html?redirect=1034" target="_blank">[soj1006]Nimber Exp</a> 的经验，在特征为 $2$ 的域上做多项式 $\exp$，可以通过对分子进行<strong>子集卷积</strong>得到二项卷积，而一个常数项为 $1$ 的生成函数的二项卷积逆为其本身。</p>
+		<p>因此可以像那道题一样进行 Newton 迭代，在 $O \left( n \log^2 n \right)$ 时间内得到答案。</p>
+		<p>不过，这道题由于数域仅为 $\mathbb F_2$ 而不是 $\mathbb F_{2^{32}}$，因此可以使用类似压位的思想来 "去掉一个 $\log$"，从而才能跑 $2^{21}$。</p>
+		<p>事实上，在子集卷积的时候，我们可以将占位多项式压缩到一个 $32$ 位整数中存储，然后两个 $32$ 位整数的 "多项式乘法" 显然可以在 $O \left( \log n \right)$ 时间内完成 (可以参考<a href="../index.html?redirect=542" target="_blank">这里</a>)。</p>
+		<p>同理，在记录原多项式的时候，也可以使用适当的压位。</p>
+		<p>于是总时间复杂度即为 $O \left( n \log n \right)$，或更严谨地，$O \left( \dfrac {n \log^2 n} \omega \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define popc __builtin_popcount
+#define parity __builtin_parity
+#define lg2 std::__lg
+#define ctz __builtin_ctz
+using std::cin;
+using std::cout;
+
+typedef unsigned short u16;
+typedef unsigned int u32;
+const int N = 65540;
+typedef u32 vec[N], *pvec;
+
+namespace bin {
+	const u32 mask[32] = {
+		0x00000001u, 0x00000003u, 0x00000005u, 0x0000000fu,
+		0x00000011u, 0x00000033u, 0x00000055u, 0x000000ffu,
+		0x00000101u, 0x00000303u, 0x00000505u, 0x00000f0fu,
+		0x00001111u, 0x00003333u, 0x00005555u, 0x0000ffffu,
+		0x00010001u, 0x00030003u, 0x00050005u, 0x000f000fu,
+		0x00110011u, 0x00330033u, 0x00550055u, 0x00ff00ffu,
+		0x01010101u, 0x03030303u, 0x05050505u, 0x0f0f0f0fu,
+		0x11111111u, 0x33333333u, 0x55555555u, 0xffffffffu
+	};
+
+	u16 revi[65536];
+
+	void init() {for (int i = 1; i &lt; 65536; ++i) revi[i] = revi[i &gt;&gt; 1] &gt;&gt; 1 | (i &amp; 1) &lt;&lt; 15;}
+
+	inline u32 rev(u32 x) {return revi[x &gt;&gt; 16] | revi[x &amp; 65535u] &lt;&lt; 16;}
+}
+
+namespace poly {
+	int l, n;
+	vec B1;
+	u32 M1[N &lt;&lt; 5], M2[N &lt;&lt; 5];
+
+	u32 exp_unit(u32 x) {
+		assert(!(x &amp; 1)), x = bin::rev(x);
+		int i; u32 y = 1;
+		for (i = 1; i &lt; 32; ++i) y |= (u32)parity(x &gt;&gt; (31 - i) &amp; y &amp; bin::mask[i - 1]) &lt;&lt; i;
+		return y;
+	}
+
+	u32 conv_unit(u32 x, u32 y) {
+		u32 z = 0;
+		for (; x; x &amp;= x - 1) z ^= y &lt;&lt; ctz(x);
+		return z;
+	}
+
+	inline void FMT_init(int len) {n = 1 &lt;&lt; (l = len);}
+
+	void FMT(pvec a) {
+		int i, len = 1; u32 *j, *k;
+		for (i = 0; i &lt; l; ++i, len &lt;&lt;= 1)
+			for (j = a; j != a + n; j += len &lt;&lt; 1)
+				for (k = j; k != j + len; ++k) k[len] ^= *k;
+	}
+
+	void FMT(pvec a, pvec b) {
+		for (int i = 0; i &lt; n; ++i) b[i] = (a[i &gt;&gt; 5] &gt;&gt; (i &amp; 31) &amp; 1) &lt;&lt; popc(i);
+		FMT(b);
+	}
+
+	void IFMT(pvec a, pvec b) {
+		FMT(a);
+		for (int i = 0; i &lt; n; ++i) b[i &gt;&gt; 5] |= (a[i] &gt;&gt; popc(i) &amp; 1) &lt;&lt; (i &amp; 31);
+	}
+
+	void exp(int deg, pvec a, pvec b) {
+		int i, len, n;
+		if (*b = exp_unit(*a), deg &lt; 2) return;
+		memset(b + 2, 0, i = 8 &lt;&lt; lg2(deg - 1)), memset(B1, 0, i);
+		for (len = 0, n = 1; n &lt; deg; ++len, n &lt;&lt;= 1) {
+			FMT_init(len + 5);
+			memcpy(B1, a + n, n &lt;&lt; 2), *B1 ^= (len ? b[n &gt;&gt; 1] : *b &gt;&gt; 16) &amp; 1;
+			FMT(B1, M1), FMT(b, M2);
+			for (i = 0; i &lt; n &lt;&lt; 5; ++i) M1[i] = conv_unit(M1[i], M2[i]);
+			IFMT(M1, b + n);
+		}
+	}
+}
+
+int n;
+vec f, g;
+char s[N &lt;&lt; 5];
+
+int main() {
+	int i, L; bin::init();
+	cin &gt;&gt; (s + 1), L = strlen(s + 1), n = L &gt;&gt; 5;
+	for (i = 1; i &lt;= L; ++i) f[i &gt;&gt; 5] |= u32(s[i] &amp; 1) &lt;&lt; (i &amp; 31);
+	poly::exp(n + 1, f, g);
+	for (i = 1; i &lt;= L; ++i) s[i] = (g[i &gt;&gt; 5] &gt;&gt; (i &amp; 31) &amp; 1) | 48;
+	cout &lt;&lt; s + 1 &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于我们对多项式进行了压位，因此 Newton 迭代初始时可以直接预处理 $32$ 项，在这一部分可以通过递推公式及掩码快速与处理。</p>
+		<p><strong>坑2：</strong>注意两个压位多项式的 "卷积" 需要用到的操作是异或 (<code>^</code>)，而不是或 (<code>|</code>) 等 (第 $47$ 行)。</p>
+	</body>
+</html>

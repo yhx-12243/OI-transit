@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1392I]Kevin and Grid</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有两组数 $a_1, a_2, \cdots, a_n; b_1, b_2, \cdots, b_m$ 和一个 $n \times m$ 的方格表，其中第 $i$ 行第 $j$ 列上的数 $w_{i, j} = a_i + b_j$。</p>
+		<p>对于一个参数 $x$，我们按照下述规则对方格表染色：</p>
+		<ul>
+			<li>若 $w_{i, j} \geq x$，则小方格 $\left( i, j \right)$ 为黑色；</li>
+			<li>若 $w_{i, j} &lt; x$，则小方格 $\left( i, j \right)$ 为白色。</li>
+		</ul>
+		<p>这些颜色将整个方格表划分为若干个<strong>同色 4-连通块</strong>，称最外面一圈的 $2 \left( n + m - 2 \right)$ 个小方格为<strong>边界</strong>。如下定义每个 4-连通块的权值：</p>
+		<ul>
+			<li>若一个 4-连通块是黑色的，且不包含边界，则它的权值为 $2$；</li>
+			<li>若一个 4-连通块是黑色的，且包含边界，则它的权值为 $1$；</li>
+			<li>若一个 4-连通块是白色的，且包含边界，则它的权值为 $-1$；</li>
+			<li>若一个 4-连通块是白色的，且不包含边界，则它的权值为 $-2$。</li>
+		</ul>
+		<p>定义整张方格表的权值为所有连通块的权值之和。</p>
+		<p>现在参数 $x$ 有 $q$ 个取值，你需要对每种取值分别计算出方格表的权值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, q$ ($1 \leq n, m, q \leq 10^5$)，分别表示方格表的行数，列数以及询问的组数。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($1 \leq a_i \leq 10^5$)。</p>
+		<p>第三行包含 $m$ 个正整数 $b_1, b_2, \cdots, b_m$ ($1 \leq b_i \leq 10^5$)。</p>
+		<p>接下来 $q$ 行，每行一个正整数 $x$ ($1 \leq x \leq 2 \times 10^5$)，描述一组询问。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示对应参数 $x$ 时的方格表的权值。</p>
+
+		<h3>题解</h3>
+		<p>既然题目中提到了连通块，因此我们考虑建立图论模型，将 4-连通块转化为图上的连通块。</p>
+		<p>我们对于每个小方格建立一个顶点，两个相邻方格对应的顶点之间有边相连当且仅当它们对应的顶点同色。</p>
+		<p>这样我们可以得到一张平面图 $G = \left( V, E \right)$，于是这个问题就和<strong>平面图的连通块计数</strong>有关了。</p>
+		<p>我们设题目中的四种连通块 (从上至下) 的个数分别为 $I_b, B_b, B_w, I_w$，所有黑 (白) 色顶点的集合为 $V_b$ ($V_w$)，黑 (白) 色边的集合为 $E_b$ ($E_w$)，黑 (白) 色面的集合为 $F_b$ ($F_w$)，则有 $V = V_b \cup V_w, E = E_b \cup E_w$。</p>
+		<p>在子图 $G \left[ V_b \right] = \left( V_b, E_b \right)$ 中使用平面图的 Euler 定理可得 $$ \left| V_b \right| - \left| E_b \right| + \left| F_b \right| = 1 + I_b + B_b \tag 1 \label 1 $$</p>
+		<p>同理可得 $$ \left| V_w \right| - \left| E_w \right| + \left| F_w \right| = 1 + I_w + B_w \tag 2 \label 2 $$</p>
+		<p>而我们要求的答案是 $ans = \left( 2 I_b + B_b \right) - \left( 2 I_w + B_w \right)$，因此我们还需要寻找 $I_b$ 和 $B_b$ 的关系。</p>
+		<p>事实上，面的集合 $F_b$ 可以分为三类：</p>
+		<ol>
+			<li>只包含四个顶点组成的平凡面 (正方形)，设个数为 $S_b$。</li>
+			<li>内部包含白色顶点的面，设个数为 $Z_b$。</li>
+			<li>外部无穷大平面。</li>
+		</ol>
+		<p>由定义知 $\left| F_b \right| = S_b + Z_b + 1$。</p>
+		<p>考虑每个第二类面，其内部一定有白色顶点，且这些白色顶点一定是 <strong>$8-$连通</strong>的 <span style="color: fuchsia">(被 $8-$连通块的割集一定 $4-$连通；$4-$连通块的割集一定 $8-$连通)</span>。</p>
+		<p>但是，由题目的性质容易证明，整张图中不存在 $2 \times 2$ 的小方格的形状是 <img src="uploads/247.png" alt="棋盘 1" /> 或 <img src="uploads/248.png" alt="棋盘 2" />，因此<strong>所有 $8-$连通块一定 $4-$连通</strong>。</p>
+		<p>也就是说，<strong style="color: red">每个内部包含白色顶点的黑色面唯一对应着一个不包含边界的白色 $4-$连通块</strong>。用公式表达就是 $Z_b = I_w$。</p>
+		<p>整理以下我们所得的已知信息，有 \begin{cases} \left| V_b \right| - \left| E_b \right| + \left| F_b \right| = 1 + I_b + B_b \\ \left| V_w \right| - \left| E_w \right| + \left| F_w \right| = 1 + I_w + B_w \\ \left| F_b \right| = S_b + Z_b + 1 \\ \left| F_w \right| = S_w + Z_w + 1 \\ Z_b = I_w \\ Z_w = I_b \end{cases}</p>
+		<p>整理得 $$ ans = \left( \left| V_b \right| - \left| V_w \right| \right) - \left( \left| E_b \right| - \left| E_w \right| \right) + \left( S_b - S_w \right) $$</p>
+		<p>于是我们现在将问题转化为了求 $\left| V_b \right|, \left| V_w \right|, \left| E_b \right|, \left| E_w \right|, S_b, S_w$ 等量。</p>
+		<hr />
+		<p>以 $\left| V_b \right|$ 为例，它等于 $$ \sum_{i=1}^n \sum_{j=1}^m \left[ a_i + b_j \geq x \right] $$</p>
+		<p>记 $\displaystyle C_x = \sum_{i=1}^n \sum_{j=1}^m \left[ a_i + b_j = x \right]$，则 $\left| V_b \right| = \displaystyle \sum_{k \geq x} C_k$，而 $C_x$ 容易通过构造卷积得到，具体过程这里就略去了。</p>
+		<p>通过这种方法求出来的 $\left| V_b \right|$ 可以对于每组询问 $O \left( 1 \right)$ 回答。那么其余几个量其实都是类似的：</p>
+		<ol>
+			<li>$\left| V_w \right|$，即 $a_i + b_j &lt; x$。</li>
+			<li>$\left| E_b \right|$，即黑色边的数量。一条横着的边其实就是 $a_i + b_j \geq x \wedge a_i + b_{j+1} \geq x \Rightarrow a_i + \min \left\{ b_j, b_{j+1} \right\} \geq x$，竖着的边同理。</li>
+			<li>$\left| E_w \right|$，和 $\left| E_b \right|$ 方法完全一致，不过需要将 $\min$ 改成 $\max$。</li>
+			<li>$S_b$，注意到它是正方形的个数，因此实际上就是 $\min \left\{ a_i, a_{i+1} \right\} + \min \left\{ b_j, b_{j+1} \right\} \geq x$ 的 $\left( i, j \right)$ 数，也可以卷积得到。</li>
+			<li>$S_w$，同理，不过注意是两个 $\max$。</li>
+		</ol>
+		<p>于是我们需要做若干次卷积与前缀和就可以每次 $O \left( 1 \right)$ 回答问题了。最直接的实现就是直接 $13$ 次 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr>，只要常数不是很烂就能过了。当然是有很大优化空间的，具体优化的方式就见「坑」部分吧！</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#define _USE_MATH_DEFINES
+#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 265000;
+constexpr double pi = M_PI;
+
+// typedef std::complex &lt;double&gt; C;
+struct C {
+	double r, i;
+	C () {}
+	C (double real, double imag = 0.0) : r(real), i(imag) {}
+	inline C operator + (const C &amp;B) const {return C(r + B.r, i + B.i);}
+	inline C operator - (const C &amp;B) const {return C(r - B.r, i - B.i);}
+	inline C operator * (const C &amp;B) const {return C(r * B.r - i * B.i, r * B.i + i * B.r);}
+	inline C operator * (double k) const {return C(r * k, i * k);}
+	inline C operator / (double k) const {return *this * (1.0 / k);}
+	inline C conj() const {return C(r, -i);}
+};
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+namespace rpoly_base {
+	int l, n; double iv; C w2[N];
+
+	void init(int n = N) {
+		int i, t = min(n &gt; 1 ? lg2(n - 1) : 0, 21); double angle = pi;
+		for (*w2 = C(1), i = 0; i &lt;= t; ++i) angle *= .5, w2[1 &lt;&lt; i] = C(cos(angle), sin(angle));
+		for (i = 3; i &lt; n; ++i) if (i &amp; (i - 1)) w2[i] = w2[i &amp; (i - 1)] * w2[i &amp; -i];
+	}
+
+	inline void FFT_init(int len) {n = 1 &lt;&lt; (l = len), iv = 1. / n;}
+
+	void DIF(C *a) {
+		int i, len = n &gt;&gt; 1; C *j, *k, *o, R;
+		for (i = 0; i &lt; l; ++i, len &gt;&gt;= 1)
+			for (j = a, o = w2; j != a + n; j += len &lt;&lt; 1, ++o)
+				for (k = j; k != j + len; ++k)
+					R = *o * k[len], k[len] = *k - R, *k = *k + R;
+	}
+
+	void DIT(C *a) {
+		int i, len = 1; C *j, *k, *o, R;
+		for (i = 0; i &lt; l; ++i, len &lt;&lt;= 1)
+			for (j = a, o = w2; j != a + n; j += len &lt;&lt; 1, ++o)
+				for (k = j; k != j + len; ++k)
+					R = *k + k[len], k[len] = (*k - k[len]) * *o, *k = R;
+	}
+}
+
+int Row, Col, n, q;
+int r[N], c[N], re[N], ce[N], ri[N], ci[N], rs[N], cs[N];
+C R1[N], R2[N];
+ll res[N];
+
+int main() {
+	int i, x, rmin = INT_MAX, rmax = INT_MIN, cmin = INT_MAX, cmax = INT_MIN;
+	namespace rpb = rpoly_base;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; Row &gt;&gt; Col &gt;&gt; q;
+	for (i = 0; i &lt; Row; ++i) cin &gt;&gt; r[i], down(rmin, r[i]), up(rmax, r[i]);
+	for (i = 0; i &lt; Col; ++i) cin &gt;&gt; c[i], down(cmin, c[i]), up(cmax, c[i]);
+	for (i = 0; i &lt; Row; ++i) ++re[ r[i] -= rmin ];
+	for (i = 0; i &lt; Col; ++i) ++ce[ c[i] -= cmin ];
+	for (i = 1; i &lt; Row; ++i) ++ri[min(r[i - 1], r[i])], ++rs[max(r[i - 1], r[i])];
+	for (i = 1; i &lt; Col; ++i) ++ci[min(c[i - 1], c[i])], ++cs[max(c[i - 1], c[i])];
+	n = (rmax - rmin) + (cmax - cmin), rpb::FFT_init(n ? lg2(n) + 1 : 0), rpb::init(rpb::n);
+
+	for (i = 0; i &lt;= n; ++i) R1[i] = C(re[i] - ri[i], re[i] - rs[i]), R2[i] = C(ci[i] - ce[i], ce[i] - cs[i]);
+	rpb::DIF(R1), rpb::DIF(R2);
+	for (i = 0; i &lt; rpb::n; ++i) R1[i] = R1[i] * R2[i];
+	rpb::DIT(R1), std::reverse(R1 + 1, R1 + rpb::n);
+	for (i = 0; i &lt;= n; ++i) res[i] = llroundl(R1[i].r * rpb::iv);
+
+	for (i = 1; i &lt;= n; ++i) res[i] += res[i - 1];
+	for (; q; --q)
+		cin &gt;&gt; x, x -= rmin + cmin + 1, cout &lt;&lt; 1 + (x &lt; 0 ? 0 : res[min(x, n)]) &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意当 $a_i, b_j$ 都相同时卷积出来的项可以到达 $10^{10}$，因此这题不适合 NTT，但一般的 <abbr title="Fast Fourier Transform, 快速傅里叶变换">FFT</abbr> 精度就远远足够。</p>
+		<p><strong>坑2：</strong>询问时注意 $x$ 的范围，如果超出了卷积的范围则需要 "剪切" (即将 $x$ 调整到合适的范围避免溢出或前缀和没预处理到等)。</p>
+		<p>考虑减少 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr> 次数，考虑将式子化为 $\left( \left| V_b \right| - \left| E_b \right| + S_b \right) - \left( \left| V_w \right| - \left| E_w \right| + S_w \right)$，对两端分别计算。</p>
+		<p>计算 $\left| V_b \right| - \left| E_b \right| + S_b$ 时，注意到它是一个 $R \times C - \left( R' \times C + R \times C' \right) + R' \times C'$ (其中 $\times$ 代表卷积) 的形式，将其因式分解为 $\left( R - R' \right) \times \left( C - C' \right)$，然后只需 $3$ 次 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr>，然后 $\left| V_w \right| - \left| E_w \right| + S_w$ 也要 $3$ 次，一共 $6$ 次。</p>
+		<p>现在问题已经转化为互相独立的两组序列的卷积<strong>之和</strong>了，不过我们可以利用 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr> 中复数的虚部，将另外一组序列放进虚部 (并取相反数)，然后卷出来的实部就是答案了，这样总共就只需要 $3$ 次 <abbr title="Discrete Fourier Transform, 离散傅里叶变换">DFT</abbr>，就能跑得飞快啦。</p>
+	</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1392H]ZS Shuffles Cards</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n + m$ 张卡片，其中前 $n$ 张卡片上分别写有数字 $1, 2, \cdots, n$，后 $m$ 张卡片是功能卡片。现在我们需要进行一轮 "抽卡游戏"，规则如下：</p>
+		<ol>
+			<li><p>初始时，所有卡片都在桌上，你有一个集合 $S = \varnothing$。</p></li>
+			<li><p>每一秒，你从现在桌上的卡片中等概率随机抽取一张，然后：</p>
+			<ul>
+				<li>如果卡片上写有数字 $x$，则令 $S \gets S \cup \left\{ x \right\}$，<strong>然后从桌上撤去卡片 $x$</strong>。</li>
+				<li>如果该卡片是功能卡片，则<strong>将所有被撤去的卡片放回桌上。注意集合 $S$ 不改变</strong>。<strong>在此时</strong>，如果 $S = \left\{ 1, 2, \cdots, n \right\}$，则宣布游戏结束。</li>
+			</ul></li>
+		</ol>
+		<p>求游戏期望进行多少秒后结束。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $n, m$ ($n, m \leq 2 \times 10^6$)，分别表示写有数字的卡片张数和功能卡片的张数。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示游戏期望进行的时间 (单位：秒) 在模 $998244353$ 下的结果。</p>
+
+		<h3>题解</h3>
+		<p>考虑任意时刻的状态，我们将 $\left| S \right| = a$，桌上还有 $b$ 张卡的状态表示为 $\left( n - a, a + b - n \right) \overset {\operatorname{def}} = \left( r, i \right)$。下面证明所有状态 $\left( r, i \right)$ 等价。</p>
+		<p>事实上，根据题目中的过程可知，<strong style="color: fuchsia">没在桌上的卡片 (所对应的数) 一定在集合中</strong>，因此所有的卡片可以分为三类：<strong>没在集合中但在桌上的</strong>、		<strong>没在桌上但在集合中的</strong>以及<strong>既在桌上又在集合中的</strong>。由定义，这三类卡片的张数分别为 $\left( n - a, n - b, a + b - n \right) = \left( r, n - r - i, i \right)$。
+		<p>容易看出这三类中每类卡片的地位相等，因此 $\left( r, i \right)$ 确实唯一表示一种状态。由定义，初始状态为 $\left( n, 0 \right)$。</p>
+		<p>考虑对于一个状态 $\left( r, i \right)$ 的转移，可以分为三种情形：</p>
+		<ol>
+			<li><p>取了一张集合中没有的数字卡，此时 $a \gets a + 1, b \gets b - 1$，于是 $\left( r, i \right) \Rightarrow \left( r - 1, i \right)$。</p></li>
+			<li><p>取了一张集合中原有的数字卡，此时 $a$ 不变，$b \gets b - 1$，于是 $\left( r, i \right) \Rightarrow \left( r, i - 1 \right)$。</p>
+			<p class="text-muted">(这时就能看出这样定义的好处：前两种转移每次只将一维状态改变 $1$，而且它对于简化下面转移的系数也有好处)</p></li>
+			<li><p>取了一张功能卡，此时 $a$ 不变，$b \gets n$，于是 $\left( r, i \right) \Rightarrow \left( r, n - r \right)$。</p></li>
+		</ol>
+		<p>分析以下三种转移出现的概率，可知其分别等于 $\dfrac r {r + i + m}, \dfrac i {r + i + m}, \dfrac m {r + i + m}$。</p>
+		<hr />
+		<p>设 $E_{r, i}$ 表示从状态 $\left( r, i \right)$ 出发到游戏结束的时间期望，则对于 $r$ 是否等于 $0$ 可以列出两类转移方程 (因为此时抽到功能卡的效果不一样)：</p>
+		<p>$$ E_{0, i} = 1 + \frac i {i + m} E_{0, i - 1} \qquad r = 0 \tag 1 \label 1 $$</p>
+		<p>$$ E_{r, i} = 1 + \frac r {r + i + m} E_{r - 1, i} + \frac i {r + i + m} E_{r, i - 1} + \frac m {r + i + m} E_{r, n - r} \qquad r &gt; 0 \tag 2 \label 2 $$ (这里数组越界默认取 $0$)</p>
+		<p>方程组 $\eqref 1$ 非常容易解，显然它的解即为 $$ E_{0, i} = \frac {m + i + 1} {m + 1} \tag 3 \label 3 $$</p>
+		<p>现在着重考虑 $\eqref 2$。代入 $i \gets i + 1$，可得 $$ E_{r, i + 1} = 1 + \frac r {r + i + m + 1} E_{r - 1, i + 1} + \frac {i + 1} {r + i + m + 1} E_{r, i} + \frac m {r + i + m + 1} E_{r, n - r} \tag 4 \label 4 $$</p>
+		<p>$\eqref 2 \eqref 4$ 两式消 $E_{r, n - r}$ ($\left( r + i + m + 1 \right) \eqref 4 - \left( r + i + m \right) \eqref 2$)，整理得 $$ \left( r + i + m + 1 \right) \left( E_{r, i + 1} - E_{r, i} \right) - i \left( E_{r, i} - E_{r, i - 1} \right) = 1 + r \left( E_{r - 1, i + 1} - E_{r - 1, i} \right) \tag 5 \label 5 $$</p>
+		<p>特别地，当 $i = 0$ 时，有 $$ \left( r + m + 1 \right) \left( E_{r, 1} - E_{r, 0} \right) = 1 + r \left( E_{r - 1, 1} - E_{r - 1, 0} \right) \tag 6 \label 6 $$</p>
+		<p>结合 $\eqref 3 \eqref 5 \eqref 6$ 及数学归纳法可以证明，$\Delta_i E_{r, i}$ 是一个常数，即对于 $\forall 0 \leq i &lt; n - r$，有 $$ \color {red} {E_{r, i + 1} - E_{r, i} = \frac 1 {m + 1}} \tag 7 \label 7 $$</p>
+		<p>在 $\eqref 2$ 式中代入 $i = n - r$，得 $$ E_{r, n - r} = 1 + \frac r {n + m} E_{r - 1, n - r} + \frac {n - r} {n + m} E_{r, n - r - 1} + \frac m {n + m} E_{r, n - r} \tag 8 \label 8 $$</p>
+		<p>将 $\eqref 7$ 代入 $\eqref 8$ 并整理，得 $$ E_{r, n - r} - E_{r - 1, n - r + 1} = \frac {m \left( n + m + 1 \right)} {r \left( m + 1 \right)} \tag 9 \label 9 $$</p>
+		<p>从而有 \begin{align*}
+E_{n, 0} &amp;= E_{0, n} + \sum_{r=1}^n \left( E_{r, n - r} - E_{r - 1, n - r + 1} \right) \\
+&amp;= \frac {n + m + 1} {m + 1} + \sum_{r=1}^n \frac {m \left( n + m + 1 \right)} {r \left( m + 1 \right)} \\
+&amp;= \frac {n + m + 1} {m + 1} \left( 1 + \sum_{r=1}^n \frac mr \right) \\
+&amp;= \frac {\left( n + m + 1 \right) \left( m \cdot H_n + 1 \right)} {m + 1}
+\end{align*} (其中 $\displaystyle H_n = \sum_{i=1}^n \frac 1i$ 为调和数)</p>
+		<p>于是我们<del>非常开心地</del>得到了它的解析解，时间复杂度 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int mod = 998244353;
+
+int inv[2000054];
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+int main() {
+	int i, n, m; ll H = 1;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; m;
+	for (inv[1] = 1, i = 2; i &lt;= n; ++i) H += inv[i] = ll(mod - mod / i) * inv[mod % i] % mod;
+	cout &lt;&lt; PowerMod(m + 1, mod - 2, (H % mod * m + 1) % mod * (n + m + 1) % mod) &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p>无</p>
+	</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1392E]Omkar and Duck</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p><strong>这是一道交互题</strong>。</p>
+		<p>有一个 $n \times n$ 的网格，我们用 $\left( r, c \right)$ 表示 $r$ 行 $c$ 列的小方格。现在一只小鸭想从 $\left( 1, 1 \right)$ 走到 $\left( n, n \right)$，其中每一步只能向右或向下，即它一共会走 $2 n - 2$ 步。</p>
+		<p>然而，小鸭不愿直接告诉你它所走的路径，于是你想通过一种途径去猜它。具体规则如下：</p>
+		<ul>
+			<li>首先，你需要对每个 $\left( x, y \right)$ ($1 \leq x, y \leq n$)，提供一个不超过 $10^{16}$ 的非负整数 $a_{x, y}$，表示小方格 $\left( x, y \right)$ 的权值。</li>
+			<li>其次小鸭会告诉你它所走的路径所经过的所有 $2 n - 1$ 个小方格 (含起、终点) 的权值之和。</li>
+		</ul>
+		<p>你需要通过这个和值来猜出小鸭所想的路径，注意当你给定所有小方格的权值后，小鸭会有多条路径，你需要分别猜出它。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($2 \leq n \leq 25$)，表示方格表的大小。</p>
+
+		<h3>输出格式</h3>
+		<p>首先，你需要输出 $n$ 行，每行 $n$ 个 $\left[ 0, 10^{16} \right]$ 间的整数，其中第 $i$ 行的第 $j$ 个整数表示 $a_{i, j}$。</p>
+		<p>输出完毕后刷新缓存，并从标准输入中读取一个正整数 $q$ ($1 \leq q \leq 1000$)，表示路径的条数。</p>
+		<p>对于每条路径，先从标准输入中读取一个非负整数 $k$，表示对应路径的权值和。</p>
+		<p>然后设你找到的路径为 $\left( x_1, y_1 \right) = \left( 1, 1 \right), \left( x_2, y_2 \right), \left( x_3, y_3 \right), \cdots, \left( x_{2n-2}, y_{2n-2} \right), \left( x_{2n-1}, y_{2n-1} \right) = \left( n, n \right)$，输出 $2 n - 1$ 行，每行两个整数，其中第 $j$ 行的整数为 $x_j, y_j$。全部输出完毕后刷新缓存。</p>
+		<p><strong>注意你找到的路径必须和小鸭所想的路径完全一致，因此错误的策略所导致的具有相同权值和的不同路径仍会引起错误的答案，请注意这一点</strong>。</p>
+
+		<h3>题解</h3>
+		<p>题目的言外之意就是，如果我们想在<strong>最坏情形下</strong>仍能通过，就需要满足在我们定的权值下，<strong style="color: fuchsia">所有 $\dbinom {2 n} n$ 条路径的权值和互不相同</strong>。这也是本题的一个核心 (必要条件)。</p>
+		<p>当然，满足它以后我们还需要对一个 $k$ 进行方便地辨识，因为 $\dbinom {2 n} n$ 很大我们不可能直接爆搜。</p>
+		<p>那怎么才能构造一个满足所有路径的权值和互不相同，且辨识度比较高的权值矩阵呢？</p>
+		<p>不妨考虑第一步是向右还是向下。我们考虑从奇偶性 (或者说 $\hspace{-0.444em} \pmod 2$ 意义) 入手的话，可以想到这样一种策略：<strong style="color: blue">令 $a_{2, 1}$ 为奇数，其余位置均为偶数</strong>。这样一来，如果一条路径的第一步是向下的，那么它的权值和一定是奇数，否则一定是偶数。</p>
+		<p>这个策略就可以使我们成功辨识出第一步。那后面的怎么处理呢？既然已经转化为子问题了，那就<strong>递归处理</strong>呗！</p>
+		<p>但是，由刚才的限制知，除了 $a_{2, 1}$ 外其余的格子均为偶数，因此对于剩下的子问题我们可以直接对全局除以 $2$ (读入的权值和 $k$ 也可以除以 $2$) 后再考虑，这样依次做下去直到得到所有的权值。</p>
+		<p>整理一下之前的策略，用形式化的语言描述就是：</p>
+		<p><strong style="color: green">对于 $\forall 1 \leq i, j \leq n - 1$，$a_{i+1, j}$ 和 $a_{i, j+1}$ 中恰有一个是 $2^{i + j - 1}$ 的倍数，另一个不是</strong>。</p>
+		<p>同样，如果一个构造如果满足上面绿色字的性质，那么它一定满足原题的性质，且它的辨识度的确不错 (但注意这只是充分条件，决不是必要条件)。</p>
+		<p>这样，我们可以不妨假设 $a_{i, j}$ 要么等于 $0$，要么等于 $2^{i + j - 3}$，因为其余的值没有什么意义。</p>
+		<p>接下来，我们将满足 $a_{i, j} = 2^{i + j - 3}$ 的 $\left( i, j \right)$ 染成黑色，其余格子染成白色。</p>
+		<p>那么，上面的<span style="color: green">绿色</span>条件就转化为了：</p>
+		<p><strong style="color: fuchsia">对于 $\forall 1 \leq i, j \leq n - 1$，$\left( i + 1, j \right)$ 和 $\left( i, j + 1 \right)$ 中恰有一个黑格，一个白格</strong>。</p>
+		<p><del class="text-muted">(这样一看问题就变得很幼儿园了)</del> 我们只需一行白、一行黑的交替染色就能满足要求。</p>
+		<p>另一方面，在这个构造下，最大的数不会超过 $2^{2 n - 3} \leq 2^{47} &lt; 10^{16}$，因此也是可以接受的。</p>
+		<p>综上，最终的权值数组可以这样分配：$$ a_{i, j} = \begin{cases} 2^{i + j - 3} &amp; 2 \mid i \\ 0 &amp; 2 \nmid i \end{cases} $$ 回答询问时只需对 $2^{i + j - 1}$ 取模即可知道是向右走还是向下走，时间复杂度 $O \left( q n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+using std::endl;
+
+typedef unsigned long long u64;
+const int N = 27;
+
+int n, q;
+u64 a[N][N];
+
+int main() {
+	int i, j; u64 x, dr, dc;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (i = 2; i &lt;= n; i += 2)
+		for (j = 1; j &lt;= n; ++j)
+			a[i][j] = 1ull &lt;&lt; (i + j - 3);
+	for (i = 1; i &lt;= n; ++i)
+		for (j = 1; j &lt;= n; ++j)
+			cout &lt;&lt; a[i][j] &lt;&lt; (j == n ? '\n' : ' ');
+	cout.flush();
+	for (cin &gt;&gt; q; q; --q) {
+		cin &gt;&gt; x;
+		for (i = j = 1; x &amp;&amp; i &lt; n &amp;&amp; j &lt; n; ) {
+			cout &lt;&lt; i &lt;&lt; ' ' &lt;&lt; j &lt;&lt; '\n';
+			dr = a[i + 1][j], dc = a[i][j + 1];
+			if (dr) assert(!dc), x &amp; dr ? ++i : ++j;
+			else assert(dc), x &amp; dc ? ++j : ++i;
+			x -= a[i][j];
+		}
+		for (; i &lt; n; ++i) cout &lt;&lt; i &lt;&lt; ' ' &lt;&lt; j &lt;&lt; '\n';
+		for (; j &lt; n; ++j) cout &lt;&lt; i &lt;&lt; ' ' &lt;&lt; j &lt;&lt; '\n';
+		cout &lt;&lt; n &lt;&lt; ' ' &lt;&lt; n &lt;&lt; endl;
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在输出大小时记得左移要转 <code>long long</code> 哦 (<code>1ll &lt;&lt; n</code>)！</p>
+	</body>
+</html>

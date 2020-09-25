@@ -335,7 +335,7 @@ namespace <span id="poly-evaluation">poly_evaluation</span> {
 		poly::inv(n + 1, Prd_, E2), memset(Prd_, 0, (m + 1) &lt;&lt; 2);
 		if (n &gt; 0) memset(E2 + (n + 1), 0, (poly::n - n - 1) &lt;&lt; 2);
 
-		std::reverse_copy(f, f + (n + 1), E1), mul(2 * n, E1, E2, E3),
+		std::reverse_copy(f, f + (n + 1), E1), poly::mul(2 * n, E1, E2, E3),
 		memset(E1, 0, (n + 1) &lt;&lt; 2), memset(E2, 0, (n + 1) &lt;&lt; 2);
 
 		return tmp_.clear(), tmp_.reserve(m), recursion(id, 0, m, vector(E3 + max(n - m + 1, 0), E3 + (n + 1))), tmp_;
@@ -449,6 +449,24 @@ namespace <span id="miscellaneous">miscellaneous</span> {
 		for (i = 0; i &lt; n; ++i) M1[i] = (u64)M1[i] * M2[i] % mod;
 		DIT(M1);
 		for (i = 0; i &lt;= deg; ++i) b[i] = M1[n - deg - i] * iv % mod * finv[i] % mod;
+	}
+
+	// compute a(1), a(z), a(z^2), ..., a(z^(len-1)) to b
+	void czt(int deg, int len, int z, pvec a, pvec b) {
+		int i; u64 iz = PowerMod(z, mod - 2);
+		if (!len) return;
+		if (!deg || !z) return std::fill(b, b + len, *a);
+		NTT_init(lg2(deg + len - 1) + 1);
+		M1[1] = *M1 = M3[1] = *M3 = 1;
+		for (i = 2; i &lt; deg + len; ++i) M1[i] = M1[i - 1] * (u64)z % mod, M3[i] = M3[i - 1] * iz % mod;
+		for (i = 2; i &lt; deg + len; ++i) M1[i] = (u64)M1[i] * M1[i - 1] % mod, M3[i] = (u64)M3[i] * M3[i - 1] % mod;
+		memset(M1 + i, 0, (n - i) &lt;&lt; 2);
+		for (i = 0; i &lt;= deg; ++i) M2[deg - i] = (u64)M3[i] * a[i] % mod;
+		memset(M2 + i, 0, (n - i) &lt;&lt; 2),
+		DIF(M1), DIF(M2);
+		for (i = 0; i &lt; n; ++i) M1[i] = (u64)M1[i] * M2[i] % mod;
+		DIT(M1);
+		for (i = 0; i &lt; len; ++i) b[i] = M1[n - deg - i] * iv % mod * M3[i] % mod;
 	}
 
 	inline int __builtin_inner(int len, pvec a, pvec b) {

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[loj3366][IOI2020]嘉年华奖券</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Ringo 正在参加在新加坡举办的一个嘉年华活动。他的口袋里装有一些奖券，这些奖券可以在嘉年华的游戏展位使用。假设共有 $n$ 种颜色的奖券，每张奖券涂上了其中的一种颜色并且印上了一个非负整数。不同奖券上的数字可能相同。依据嘉年华活动的规则要求，保证 $n$ 是偶数。</p>
+		<p>Ringo 有每种颜色的奖券各 $m$ 张，也就是说他共有 $n \cdot m$ 张奖券。其中，第 $i$ 种颜色对应的第 $j$ 张奖券上印的数字为 $x_{i, j}$ ($0 \leq i \leq n - 1, 0 \leq j \leq m - 1$)。</p>
+		<p>一次奖券游戏要进行 $k$ 轮，轮次的序号从 $0$ 到 $k - 1$。每一轮按照下面的方式进行：</p>
+		<ul>
+			<li>首先，Ringo 从每种颜色的奖券中各选出一张奖券，形成一个 $n$ 张奖券的<strong>集合</strong>。</li>
+			<li>随后，游戏负责人记录下这个集合中奖券上的数字 $a_0, a_1, \cdots, a_{n-1}$。不需要考虑这 $n$ 个整数的顺序。</li>
+			<li>接下来，游戏负责人从一个幸运抽奖箱中抽取一张特殊卡片，上面印有整数 $b$。</li>
+			<li>对于上述集合中每一个奖券上的数字 $a_i$ ($0 \leq i \leq n - 1$)，游戏负责人会计算 $a_i$ 和 $b$ 的差的绝对值。让 $S$ 代表这 $n$ 个差的绝对值之和。</li>
+			<li>所得到的数字 $S$ 就是 Ringo 本轮能够获得的奖励数额。</li>
+			<li>一轮游戏结束后，本轮集合中的奖券全部被丢弃，不会在未来的轮次所使用。</li>
+		</ul>
+		<p>当 $k$ 轮游戏结束后，Ringo 会丢弃口袋中的所有奖券。</p>
+		<p>通过仔细观察，Ringo 发现这个奖券游戏被操控了！实际上，幸运抽奖箱里面内置了一台打印机。在每一轮，游戏负责人首先找到一个能够最小化当前轮次游戏奖励的整数 $b$，然后将该数字打印在他所抽取的特殊卡片上。</p>
+		<p>知道了这些信息之后，Ringo 想要设计每轮游戏中的奖券分配方案，使得 $k$ 轮游戏中获得的总体奖励数额之和最大。</p>
+
+		<h3>实现细节</h3>
+		<p>你需要实现以下函数：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">long long find_maximum(int k, std::vector &lt;std::vector &lt;int&gt;&gt; x)
+</code></pre>
+		<ul>
+			<li>$k$：游戏的轮数，保证 $k \leq m$ (见下文)。</li>
+			<li>$x$：一个 $n \times m$ 的二维数组 ($1 \leq n, m \leq 1500; 2 \mid n$)，记录了奖券上的数字，保证这些数在 $\left[ 0, 10^9 \right]$ 中。每种颜色的奖券按照上面的数字非递减顺序排序，即 $x_{i, j-1} \leq x_{i, j}$。</li>
+			<li>这个函数只会被调用一次。</li>
+			<li>这个函数应该恰好调用一次函数 <code>allocate_tickets</code> (见下文)，它描述了 $k$ 轮游戏中的奖券分配方案，每一轮对应一个奖券集合。奖券的分配方案应该使得所获奖励数额之和达到最大。</li>
+			<li>这个函数需要返回能够获得的最大的奖励数额之和。</li>
+		</ul>
+		<p>函数 <code>allocate_tickets</code> 的接口如下：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">void allocate_tickets(std::vector &lt;std::vector &lt;int&gt;&gt; s)
+</code></pre>
+		<ul>
+			<li>$s$：一个 $n \times m$ 的二维数组，如果第 $i$ 种颜色的第 $j$ 张奖券如果被分配到了第 $r$ ($0 \leq r \leq k - 1$) 轮游戏，那么 $s_{i, j}$ 的值应该为 $r$；如果未被使用，应该为 $-1$。</li>
+			<li>对于 $0 \leq i \leq n - 1$，在 $s_{i, 0}, s_{i, 1}, \cdots, s_{i, m-1}$ 中，每个值 $0, 1, \cdots, k - 1$ 必须恰好出现一次，且其他元素必须为 $-1$。</li>
+			<li>如果存在多种奖券分配方案能够达到最优的奖励数值，可以给出其中任何一种最优方案。</li>
+		</ul>
+
+		<h3>题解</h3>
+		<p>首先，考虑在被操控的情形下每轮游戏可以获得的奖励。由初中经典模型并结合 $n$ 是偶数，可得：<strong style="color: fuchsia">如果这 $n$ 个数字按顺序升序分别为 $x_0, x_1, \cdots, x_{n-1}$</strong>，则奖励的最小值 $$ S = \sum_{i=0}^{n-1} \left| x_i - b \right| = - \sum_{i=0}^{n/2-1} x_i + \sum_{i=n/2}^{n-1} x_i $$ 即<strong>前 $\dfrac n2$ 大元素之和减去后 $\dfrac n2$ 大元素之和</strong>。</p>
+		<p>现在，对这 $n \cdot m$ 张奖券，我们不标记使用它的轮次，而作如下标记：<strong>如果该奖券上的数对最终答案的贡献系数为 $1$ (即它是某一轮的前 $\dfrac n2$ 大)，则标记上 "<samp>+</samp>" 号；如果对最终答案的贡献系数为 $-1$ (即它是某一轮的后 $\dfrac n2$ 大)，则标记上 "<samp>-</samp>" 号；如果对最终答案的贡献系数为 $0$ (即未使用)，则不做标记</strong>。</p>
+		<p>则每种方案可以对应于奖券的一种标记方案 —— 在这 $n \cdot m$ 张奖券中恰有 $\dfrac {n k} 2$ 张被标记 "<samp>+</samp>"，$\dfrac {n k} 2$ 张被标记 "<samp>-</samp>"。</p>
+		<p>而我们现在需要求的就是奖励数额最大值，即所有有标记的奖券上的数与对应标记的代数和。因此整个问题可以分为两步：</p>
+		<ol>
+			<li>构造一个有 $\dfrac {n k} 2$ 张标记 "<samp>+</samp>"，$\dfrac {n k} 2$ 张标记 "<samp>-</samp>" 的方案，使得代数和最大 (即先解决另一个问题)。</li>
+			<li>证明这个方案存在原像 —— 即存在一组奖券的分配方案，找到该方案并输出。</li>
+		</ol>
+		<p>下面分别解决这两个问题。</p>
+		<hr />
+		<p>先是第一个问题 —— 构造一个有 $\dfrac {n k} 2$ 张标记 "<samp>+</samp>"，$\dfrac {n k} 2$ 张标记 "<samp>-</samp>" 的方案，使得代数和最大。</p>
+		<p>那么考虑每一种颜色的奖券 (即每一行)，设第 $i$ 种颜色的奖券有 $p_i$ 张标记 "<samp>+</samp>"，$n_i$ 张标记 "<samp>-</samp>"，那么一个比较显然的贪心策略是<strong style="color: navy">取前 $p_i$ 大的标记 "<samp>+</samp>"，前 $n_i$ 小的标记 "<samp>-</samp>"</strong>。当然，由题意还能得到一个限制 $p_i + n_i = k$。</p>
+		<p>其次，还需要满足 $$ \sum_{i=0}^{n-1} p_i = \sum_{i=0}^{n-1} n_i = \frac {n k} 2 $$</p>
+		<p>用 $S_{i, j}$ 表示 $p_i = j, n_i = k - j$ 时颜色 $i$ 的贡献和，由定义有 $$ S_{i, j} = \sum_{z=m-j}^{m-1} x_{i, z} - \sum_{z=0}^{k-j-1} x_{i, z} $$</p>
+		<p>于是其差分 $s_{i, j} = S_{i, j} - S_{i, j - 1} = x_{i, m - j} + x_{i, k - j}$。</p>
+		<p>从而，问题转化为：你需要求出一组 $p_0, p_1, \cdots, p_{n-1} \in \left[ 0, k - 1 \right]$ 满足 $\displaystyle \sum_{i=0}^{n-1} p_i = \frac {n k} 2$ 且使得 $$ \sum_{i=0}^{n-1} S_{i, p_i} $$ 最大。</p>
+		<p>事实上，有 $s_{i, j} - s_{i, j + 1} = \left( x_{i, m - j} - x_{i, m - j - 1} \right) + \left( x_{i, k - j} - x_{i, k - j - 1} \right) \geq 0$，即 $s_{i, j}$ 单调递减 $\Rightarrow S_{i, j}$ 上凸，因此这是一个凸函数 $\max$ 卷积的模型 <span style="color: red">(ps: 或者也可以理解为单调背包)</span>，因此像<a href="../index.html?redirect=1003" target="_blank">这道题</a>一样对所有 $s_{i, j}$ 排个序取前 $\dfrac {n k} 2$ 大即可。</p>
+		<hr />
+		<p>然后是第二个问题 —— 找到一组分配方案并输出。</p>
+		<p>首先，容易得到：<strong style="color: olive">在第一个问题所得的最优解中，标记 "<samp>-</samp>" 的最大数不超过标记 "<samp>+</samp>" 的最小数</strong>。<span class="text-muted">(反之，交换这两个数的符号，仍满足要求且总代数和更大)</span></p>
+		<p>由上面的性质可知，<strong>我们不必关心标记 "<samp>+</samp>" 的是否是一轮中的前 $\dfrac n2$ 大，事实上从 "<samp>-</samp>" 的数始终不大于 "<samp>+</samp>" 的数可知其必然成立</strong>。</p>
+		<p>因此只需找到 $k$ 天，每天恰好 $\dfrac n2$ 个 "<samp>+</samp>" 和 $\dfrac n2$ 个 "<samp>-</samp>" 即可。</p>
+		<blockquote>
+			<p>我们考虑对 $k$ 归纳构造。</p>
+			<p>当 $k = 1$ 时构造显然。</p>
+			<p>设 $k \geq 2$，不妨设前 $\gamma$ 行包含至少一个 "<samp>+</samp>" 号，后 $n - \gamma$ 行不包含 "<samp>+</samp>" 号。</p>
+			<p>那么 "<samp>+</samp>" 号的总数 $\dfrac {n k} 2 \leq \gamma \cdot k \Rightarrow \gamma \geq \dfrac n2$。</p>
+			<p>取 "<samp>+</samp>" 号最多的 $\dfrac n2$ 行的各一个 "<samp>+</samp>" 号，由 $\gamma \geq \dfrac n2$ 知可以取到。考虑剩下的 $\dfrac n2$ 行，我们说明它们至少各有一个 "<samp>-</samp>" 号。</p>
+			<p>反之，设其中有一行全是 "<samp>+</samp>" 号，由 "<samp>+</samp>" 号最多性可知至少有 $\dfrac n2 + 1$ 行全是 "<samp>+</samp>" 号，于是 "<samp>+</samp>" 号总数 $\geq \left( \dfrac n2 + 1 \right) \cdot k = \dfrac {n k} 2 + k &gt; \dfrac {n k} 2$，矛盾。</p>
+			<p>于是剩下的 $\dfrac n2$ 行各有一个 "<samp>-</samp>" 号，将这 $\dfrac n2$ 个 "<samp>+</samp>" 号和 "<samp>-</samp>" 号放到一轮中，转化为 $k - 1$ 的子问题，由归纳假设即可构造。</p>
+		</blockquote>
+		<p>这样我们就完成了整个构造过程，根据不同的实现可以在 $O \left( n m + n k \log n \right)$ 或 $O \left( n m + n k \right)$ 时间内完成。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "tickets.h"
+#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::vector;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 1554;
+
+int R, C;
+int pos[N], buf[N], plan[N][N];
+ll s[N][N];
+std::priority_queue &lt;pr&gt; pq;
+
+ll find_maximum(int K, vector &lt;vector &lt;int&gt;&gt; a) {
+	int i, j, rest, incr; ll ans = 0; vector &lt;vector &lt;int&gt;&gt; ret;
+	R = a.size(), C = a[0].size();
+	for (i = 0; i &lt; R; ++i) {
+		pos[i] = 0;
+		for (j = 1; j &lt;= K; ++j) s[i][j - 1] = a[i][C - j] + a[i][K - j], ans -= a[i][j - 1];
+		pq.emplace(s[i][0], i);
+	}
+	for (rest = R / 2 * K; rest; --rest) {
+		std::tie(incr, i) = pq.top(), pq.pop(), ans += incr;
+		if (++pos[i] &lt; K) pq.emplace(s[i][pos[i]], i);
+	}
+
+	std::iota(buf, buf + R, 0);
+	for (i = 0; i &lt; K; ++i) {
+		std::sort(buf, buf + R, [] (const int x, const int y) {return pos[x] &lt; pos[y];});
+		for (j = 0; j &lt; R / 2; ++j) plan[i][buf[j]] = K - i - pos[buf[j]] - 1;
+		for (; j &lt; R; ++j) plan[i][buf[j]] = C - pos[buf[j]]--;
+	}
+
+	ret.reserve(R);
+	for (i = 0; i &lt; R; ++i) {
+		memset(buf, -1, C &lt;&lt; 2);
+		for (j = 0; j &lt; K; ++j) buf[plan[j][i]] = j;
+		ret.EB(buf, buf + C);
+	}
+	return allocate_tickets(ret), ans;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在构造方案的时候不能每次连续取 "<samp>+</samp>" 最多的行，这样可能会导致一轮中有多个 "<samp>+</samp>" 是同一种颜色 (在同一行)。</p>
+		<p><strong>坑2：</strong>构造方案时可以通过一些调整的技巧避免排序的 $O \left( \log n \right)$。</p>
+	</body>
+</html>
