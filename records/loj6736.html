@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[loj6736]最小连通块</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p><strong>这是一道交互题</strong>。</p>
+		<p>给定一棵树 $T$，我们定义这棵树上的某个点集 $S$ 的<strong>最小连通块</strong>为包含这个点集中所有点的最小的树上连通块。</p>
+		<p>给定一棵树的大小 $n$，你可以进行若干次询问，每次询问你可以给出一个点集 $S$ 和这棵树上的一个点 $x$，交互库会返回一个布尔值 $x$ 表示是否在点集 $S$ 的最小连通块上。你需要确定这棵树的形态。</p>
+
+		<h3>实现细节</h3>
+		<p>源代码中需要包含头文件<code>C.hpp</code>。</p>
+		<p>你需要实现以下函数：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">std::vector &lt;std::pair &lt;int, int&gt;&gt; work(int n)
+</code></pre>
+		<p>其中 <code>n</code> 表示这棵树的大小 $n$，也就是题面描述中的 $n$，这里保证 $n = 1000$。</p>
+		<p>你返回的 <code>std::vector &lt;std::pair &lt;int, int&gt;&gt;</code> 中每个 <code>std::pair &lt;int, int&gt;</code> 表示树的一条边的两个端点，你需要保证返回的 <code>std::vector &lt;std::pair &lt;int, int&gt;&gt;</code> 的大小为 $n - 1$ 且构成一棵树，否则你的程序将得到 $0$ 分。</p>
+		<p>你可以调用以下函数和交互库进行交互：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">bool ask(std::vector &lt;int&gt; S, int x)
+</code></pre>
+		<p>其中 <code>S</code> 表示你给出的点集 $S$，也就是题面描述中的 $S$；<code>x</code> 表示你给出的点 $x$，也就是题面描述中的 $x$。你需要保证 $S$ <strong>不为空，且 $S$ 中的点和 $x$ 在 $[1, n]$ 上</strong>，否则你的程序将得到 $0$ 分。如果在 $x$ 的最小连通块 $S$ 上则返回值为 <code>true</code> 否则返回值为 <code>false</code>。</p>
+		<p><strong>请注意：交互函数所需的时间复杂度为 $O \left( \left| S \right| \right)$，你可能会因为你给定的过大而导致超时</strong>。</p>
+		<p><strong style="color: fuchsia">你需要保证 <code>ask</code> 函数的调用次数不超过 $22000$。</strong></p>
+
+		<h3>题解</h3>
+		<p>不妨顶一个点 $1$ 为根，将原题转化为有根树再考虑。</p>
+		<p>也就是说，如果我们能知道每个点的父节点，那么自然就能将整棵树还原出来了。</p>
+		<p>那么如何知道一个顶点 $v$ 的父节点 $p_v$ 呢？</p>
+		<p>考虑利用 <code>ask</code> 函数。我们记 $\bar S$ 表示 $S$ 的最小连通块 (闭包)，则 $u$ 是 $v$ 的父节点的一个<strong>必要条件</strong>是 $u \in \overline {\left\{ 1, v \right\}}$。</p>
+		<p>注意到 $\overline {\left\{ 1, v \right\}}$ 就是 $1$ 到 $v$ 的路径。因此这实际上就是在说 <span style="color: fuchsia">$u$ 是 $v$ 的祖先</span>。</p>
+		<p>也就是说 <code>ask</code> 函数能方便地判别是不是祖先 (甚至不是直接的父节点)，那怎么方便地判断是否是父节点呢？</p>
+		<p>一种直观的思路是：<strong>假设我们已经知道了 $T$ 的一个加叶子序</strong> $a_1 = 1, a_2, a_3, \cdots, a_n$ <span style="color: red">(ps: 加叶子序指的就是不断加叶子的顺序，严格定义就是满足对 $\forall i \in \left[ 1, n \right], \left\{ a_1, a_2, \cdots, a_i \right\}$ 都是树上的连通分量。诸如 bfs 序，dfs 序都是加叶子序)</span>，那么，考虑依次处理每个点 $a_i$。</p>
+		<p>那么此时我们已知的结构就是 $a_1, a_2, \cdots, a_{i-1}$ 所构成的树，于是我们需要找到它们中谁是 $a_i$ 的父节点。</p>
+		<p><strong>但是，$a_i$ 的所有祖先都出现在 $\left\{ a_1, a_2, \cdots, a_{i-1} \right\}$ 中，从而没办法精确匹配到这个顶点</strong>。</p>
+		<p style="color: red">(ps: 确切地说，并不是没有办法找到，而是如果它的祖先有 $d$ 个 [即深度为 $d$]，你至少需要花 $O \left( d \right)$ 的时间来找才能确认 $a_i$ 的父节点，而这会造成最终的时间复杂度为 $O \left( n^2 \right)$)</p>
+		<p>那么这么做为什么会失败呢？究其原因，其中一个最主要的原因就是，<strong style="color: navy">在有根树中，一个顶点的子节点个数是不定的，因此每加入一个叶子，它的候选会逐渐变多，从而无法操作</strong>。</p>
+		<hr />
+		<p>那该怎么办呢？像<a href="../index.html?redirect=830" target="_blank">这道题</a>一样，当我们正着考虑遇到瓶颈时，不妨试试倒着考虑：即按照 $a_n, a_{n-1}, \cdots, a_1$ 的顺序 (即<strong>删叶子序</strong>) 依次处理，去寻找每个顶点的子节点集合。</p>
+		<p>这样一来有一个好处，<strong style="color: maroon">每个顶点的父节点是唯一的</strong>！因此一旦我们找到了一个父子关系 ($p_v = u$，由我们的处理顺序可知 $v$ 的整棵子树都应处理完毕)，我们就可以把 $v$ 当成叶节点删掉了！这恰恰解决了之前<span style="color: navy">深蓝色</span>的问题 (子节点个数不定)。</p>
+		<p class="text-muted">(这个从下往上删叶子的思想还在许多题目中出现过，如 <a href="../index.html?redirect=826" target="_blank">[Codeforces516D]Drazil and Morning Exercise</a>)</p>
+		<p>因此，对于当前处理的顶点 $v$，在以 $v$ 为根的子树 $subtree \left( v \right)$ 中，<strong>只有 $v$ 的子节点</strong>还 "存活" 着，其余的点都因找到父节点而被 "删除" 了。也就是说，此时 $v$ 的后代节点就是 $v$ 的子节点。</p>
+		<p>因此我们就可以通过一开始的方法判断了：$p_u = v \Leftrightarrow v \in \overline {\left\{ 1, u \right\}}$。</p>
+		<p>虽然这样判断时间复杂度还是 $O \left( n^2 \right)$ 的 (考虑满二叉树)，不过聪明的你一定想到了，这是可以通过二分查找进行优化的！</p>
+		<p>作为一个<a href="../index.html?redirect=514" target="_blank">多次出现的技巧</a>，设当前已经处理过但还未找到父节点的点集为 $U = \left\{ u_1, u_2, \cdots, u_k \right\}$。如果 $v \notin \overline {\left\{ 1 \right\} \cup U}$，那么说明 $v$ 的子节点已经找完；否则有 $v \in \overline {\left\{ 1 \right\} \cup U}$，则可以通过二分的方法找到 $i \in \left( 1, k \right]$ 使得 $v \notin \overline {\left\{ 1, u_1, u_2, \cdots, u_{i-1} \right\}} \wedge v \in \overline {\left\{ 1, u_1, u_2, \cdots, u_i \right\}}$。于是此时应有 $p_{u_i} = v$，我们删去顶点 $u_i$ 后重复此过程，直至 $v$ 的子节点都找完。</p>
+		<p>于是这样做的询问次数就是 $O \left( n \log n \right)$ 级别的了，一个<strong>上界</strong>是 $n \log n + O \left( n \right)$。</p>
+		<hr />
+		<p>最后还有一个历史遗留问题：如何得到 $T$ 的一个加叶子序呢？</p>
+		<p>其实如果对虚树比较熟悉的话这应该不成问题。考虑增量构造，在一个已知的 (虚) 树中插入一个顶点 $v$，观察加叶子序的变化。</p>
+		<p>设 $v$ 的祖先集合为 $A$，后代集合 (子树) 为 $S$。那么只需将 $v$ 插入到原加叶子序中 <strong style="color: orange">$A$ 中所有顶点的后面，$S$ 中所有顶点的前面</strong>，就得到了新树 $T'$ 的一个加叶子序。</p>
+		<p>显然在原加叶子序中 $A$ 中所有顶点都在 $S$ 的前面。于是我们只需找到 $A$ 的末顶点的位置<strong>或</strong> $S$ 的首顶点的位置即可。</p>
+		<p>事实上 $S$ 的首顶点位置比较好找：因为它是首个 $v$ 的后代节点。因此，设原加叶子序为 $a_1, a_2, \cdots, a_k$，$S$ 的首顶点为 $a_i$，则有<strong>$v \in \overline {\left\{ a_1, a_2, \cdots, a_j \right\}}$ 当且仅当 $j \geq i$</strong>。于是二分查找找到 $i$ 即可。</p>
+		<p>这部分的询问次数上界也是 $n \log n + O \left( n \right)$。</p>
+		<p>于是询问次数的总数不超过 $2 n \log n + O \left( n \right)$，可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "C.hpp"
+#define EB emplace_back
+using std::vector;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 1054;
+
+vector &lt;int&gt; o;
+vector &lt;pr&gt; E;
+int buf[N];
+
+inline void link(int x, int y) {E.EB(std::minmax(x, y));}
+
+inline bool test(int n, int x) {
+	if (n &lt; 1) return false;
+	int origin = buf[n]; buf[n] = 1;
+	bool ret = ask(vector&lt;int&gt;(buf, buf + (n + 1)), x);
+	return buf[n] = origin, ret;
+}
+
+vector &lt;pr&gt; work(int n) {
+	int i, x, L, R, M, cnt = 0;
+	o.reserve(n), o.EB(1);
+	for (i = 2; i &lt;= n; ++i) {
+		for (L = 1, R = i - 1; L &lt; R; )
+			M = (L + R) / 2, ask(vector&lt;int&gt;(o.begin(), o.begin() + (M + 1)), i) ? R = M : L = M + 1;
+		o.emplace(o.begin() + L, i);
+	}
+	for (i = n - 1; i; --i, buf[cnt++] = x)
+		for (x = o[i]; test(cnt, x); ) {
+			for (L = 0, R = cnt - 1; L &lt; R; )
+				M = (L + R) / 2, test(M + 1, x) ? R = M : L = M + 1;
+			link(buf[L], x), std::swap(buf[L], buf[--cnt]);
+		}
+	for (; cnt; link(buf[--cnt], 1));
+	return std::sort(E.begin(), E.end()), E;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>这里有两次二分，二分时注意一下上下边界的问题，防止漏边界或死循环。</p>
+		<p><strong>坑2：</strong>第二次二分 (确定祖先) 的时候可以用一个数组来记录当前仍为找到父节点的点的集合 (无序)，删除元素时直接和最后一个元素交换即可。</p>
+	</body>
+</html>

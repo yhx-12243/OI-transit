@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1416E]Split</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定正整数数列 $a_1, a_2, \cdots, a_n$，你需要构造数列 $b_1, b_2, \cdots, b_{2 n}$ 满足：</p>
+		<ul>
+			<li>对于 $\forall 1 \leq i \leq 2 n$，由 $b_i \in \mathbb N^*$，且对于 $\forall 1 \leq i \leq n$，有 $b_{2 i - 1} + b_{2 i} = a_i$。</li>
+		</ul>
+		<p>将 $b$ 中相邻相同的数字合并 (即 C++ 中的 <code>std::unique</code> 的操作)，得到数组 $c$。</p>
+		<p style="color: red">(ps: 如当 $a = \left[ 6, 8, 2 \right]$ 时，<strong>一种可行的</strong> $b = \left[ 2, 4, 4, 4, 1, 1 \right]$，此时 $c = \left[ 2, 4, 1 \right]$)</p>
+		<p>你需要构造一组方案使得 $\left| c \right|$ ($c$ 的长度) 最小，显然这样的方案一定存在。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。第一行包含一个正整数 $T$ ($T \leq 5 \times 10^5$)，表示数据的组数。</p>
+		<p>对于每组数据，第一行包含一个正整数 $n$ ($\sum n \leq 5 \times 10^5$)，表示序列 $a$ 的长度。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($2 \leq a_i \leq 10^9$)。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示 $\left| c \right|$ 的最小可能值。</p>
+
+		<h3>题解</h3>
+		<p>可以看出，我们的目的就是最小化 $b_i \neq b_{i + 1}$ 的 $i$ 的个数，换句话说就是<span style="color: blue">最大化满足 $b_i = b_{i + 1}$ 的 $i$ 的个数</span>。</p>
+		<p>考虑什么时候有 $b_i = b_{i + 1}$，这有两种情况：</p>
+		<ol>
+			<li>$b_{2 i - 1} = b_{2 i}$。这当且仅当 $a_i$ 是偶数且 $b_{2 i - 1} = b_{2 i} = \dfrac {a_i} 2$。</li>
+			<li>$b_{2 i} = b_{2 i + 1}$。这种情况就有点复杂了，因为它可以涉及到 $a_i$ 中的相邻两项。</li>
+		</ol>
+		<p>下面为了方便起见，我们令所有的 $a_i$ 先预先减去 $2$ (从而将最终所有的 $b_i$ 减去 $1$)，这样限制就转化为非负整数 (自然数) 了，<del>比较自然</del>。</p>
+		<p>考虑如果对一个 $i$ 有 $b_{2 i} \neq b_{2 i + 1}$，那么我们将序列分成 $a \left[ 1 .. i \right]$ 和 $a \left[ i + 1 .. n \right]$ 可以看出这两段是独立的 —— 只需分别最大化自己的 $b_i = b_{i + 1}$ 的 $i$ 个数，最后再相加即可。</p>
+		<p>因此我们就有了一个思路：对于最终的方案，将所有 $b_{2 i} \neq b_{2 i + 1}$ 的位置切开，将 $a$ 分成若干个子段，于是每个子段都是原问题的一个子问题，且加了一个限制：<strong style="color: fuchsia">对于每个 $i$，有 $b_{2 i} = b_{2 i + 1}$</strong>。</p>
+		<p>于是就可以 DP 了：设 $w_{i, j}$ 表示 $a \left[ i + 1 .. j \right]$ 在满足上述<span style="color: fuchsia">粉色</span>限制下 <strong>$\left| c \right|$ 的大小</strong> (或者说相邻不同的个数 + 1，如果无解则为 $+ \infty$)，那么就是一个类似区间 DP：</p>
+		<p>设 $f_i$ 表示 $a \left[ 1 .. i \right]$ 的答案，然后 $f_0 = 0$，$$ f_i = \min_{0 \leq j &lt; i} \left( f_j + w_{j, i} \right) $$</p>
+		<p>最后 $f_n$ 就是答案。下面就是考虑如何求 $w_{i, j}$ 以及快速维护整个 DP 过程。</p>
+		<hr />
+		<p>考虑如何求 $w_{i, j}$。注意要求相邻的两段中，第一段的 $b_{2 i}$ 等于第二段的 $b_{2 i + 1}$。此时我们设最左端的 $a_{i + 1}$ 分成的 $b_{2 i + 1} = x, b_{2 i + 2} = a_{i + 1} - x$。</p>
+		<p>然后我们可以发现，根据这些条件可以顺水推舟地把<strong>所有 $b_{2 i + 1}, b_{2 i + 2}, \cdots, b_{2 j}$ 都解出来</strong>！</p>
+		<p>最后，利用所有 $b_i$ 的非负限制，可以得到一个 $x$ 的限制区间 $\left[ l, r \right]$，当然可能是空，这样就无解。</p>
+		<p>现在考虑 $b_{2 k - 1} = b_{2 k}$ 的情形 —— 这说明偶数 $a_k$ 被拆成了两个相同的数，其实就对应了一种特定的取值。</p>
+		<p>也就是说，我们还增加了若干个 "bouns"，每个 "bonus" 形如：<strong style="color: orange">如果我们取 $x = t_i$，则最终的答案可以减少 $1$</strong> (答案的初始值显然是 $j - i + 1$，从这里减少)。</p>
+		<p>那么我们只需取 $\left[ l, r \right]$ 中减少得最多的 $x$，用它就能算出 $w_{i, j}$ 了。</p>
+		<hr />
+		<p>但这样计算 $w_{i, j}$ 需要 $O \left( j - i \right)$ 时间，从而总时间复杂度就变成 $O \left( n^3 \right)$，通过预处理 $w$ 可以降为 $O \left( n^2 \right)$，这显然不能接受。</p>
+		<p>考虑优化，首先我们可以将整个数列的 "$x$ 部分" 固定下来：<strong>即固定 $b_1 = x$，然后按照相邻相同的规则将所有的 $b_i$ 的解出来</strong>。</p>
+		<p>这样其实并不影响对一个子区间的分析 —— 如果要分析子区间 $\left( i, j \right]$ (计算 $w_{i, j}$)，其实我们只是对 $x, l, r$ 整体作了个平移而已。</p>
+		<p>而这样做的一个好处是我们对每个 $i$ 固定了 (由 $b_{2 i - 1}, b_{2 i}$ 非负性) 对 $x$ 取值范围的限制，记为 $\left[ l_i, r_i \right]$。然后处理 $w_{i, j}$ 时只需求出 $\displaystyle I = \bigcap_{i &lt; k \leq j} \left[ l_k, r_k \right]$，这就是 $x$ 的取值范围。</p>
+		<hr />
+		<p>现在考虑我们已经计算完成了 $f_0, f_1, \cdots, f_{i - 1}$，欲计算 $f_i$。那此时 $j$ 有若干个选择，每个选择对应了一个 $x$ 的取值区间 $$ I_{j, i} = \bigcap_{j &lt; k \leq i} \left[ l_k, r_k \right] $$</p>
+		<p>而转移的方程可以写为 $$ f_i = \min_{0 \leq j &lt; i} \left( f_j + \left( i - j + 1 \right) - \delta_{j, i} \right) = i + 1 + \min_{0 \leq j &lt; i} \left( f_j - j - \delta_{j, i} \right) $$</p>
+		<p style="color: red">(ps: 这里用 $\delta_{j, i}$ 表示该区间内 "bonus" 的数量最大值，然后将变量 $i, j$ 分离)</p>
+		<p>现在考虑固定 $x$，去寻找 $j$ 使得 $f_j - j - \delta_{x, j, i}$ 最小 (这里 $\delta_{x, j, i}$ 表示 $x$ 时的 "bonus" 数量)，将这个值记为 $F_x$，于是有 $$ f_i = i + 1 + F_x $$</p>
+		<p>考虑 $i - 1$ 变化为 $i$ 时每个 $F_x$ 的变化。首先，$I_i$ 以外的 $x$ 由于不能选取，因此<span style="color: fuchsia">这些 $F_x$ 直接删去 (或赋为 $+ \infty$)</span>，而对于 $I_i$ 以内的 $x$，原来能用的 $j$ 现在还能用，因此保留原来的值。</p>
+		<p>当然注意从 $i - 1$ 变为 $i$ 时，$j$ 就能取 $i - 1$ 了，因此所有的 $F_x$ ($x \in I_i$) 都还需要<span style="color: fuchsia">对 $f_{i-1} - \left( i - 1 \right)$ 取 $\min$</span>。</p>
+		<p>最后记得处理 $i$ 位置的 "bonus"。如果它有 "bonus" (设其在 $x_0$)，那么无论 $j$ 取哪里这个 "bonus" 都会生效，因此只需要<span style="color: fuchsia">将 $F_{x_0} \gets F_{x_0} - 1$</span> 即可。</p>
+		<p>考虑整个过程中所涉及到的操作 (用<span style="color: fuchsia">粉色</span>表示)，有<strong>区间赋 $+ \infty$</strong> (可看做区间清空或区间删除)，区间对一个数取 $\min$，以及单点修改。</p>
+		<p>不过，我们要询问的只有<span style="color: green">全局最小值</span>，而这个信息在区间对一个数取 $\min$ 下是可以直接维护的，因此使用带标记的线段树或平衡树即可。</p>
+		<p>时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef std::pair &lt;ll, int&gt; pr;
+const int N = 500054, INF = 0x3f3f3f3f;
+
+int n, W;
+int a[N], f[N];
+ll Le[N], Ri[N], Mid[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+namespace DC {
+	const int N = ::N * 4;
+
+	int F[N]; pr D[N];
+
+	int Discretize(int n) {
+		int i, cnt = 0; std::sort(D, D + n);
+		for (i = 0; i &lt; n; ++i)
+			F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+}
+
+namespace ST {
+	#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+	#define exist_pd if (x[id].tag != INF || x[id].set != INF) push_down(x[id], x[lc], x[rc])
+	struct node {int v, tag, set;} x[2100000];
+
+	void build(int id, int L, int R) {
+		x[id].v = INF - 1, x[id].tag = x[id].set = INF;
+		if (L == R) return;
+		segc; build(lc, L, M), build(rc, M + 1, R);
+	}
+
+	inline void node_min(node &amp;ret, int v) {down(ret.v, v), ret.set == INF ? down(ret.tag, v) : down(ret.set, v);}
+
+	inline void cover(node &amp;ret, int v) {ret.set = ret.v = v, ret.tag = INF;}
+
+	inline void push_down(node &amp;ret, node &amp;l, node &amp;r) {
+		if (ret.set == INF) node_min(l, ret.tag), node_min(r, ret.tag), ret.tag = INF;
+		else cover(l, ret.set), cover(r, ret.set), ret.set = INF;
+	}
+
+	void min(int id, int L, int R, int ql, int qr, int v) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return node_min(x[id], v);
+		segc; exist_pd;
+		if (ql &lt;= M) min(lc, L, M, ql, qr, v);
+		if (qr &gt; M) min(rc, M + 1, R, ql, qr, v);
+		x[id].v = ::min(x[lc].v, x[rc].v);
+	}
+
+	void clear(int id, int L, int R, int ql, int qr) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return cover(x[id], INF - 1);
+		segc; exist_pd;
+		if (ql &lt;= M) clear(lc, L, M, ql, qr);
+		if (qr &gt; M) clear(rc, M + 1, R, ql, qr);
+		x[id].v = ::min(x[lc].v, x[rc].v);
+	}
+
+	void decr(int id, int L, int R, int h) {
+		if (L == R) {--x[id].v; return;}
+		segc; exist_pd;
+		h &lt;= M ? decr(lc, L, M, h) : decr(rc, M + 1, R, h);
+		x[id].v = ::min(x[lc].v, x[rc].v);
+	}
+}
+
+void work() {
+	int i, li, ri; ll l = 0, r;
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; n; ++i, l = r) {
+		cin &gt;&gt; a[i], r = (a[i] -= 2) - l,
+		i &amp; 1 ? (Le[i] = -l, Ri[i] = r) : (Le[i] = -r, Ri[i] = l),
+		DC::D[i].first = Le[i], DC::D[i + n].first = Ri[i] + 1;
+		if (a[i] &amp; 1)
+			Mid[i] = 0,
+			DC::D[i + 2 * n].first = Le[i],
+			DC::D[i + 3 * n].first = Ri[i] + 1;
+		else
+			Mid[i] = (Le[i] + Ri[i]) / 2,
+			DC::D[i + 2 * n].first = Mid[i],
+			DC::D[i + 3 * n].first = Mid[i] + 1;
+	}
+	for (i = 0; i &lt; 4 * n; ++i) DC::D[i].second = i;
+	W = DC::Discretize(4 * n);
+	ST::build(1, 0, W - 1);
+	for (*f = i = 0; i &lt; n; ++i) {
+		li = DC::F[i], ri = DC::F[i + n];
+		if (li) ST::clear(1, 0, W - 1, 0, li - 1);
+		if (ri &lt; W) ST::clear(1, 0, W - 1, ri, W - 1);
+		ST::min(1, 0, W - 1, li, ri - 1, f[i] - i);
+		if (!(a[i] &amp; 1)) ST::decr(1, 0, W - 1, DC::F[i + 2 * n]);
+		f[i + 1] = i + 2 + ST::x[1].v;
+	}
+	cout &lt;&lt; f[n] &lt;&lt; '\n';
+}
+
+int main() {
+	int T;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意如果写线段树的话会有两个标记：<strong>区间取 $\min$</strong> 和<strong>区间赋值</strong>，下传时注意顺序。当然如果写平衡树的话就可以直接删除。</p>
+		<p><strong>坑2：</strong>最好开始时将所有端点 $\left[ l_i, r_i \right]$ 离散化一下节省空间 (毕竟是 <code>long long</code> 范围的，动态开点太费空间了)。</p>
+	</body>
+</html>

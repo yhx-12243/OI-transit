@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1416F]Showing Off</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个 $n \times m$ 的矩阵，其中每个格子 $\left( i, j \right)$ 中包含两个值：</p>
+		<ol>
+			<li>这个格子的权值 $a_{i, j}$，其中 $a_{i, j}$ 是一个<strong>正整数</strong>。</li>
+			<li>这个格子的方向 $d_{i, j}$，它是 $\texttt L, \texttt R, \texttt D, \texttt U$ 中的一个，分别表示 $\left( i, j \right)$ <em>指向</em>的格子为 $\left( i, j - 1 \right), \left( i, j + 1 \right), \left( i + 1, j \right), \left( i - 1, j \right)$。保证一个格子指向的格子仍在该矩阵中。</li>
+		</ol>
+		<p>对于每个格子，我们连接一条从它到它<em>指向</em>的格子的有向边，得到一张有向图 $G$。用 $a \leadsto b$ 表示 $a$ 可以通过 $G$ 中的边到达 $b$，特别地，$a$ 可以到达 $a$ (即 $a \leadsto a$)。</p>
+		<p>定义 $$ S_{i, j} = \sum_{\left( i, j \right) \leadsto \left( k, l \right)} a_{k, l} $$</p>
+		<p>现在给出所有的 $S_{i, j}$，你需要还原出一组可行的 $a_{i, j}$ 及 $d_{i, j}$，或指出不存在解。</p>
+
+		<h3>输入格式</h3>
+		<p>输入包含多组数据。第一行包含一个正整数 $T$ ($T \leq 100$)，表示数据的组数。</p>
+		<p>对于每组数据，第一行包含两个正整数 $n, m$ ($\sum \left( n \cdot m \right) \leq 10^5$)，表示矩阵的行数和列数。</p>
+		<p>接下来 $n$ 行，每行 $m$ 个整数，其中第 $i$ 行第 $j$ 个整数为 $S_{i, j}$ ($2 \leq S_{i, j} \leq 10^9$)。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，如果满足条件的矩阵不存在，输出一行 <code>NO</code>。否则，第一行输出 <code>YES</code>，然后按照和输入相同的顺序分别输出 $a$ 矩阵和 $d$ 矩阵，并满足：</p>
+		<ul>
+			<li>先输出 $a$ 矩阵，再输出 $d$ 矩阵。</li>
+			<li>对 $\forall 1 \leq i \leq n, 1 \leq j \leq m$，有 $a_{i, j} \in \mathbb N^*$。</li>
+			<li>每个位置格子<em>指向</em>的格子必须仍在该矩阵中。</li>
+		</ul>
+		<p>如果有多组可行解，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>考虑题中所述的有向图 $G$ 的性质。注意到每个点的出度恰好为 $1$，于是它一定是一个<strong>基环内向森林</strong>。</p>
+		<p>对于其中一棵基环内向树，圈上的所有顶点能到达的点的集合都是这个圈，因此<span style="color: fuchsia">它们的 $S$ 值必定相等</span>。</p>
+		<p>而对于外面树中的点 $v$，设它的父节点为 $p_v$，那么 $v$ 能到达的点的集合恰好等于 $p_v$ 能到达的点的集合并上 $v$ 本身，因此有 $S_v = S_{p_v} + a_v$。</p>
+		<p>从而，如果一个点 $v$ 能成为内向树中 (非圈上) 的点，那么一定存在一个网格图上的邻点 $u$，使得 $S_u &lt; S_v$。</p>
+		<p>下面，我们称<strong style="color: teal">存在一个「$S$ 值小于本身的邻点」的点 $v$ 为 "潜在外点"</strong>。</p>
+		<p>那么，如果一个点不是 "潜在外点"，那么它一定在圈上。</p>
+		<p>由于网格图是二分图，因此森林中的圈一定是<strong>偶圈</strong>。因此我们可以将一个长度 $&gt; 2$ 的圈两个点两个点地拆分，拆分成若干个长度为 $2$ 的圈。因此在构造的过程中我们只需考虑长度为 $2$ 的圈。</p>
+		<hr />
+		<p>首先，我们最终的目标是将所有<strong>非 "潜在外点" 的点</strong>，找的它的归宿 —— 一个长度为 $2$ 的圈，或者说就是找另一个点 (可以是 "潜在外点") 与之相<strong>匹配</strong> (这里的匹配指的是图论中的，即一个点只能与唯一的点相匹配)。而 "潜在外点" 是相对自由的一类点，因为它在圈上也没事，不在圈上则可以通过指向那个 $S$ 值较小的邻点而完成。</p>
+		<p>这样我们就可以建立一个二分图匹配模型了：</p>
+		<p>对于网格图中相邻的两个点 $u, v$，如果 $S_u = S_v$，则在 $H$ 中连接一条边 $\left( u, v \right)$，然后我们需要找到一个 $H$ 的匹配 $M$，<strong style="color: orange">饱和所有的非 "潜在外点"</strong> (即所有的非 "潜在外点" 均有与之对应的匹配点)。</p>
+		<p>如果我们把它看作一个网络流模型，可以看出这其实就是一个<strong>无源汇有界可行流</strong>：即有源点 $S$ 和汇点 $T$，$S$ 向二分图的左部连边，二分图的右部向 $T$ 连边；对于必须要饱和的点 (即非 "潜在外点")，令源点连向它 (或它连向汇点) 的边的流量下界为 $1$，为流量平衡再连接一条 $T \to S$，容量为 $+ \infty$ 的边。</p>
+		<p>如果存在可行流，那么原问题有解，我们顺便也构造出了一组解；否则原问题无解。</p>
+		<p>时间复杂度和单位容量二分图的网络流相同，为 $O \left( \left( n m \right)^{3/2} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int N = 100054;
+
+namespace Flow {
+	#define ad(x) (((x - 1) ^ 1) + 1)
+
+	const int N = ::N, M = N * 6;
+
+	struct edge {
+		int u, v, f;
+		edge (int u0 = 0, int v0 = 0, int f0 = 0) : u(u0), v(v0), f(f0) {}
+	} e[M];
+
+	int V = 2, E = 0, si = 1, ti = 2, flow;
+	int first[N], next[M];
+	int dep[N], cur[N], que[N];
+
+	inline void init(int n) {for (V = n; E; --E) first[e[E].u] = 0;}
+
+	inline void addedge(int u, int v, int f) {
+		e[++E] = edge(u, v, f), next[E] = first[u], first[u] = E;
+		e[++E] = edge(v, u), next[E] = first[v], first[v] = E;
+	}
+
+	bool bfs() {
+		int h, t = 1, i, x, y;
+		memset(dep, -1, (V + 1) &lt;&lt; 2);
+		que[0] = si, dep[si] = 0;
+		for (h = 0; h &lt; t; ++h) {
+			if ((x = que[h]) == ti) return true;
+			for (i = first[x]; i; i = next[i])
+				if (dep[y = e[i].v] == -1 &amp;&amp; e[i].f)
+					que[t++] = y, dep[y] = dep[x] + 1;
+		}
+		return false;
+	}
+
+	int dfs(int x, int lim) {
+		int a, c, f = 0;
+		if (x == ti || !lim) return lim;
+		for (int &amp;i = cur[x]; i; i = next[i])
+			if (dep[e[i].v] == dep[x] + 1 &amp;&amp; e[i].f) {
+				a = std::min(lim - f, e[i].f);
+				c = dfs(e[i].v, a);
+				e[i].f -= c, e[ad(i)].f += c;
+				if ((f += c) == lim) return f;
+			}
+		return f;
+	}
+
+	int Dinic() {
+		for (flow = 0; bfs(); flow += dfs(si, INT_MAX))
+			memcpy(cur, first, (V + 1) &lt;&lt; 2);
+		return flow;
+	}
+
+	inline bool check() {
+		for (int i = first[si]; i; i = next[i]) if (~dep[e[i].v]) return false;
+		return true;
+	}
+}
+
+int R, C, n, W;
+int a[N], s[N], tag[N];
+int U1[N], U2[N];
+char dir[N];
+vector pos[N];
+
+namespace DC {
+	int F[N]; pr D[N];
+
+	int Discretize(int n) {
+		int i, cnt = 0;
+		std::sort(D, D + n);
+		for (i = 0; i &lt; n; ++i)
+			F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+}
+
+namespace Graph {
+	int V1, V2, E, M;
+	bool SL[N], SR[N];
+	pr e[N * 2], mat[N];
+
+	inline void init() {V1 = V2 = E = M = 0;}
+	inline void addedge(int u, int v) {e[E++] = pr(u, v);}
+
+	bool main() {
+		int i, Lx = 0, Rx = 0;
+		Flow::init(V1 + V2 + 3);
+		for (i = 0; i &lt; E; ++i) Flow::addedge(3 + e[i].first, 3 + V1 + e[i].second, 1);
+		for (i = 1; i &lt;= V1; ++i) Lx += SL[i], Flow::addedge(SL[i] ? 1 : 3, 3 + i, 1);
+		for (i = 1; i &lt;= V2; ++i) Rx += SR[i], Flow::addedge(3 + V1 + i, SR[i] ? 2 : 3, 1);
+		Flow::addedge(1, 3, Rx), Flow::addedge(3, 2, Lx), Flow::Dinic();
+		if (!Flow::check()) return false;
+		for (i = 0; i &lt; E; ++i) if (!Flow::e[i * 2 + 1].f) mat[M++] = e[i];
+		return true;
+	}
+}
+
+inline void match(int x, int y) {
+	if (x &gt; y) std::swap(x, y);
+	assert(s[x] == s[y]), a[x] = 1, a[y] = s[y] - 1;
+	if (x + C == y) dir[x] = 68, dir[y] = 85;
+	else if (x + 1 == y) dir[x] = 82, dir[y] = 76;
+	else throw "error";
+}
+
+void work() {
+	int i, j, r, c, m, u, v;
+	cin &gt;&gt; R &gt;&gt; C, n = R * C;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; s[i], DC::D[i] = pr(s[i], i);
+	for (i = 0; i &lt; n; ++i)
+		if (i % C &amp;&amp; s[i - 1] &lt; s[i]) dir[i] = 76, a[i] = s[i] - s[i - 1];
+		else if ((i + 1) % C &amp;&amp; s[i + 1] &lt; s[i]) dir[i] = 82, a[i] = s[i] - s[i + 1];
+		else if (i &gt;= C &amp;&amp; s[i - C] &lt; s[i]) dir[i] = 85, a[i] = s[i] - s[i - C];
+		else if (i + C &lt; n &amp;&amp; s[i + C] &lt; s[i]) dir[i] = 68, a[i] = s[i] - s[i + C];
+		else dir[i] = a[i] = 0;
+	W = DC::Discretize(n);
+	for (i = 0; i &lt; n; ++i) pos[ DC::F[i] ].EB(i);
+	for (i = 0; i &lt; W; ++i) {
+		m = pos[i].size(), Graph::init();
+		for (j = 0; j &lt; m; ++j) {
+			v = pos[i][j], r = v / C, c = v % C;
+			if ((r ^ c) &amp; 1)
+				U2[ u = ++Graph::V2 ] = v;
+			else
+				U1[ u = ++Graph::V1 ] = v;
+			tag[v] = u;
+			if (c &amp;&amp; s[v - 1] == s[v])
+				(r ^ c) &amp; 1 ? Graph::addedge(tag[v - 1], u) : Graph::addedge(u, tag[v - 1]);
+			if (r &amp;&amp; s[v - C] == s[v])
+				(r ^ c) &amp; 1 ? Graph::addedge(tag[v - C], u) : Graph::addedge(u, tag[v - C]);
+			((r ^ c) &amp; 1 ? Graph::SR[u] : Graph::SL[u]) = !dir[v];
+		}
+		if (!Graph::main()) break;
+		for (j = 0; j &lt; Graph::M; ++j)
+			std::tie(u, v) = Graph::mat[j], match(U1[u], U2[v]);
+		pos[i].clear();
+	}
+	if (i == W) {
+		cout &lt;&lt; "YES\n";
+		for (i = 0; i &lt; n; ++i)
+			cout &lt;&lt; a[i] &lt;&lt; ((i + 1) % C ? ' ' : '\n');
+		for (i = 0; i &lt; n; ++i)
+			cout &lt;&lt; dir[i] &lt;&lt; ((i + 1) % C ? ' ' : '\n');
+	} else
+		for (cout &lt;&lt; "NO\n"; i &lt; W; ++i) pos[i].clear();
+}
+
+int main() {
+	int T;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p style="color: red"><strong>坑1：</strong>(网格图常见) 网格图中判定相邻两个格子的方向一定要先上下再左右！不然当列数 $C = 1$ 时 $x + 1 = y$ 和 $x + C = y$ 都成立，但此时 $x, y$ 是上下方向的。</p>
+		<p><strong>坑2：</strong>最终建完的网络的边数可以达到 $3 n m$，不要开小了。</p>
+	</body>
+</html>

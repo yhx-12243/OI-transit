@@ -230,7 +230,7 @@ const
 		$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
 
 		if (getStorage('check-version') !== 'off') {
-			let local_ver = '7.4.1', prompt_str;
+			let local_ver = '7.4.2', prompt_str;
 			$.ajax('https://yhx-12243.github.io/OI-transit/additional_files/others/version', {
 				type : 'GET',
 				cache : false,

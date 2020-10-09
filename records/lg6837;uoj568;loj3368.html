@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6837][uoj568][loj3368][IOI2020]数蘑菇</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>研究蘑菇的专家安德鲁在研究新加坡的本地蘑菇。</p>
+		<p>作为研究的一部分，安德鲁采集了 $n$ 个蘑菇，编号为 $0$ 到 $n - 1$。每个蘑菇均为两种蘑菇种类之一，称为 $A$ 或 $B$。</p>
+		<p>安德鲁知道<strong>蘑菇 $0$ 属于种类 $A$</strong>，但是由于这两种蘑菇看起来很相似，他不知道蘑菇 $1$ 到 $n - 1$ 属于哪一种。</p>
+		<p>幸运的是，安德鲁的实验室里有一台机器可以帮助他。在使用这台机器时，需要将两个或者多个蘑菇放到机器里，并摆成一排 (以任意顺序)，然后打开机器。接下来，这台机器会计算所有不属于同一种类的<strong>相邻</strong>蘑菇对的个数。例如，如果你把种类为 $\left[ A, B, B, A \right]$ 的蘑菇 (按照这个顺序) 放到机器中，结果应该是 $2$。</p>
+		<p>但是，因为机器操作非常昂贵，机器只能使用有限的次数。此外，在机器的所有使用中，放置到机器中的蘑菇总数不能超过 $10^5$。请使用这台机器帮助安德鲁来数一数他采集了多少个种类为 $A$ 的蘑菇。</p>
+
+		<h3>实现细节</h3>
+		<p>你需要实现以下函数：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">int count_mushrooms(int n)
+</code></pre>
+		<ul>
+			<li>$n$：安德鲁采集到的蘑菇数量，保证 $2 \leq n \leq 20000$。</li>
+			<li>该函数应该被调用恰好一次，而且要返回种类为 $A$ 的蘑菇的个数。</li>
+		</ul>
+		<p>以上函数可以调用以下函数：</p>
+		<pre class="sh_sourceCode"><code class="sh_cpp">int use_machine(std::vector &lt;int&gt; x)
+</code></pre>
+		<ul>
+			<li>$x$：一个长度介于 $2$ 和 $n$ 的数组 (包括 $2$ 和 $n$)，按顺序给出放在机器中的蘑菇的编号。</li>
+			<li>$x$ 的元素必须是在 $0$ 到 $n - 1$ 之间 (包括 $0$ 和 $n - 1$) <strong>互不相同</strong>的整数。</li>
+			<li>假设数组 $x$ 的长度为 $d$。那么，此函数返回不同的下标 $j$ 的个数，满足 $0 \leq j \leq d-2$ 并且 $x_j$ 和 $x_{j+1}$ 属于不同种类。</li>
+			<li>该函数最多可以被调用 $\color {fuchsia} {226}$ 次。</li>
+			<li>在对函数 <code>use_machine</code> 的所有调用中，所有被传到该函数 <code>use_machine</code> 的 $x$ 的总长度不能超过 $10^5$。</li>
+		</ul>
+
+		<h3>题解</h3>
+		<p>首先可以明确的是：<strong style="color: red">我们不可能在 $226$ 次内得到 $20000$ 个蘑菇种类的精确分布</strong>。</p>
+		<p>这是因为，要得到所有蘑菇的种类，所需要的信息量至少是 $19999 \,\mathrm{bits}$ (即不同情形总数为 $2^{19999}$)，而每次询问，即使 $n$ 开到最大 ($20000$) 也只能获得 $\log_2 n &lt; 14.3 \,\mathrm{bits}$ 信息，因此所有信息能获得的总信息量小于 $14.3 \times 226 = 3231.8 \,\mathrm{bits} \ll 19999 \,\mathrm{bits}$。</p>
+		<p>因此我们需要利用题目返回值的性质 —— $A$ 类蘑菇的总数，即求某一类蘑菇的数量，而并不需要知道它们的精确分布。</p>
+		<p style="color: red">(ps: 以下为了方便 (并融合代码)，我们将所有蘑菇看成一个 $\texttt 0/\texttt 1$ 串 $a$，$\texttt 0$ 表示 $A$ 类蘑菇，$\texttt 1$ 表示 $B$ 类蘑菇，那么题目所要求的返回值就是整个串中 $\texttt 0$ 的数量)</p>
+		<p>而题目提供的询问是，给定一个子序列 (但是并不一定要按照原序) $a_{n_1}, a_{n_2}, \cdots, a_{n_k}$，交互库会返回 $$ \sum_{i=1}^{k-1} \left[ a_{n_i} \neq a_{n_{i + 1}} \right] $$ 的值。</p>
+		<p>那如何利用这个信息去得到 $\displaystyle \sum_{i=1}^n a_i$ (虽然是这里统计的是 $B$ 类总数，但实质上是一样的) 的值呢？或者说，对于一个子序列 $a_{n_1}, a_{n_2}, \cdots, a_{n_k}$，去得到 $\displaystyle \sum_{i=1}^k a_{n_i}$ 的值呢？</p>
+		<p>一种简单的思路是：对于所有偶数位置 $m_{2 i}$，令其等于 $m_{2 i}$，而对所有奇数位置 $m_{2 i + 1}$，令它的值 $a_{m_{2 i + 1}}$ 恒为 $0$。那么 $$ \sum_{i=1}^{2 k} \left[ a_{m_i} \neq a_{m_{i + 1}} \right] = \sum_{i=1}^k \left( \left[ a_{m_{2 i - 1}} \neq a_{m_{2 i}} \right] + \left[ a_{m_{2 i}} \neq a_{m_{2 i + 1}} \right] \right) = 2 \sum_{i=1}^k a_{m_{2 i}} = 2 \sum_{i=1}^k a_{n_i} $$</p>
+		<p>这种方案看起来很棒棒，好像一步就可以了诶！但是注意题目的条件：<strong style="color: blue">$x$ 中的元素互不相同</strong>，而你一开始所能确定的，就只有 $a_1 = 0$ 啊！<del>(嘿嘿出题人可没有那么傻让你白拿 100 分的)</del></p>
+		<p>那么这样我们就有一种策略了：</p>
+		<blockquote>
+			<p>将整个过程分为前期和后期，前期想尽一切办法获得尽可能多的位置的<em>精确值</em>，设获得了 $A$ 个，然后由抽屉原理知 $0$ 或 $1$ 至少有 $\left \lceil \dfrac A2 \right \rceil$ 个。</p>
+			<p>于是在后期，通过这至少 $\left \lceil \dfrac A2 \right \rceil$ 个 $0$ (或 $1$)，每轮可以知道至少 $\left \lceil \dfrac A2 \right \rceil$ 个元素的和，于是通过 $O \left( \dfrac n A \right)$ 次询问获得最终答案。</p>
+		</blockquote>
+		<p>首先，前期的询问次数有一个明显的上界 $O \left( A \right)$ (因为询问一次至少能获得一个位置的<em>精确值</em>)，因此总询问次数为 $O \left( A \right) + O \left( \dfrac n A \right) = O \left( \sqrt n \right)$ (当 $A = O \left( \sqrt n \right)$ 时)</p>
+		<p>喏，出现 $\sqrt n$ 了呢！和题目中的 $226$ 还是非常像的呵！(虽然说 $226$ 直观上更像 $\dfrac {\sqrt n} 2$)</p>
+		<hr />
+		<p>不过，阶对了并不代表复杂度对了。如果按照这种最土的策略，那么可以将大 $O$ 前面的常数分析出来然后得上界为 $A + \dfrac {2 n} A + O \left( 1 \right) \geq \sqrt {2 n} + O \left( 1 \right)$ 是很劣的。</p>
+		<p>于是我们需要对前期和后期都需要做优化。</p>
+		<ol>
+			<li><p>首先考虑<strong>后期</strong>。</p>
+			<p>我们按照 $\left[ 0, n_1, 0, n_2, 0, \cdots, 0, n_k, 0 \right]$ 的策略虽然可以获得结果，但是可以注意到我们获得的结果一定是一个<strong>偶数</strong>，而这会使人感觉比较浪费。</p>
+			<p>事实上，我们可以在序列末尾添加一个 $x$，使之变成 $\left[ 0, n_1, 0, n_2, 0, \cdots, 0, n_k, 0 \color {fuchsia} {, x} \right]$，这样记原来的答案 ($\displaystyle \sum_{i=1}^k a_{n_i}$) 为 $ans$，那么返回值就等于 $2 ans + a_x$。注意到 $a_x \in \left\{ 0, 1 \right\}$，因此我们不但能获得 $ans$ 还能获得 $a_x$，一举两得呢！</p>
+			<p>更进一步的是，我们获得的 $a_x$ 其实是 $x$ 位置的精确值，也就是说，我们在后期的每个操作，还能够<strong style="color: blue">使 $A$ 值每一步加 $1$ 呢</strong>！</p>
+			<p>因此，设后期开始时的 $A$ 值为 $A_0$，那么后期的询问次数上界将不再是 $\dfrac {2 n} {A_0} + O \left( 1 \right)$ 而是 $$ \frac {4 n} {A_0 + \sqrt {A_0^2 + 4 n}} + O \left( 1 \right) = \frac {2 n} {A_0 \left( 1 + n \middle / A_0^2 \right)} + O \left( \dfrac {n^3} {A_0^5} \right) $$</p></li>
+			<li><p>接下来考虑<strong>前期</strong>。</p>
+			<p>首先，前期主要是打 "小策略战" —— 即利用较小的次数获得较多的即时信息。</p>
+			<p>当我们获得即时信息越来越多，我们能利用的 $0$ 和 $1$ 也越来越多，也就越来越强，<del>又颇有一番养成类游戏的风味</del>。</p>
+			<p>前期除了询问 $\left[ 0, i \right]$ 获得 $a_i$ 外，最经典的一个策略莫过于询问 $\left[ 0, i, 0, j \right]$ 获得 $2 a_i + a_j$，然后利用 $a_i, a_j \in \left\{ 0, 1 \right\}$ 来同时取得 $a_i, a_j$ 了。</p>
+			<p><del class="text-muted">(于是你就喜提 $244$ 步，$92.62$ 分)</del></p>
+			<p>那怎么获得更好的策略呢？我们可以参考后期，每次的询问都是 $\left[ 0, n_1, 0, n_2, 0, \cdots, 0, n_k, 0, x \right]$ 的格式，这样可以奇偶性可以立即获得 $x$，然后对于其它的信息只能获得它的和。</p>
+			<p>下面定义一些即时策略的参数：<strong style="color: green">容量 $C$</strong>，一个策略所需要用到的 $0$ 的数量的峰值<strong>减 $1$</strong>，即上式中 $k$ 的最大值；<strong style="color: green">净利润 $P$</strong>，除 $x$ 外可以获得精确值的数量；<strong style="color: green">时间 $t$</strong>，表示这个策略所需要进行的询问次数；<strong style="color: green">利润 $P_\mathrm k$</strong>，它等于 $P + t$，表示这一轮可以获得总的精确值的数量；<strong style="color: green">净效率 $\eta$</strong>，它被定义为 $\dfrac Pt$；<strong style="color: green">效率 $\eta_\mathrm k$</strong>，它被定义为 $\dfrac {P_\mathrm k} t$，也等于 $\eta + 1$，效率衡量的是一个策略在单位时间内获得的位置数量。</p>
+			<p>$P_\mathrm k = P + t$ 很好理解，因为每一轮的 $x$ 都是能立即获得的，因此 $t$ 轮询问就可以获得 $t$ 个额外值，又除了诸 $x$ 外一共能获得 $P$ 个值，因此总共可以获得 $P + t$ 个值。</p>
+			<p>就以上面最基础的 $\left[ 0, i, 0, j \right]$ 策略为例，它满足：$\color {fuchsia} {C = 1, P = 1, t = 1, P_\mathrm k = 2, \eta = 1, \eta_\mathrm k = 2}$。当然我们还可以定义<strong style="color: orange">策略表 $T$</strong> 表示对于要获得的 $P$ 个值，$t$ 轮询问每一轮应该询问哪些数。如上面的例子中策略表就是 $\left[ \left\{ 1 \right\} \right]$。</p>
+			<hr />
+			<p>上面的策略太浅显了，下面我们再来举一个具体的例子，来观察以下如何定量刻画一个策略。</p>
+			<p>这个策略我们利用 $t = 3$ 轮时间获得 $P_\mathrm k = 7$ 个位置的值，从而它的效率 $\eta_\mathrm k = \dfrac 73$ 比上面的策略 ($2$) 高。</p>
+			<p>由于 $P = P_\mathrm k - t = 4$，因此我们记四个元素为 $a, b, c, d$，则我们的策略表为 $\left[ \left\{ a, b \right\}, \left\{ a, c \right\}, \left\{ b, c, d \right\} \right]$。</p>
+			<p style="color: red">(ps: 当然如果我们将元素记为 $1, 2, 3, 4$ 的话 $T = \left[ \left\{ 1, 2 \right\}, \left\{ 1, 3 \right\}, \left\{ 2, 3, 4 \right\} \right]$。下面的<em>策略总表</em>就用这种格式)</p>
+			<p>为什么上面的策略可行呢？这是因为，当我们获得 $a + b, a + c, b + c + d$ 时，将其相加，可以获得 $2 \left( a + b + c \right) + d$，从而由 $d \in \left\{ 0, 1 \right\}$ 可以同时获得 $a + b + c$ 和 $d$。结合 $a + b, a + c$ 就能同时得到 $a, b, c$。</p>
+			<p>这时人工证明一个策略合法的过程。但是人工证明一个策略肯定很繁琐，而且对于不同的策略还要写一大堆 <code>if</code>/<code>else</code>，肯定很烦。</p>
+			<p>那怎么办呢？考虑用机器证明啊！其实也不叫证明，就是一个<strong>验证</strong>。事实上，当 $P$ 不大时，我们可以直接验证所有变量取 $0$ 或 $1$ 的 $2^P$ 种组合，检验将它们代入到策略表后的 $t$ 元组是否互不相同即可。</p>
+			<p>如果是，那么这个策略合法。而且通过策略还原变量也只要枚举，而这一切只需要将我们的 $P$ 控制地不太大即可。</p>
+			<hr />
+			<p>那下面我们就给出我们的<em>策略总表</em>了。这些策略有些是构造出来的，有些是搜出来的。</p>
+			<table class="table table-bordered table-text-center table-vertical-middle table-hover table-striped">
+				<thead>
+					<tr><th>编号</th><th>名称</th><th>时间 $t$</th><th>容量 $C$</th><th>净利润 $P$</th><th>利润 $P_\mathrm k$</th><th>净效率 $\eta$</th><th>效率 $\eta_\mathrm k$</th><th>策略表 $T$</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>1</td><td>simple</td><td>$1$</td><td>$1$</td><td>$1$</td><td>$2$</td><td>$1$</td><td>$2$</td><td>$\left[ \left\{ 1 \right\} \right]$</td></tr>
+					<tr><td>2</td><td>double simple</td><td>$2$</td><td>$1$</td><td>$2$</td><td>$4$</td><td>$1$</td><td>$2$</td><td>$\left[ \left\{ 1 \right\}, \left\{ 2 \right\} \right]$</td></tr>
+					<tr><td>3</td><td>alternating triple</td><td>$3$</td><td>$3$</td><td>$4$</td><td>$7$</td><td>$\dfrac 43 \approx 1.33$</td><td>$\dfrac 73 \approx 2.33$</td><td>$\left[ \left\{ 1, 2 \right\}, \left\{ 1, 3 \right\}, \left\{ 2, 3, 4 \right\} \right]$</td></tr>
+					<tr><td>4</td><td>three plus one</td><td>$4$</td><td>$3$</td><td>$5$</td><td>$9$</td><td>$\dfrac 54 = 1.25$</td><td>$\dfrac 94 = 2.25$</td><td>$\left[ \left\{ 1, 2 \right\}, \left\{ 1, 3 \right\}, \left\{ 1, 4 \right\}, \left\{ 2, 3, 5 \right\} \right]$</td></tr>
+					<tr><td>5</td><td>three slot ultimate</td><td>$5$</td><td>$3$</td><td>$7$</td><td>$12$</td><td>$\dfrac 75 = 1.40$</td><td>$\dfrac {12} 5 = 2.40$</td><td>$\left[ \left\{ 1, 2 \right\}, \left\{ 1, 3, 4 \right\}, \left\{ 2, 3, 5 \right\}, \left\{ 2, 4, 6 \right\}, \left\{ 4, 5, 7 \right\} \right]$</td></tr>
+					<tr><td>6</td><td>six augmented</td><td>$6$</td><td>$4$</td><td>$9$</td><td>$15$</td><td>$\dfrac 32 = 1.50$</td><td>$\dfrac 52 = 2.50$</td><td>$\left[ \left\{ 1, 2, 3 \right\}, \left\{ 1, 4, 5 \right\}, \left\{ 2, 6, 7 \right\}, \left\{ 3, 4, 6, 8 \right\}, \left\{ 2, 3, 4, 9 \right\}, \left\{ 1, 3, 6, 9 \right\} \right]$</td></tr>
+					<tr><td>7</td><td>eight power final</td><td>$8$</td><td>$5$</td><td>$13$</td><td>$21$</td><td>$\dfrac {13} 8 \approx 1.63$</td><td>$\dfrac {21} 8 \approx 2.63$</td><td>\begin{array}c \left[ \left\{ 1, 2, 3, 4, 5 \right\}, \left\{ 1, 4, 7, 8, 10 \right\}, \left\{ 1, 3, 7, 9, 10 \right\}, \left\{ 1, 2, 8, 9, 10 \right\}, \\ \left\{ 6, 7, 8, 9, 10 \right\}, \left\{ 1, 2, 6, 7, 11 \right\}, \left\{ 1, 3, 6, 8, 12 \right\}, \left\{ 1, 4, 6, 9, 13 \right\} \right] \end{array}</td></tr>
+				</tbody>
+			</table>
+			<p class="text-muted">(Bonus: 可以证明，当 $t, C \to \infty$ 时，策略的效率 $\eta_\mathrm k$ 可以任意大，即对于 $\forall N$ 总存在某个策略的效率大于 $N$。当然这个结论可能只有理论作用了呵呵)
+			<p>可以发现这些策略从上往下效率是基本递增的 (也就是说下面的效率会比上面的高效)</p>
+			<p>不过，高效的策略的两个普遍代价就是：<strong>时间较长、容量较大</strong>。因此我们一开始只能使用前面的 "低效策略"，当我们获得的 $0$ 和 $1$ 越来越多，我们就可以大胆使用 "高效策略" 了。</p>
+			<p>事实上，策略 6 (six augmented) 和策略 7 (eight power final) 的最终效率 $\eta_\mathrm k$ 都达到了 $2.5$，足以在 $226$ 次询问内完成本题了。</p>
+		</ol>
+		<p>在前后期均加满优化后，$226$ 次询问就是绰绰有余的，在最坏情况下的分析可以见下表：</p>
+		<table class="table table-bordered table-text-center table-vertical-middle table-hover table-striped">
+			<thead>
+				<tr><th>编号</th><th>当前总询问次数 $q$</th><th>已知精确值个数 $C_0$</th><th>可用容量 $\left \lceil \dfrac {C_0} 2 \right \rceil - 1$</th><th>已知总和值个数 $S$</th><th>下一步使用策略</th></tr>
+			</thead>
+			<tbody>
+				<tr><td>1</td><td>$0$</td><td>$1$</td><td>$0$</td><td>$1$</td><td>直接询问</td></tr>
+				<tr><td>2</td><td>$1$</td><td>$2$</td><td>$0$</td><td>$2$</td><td>直接询问</td></tr>
+				<tr><td>3</td><td>$2$</td><td>$3$</td><td>$1$</td><td>$3$</td><td>策略 2 (double simple)</td></tr>
+				<tr><td>4</td><td>$4$</td><td>$7$</td><td>$3$</td><td>$7$</td><td>策略 5 (three slot ultimate)</td></tr>
+				<tr><td>5</td><td>$9$</td><td>$19$</td><td>$9$</td><td>$19$</td><td>策略 8 (eight power final)</td></tr>
+				<tr><td>6</td><td>$17$</td><td>$40$</td><td>$19$</td><td>$40$</td><td>策略 8 (eight power final)</td></tr>
+				<tr><td>7</td><td>$25$</td><td>$61$</td><td>$30$</td><td>$61$</td><td>策略 8 (eight power final)</td></tr>
+				<tr><td>8</td><td>$33$</td><td>$82$</td><td>$40$</td><td>$82$</td><td>策略 8 (eight power final)</td></tr>
+				<tr><td>9</td><td>$41$</td><td>$103$</td><td>$51$</td><td>$103$</td><td>策略 8 (eight power final)</td></tr>
+				<tr><td>10</td><td>$49$</td><td>$124$</td><td>$61$</td><td>$124$</td><td>策略 8 (eight power final)</td></tr>
+				<tr><td>11</td><td>$57$</td><td>$145$</td><td>$72$</td><td>$145$</td><td>策略 8 (eight power final)</td></tr>
+				<tr><td>12</td><td>$65$</td><td>$166$</td><td>$82$</td><td>$166$</td><td>策略 8 (eight power final)</td></tr>
+				<tr><td>13</td><td>$73$</td><td>$187$</td><td>$93$</td><td>$187$</td><td>策略 8 (eight power final)</td></tr>
+				<tr><td>14</td><td>$81$</td><td>$208$</td><td>$103$</td><td>$208$</td><td>策略 8 (eight power final)</td></tr>
+				<tr><td>15</td><td>$89$</td><td>$229$</td><td>$114$</td><td>$229$</td><td>进入后期</td></tr>
+				<tr><td>16</td><td>$90$</td><td>$230$</td><td>$114$</td><td>$344$</td><td>/</td></tr>
+				<tr><td>17</td><td>$91$</td><td>$231$</td><td>$115$</td><td>$459$</td><td>/</td></tr>
+				<tr><td>18</td><td>$92$</td><td>$232$</td><td>$115$</td><td>$575$</td><td>/</td></tr>
+				<tr><td>19</td><td>$93$</td><td>$233$</td><td>$116$</td><td>$691$</td><td>/</td></tr>
+				<tr><td>20</td><td>$94$</td><td>$234$</td><td>$116$</td><td>$808$</td><td>/</td></tr>
+				<tr><td>21</td><td>$95$</td><td>$235$</td><td>$117$</td><td>$925$</td><td>/</td></tr>
+				<tr><td>22</td><td>$96$</td><td>$236$</td><td>$117$</td><td>$1043$</td><td>/</td></tr>
+				<tr><td>23</td><td>$97$</td><td>$237$</td><td>$118$</td><td>$1161$</td><td>/</td></tr>
+				<tr><td>24</td><td>$98$</td><td>$238$</td><td>$118$</td><td>$1280$</td><td>/</td></tr>
+				<tr><td>25</td><td>$99$</td><td>$239$</td><td>$119$</td><td>$1399$</td><td>/</td></tr>
+				<tr><td>26</td><td>$100$</td><td>$240$</td><td>$119$</td><td>$1519$</td><td>/</td></tr>
+				<tr><td colspan="7">$\cdots$</td></tr></tr>
+				<tr><td>142</td><td>$216$</td><td>$356$</td><td>$178$</td><td>$18803$</td><td>/</td></tr>
+				<tr><td>143</td><td>$217$</td><td>$357$</td><td>$179$</td><td>$18981$</td><td>/</td></tr>
+				<tr><td>144</td><td>$218$</td><td>$358$</td><td>$179$</td><td>$19160$</td><td>/</td></tr>
+				<tr><td>145</td><td>$219$</td><td>$359$</td><td>$180$</td><td>$19339$</td><td>/</td></tr>
+				<tr><td>146</td><td>$220$</td><td>$360$</td><td>$180$</td><td>$19519$</td><td>/</td></tr>
+				<tr><td>147</td><td>$221$</td><td>$361$</td><td>$181$</td><td>$19699$</td><td>/</td></tr>
+				<tr><td>148</td><td>$222$</td><td>$362$</td><td>$181$</td><td>$19880$</td><td>/</td></tr>
+				<tr><td>149</td><td>$223$</td><td>$363$</td><td>$182$</td><td>$\color {fuchsia} {20000}$</td><td>结束</td></tr>
+			</tbody>
+		</table>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include "mushrooms.h"
+#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define popc __builtin_popcount
+#define ctz __builtin_ctz
+#define OK (*Z + Z[1])
+
+namespace mushrooms {
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 40054;
+
+int n, n_query, Z[2];
+int a[N], seq[N];
+vector pool[2];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+inline void trace() {fprintf(stderr, "[time %3d] %d : %d, progress: {A : %d, B : %d, tot : %d/%d}\n", n_query, (int)pool-&gt;size(), (int)pool[1].size(), *Z, Z[1], OK, n);}
+inline void set(int h, int v) {a[h] = v, pool[v].EB(h), ++Z[v];}
+inline int query(const vector &amp;seq) {return ++n_query, use_machine(seq);}
+
+namespace first_four {
+	void main() {
+		switch (query({0, 1, 2, 3})) {
+			case 0: set(1, 0), set(2, 0), set(3, 0); break;
+			case 1:
+				set(3, 1);
+				switch (query({0, 2, 1})) {
+					case 0: set(1, 0), set(2, 0); break;
+					case 1: set(1, 1), set(2, 1); break;
+					case 2: set(1, 0), set(2, 1); break;
+				}
+				break;
+			case 2:
+				set(3, 0);
+				switch (query({0, 1, 3, 2})) {
+					case 1: set(1, 0), set(2, 1); break;
+					case 2: set(1, 1), set(2, 0); break;
+					case 3: set(1, 1), set(2, 1); break;
+				}
+				break;
+			case 3: set(1, 1), set(2, 0), set(3, 1); break;
+		}
+		assert(*Z + Z[1] == 4);
+	}
+}
+
+namespace expanding {
+	const int expand_table[8][11] = {
+		{},
+//		 times,	slots,	new,	strategy
+		{1,		1,		1, 		1},
+		{2,		1, 		2,		1,2},
+		{3,		3,		4,		3,5,14},
+		{4,		3,		5,		3,5,9,22},
+		{5,		3,		7,		3,13,22,42,88},
+		{6,		4,		9,		7,25,98,172,270,293},
+		{8,		5,		13,		31,713,837,899,992,1123,2213,4393},
+	};
+
+	int tmp[10], col[25];
+
+	void expand(const int *e, bool rev) {
+		int i, S, y, z = 0, t = e[0], slot = e[1], len = e[2], main_L = OK, aux_L = main_L + len;
+		for (i = 1; i &lt;= 2 * slot + 1; i += 2) seq[i] = pool[rev][z++];
+		for (i = 0; i &lt; t; ++i) {
+			*seq = aux_L + i, y = 0;
+			for (S = e[3 + i]; S; S &amp;= S - 1) seq[2 * ++y] = main_L + ctz(S);
+			S = query(vector(seq, seq + 2 * (y + 1))),
+			col[len + i] = (S ^ rev) &amp; 1, S &gt;&gt;= 1, tmp[i] = rev ? y - S : S;
+		}
+		for (S = 0; S &lt; 1 &lt;&lt; len; ++S) {
+			for (i = 0; i &lt; t &amp;&amp; popc(S &amp; e[3 + i]) == tmp[i]; ++i);
+			if (i == t) break;
+		}
+		assert(S != 1 &lt;&lt; len);
+		for (i = 0; i &lt; len; ++i) col[i] = S &gt;&gt; i &amp; 1;
+		for (i = 0; i &lt; len + t; ++i) set(main_L + i, col[i]);
+	}
+
+	void main() {
+		int i, w = max(pool[0].size(), pool[1].size()), rem = n - OK; const int *e;
+		if (assert(--w &gt; 0), rem == 1) return set(OK, query({0, OK}));
+		for (i = 7; i &gt; 0; --i) {
+			e = expand_table[i];
+			if (e[1] &lt;= w &amp;&amp; e[0] + e[2] &lt;= rem)
+				return expand(e, pool[0].size() &lt; pool[1].size());
+		}
+		throw "gg";
+	}
+}
+
+namespace sweeping {
+	void sweep(int w, bool rev) {
+		int i, S, main_L = OK;
+		for (i = 0; i &lt; w; ++i) seq[2 * i] = main_L + i, seq[2 * i + 1] = pool[rev][i];
+		S = query(vector(seq, seq + 2 * w)),
+		set(main_L, (S ^ rev) &amp; 1), S &gt;&gt;= 1, Z[!rev] += S, Z[rev] += w - 1 - S;
+	}
+
+	inline void main() {sweep(min(max(pool[0].size(), pool[1].size()), n - OK), pool[0].size() &lt; pool[1].size());}
+}
+
+int count_mushrooms(int n_) {
+	int i;
+	n = n_, n_query = 0, pool-&gt;EB(0), *Z = 1, Z[1] = 0;
+	memset(a, -1, n &lt;&lt; 2), trace();
+	if (n &lt; 4) for (i = 1; i &lt; n; ++i) set(i, query({0, i})), trace();
+	else {
+		for (first_four::main(); trace(), OK &lt; n; expanding::main())
+			if (pool[0].size() &gt;= 120 || pool[1].size() &gt;= 120) break;
+		for (; OK &lt; n; ) sweeping::main(), trace();
+	}
+	return assert(OK == n), *Z;
+}
+
+}
+
+int count_mushrooms(int n) {return mushrooms::count_mushrooms(n);}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>事实上可以通过效率<strong>稍大</strong>的策略 (如 $t = 16, P_\mathrm k = 49$ 的策略) 从而可以在更少的次数内完成问题。但这个范围的 $P$ ($33$) 就不能通过单纯的枚举了，需要通过人工方法进行还原，从而造成代码量的提升。</p>
+		<p><strong>坑2：</strong>在进行类似 $\left[ 0, n_1, 0, n_2, \cdots \right]$ 的操作的时候有时候是 $1$ 比 $0$ 多，此时需要将所有 (用来固定的) $0$ 改成 $1$，最后不要忘记取反。</p>
+		<p><del><strong>坑3：</strong>在 loj 上可能因为奇奇怪怪的原因造成命名冲突，可以通过创造匿名 <code>namespace</code> 的方法来解决。</del></p>
+	</body>
+</html>
