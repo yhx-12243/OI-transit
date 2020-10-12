@@ -142,7 +142,7 @@ const problem_list = [
 			'answer' : '<Compile Error>',
 			'ub' : false,
 			'ce' : true,
-			'explanation' : '<code>\'F\'</code> 是合法十六进制数位，这会到导致十六进制转义序列超限而无法编译。'
+			'explanation' : '<code>\'F\'</code> 是合法十六进制数位，这会导致十六进制转义序列超限而无法编译。'
 		},
 		{ // 19
 			'lang' : 'C++11',
@@ -183,7 +183,7 @@ const problem_list = [
 			'answer' : '<Compile Error>',
 			'ub' : false,
 			'ce' : true,
-			'explanation' : '以 <code>e</code> 或 <code>E</code> 结束的十六进制常量在后面<strong>紧跟</strong> <code>+</code> 或 <code>-</code> 时，编译器会贪心认为其实浮点数而报错。'
+			'explanation' : '以 <code>e</code> 或 <code>E</code> 结束的十六进制常量在后面<strong>紧跟</strong> <code>+</code> 或 <code>-</code> 时，编译器会贪心认为其是浮点数而报错。'
 		},
 		{ // 24
 			'lang' : 'C++11',
@@ -479,7 +479,7 @@ const problem_list = [
 			'answer' : '<Compile Error>',
 			'ub' : false,
 			'ce' : true,
-			'explanation' : 'ADL 法则全称<strong>实参依赖查找</strong>，参数的命名空间不会在通过函数名进行查找。'
+			'explanation' : 'ADL 法则全称<strong>实参依赖查找</strong>，参数的命名空间不会再通过函数名进行查找。'
 		},
 /*		{ // 61
 			'lang' : 'C++11',

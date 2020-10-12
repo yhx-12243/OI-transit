@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6731][loj3331][WC2020]选课</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>随着期末考试的结束，一年一度的选课环节又拉开了帷幕。</p>
+		<p>小 C 是一个热爱学习的好学生，他给自己定了一个小目标：在新的学期至少修够 $T$ 学分。从教务处给出的公告上看，本次可供选择的课程一共有 $m$ 种分类，第 $i$ 种分类中有 $n_i$ 门课程。</p>
+		<p>小 C 根据公告的内容，提高了自己的学习目标：在所有课程至少修满 $T$ 学分的基础上，第 $i$ 种分类 ($i = 1, 2, \cdots, m$) 至少修够 $s_i$ 的学分。同时，聪明的小 C 凭借自己的经验，计算出了学习每门课程所能得到的学分和所需要消耗的脑力值。</p>
+		<p>不仅如此，他还发现，有些课程之间存在特殊的关系：同时学习某两门内容相似的课程，可能会减少脑力值的消耗；同时学习某两门十分硬核的课，可能会增加脑力值的消耗；某两门课程时间冲突，则无法同时学习。</p>
+		<p>小 C 希望能够花费最少的脑力值来达到他的目标。你能帮小 C 计算出达到目标所需要的最小脑力值吗？</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $m, T$ ($m \leq 50000; T \leq 10^6$)，分别表示分类种数和总共需要修够的学分数。</p>
+		<p>接下来包含 $m$ 段输入，每段输入描述一种分类的课程。对于第 $i$ 段输入：</p>
+		<blockquote>
+			<p>第一行包含两个非负整数 $n_i, s_i$ ($\sum n_i \leq 5 \times 10^5; s_i \leq 10^6$) ，分别表示第 $i$ 种分类的所有课程数和需要修够的学分。保证 $T \leq \sum s_i + 40$。</p>
+			<p>第 $j + 1$ ($1 \leq j \leq n_i$) 行包含两个正整数 $w_{i, j}, c_{i, j}$ ($w_{i, j} \in \left\{ 1, 2, 3 \right\}; c_{i, j} \leq 200$)，分别表示选修第 $i$ 种分类中的第 $j$ 门课能获得的学分和需要消耗的脑力。</p>
+		</blockquote>
+		<p>$m$ 段输入之后，有一个非负整数 $p$ ($p \leq 66$)，表示关系的条数。</p>
+		<p>接下来 $p$ 行，每行描述一条关系，每一条关系可表示为以下 $3$ 种形式之一 (以下所有输入数据均为正整数)：</p>
+		<ul>
+			<li><code>1 <em>x<sub>1</sub></em> <em>y<sub>1</sub></em> <em>x<sub>2</sub></em> <em>y<sub>2</sub></em> <em>c</em></code>，表示同时修第 $x_1$ 种分类中的第 $y_1$ 门课和第 $x_2$ 种分类中的第 $y_2$ 门课，可以减少 $c$ 的消耗。</li>
+			<li><code>2 <em>x<sub>1</sub></em> <em>y<sub>1</sub></em> <em>x<sub>2</sub></em> <em>y<sub>2</sub></em> <em>c</em></code>，表示同时修第 $x_1$ 种分类中的第 $y_1$ 门课和第 $x_2$ 种分类中的第 $y_2$ 门课，需要增加 $c$ 的消耗。</li>
+			<li><code>3 <em>x<sub>1</sub></em> <em>y<sub>1</sub></em> <em>x<sub>2</sub></em> <em>y<sub>2</sub></em></code>，表示第 $x_1$ 种分类中的第 $y_1$ 门课和第 $x_2$ 种分类中的第 $y_2$ 门课不能同时修。</li>
+		</ul>
+		<p><strong>保证所有关系中涉及的课程数量不超过 $12$</strong>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示达到目标所需要的最小脑力值。如果无法达到小 C 的目标，请输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>先考虑 $p = 0$ 时的做法。</p>
+		<p>此时不难发现题目就是一个多组的背包问题。设 $R = \max \left\{ T - \sum s_i, 0 \right\} \in \left[ 0, 40 \right]$ 表示你完成了这 $m$ 组背包后，额外需要修够的学分。</p>
+		<p>对于第 $i$ 组背包，我们记 $f_{i, w}$ 表示<strong>为至少获得 $w$ 学分所需花费的最小脑力值</strong>。那么根据定义可知答案为 $$ \min_{w_1 + w_2 + \cdots + w_m = R} \left( f_{1, s_1 + w_1} + f_{2, s_2 + w_2} + \cdots + f_{m, s_m + w_m} \right) \tag 1 \label 1 $$</p>
+		<p>可以发现 $\eqref 1$ 式其实就是一个 $\left( \min, + \right)$ 卷积。并注意到 $0 \leq w_i \leq R$，因此每个 $f_i$ 数组中只有 $R + 1$ 个 $w_i$ 可以被使用，因此整个式子可以在 $O \left( m \cdot R^2 \right)$ 时间内完成计算。</p>
+		<p>现在考虑对每个 $i = 1, 2, \cdots, m$，求数组 $f_i$。</p>
+		<p>其实这个背包是一个反向背包，即在满足体积 (学分) 之和不小于容量 (目标学分) 时，最小化价值 (脑力值) 之和。</p>
+		<p>不过这并不影响实现的方式。首先容量下限肯定不能超过 $n_i \cdot \max w_{i, j} = 3 n_i$，否则无解。因此直接背包的时间复杂度就是 $O \left( n \cdot V \right) = O \left( n_i^2 \right)$，无法接受。</p>
+		<p>因此我们要利用 $w_{i, j} \leq 3$ 的性质来进行优化。</p>
+		<p>首先，如果 $w_{i, j} = 1$，那么显然是一个贪心过程。</p>
+		<p>如果 $w_{i, j} \leq 2$，这是一个经典的问题，解法如下：</p>
+		<p>设使用体积为 $1$ 的物品数量为 $\nu_1$，体积为 $2$ 的物品数量为 $\nu_2$，这些物品的体积总和 $V = \nu_1 + 2 \nu_2$。</p>
+		<ol>
+			<li><p>如果 $V$ 是偶数，那么 $\nu_1$ 是偶数，因此利用的一定是体积为 $1$ 的物品中<strong>价值前 $\nu_1$ 小的</strong>。因此我们可以将这些物品从小到大排序后两两加和，然后取前 $\dfrac {\nu_1} 2$ 小的。</p>
+			<p>此时这些加和后的物品可以看成若干体积为 $2$ 的物品。于是只需考虑体积为 $2$ 的物品，直接贪心即可。</p></li>
+			<li><p>如果 $V$ 是奇数，那么 $\nu_1$ 是奇数，这说明 $\nu_1 \geq 1$。</p>
+			<p>那么显然体积为 $1$ 的物品中，价值最小的一定会被选取。因此我们将该物品去掉后就转化为 $V$ 是偶数的情形，于是问题解决。</p>
+		</ol>
+		<p style="color: red">(ps: 要注意的一点时，我们枚举的是<strong>选取物品的体积总和</strong>而不是容量下限。因为有些情况体积总和增多后价值反而减小，因此最后不要忘记令 $f_{i, w} \downarrow f_{i, w + 1}$)</p>
+		<p>现在考虑 $w_{i, j} \leq 3$ 的情形。那么此时有 $V = \nu_1 + 2 \nu_2 + 3 \nu_3$，如果直接分类讨论似乎不太行了 (或者情况数非常多，因为至少需要模 $6$)。</p>
+		<p>不过回到最开始，我们需要利用的 $f_{i, w}$，其实<strong>只需要对 $R + 1$ 个 $w$</strong> ($s_i, s_i + 1, \cdots, s_i + R$) 进行计算。</p>
+		<p>因此考虑对每个 $s_i + j$ 型的容量进行<em>暴力计算</em> —— 枚举 $\nu_3$，然后转化为 $w_{i, j} \leq 2$ 的情形，这样单次计算的复杂度为 $O \left( n_i \right)$，计算 $R + 1$ 个值的复杂度为 $O \left( n_i \cdot R \right)$。</p>
+		<p>于是总时间复杂度 $O \left( n \log n + n R + m R^2 \right)$。</p>
+		<hr />
+		<p>接下来考虑 $p &gt; 0$ 的情形。</p>
+		<p>由于<strong>关系中涉及的课程总数</strong> $V \leq 12$，因此一个直观的思路就是<strong>暴力枚举这 $V$ 个课程是否选</strong> (这样就会有一个 $O \left( 2^V \right)$ 的因子)。</p>
+		<p>然后考虑合并。显然不能每次再暴力合并了 (不然 $m R^2$ 再乘上 $2^V$ 肯定 TLE)。不过注意到 $V \leq 12$，因此<strong>至多 $12$ 个分类的课程</strong>会受到影响。因此我们仍然可以把剩下至少 $m - V$ 类课程的 DP 值合并起来 (做 $\left( \min, + \right)$ 卷积)。</p>
+		<p>那对于有关系涉及的分类，由于我们枚举了若干物品，因此剩下的物品的容量下限就会有所减少。</p>
+		<p>因此，我们要预先计算更多的 DP 值 —— 不超过 $R + 3 V + 1$ 个。</p>
+		<p>然后最后只需将原来合并完成的序列与新计算的若干序列合并 (做 $\left( \min, + \right)$ 卷积)，就能得到最终的价值了。不过不要忘记算上额外的 $\pm c$ 哦。</p>
+		<p>总时间复杂度变成 $O \left( n \log n + n \left( R + V \right) + \left( m + 2^V \cdot V \right) R^2 \right)$，可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define ctz __builtin_ctz
+using std::cin;
+using std::cout;
+using std::vector;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 50054, W = 500054, B = 54, Vm = 14, INF = 0x3f3f3f3f;
+
+int n, V, E, S;
+int s[N], f[W], g[W], F[W * 2];
+int U[B], UU[Vm][B + Vm * 3];
+vector &lt;pr&gt; a[N];
+vector &lt;int&gt; cs[3];
+
+int spc = 0, special[Vm], total[Vm];
+pr extra[Vm], e[Vm * Vm];
+std::map &lt;pr, int&gt; M;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+inline int ID(int x, int y) {
+	std::map &lt;pr, int&gt;::iterator it; bool ret;
+	std::tie(it, ret) = M.emplace(pr(x, y), V);
+	return ret ? (extra[V] = pr(x, y), V++) : it-&gt;second;
+}
+
+pr read_bonus() {
+	int op, x1, y1, x2, y2, c, g;
+	switch (cin &gt;&gt; op &gt;&gt; x1 &gt;&gt; y1 &gt;&gt; x2 &gt;&gt; y2, op) {
+		case 1: cin &gt;&gt; c, c = -c; break;
+		case 2: cin &gt;&gt; c; break;
+		case 3: c = INT_MAX; break;
+	}
+	return g = 1 &lt;&lt; ID(--x1, --y1), pr(g | 1 &lt;&lt; ID(--x2, --y2), c);
+}
+
+void min_conv(int n, int *a, int *b, int *c) {
+	int i, j; static int c_[B]; memset(c_, 63, n &lt;&lt; 2);
+	for (i = 0; i &lt; n; ++i) for (j = 0; i + j &lt; n; ++j) down(c_[i + j], a[i] + b[j]);
+	memcpy(c, c_, n &lt;&lt; 2);
+}
+
+int combine(int V, int lim) {
+	int i, acc = 0, ret = INF;
+	for (i = 0; ; ++i, V -= 3) {
+		if (V &lt;= 0) {down(ret, acc); break;}
+		else if (V &lt;= lim) down(ret, acc + F[V]);
+		if (i == (int)cs[2].size()) break;
+		acc += cs[2][i];
+	}
+	return ret;
+};
+
+int solve(int mask) {
+	int i, j, _, w, T;
+	static int Z[B];
+	memcpy(Z, U, (S + 1) &lt;&lt; 2);
+	for (_ = 0; _ &lt; spc; ++_) {
+		i = special[_], w = 0;
+		for (T = mask; T; T &amp;= T - 1)
+			if (extra[j = ctz(T)].first == i) w += a[i][extra[j].second].first;
+		min_conv(S + 1, Z, UU[_] + (total[_] - w), Z);
+	}
+	return Z[S];
+}
+
+int main() {
+	int i, j, m, lim, $1, $2, w, v, cur, ans = INF;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; S;
+	for (i = 0; i &lt; n; ++i) {
+		cin &gt;&gt; m &gt;&gt; s[i], S -= s[i];
+		for (a[i].reserve(m); m; --m)
+			cin &gt;&gt; w &gt;&gt; v, a[i].EB(w, v);
+	}
+	up(S, 0), cin &gt;&gt; E;
+	for (i = 0; i &lt; E; ++i) e[i] = read_bonus();
+	assert(V &lt; 13), memset(U, 63, sizeof U), *U = 0;
+	for (i = 0; i &lt; n; ++i) {
+		cs-&gt;clear(), cs[1].clear(), cs[2].clear(), m = a[i].size();
+		for (w = j = 0; j &lt; m; ++j)
+			if (M.find(pr(i, j)) == M.end()) cs[a[i][j].first - 1].EB(a[i][j].second);
+			else w += a[i][j].first;
+		m = cs-&gt;size(), lim = m + (int)cs[1].size() * 2,
+		std::sort(cs-&gt;begin(), cs-&gt;end()),
+		std::sort(cs[1].begin(), cs[1].end()),
+		std::sort(cs[2].begin(), cs[2].end()),
+		memset(F, 63, (lim + 1) * sizeof(int));
+		for (j = 0; j * 2 + 1 &lt; m; ++j) f[j] = cs[0][j * 2] + cs[0][j * 2 + 1];
+		v = std::merge(f, f + j, cs[1].begin(), cs[1].end(), g) - g;
+		for (*F = j = 0; j &lt; v; ++j) F[j * 2 + 2] = F[j * 2] + g[j];
+		if (m) {
+			for (j = 0; j * 2 + 2 &lt; m; ++j) f[j] = cs[0][j * 2 + 1] + cs[0][j * 2 + 2];
+			v = std::merge(f, f + j, cs[1].begin(), cs[1].end(), g) - g;
+			for (F[1] = cs-&gt;front(), j = 0; j &lt; v; ++j) F[j * 2 + 3] = F[j * 2 + 1] + g[j];
+		}
+		for (j = lim - 1; j &gt;= 0; --j) down(F[j], F[j + 1]);
+		for (j = -w; j &lt;= S; ++j) g[j + w] = combine(j + s[i], lim);
+		if (w) special[spc] = i, total[spc] = w, memcpy(UU[spc++], g, (w + S + 1) &lt;&lt; 2);
+		else min_conv(S + 1, U, g, U);
+	}
+	for (i = 0; i &lt; 1 &lt;&lt; V; ++i) {
+		for (cur = 0, j = i; j; j &amp;= j - 1)
+			std::tie($1, $2) = extra[ctz(j)], cur += a[$1][$2].second;
+		for (j = 0; j &lt; E; ++j)
+			if (!(~i &amp; e[j].first))
+				if (cur += e[j].second, e[j].second == INT_MAX) break;
+		if (j == E) down(ans, cur + solve(i));
+	}
+	cout &lt;&lt; (ans &gt;= INF ? -1 : ans) &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>计算多个背包时注意数组清空的时间复杂度。在暴力合并体积为 $3$ 的物品时 (<code>combine</code> 函数) 注意不要让数组越界。</p>
+		<p><strong>坑2：</strong>对于第 3 种限制记得及时 <code>break</code>，防止 <code>INF</code> 溢出。</p>
+		<p><strong>坑3：</strong>最终不要忘记判无解的情形。</p>
+	</body>
+</html>

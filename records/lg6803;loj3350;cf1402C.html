@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6803][loj3350][Codeforces1402C][CEOI2020]星际迷航</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义 $T$ 是一个 $N$ 个顶点的无根树，顶点编号为 $1, 2, \cdots, N$。</p>
+		<p>有 $D + 1$ 棵与 $T$ 同构的树 $T_0, T_1, \cdots, T_N$，记树 $T_i$ 中对应编号 $x$ ($1 \leq x \leq N$) 的顶点为 $P_x^i$。现在对于每个 $i \in \left[ 0, D \right)$，我们将选择一个 $A_i$ 和 $B_i$ ($1 \leq A_i, B_i \leq N$)，并在 $P_{A_i}^i$ 和 $P_{B_i}^{i+1}$ 之间连接一条<strong>有向边</strong>，得到一张混合图 $G$。</p>
+		<p>现在在 $G$ 上玩一个双人游戏：初始时有一个石子位于 $P_1^0$ 处，每一轮可以将石子沿着无向边或有向边 (需按照有向边的方向) 移动一步，<ins style="color: fuchsia">你需要保证移动后石子的终点是之前没有到达过的</ins>。如果某一位玩家在回合中无法移动则失败，另一位玩家获胜。</p>
+		<p>求在所有 $N^{2 D}$ 种连接有向边 (为 $A_i, B_i$ 赋值) 的方案中，有多少种使得该游戏是先手必胜的。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $N, D$ ($N \leq 10^5; D \leq 10^{18}$)，分别表示树的顶点个数和有向边的总条数。</p>
+		<p>接下来 $N - 1$ 行，每行两个正整数 $u, v$ ($1 \leq u &lt; v \leq n; u \neq v$)，描述树上的一条边。保证这 $N - 1$ 条边恰好构成一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示使先手必胜的连接有向边的方案数对 $10^9 + 7$ 取模的结果。</p>
+
+		<h3>题解</h3>
+		<p>根据套路，在数数之前先考虑判定问题 —— 即对于一个确定的方案，判断先手必胜还是后手必胜。</p>
+		<p>由直觉，我们肯定是从 $T_D, T_{D-1}, \cdots$ 出发依次考虑，一直到最终的 $T_0$。</p>
+		<p>首先，由于 $T_D$ 中已经没有顶点能再通过有向边 "瞬移"，因此就是一个简单的树上 DP。</p>
+		<p>题面中<span style="color: fuchsia">粉色</span>限制说的就是，如果将第一次到达某棵树的点看成根节点，那么你每一步只能向子树走。</p>
+		<p>于是对树 $T_D$ (即 $T$)，每个点 $x$ 作为根都有一个胜负状态，我们将其记作 $f_x \in \left\{ 0, 1 \right\}$，其中 $f_x = 1$ 表示 $x$ 作为根时先手必胜。</p>
+		<p class="text-muted">($f_1$ 可以通过<em>树形 DP</em> 求出：$x$ 的胜负性等于它的所有子树的 "与非"。所有 $f_x$ 可以通过<em>换根 DP</em> 求出，在实现时为了方便可以记录所有子树中 $\mathrm{false}$ (先负) 点的数量)</p>
+		<p>因此，对于在 $T_D$ 的情形 (或者说 $D = 0$ 的情形)，整个游戏的胜负性就是 $f_1$。</p>
+		<p>现在考虑在 $T_{D-1}$ 的情形 (即 $D = 1$)，此时我们必须要注意这条有向边 $u \to v$ 的情况了。分两种情况讨论：</p>
+		<ol>
+			<li><p>该有向边的终点 $v$ 在 $T_D$ 上是<strong>先胜点</strong>：</p>
+			<p>此时，可以把这条边看成<strong>不存在</strong>：因为没有人会走这条边，否则就是送命。</p></li>
+			<li><p>该有向边的终点 $v$ 在 $T_D$ 上是<strong>先负点</strong>：</p>
+			<p>这等价于，<strong>强制使树 $T_{D-1}$ 上的点 $u$ 变为先胜</strong> <span style="color: red">(注意这个必胜是<strong>立即触发的</strong>，而不是所谓的它作为根时 $f_u = \mathrm{true}$ 等)</span>，换句话说就是谁一旦从某个点走到 $u$，谁就输了。</p>
+			<p>为了方便起见，我们将这样的点 $u$ 称为树上的<strong style="color: teal">强胜点</strong>，显然一棵树上至多有一个强胜点。</p>
+		</ol>
+		<p>于是我们发现，第 2 种情况有些复杂：因为我们引入了<strong>强胜点</strong>的概念。不过好在一棵树上至多只有一个强胜点，因此我们称<span style="color: fuchsia">将 $T$ 中的点 $u$ 改为强胜点后的树为 $T_{\left&lt; u \right&gt;}$</span>。</p>
+		<p>定义 $f_{\left&lt; u \right&gt;, x}$ 表示在 $T_{\left&lt; u \right&gt;}$ 上，$x$ 作为根时是否先手必胜。那么 $D = 1$ 的情形也好解决了：</p>
+		<ol>
+			<li>若有向边的终点 $v$ 在 $T_D$ 上是<strong>先胜点</strong>，则胜负性就是 $f_1$。</li>
+			<li>若有向边的终点 $v$ 在 $T_D$ 上是<strong>先负点</strong>，则胜负性就是 $f_{\left&lt; u \right&gt;, 1}$。</li>
+		</ol>
+		<p>按照上面的思路，不难发现整个问题有着很强的递推性质：</p>
+		<p>我们可以依次求出每个 $T_i$ 是否有强胜点，以及它的强胜点具体是哪个点 (即每个 $T_i$ 到底是 $T$ 还是哪个 $T_{\left&lt; x \right&gt;}$)。</p>
+		<p>具体地，设已知 $T_{i+1} = T_{\left&lt; w \right&gt;}$，连接 $T_i, T_{i+1}$ 的有向边为 $u \to v$。则：</p>
+		<ol>
+			<li>若 $f_{\left&lt; w \right&gt;, v} = \mathrm{true}$，则 $T_i = T$。</li>
+			<li>若 $f_{\left&lt; w \right&gt;, v} = \mathrm{false}$，则 $T_i = T_{\left&lt; u \right&gt;}$。</li>
+		</ol>
+		<p>假如说我们能 $O \left( 1 \right)$ 访问所有的 $f_{\left&lt; u \right&gt;, x}$，那么出可以通过上述方法依次递推到 $T_0$，然后得到整个游戏的胜负性。</p>
+		<hr />
+		<p>回到数数。通过刚才的判定过程，<del>相信大家都能自发地定义状态了</del>。没错，就用 $C_{i, \left&lt; j \right&gt;}$ 表示使得 $T_i = T_{\left&lt; j \right&gt;}$，这样在 $\left[ i, D \right]$ 连边的方案数。这里为了方便，记 $T_{\left&lt; 0 \right&gt;} = T$，这种方案数用 $C_{i, \left&lt; 0 \right&gt;}$ 表示。</p>
+		<p style="color: red">(ps: 下面为了自然，我们将树的编号反过来，即 $i \leftrightarrow D - i$)</p>
+		<p>则显然有边界 $C_{0, \left&lt; 0 \right&gt;} = 1, C_{0, \left&lt; j \right&gt;} = 0$ ($1 \leq j \leq N$)。答案即为 $$ \sum_{j=0}^N C_{D, \left&lt; j \right&gt;} \cdot \left[ f_{\left&lt; j \right&gt;, 1} = \mathrm{true} \right] $$</p>
+		<p>考虑转移，根据上面所述的判定的两条原则，不难得到 \begin{align*}
+C_{i, \left&lt; j \right&gt;} &amp;= \sum_{w=0}^N \sum_{v=1}^N C_{i-1, \left&lt; w \right&gt;} \cdot \left[ f_{\left&lt; w \right&gt, v} = \mathrm{false} \right] &amp; \left( j = 1, 2, \cdots, N \right) \\
+C_{i, \left&lt; 0 \right&gt;} &amp;= \color {red} N \cdot \sum_{w=0}^N \sum_{v=1}^N C_{i-1, \left&lt; w \right&gt;} \cdot \left[ f_{\left&lt; w \right&gt, v} = \mathrm{true} \right]
+\end{align*}</p>
+		<p>然后你会后知后觉地发现一个性质：<strong>关于 $C_{i, \left&lt; j \right&gt;}$ 的转移式子居然<del>他喵的</del>和 $j$ 无关</strong>！</p>
+		<p>这说明什么？说明 $C_{i, \left&lt; 1 \right&gt;} = C_{i, \left&lt; 2 \right&gt;} = \cdots = C_{i, \left&lt; N \right&gt;}$ 啊！</p>
+		<p>因此我们可以压缩一下，记 $C_{i, \left&lt; 1 \right&gt;} = C_{i, \left&lt; 2 \right&gt;} = \cdots = C_{i, \left&lt; N \right&gt;} = \color {teal} {B_i}, C_{i, \left&lt; 0 \right&gt;} = \color {teal} {A_i}$。则上述所有式子可以换成 \begin{align*}
+A_0 &amp;= 1 \\
+B_0 &amp;= 0 \\
+\operatorname{answer} &amp;= A_D \cdot \left[ f_1 = \mathrm{true} \right] + B_D \cdot \sum_{j=1}^N \left[ f_{\left&lt; j \right&gt;, 1} = \mathrm{true} \right] \\
+A_i &amp;= N \cdot \left( A_{i-1} \cdot \sum_{v=1}^N \left[ f_v = \mathrm{true} \right] + B_{i-1} \cdot \sum_{w=1}^N \sum_{v=1}^N \left[ f_{\left&lt; w \right&gt;, v} = \mathrm{true} \right] \right) \\
+B_i &amp;= \left( A_{i-1} \cdot \sum_{v=1}^N \left[ f_v = \mathrm{false} \right] + B_{i-1} \cdot \sum_{w=1}^N \sum_{v=1}^N \left[ f_{\left&lt; w \right&gt;, v} = \mathrm{false} \right] \right)
+\end{align*}</p>
+		<p>此时，不难发现这个 $A_i, B_i$ 的递推式是一个矩阵的形式，因此可以使用类似矩阵快速幂来解决。</p>
+		<p>不过还有比矩阵快速幂更方便的做法。首先，通过数学归纳或组合意义不难得到，对于 $\forall i$，恒有 $$ A_i + N \cdot B_i = N^{2 i} $$</p>
+		<p>因此我们可以利用 $B_i$ 来表示 $A_i$ 从而消去 $B_i$。具体地，设 $\displaystyle L = \sum_{w=1}^N \left[ f_v = \mathrm{false} \right], L^* = \sum_{w=1}^N \sum_{v=1}^N \left[ f_{\left&lt; w \right&gt;, v} = \mathrm{false} \right]$，则转移可以写作 $B_{i+1} = L \cdot \left( N^{2 i} - N \cdot B_i \right) + L^* \cdot B_i$，或等价地，$$ B_{i+1} = \left( L^* - L \cdot N \right) B_i + L \cdot N^{2 i} $$</p>
+		<p>发现整个剧本和 <a href="../index.html?redirect=909" target="_blank">[AtCoder2006,Grand3F]Fraction of Fractal</a> 很像，因此使用类似的方法即可解得 $\left\{ B_n \right\}$ 的通项。不过这里要注意的是 $N^2$ 可能和 $L^* - L \cdot N$ 在模意义下相同，因此需要分类讨论：$$ B_n = \begin{cases} \dfrac {N^{2 n} - \left( L^* - L \cdot N \right)^{2 n}} {N^2 - \left( L^* - L \cdot N \right)} \cdot L &amp; N^2 \not\equiv L^* - L \cdot N \\ n \cdot N^{2 \left( n - 1 \right)} \cdot L &amp; N^2 \equiv L^* - L \cdot N \end{cases} $$</p>
+		<p>这样就只需要一个快速幂就可以了。这部分的时间复杂度为 $O \left( \log D \right)$ 或 $O \left( \log mod \right)$ (利用 Fermat 小定理)。</p>
+		<hr />
+		<p>最后遗留下来的一个问题是，如何求那些需要的 $f_{\left&lt; i \right&gt;, j}$？</p>
+		<p>观察转移式，发现我们其实只需要对每个 $v = 1, 2, \cdots, N$ 求出 $\displaystyle \color {red} {\sum_{w=1}^N \left[ f_{\left&lt; w \right&gt;, v} = \mathrm{true} \right]}$ 即可。</p>
+		<p>先考虑求 $\displaystyle \sum_{j=1}^N \left[ f_{\left< j \right>, 1} = \mathrm{true} \right]$，组合意义即<strong>有多少点变为<em>强胜点</em>之后可以使得 $1$ 作为根时先手必胜</strong>。</p>
+		<p>这个还是可以通过树形 DP，求解 —— 具体只需要额外记录 $g_s$ 表示以 $s$ 为根的子树中，有多少点变为<strong>强胜点</strong>之后能使得 $s$ 作为 (子树的) 根时先手必胜。然后结合 "与非" 性质进行转移。</p>
+		<p>对于其它的 $\displaystyle \sum_{w=1}^N \left[ f_{\left&lt; w \right&gt;, v} = \mathrm{true} \right]$ ($v \neq 1$)，对上述 DP 过程进行换根 DP 即可。</p>
+		<p>综上，整个问题可以在 $O \left( N + \log D \right)$ 或 $O \left( N + \log mod \right)$ 时间内解决。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 100054, M = N * 2, mod = 1000000007;
+
+ll D;
+int n, E = 0;
+int to[M], first[N], next[M];
+int p[N], size[N];
+bool f_down[N], f_up[N], f_ver[N];
+int L, W, Ls, Ws;
+int f[N], F[N], cW[N];
+
+ll PowerMod(ll a, int n, ll c = 1) {for (; n; n &gt;&gt;= 1, a = a * a % mod) if (n &amp; 1) c = c * a % mod; return c;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void normalize() {
+	int i, *q;
+	for (i = 1; i &lt;= n; ++i)
+		for (q = first + i; *q; q = next + *q)
+			if (to[*q] == p[i]) {*q = next[*q]; break;}
+}
+
+void dfs(int x) {
+	int i, y; size[x] = 1;
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x])
+			p[y] = x, dfs(y), f[x] += f_down[y], size[x] += size[y];
+	f_down[x] = !f[x];
+}
+
+void dfs_er(int x) {
+	int i, y; f_ver[x] = !f_down[x] || f_up[x];
+	for (i = first[x]; i; i = next[i])
+		y = to[i], f_up[y] = f[x] == f_down[y] &amp;&amp; !f_up[x], dfs_er(y);
+}
+
+void solve(int x) {
+	int i, y; F[x] = size[x];
+	for (i = first[x]; i; i = next[i]) solve(to[i]);
+	switch (f[x]) {
+		case 0:
+			for (i = first[x]; i; i = next[i]) F[x] -= F[to[i]];
+			break;
+		case 1:
+			for (i = first[x]; i; i = next[i]) if (f_down[y = to[i]]) F[x] -= F[y];
+			break;
+	}
+}
+
+void solve_er(int x, int ups = 0) {
+	int i, y, t, sF = ups, z[2] = {0};
+	switch (cW[x] = n, f[x] + f_up[x]) {
+		case 0:
+			cW[x] -= ups;
+			for (i = first[x]; i; i = next[i]) cW[x] -= F[to[i]];
+			break;
+		case 1:
+			if (f_up[x]) cW[x] -= ups;
+			else for (i = first[x]; i; i = next[i]) if (f_down[y = to[i]]) cW[x] -= F[y];
+			break;
+	}
+	for (i = first[x]; i; i = next[i]) if (sF += F[y = to[i]], f_down[y]) z[*z ? 1 : 0] = y;
+	for (i = first[x]; i; i = next[i]) {
+		y = to[i], t = n - size[y];
+		switch (f[x] + f_up[x] - f_down[y]) {
+			case 0: t += F[y] - sF; break;
+			case 1: t -= f_up[x] ? ups : F[z[*z == y]]; break;
+		}
+		solve_er(y, t);
+	}
+}
+
+int main() {
+	int i, u, v, r, s;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; D;
+	for (i = 1; i &lt; n; ++i) cin &gt;&gt; u &gt;&gt; v, addedge(u, v);
+	dfs(1), normalize(), dfs_er(1),
+	W = std::count(f_ver + 1, f_ver + (n + 1), true), L = n - W,
+	solve(1), solve_er(1),
+	Ws = std::accumulate(cW + 1, cW + (n + 1), 0ll) % mod,
+	Ls = ((ll)n * n + mod - Ws) % mod,
+	u = (ll)n * n % mod, v = (Ls + ll(mod - n) * L) % mod, s = PowerMod(u, D % (mod - 1));
+	if (u == v)
+		r = PowerMod(v, (D + mod - 2) % (mod - 1), D % mod);
+	else
+		r = PowerMod(u - v, mod - 2, s - PowerMod(v, D % (mod - 1))), r += r &gt;&gt; 31 &amp; mod;
+	r = (ll)r * L % mod, s = (s + ll(mod - n) * r) % mod;
+	cout &lt;&lt; ((ll)cW[1] * r + (ll)f_ver[1] * s) % mod &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>最终求通项的时候不要忘记 $N^2 \equiv L^* - L \cdot N$ 的情况；以及使用 Fermat 小定理时注意 $D$ 在指数上 (模 $p - 1$) 还是在因子中 (模 $p$)。</p>
+		<p><strong>坑2：</strong>换根 DP 时注意时间复杂度不要退化，在利用 "与非" 性质时可以利用 "如果有<strong>至少两个</strong> $\mathrm{false}$，那么在<strong>至多改变一个参数</strong>的情况下表达式的值永远是 $\mathrm{true}$" 这一性质。</p>
+	</body>
+</html>
