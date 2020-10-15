@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4618][CodeforcesGym101242K][WF2016]String Theory</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义 $1$ 级引用是一个以引号字符 $\texttt '$ 开头和结尾，中间不包含引号字符的字符串。如，$\texttt {'this is a string'}$ 就是一个 $1$ 级引用。</p>
+		<p>对于整数 $k &gt; 1$，定义 $k$ 级引用为这样的字符串：它的开头和结尾都是 $k$ 个连续的引号 $\texttt '$，中间由若干个 $\left ( k - 1 \right)$ 级引用连接而成。<em style="color: fuchsia">在第一个 $\left( k - 1 \right)$ 级引用之前，最后一个 $\left( k - 1 \right)$ 级引用之后，以及相邻两个 $\left( k - 1 \right)$ 级引用之间，可以添加任意多个非引号字符</em>。如，$\texttt {''All 'work' and no 'play'''}$ 是一个 $2$ 级引用。</p>
+		<p>现在给定一个字符串 $s$ 的描述，求最大的正整数 $k$ 满足 $s$ 是一个 $k$ 级引用。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 100$)，表示极长引号段的个数，具体意义见下文。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($a_i \leq 100$)，分别表示每个极长引号段的长度。</p>
+		<p>具体地，它描述的字符串 $s$ 满足，它以 $a_1$ 个引号开头，接着是大于零个非引号字符，然后是 $a_2$ 个引号，紧跟着大于零个非引号字符，以此类推，最终与 $a_n$ 个引号结尾。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示最大的正整数 $k$，满足 $s$ 是一个 $k$ 级引用。若这样的 $k$ 不存在，则输出 <code>no quotation</code>。</p>
+
+		<h3>题解</h3>
+		<p>显然一个必要条件是 $\displaystyle \sum_{i=1}^n a_i$ 为偶数。</p>
+		<p>由于一个 $k$ 级引用中间只能由若干个 $k - 1$ 级引用构成，因此一个任何一个 $k$ 级引用开头的引号连续段一定可以分成 $k, k - 1, \cdots, 2, 1$，结尾类似。这个使用数学归纳法不难证明。</p>
+		<p>那么，这个条件是否充分呢？</p>
+		<p>事实上，如果一个字符串的开头的引号连续段可以分成 $k, k - 1, \cdots, 2, 1$，结尾的引号连续段可以分成 $1, 2, \cdots, k - 1, k$，且<em>它们不重叠，中间的引号个数为非负偶数 $2 m$</em>，我们只需要<span style="color: fuchsia">将中间的引号两两配对，即形成 $m$ 个 $1$ 级引用即可</span>。</p>
+		<p>因此，<strong style="color: green">对于 $k \geq 2$，一个串 $s$ 是 $k$ 级引用当且仅当它开头的引号连续段可以分成 $k, k - 1, \cdots, 2, 1$ 个一组，结尾的连续段可以分成 $1, 2, \cdots, k$ 个一组，且引号总数 $\displaystyle \sum_{i=1}^n a_i = 2$ 为不小于 $k \left( k + 1 \right)$ 的偶数</strong>。</p>
+		<p>而对于 $k = 1$，不难发现唯一满足条件的 $1$ 级引用就是 $\texttt{''}$，即再需要额外补充一个 $\displaystyle \sum_{i=1}^n a_i = 2$ 的条件。</p>
+		<p>由答案上界为 $O \left( \sqrt {\sum a_i} \right)$，因此我们可以考虑暴力枚举答案并检验上述<span style="color: green">绿色</span>命题是否成立，对于 $k$ 的情形需要 $O \left( k \right)$ 时间进行检验。因此总时间复杂度为 $O \left( \sum a_i \right)$ 可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define fail "no quotation\n"
+using std::cin;
+using std::cout;
+
+const int N = 108, N2 = 10054;
+
+int n, L = 0;
+int right[N2], C2[N];
+bool forward[N][N2], backward[N][N2];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+int main() {
+	int i, j, x, ans = INT_MAX;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; n; ++i) {
+		cin &gt;&gt; x, right[L += x] = 1;
+		if (!i || i == n - 1) down(ans, x);
+	}
+	if (L &amp; 1) return cout &lt;&lt; fail, 0;
+	for (i = 1; i &lt; N; ++i) C2[i] = C2[i - 1] + i;
+	for (i = L; i; --i) if (!right[i]) right[i] = right[i + 1] + 1;
+	down(ans, ((int)sqrt(L * 4 + 1) - 1) / 2);
+
+	memset(forward[1] + 1, true, L);
+	for (i = 2; i &lt;= ans; ++i)
+		for (j = 1; j &lt;= L - C2[i] + 1; ++j)
+			forward[i][j] = right[j] &gt;= i &amp;&amp; forward[i - 1][j + i];
+
+	memset(backward[1] + 1, true, L);
+	for (i = 2; i &lt;= ans; ++i)
+		for (j = C2[i]; j &lt;= L; ++j)
+			backward[i][j] = right[j - i + 1] &gt;= i &amp;&amp; backward[i - 1][j - i];
+
+	for (; ans &gt; 1; --ans)
+		if (forward[ans][1] &amp;&amp; backward[ans][L]) return cout &lt;&lt; ans &lt;&lt; '\n', 0;
+
+	if (L == 2) return cout &lt;&lt; '1' &lt;&lt; '\n', 0;
+	return cout &lt;&lt; fail, 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意不要忘记特判 $k = 1$ 的情形，此时有额外限制 $\displaystyle \sum_{i=1}^n a_i = 2$。</p>
+		<p><strong>坑2：</strong>可以倒着枚举答案以便直接 <code>break</code>。</p>
+	</body>
+</html>

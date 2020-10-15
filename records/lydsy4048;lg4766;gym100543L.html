@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4048][lg4766][CodeforcesGym100543L][CERC2014]Outer space invaders</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>来自外太空的外星人入侵了地球。保卫自己，或者解体，被他们同化，或者成为食物。迄今为止，我们无法确定。</p>
+		<p>外星人遵循一个已知的攻击模式。有 $n$ 个进攻者，第 $i$ 个在时刻 $a_i$ 出现，距离你 $d_i$。它必须在<strong>不晚于</strong>时刻 $b_i$ 被消灭。</p>
+		<p>你的武器是一个区域爆破器，它可以被设定为任意功率。如果以功率 $R$ 开火，会瞬间消灭距离你<strong>不超过</strong> $R$ 的所有外星人，同时消耗 $R$ 单位的燃料。</p>
+		<p>求消灭所有外星人所需的最低成本 (燃料的最小值)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$，表示测试数据的组数。</p>
+		<p>对于每组数据，第一行包含一个正整数 $n$ ($n \leq 300; \sum n^3 \leq 2.5 \times 10^8$)，表示外星人的数量。</p>
+		<p>接下来 $n$ 行，每行三个正整数 $a_i, b_i, d_i$ ($1 \leq a_i &lt; b_i \leq 10000; 1 \leq d_i \leq 10000$)，表示第 $i$ 个外星人在时刻 $a_i$ 出现，必须在时刻 $b_i$ 及之前消灭，且距离你 $d_i$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示消灭所有外星人所需的最低成本。</p>
+
+		<h3>题解</h3>
+		<p>首先一个时刻显然至多只会进行一次开火 (否则取 $R_\max$ 即可)，因此我们只需关注有新的敌人增加的时刻以及到达 deadline 的时刻即可。</p>
+		<p>也就是说，我们可以对时间进行离散化，这样整个过程的时刻数就是 $O \left( n \right)$ 的。</p>
+		<p>考虑一次攻击可以消灭距离 $\leq R$ 的所有敌人，因此距离越远的敌人应该越受到我们的关注。设第 $i$ 个敌人是距离我们最远的，其距离为 $d_i$，时间为 $\left[ a_i, b_i \right]$。那么，我们<strong>至少需要在某一个 $t \in \left[ a_i, b_i \right]$ 的时刻发射一枚距离 $\geq d_i$ 的 "炮弹"</strong>。这个 "炮弹" 显然距离 $= d_i$ 就够了 <span class="text-muted">(因为 $d_i$ 是最远的敌人)</span>。</p>
+		<p>由于我们在 $t$ 时刻发射了一枚距离为 $d_i$ 的炮弹，因此不难发现<em>在 $t$ 时刻出现过的所有敌人其实都已经被我们解决了</em>。从而剩下的敌人可以分为两类：<strong>deadline $b_i &lt; t$ 的敌人</strong>和<strong>出现时间 $a_i &gt; t$ 的敌人</strong>。</p>
+		<p>而这两个问题可以看成原问题的一个规模更小的子问题，也就是说，<strong>我们找到了一个递归的子结构</strong>。</p>
+		<p>因此自然想到使用<em>区间 DP</em>：<span style="color: teal">用 $f_{i, j}$ 表示消灭所有 $\left[ a_k, b_k \right] \subseteq \left[ i, j \right)$ 的敌人所需的最低成本</span>。</p>
+		<p>那么显然有边界 $f_{i, i} = 0$。考虑转移，设所有满足 $\left[ a_k, b_k \right] \subseteq \left[ i, j \right)$ 的敌人中，距离最大者 $k$ (有多个可任选一个)。然后枚举 $t \in \left[ i, j \right)$ 表示消灭 $k$ 的时间，则有转移 $$ f_{i, j} = d_k + \min_{i \leq t &lt; j} \left( f_{i, t} + f_{t+1, j} \right) $$</p>
+		<p>最终答案就等于 $f_{0, T}$ ($T$ 表示总时间)，由于我们一开始对时间进行了离散化，因此 $T = O \left( n \right)$。最终复杂度即标准的区间 DP 的复杂度，$O \left( n^3 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::tuple &lt;int, int, int&gt; tup;
+const int N = 654, INF = 0x3f3f3f3f;
+
+int n, T;
+int _[N], f[N][N];
+tup a[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace DC {
+	int F[N]; pr D[N];
+
+	int Discretize(int n) {
+		int i, cnt = 0; std::sort(D, D + n);
+		for (i = 0; i &lt; n; ++i)
+			F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+}
+
+void work() {
+	int i, d, u, v, m, M;
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; u &gt;&gt; v &gt;&gt; _[i], DC::D[i] = pr(u, i), DC::D[i + n] = pr(v + 1, i + n);
+	T = DC::Discretize(2 * n);
+	for (i = 0; i &lt; n; ++i) a[i] = tup(DC::F[i], DC::F[i + n], _[i]);
+	for (d = 1; d &lt;= T; ++d)
+		for (u = 0, v = d; v &lt;= T; ++u, ++v) {
+			m = -1, M = 0;
+			for (i = 0; i &lt; n; ++i)
+				if (u &lt;= std::get &lt;0&gt;(a[i]) &amp;&amp; std::get &lt;1&gt;(a[i]) &lt;= v &amp;&amp; std::get &lt;2&gt;(a[i]) &gt; M)
+					m = i, M = std::get&lt;2&gt;(a[i]);
+			if (~m) {
+				f[u][v] = INT_MAX;
+				for (i = std::get&lt;0&gt;(a[m]); i &lt; std::get&lt;1&gt;(a[m]); ++i) down(f[u][v], f[u][i] + f[i + 1][v] + M);
+			} else f[u][v] = 0;
+		}
+	cout &lt;&lt; f[0][T] &lt;&lt; '\n';
+}
+
+int main() {
+	int T;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>区间 DP 时注意边界即区间开闭性等问题。</p>
+	</body>
+</html>

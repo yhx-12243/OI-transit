@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[Codeforces1408G]Clusterization Counting</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $n$ 个顶点的完全图 $K_n$，每条边 $\left( i, j \right)$ 上有一个边权 $a_{i, j}$。保证所有 $a_{i, j}$ 构成一个 $1 \sim \dbinom n2$ 的排列。</p>
+		<p>你现在需要将点集 $V = \left\{ 1, 2, \cdots, \right\}$ 划分为 $k$ 个非空子集 $A_1, A_2, \cdots, A_k$，满足：</p>
+		<ul>
+			<li>(划分的定义) $\forall 1 \leq i, j \leq k, A_i \cap A_j = \varnothing$，$A_1 \cup A_2 \cup \cdots A_k = V$。</li>
+			<li>对于任意满足 $s, f, x$ 在同一集合但 $x, y$ 不在同一集合的四元组 $\left( s, f, x, y \right)$，一定有 $a_{s, f} &lt; a_{x, y}$。</li>
+		</ul>
+		<p>求对每个 $k = 1, 2, \cdots, n$，$V$ 的 $k-$划分 ($k$ 个集合的划分) 的数量模 $998244353$ 的值。</p>
+		<p class="text-muted">(两个划分 $\mathcal P, \mathcal Q$ 不同当且仅当存在一对元素，在 $\mathcal P$ 的同一集合中但在 $\mathcal Q$ 中不是)</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 1500$)，表示完全图的点数。</p>
+		<p>接下来 $n$ 行，每行 $n$ 个非负整数 $a_{i, j}$ ($0 \leq a_{i, j} \leq \dbinom n2$)，表示边 $\left( i, j \right)$ 的权值。特别地，$a_{i, j}$ 数组满足：</p>
+		<ul>
+			<li>对于 $\forall 1 \leq i \leq n, a_{i, i} = 0$。</li>
+			<li>对于 $\forall 1 \leq i &lt; j \leq n, 1 \leq a_{i, j} = a_{j, i} \leq \dbinom n2$。</li>
+			<li>对于 $\forall 1 \leq i &lt; j \leq n, 1 \leq k &lt; l \leq n, \left( i, j \right) \neq \left( k, l \right)$，有 $a_{i, j} \neq a_{k, l}$。</li>
+		</ul>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含 $n$ 个整数，其中第 $i$ 个整数表示 $V$ 的 $i-$划分的数量模 $998244353$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>观察题目中对划分的限制，就是说对于一个子集 $A_i$，它连向其它集合的边 (<em>组间边</em>) 的权值一定大于集合内部的边 (<em>组内边</em>) 的权值。</p>
+		<p>那么这个限制显然是对不同集合独立的 —— 一个集合是否可以满足条件只和集合本身有关。</p>
+		<p>现在考虑如何对这个条件进行转化。</p>
+		<p>考虑一个满足条件的集合 $A$，它在 $G$ 导出一个团 $G \left[ A \right]$。现在我们不考虑两端点都不在 $A$ 中的边，那么 <strong>$G \left[ A \right]$ 中的边一定是所加入的所有边中边权前 $\dbinom {\left| A \right|} 2$ 小的</strong>。</p>
+		<p>因此我们可以像 Kruskal 一样从小到大加入边，或者建立它的 Kruskal 重构树 $T$。</p>
+		<p>那么对于满足条件的 $A$，首先，<span style="color: fuchsia">这些点构成的集合在 $T$ 中一定对应一棵子树</span>。</p>
+		<p>其次这还不够，如果我们在建立 Kruskal 重构树中，如果遇到端点在同一连通块中的边，我们将这个边计入表示该连通块的 "根" (即并查集的 <code>ancestor</code>，或 Kruskal 重构树的根) 中。</p>
+		<p>那么，还需要满足的条件是，<span style="color: fuchsia">$A$ 在 $T$ 中对应的子树被计入的边的总数应恰好等于 $\dbinom {\left| A \right|} 2$</span>。(即在这个连通块和其它连通块合并之前，它所有的 $\dbinom {\left| A \right|} 2$ 条边都已加入完毕)</p>
+		<p>以上就是一个集合 $A$ 满足条件的充要条件。由于 $T$ 中只有 $O \left( n \right)$ 个子树，因此满足条件的 $A$ 的个数也是 $O \left( n \right)$ 的。而且，我们可以方便地在建立 Kruskal 重构树时或建立完毕后求出<em>以每个点代表为根的子树是否满足条件</em> (即 <code>key[]</code> 数组)。</p>
+		<hr />
+		<p>求出 Kruskal 重构树后，我们尝试将原问题转化为一个树上的问题：</p>
+		<blockquote>
+			<p>给定一棵有根树 $T$，其中有若干个节点是<em>关键点</em> (<code>key[i] = true</code>)，保证根节点和叶节点是关键点。</p>
+			<p>你需要选择若干个关键点，使得每个叶子到根的路径上<strong>恰有一个关键点</strong>。</p>
+		</blockquote>
+		<p>这其实就是一个非常基础的树形 DP 模型了~</p>
+		<p>我们用 $f_{i, j}$ 表示以 $i$ 为根的子树，选择 $j$ 个点的方案数，然后只需要将不同子树背包合并即可 (其实就是<strong>序列卷积/多项式乘法</strong>)，最后如果 $i$ 是关键点 (<code>key[i] = true</code>)，那么再令 $f_{i, 1} \gets f_{i, 1} + 1$ (从多项式的角度即 $f_i \gets f_i + x$)。</p>
+		<p>最后答案是 $f_{r, 1}, f_{r, 2}, \cdots, f_{r, n}$，其中 $r$ 就是 $T$ 的根节点。</p>
+		<p>分析一下时间复杂度，边数是 $O \left( n^2 \right)$ 的，但是由于边权是排列因此可以 $O \left( n^2 \right)$ 排序。于是建立 Kruskal 重构树的时间复杂度为 $O \left( n^2 \right)$。</p>
+		<p>对于后面的树形 DP，由于 $\left| T \right| = O \left( n \right)$，由树形背包 DP 的经典分析得时间复杂度为 $O \left( \left| T \right|^2 \right) = O \left( n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+using std::vector;
+
+typedef unsigned long long u64;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 1554, M = 2 * N, W = N * N / 2, mod = 998244353;
+
+int n, V, E;
+int G[N][N], fc[M], nc[M];
+int p[M], P[M];
+int sizeV[M], sizeE[M];
+int f[M][N];
+bool key[M];
+pr e[W];
+
+inline void link(int x, int px) {p[x] = px, nc[x] = fc[px], fc[px] = x;}
+int ancestor(int x) {return P[x] == x ? x : (P[x] = ancestor(P[x]));}
+
+inline int connect(int x, int y) {
+	if ((x = ancestor(x)) == (y = ancestor(y))) return ++sizeE[x];
+	++V, link(x, V), link(y, V), sizeV[V] = sizeV[x] + sizeV[y], sizeE[V] = sizeE[x] + sizeE[y] + 1;
+	return P[x] = P[y] = P[V] = V;
+}
+
+void mul(int n, int m, int *a, int *b, int *ret) {
+	static u64 u[N];
+	int i, j;
+	memset(u, 0, (n + m + 1) &lt;&lt; 3);
+	for (i = 0; i &lt;= n; ++i) {
+		for (j = 0; j &lt;= m; ++j)
+			u[i + j] += (u64)a[i] * b[j];
+		if (!(i &amp; 15)) for (j = 0; j &lt;= n + m; ++j) u[j] %= mod;
+	}
+	for (i = 0; i &lt;= n + m; ++i) ret[i] = u[i] % mod;
+}
+
+void dfs(int x) {
+	int y = fc[x], s = 0; f[x][0] = !!y;
+	for (; y; y = nc[y]) dfs(y), mul(s, sizeV[y], f[x], f[y], f[x]), s += sizeV[y];
+	f[x][1] += key[x];
+}
+
+int main() {
+	int i, j;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n, V = n, E = n * (n - 1) / 2;
+	for (i = 1; i &lt;= n; ++i) {
+		for (j = 1; j &lt;= n; ++j) cin &gt;&gt; G[i][j];
+		for (j = i + 1; j &lt;= n; ++j) e[ G[i][j] ] = pr(i, j);
+	}
+	for (i = 1; i &lt;= V; ++i) P[i] = i, sizeV[i] = 1, sizeE[i] = 0;
+	std::iota(P, P + (n + 1), 0);
+	for (i = 1; i &lt;= E; ++i) connect(e[i].first, e[i].second);
+	for (i = 1; i &lt;= V; ++i) key[i] = 2 * sizeE[i] == sizeV[i] * (sizeV[i] - 1);
+	dfs(V);
+	for (i = 1; i &lt;= n; ++i) cout &lt;&lt; f[V][i] &lt;&lt; (i == n ? '\n' : ' ');
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>背包 DP 的时候不能枚举满，否则复杂度会退化到 $O \left( n^3 \right)$。</p>
+		<p><strong>坑2：</strong>在卷积 (多项式乘法) 更新时不能直接替换，要先保存到临时数组后再 <code>memcpy</code> 回去。</p>
+	</body>
+</html>

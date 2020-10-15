@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4117][CodeforcesGym101239L][WF2015]Weather Report</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个长度为 $n$ 的由数字 $\texttt 0, \texttt 1, \texttt 2, \texttt 3$ 构成的串 $s$，其中每个字符<strong>独立地</strong>有 $p_i$ 的概率等于 $i$ ($i = 0, 1, 2, 3$)。</p>
+		<p>你需要找到一种对所有 $4^n$ 个长度为 $n$ 的 $\texttt 0/\texttt 1/\texttt 2/\texttt 3$ 的串的二进制编码方式 $f$，使得不存在两个串 $s, t$ 满足 $f \left( s \right)$ 是 $f \left( t \right)$ 的前缀。你需要最小化 $f \left( s \right)$ 的期望值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 20$)，表示字符串的长度。</p>
+		<p>第二行包含四个非负实数 $p_0, p_1, p_2, p_3$ ($p_i \geq 0; p_0 + p_1 + p_2 + p_3 = 1$)，表示每个字符为 $\texttt 0, \texttt 1, \texttt 2, \texttt 3$ 的概率分别为 $p_0, p_1, p_2, p_3$，不同字符之间是独立的。保证 $p_i$ 小数点后不超过 $6$ 位。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示 $f \left( s \right)$ 期望值的最小值 $\min\limits_f E \left( f \left( s \right) \right)$。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-4}$。</p>
+
+		<h3>题解</h3>
+		<p>使得编码期望长度最小，不难想到利用 Huffman 编码的最优性。但是不同的串有 $4^n$ 种，因此暴力实现 Huffman 编码是不可行的。</p>
+		<p>考虑我们只需要求期望长度，即<strong>叶节点权值 (概率) 与深度的对应乘积之和</strong>，由 <a href="../index.html?redirect=54" target="_blank">[NOI2015]荷马史诗</a> 中的结论，可知它就等于<strong>所有非叶节点的权值之和</strong>。</p>
+		<p>也就是说，只需把每次合并后的 "概率和" 加起来，就得到了最终的答案。</p>
+		<p>虽然不同的串有 $4^n$ 种，但是<strong>不同的概率</strong>是不多的 —— 因为如果两个串的 $\texttt 0, \texttt 1, \texttt 2, \texttt 3$ 的出现次数 $c_0, c_1, c_2, c_3$ 对应相等，则这两个串的出现概率一定是相等的。</p>
+		<p>于是不同的概率数<em>不超过</em>方程 $c_0 + c_1 + c_2 + c_3 = n$ 的非负整数解的个数，即 $\dbinom {n + 3} 3 \leq 1771$。</p>
+		<p>因此我们可以在堆中储存 (权值, 数量) 的二元组来进行 Huffman 编码。</p>
+		<hr />
+		<p>设当前堆中权值最小的元素为 $x$，数量为 $c$。</p>
+		<p>那么，如果 $c \geq 2$，首先我们可以将 $x$ 两两配对配成 $\left \lfloor \dfrac c2 \right \rfloor$ 对，并<span style="color: teal">向堆中重新塞入 $\left( 2 x, \left \lfloor \dfrac c2 \right \rfloor \right)$</span>，然后令 $c \gets c \bmod 2$。</p>
+		<p>如果现在有 $c = 0$，那么这一轮直接结束；否则有 $c = 1$。我们要考虑将 $x$ 和 "次小值" 进行合并。</p>
+		<ul>
+			<li><p>如果堆为空 (即除了这个 $x$ 外再无其它元素)，则说明已经合并到了根，直接 <code>break</code> 即可。</p></li>
+			<li><p>否则，再在堆中弹出一个元素，设为 $\left( x', c' \right)$。</p>
+			<p>将仅有的一个 $x$ 和 $x'$ 合并，产生 $x + x'$，<span style="color: teal">再向堆中加入 $\left( x + x', 1 \right)$</span>。</p>
+			<p>然后再<span style="color: teal">将 $\left( x', c' - 1 \right)$ 重新塞入堆</span>。(或者由于 $\left( x', c' - 1 \right)$ 一定是当时的最小元素，因此可以在下一轮循环中直接处理它)</p></li>
+		</ul>
+		<p>然后只需将每次合并时的权值加起来，就得到了最终的答案 (当然如果你把所有叶节点也算进去后最后答案要减 $1$)，同样由于没有减法因此精度损失不大。时间复杂度 $O \left( n^4 \log n \right)$ (元素个数是 $O \left( n^4 \right)$ 的)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef std::pair &lt;double, ll&gt; pr;
+const int N = 21;
+
+int n;
+int C[N][N];
+double p[4][N], ans = 0.;
+std::priority_queue &lt;pr, std::vector &lt;pr&gt;, std::greater &lt;pr&gt;&gt; pq;
+
+int main() {
+	int i, j, k, l; double x, y; ll c, d;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; 4; ++i)
+		for (cin &gt;&gt; x, *p[i] = j = 1; j &lt;= n; ++j) p[i][j] = p[i][j - 1] * x;
+	for (*C[0] = i = 1; i &lt;= n; ++i)
+		for (*C[i] = j = 1; j &lt;= i; ++j)
+			C[i][j] = C[i - 1][j] + C[i - 1][j - 1];
+	for (i = 0; i &lt;= n; ++i)
+		for (j = 0; i + j &lt;= n; ++j)
+			for (k = 0, l = n - i - j; l &gt;= 0; ++k, --l)
+				pq.emplace(p[0][i] * p[1][j] * p[2][k] * p[3][l], (ll)C[n][i] * C[n - i][j] * C[n - i - j][k]);
+	for (; ; ) {
+		std::tie(x, c) = pq.top(), pq.pop();
+F:		if (c &gt; 1) ans += x * (c &amp; -2), pq.emplace(x * 2., c / 2);
+		if (c &amp; 1) {
+			if (pq.empty()) break;
+			std::tie(y, d) = pq.top(), pq.pop();
+			ans += x + y, --d, pq.emplace(x + y, 1);
+			if (d &gt; 1) ans += y * (d &amp; -2), pq.emplace(y * 2., d / 2);
+			if (d &amp; 1) {x = y, c = 1; goto F;}
+		}
+	}
+	cout &lt;&lt; std::setprecision(12) &lt;&lt; ans &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>出现次数 $c$ 最大可以为 $\dbinom {20} {5, 5, 5, 5} = 10^{10}$，因此需要使用 <code>long long</code>。以及使用阶乘计算多项式系数时也要使用 <code>long long</code>。</p>
+	</body>
+</html>
