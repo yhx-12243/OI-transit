@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym101630K][NEERC2017]Knapsack Cryptosystem</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你要模拟破解一个小型的 Merkle-Hellman 背包公钥系统。</p>
+		<p>Alice 的私钥由 $n + 2$ 个正整数 $\left( \left( a_1, a_2, \cdots, a_n \right), q, r \right)$ 构成，满足：</p>
+		<ul>
+			<li>$a_1 + a_2 + \cdots + a_{i-1} &lt; a_i, i = 2, 3, \cdots, n$。</li>
+			<li>$a_1 + a_2 + \cdots + a_n &lt; q$。</li>
+			<li>$\left( q, r \right) = 1$。</li>
+		</ul>
+		<p>Alice 的公钥由 $n$ 个正整数 $\left( b_1, b_2, \cdots, b_n \right)$ 构成，其中 $b_i = a_i \cdot r \bmod q$。</p>
+		<p>在知道她公钥的情形下，Bob 可以通过如下方式给 Alice 传输一个 $n \,\mathrm{bits}$ 的信息 $j_1 j_2 \cdots j_n$：</p>
+		<ul>
+			<li>计算出 $\displaystyle s = \sum_{i=1}^n b_i j_i$，发给 Alice。</li>
+		</ul>
+		<p>然后 Alice 可以计算 $d \equiv r^{-1} \cdot s \pmod q$，得到 $\displaystyle \sum_{i=1}^n a_i j_i$，然后利用 $j_i \in \left\{ 0, 1 \right\}$ 和 $a_1 + a_2 + \cdots + a_{i-1} &lt; a_i$，即可通过背包唯一确定 $\left\{ j_i \right\}_{1 \leq i \leq n}$。</p>
+		<p>现在，Alice 为了性(tou)能原(lan)因，取了 $\color {red} {q = 2^{64}}$ 并<strong>公布于众</strong>。然后现在给定 Bob 发给 Alice 的 $s$ 在 $\hspace{-0.444em} \pmod {2^{64}}$ 意义下的值，请破解出原信息 $\left\{ j_i \right\}_{1 \leq i \leq n}$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 64$)，表示 Alice 的公钥长度，也等于信息的长度。</p>
+		<p>接下来 $n$ 行，每行一个正整数 $b_i$ ($1 \leq b_i \leq 2^{64} - 1$)，描述 Alice 的公钥。</p>
+		<p>最后一行包含一个非负整数 $s'$ ($0 \leq s \leq 2^{64} - 1$)，表示加密后的信息。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个长度为 $n$ 的 $\texttt 0/\texttt 1$ 串，其中第 $i$ 个字符表示 $j_i$。</p>
+		<p>保证解存在<span class="text-muted">且唯一 (显然至多只有一组解)</span>。</p>
+
+		<h3>题解</h3>
+		<p>首先，可以看出这个问题其实就是破解一个 <strong>0-1 背包问题</strong>。</p>
+		<p>于是，容易想到使用 <em>Meet-in-the-middle (折半搜索)</em> 的方法在 $O \left( 2^{n/2} \right)$ 的时间内得到一组解。</p>
+		<p>但是这个方法在 $n$ 过大时会失效。因此在 $n$ 较大时我们尝试去寻找另一种方法，然后利用阈值的想法结合这两种算法。</p>
+		<p>考虑不断利用条件 $a_1 + a_2 + \cdots + a_{i-1} &lt; a_i$，我们可以得到：</p>
+		<p>\begin{cases}
+a_2 &gt; a_1 \\
+a_3 &gt; a_1 + a_2 &gt; 2 a_1 \\
+a_4 &gt; a_1 + a_2 + a_3 &gt; 4 a_1 \\
+\cdots \\
+a_n &gt; a_1 + a_2 + \cdots + a_{n-1} &gt; 2^{n-2} a_1 \\
+q &gt; a_1 + a_2 + \cdots + a_n &gt; 2^{n-1} a_1
+\end{cases}</p>
+		<p>$\therefore 2^{n-1} a_1 &lt; q = 2^{64} \Rightarrow \color {red} {a_1 &lt; 2^{65 - n}}$。</p>
+		<p><strong style="color: navy">有感觉了！上面这个式子说明，(当 $q$ 固定时) $n$ 越大，$a_1$ 的可能值就越小</strong>！这就说明，我们可以通过<em>枚举 $a_1$</em> 的方法来反解出 $r$。</p>
+		<p>于是可列出方程 $a_1 \cdot r \equiv b_1 \pmod {2^{64}} \Rightarrow a_1 \equiv b_1 \cdot r^{-1} \pmod {2^{64}}$ ($r$ 存在逆元)。</p>
+		<p>但是 $b_1$ 和 $r$ <strong>不一定</strong>互素。因此我们要设 $v_2 \left( b_1 \right) = z$，并设 $b_1 = 2^z \cdot b^*$ ($2 \nmid b^*$)。</p>
+		<p>从而有 $$ a_1 \equiv 2^z \cdot b^* \cdot r^{-1} \pmod {2^{64}} \tag 1 \label 1 $$</p>
+		<p>$\eqref 1$ 式两边 $\hspace{-0.444em} \pmod {2^{z+1}}$ 可知，(你枚举的) $a_1$ 也必须满足 $v_2 \left( a_1 \right) = z$ (即 $a_1$ 中恰有 $z$ 个 $2$)，因此可设 $a_1 = 2^z \cdot a^*$ ($2 \nmid a^*$)。从而有</p>
+		<p>$$ a^* \equiv b^* \cdot r^{-1} \pmod {2^{64-z}} \tag 2 \label 2 $$</p>
+		<p>由于 $b^*$ 是奇数，因此 $\left( b^*, 2^{64-z} \right) = 1$，于是它存在乘法逆 $\left( b^* \right)^{-1}$，可得 $$ r^{-1} \equiv \left( b^* \right)^{-1} \cdot a^* \pmod {2^{64-z}} $$</p>
+		<p>当然这只是 $r^{-1}$ 在 $\hspace{-0.444em} \pmod {2^{64-z}}$ 下的值。记 $\eta = \left( b^* \right)^{-1} \cdot a^* \bmod 2^{64-z}$，则 $r^{-1}$ 在 $\hspace{-0.444em} \pmod {2^{64}}$ 下就可以表示为 $$ r^{-1} = \eta + k \cdot 2^{64-z} \quad \left( 0 \leq k &lt; 2^z \right) $$</p>
+		<p>这样我们需要枚举 $2^z$ 个 $r$，而 $a_1$ 需要满足 \begin{cases}
+0 &lt; a_1 &lt; 2^{65 - n} \\
+a_1 \equiv 2^z \pmod {2^{z+1}}
+\end{cases}</p>
+		<p>这样的 $a_1$ 的数量为 $2^{64 - n - z}$，于是<strong>总枚举量</strong>为 $2^{64 - n}$。</p>
+		<p>枚举完 $r^{-1}$ 后直接暴力验证诸 $a_i$ 是否满足题目中的两条性质。有多组 $r^{-1}$ 解也没关系，因为容易证明无论 $r$ 取多少最终解出来的 $\left\{ j_i \right\}_{1 \leq i \leq n}$ 是唯一的。</p>
+		<p>于是我们得到了一个时间复杂度为 $O \left( 2^{64 - n} \cdot n \right)$ 的算法。</p>
+		<p>结合 Meet-in-the-middle 的暴力，最终的时间复杂度为 $O \left( q^{2/3} \right) = O \left( 2^{2 \cdot 64/3} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ctz __builtin_ctz
+#define ctz64 __builtin_ctzll
+using std::cin;
+using std::cout;
+
+typedef unsigned long long u64;
+const int N = 81;
+
+int n;
+u64 s, b[N];
+
+u64 inv(u64 a) {
+	u64 x = 1; return
+	x = x * (2 - a * x), x = x * (2 - a * x), x = x * (2 - a * x),
+	x = x * (2 - a * x), x = x * (2 - a * x), x = x * (2 - a * x);
+}
+
+void print(u64 x) {
+	int i; char buf[N];
+	for (i = 0; i &lt; n; ++i) buf[i] = (x &gt;&gt; i &amp; 1) | 48;
+	buf[n] = 10, buf[n + 1] = 0, cout &lt;&lt; buf;
+}
+
+namespace meet_in_middle {
+	typedef std::pair &lt;u64, int&gt; pr;
+	const int N2 = 2100000;
+
+	int L, R, LALL, RALL;
+	pr l[N2], r[N2];
+
+	int main() {
+		int i, j;
+		L = n / 2, R = n - L, LALL = ~(-1 &lt;&lt; L), RALL = ~(-1 &lt;&lt; R), r-&gt;first = s;
+		for (i = 1; i &lt;= LALL; ++i) l[i] = pr(l[i &amp; (i - 1)].first + b[ctz(i)], i);
+		for (i = 1; i &lt;= RALL; ++i) r[i] = pr(r[i &amp; (i - 1)].first - b[L + ctz(i)], i);
+		std::sort(l, l + (LALL + 1)), std::sort(r, r + (RALL + 1));
+		for (i = j = 0; i &lt;= LALL &amp;&amp; j &lt;= RALL; l[i].first &lt; r[j].first ? ++i : ++j)
+			if (l[i].first == r[j].first) return print(l[i].second | (u64)r[j].second &lt;&lt; L), 0;
+		return -1;
+	}
+}
+
+namespace a_small {
+	u64 a[N];
+
+	int main() {
+		int i, j, k, z = ctz64(*b), lim = 64 - n;
+		u64 raw_b = *b &gt;&gt; z, iv_b = inv(raw_b), I = iv_b, J = 0, S = 0;
+		assert(z &lt;= lim);
+		for (i = 1; i &lt;= 2 &lt;&lt; (lim - z); i += 2, I += iv_b &lt;&lt; 1)
+			for (j = 0; j &lt; 1 &lt;&lt; z; ++j, I += 2ull &lt;&lt; (63 - z)) {
+				for (S = k = 0; k &lt; n; S += a[k++])
+					if (a[k] = b[k] * I, a[k] &lt;= S || a[k] &gt; ~S) break;
+				if (k == n) {
+					for (k = n - 1, s *= I; k &gt;= 0; --k)
+						if (s &gt;= a[k]) s -= a[k], J |= 1ull &lt;&lt; k;
+					return print(J), 0;
+				}
+			}
+		return -1;
+	}
+}
+
+int main() {
+	int i;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; b[i];
+	cin &gt;&gt; s;
+	return n &lt; 43 ? meet_in_middle::main() : a_small::main();
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>计算前缀和的时候注意会不会爆 <code>unsigned long long</code> 溢出 (并利用合适的方法判断)。</p>
+		<p><strong>坑2：</strong>$a_1$ 的上界是 $2^{65 - n}$ 而不是 $2^{64 - n}$。</p>
+		<p><strong>坑3：</strong>在计算 $r^{-1} = \eta + k \cdot 2^{64 - z}$ 时如果 $z = 0$ 时小心 <code>1ull &lt;&lt; 64</code> 产生<em>未定义行为</em>。</p>
+		<p><strong>坑4：</strong>双指针等操作时注意边界。</p>
+	</body>
+</html>

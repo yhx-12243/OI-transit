@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4788][lg3679][CodeforcesGym101173B][CERC2016]Bipartite Blanket</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张二分图 $G = \left( V_1, V_2; E \right)$，其中每个顶点 $v$ 有一个权值 $x_v$。对于一个点集 $V \subseteq V_1 \cup V_2$，定义它的权值 $$ w \left( V \right) = \sum_{v \in V} x_v $$</p>
+		<p>求有多少个点集 $V \subseteq V_1 \cup V_2$，满足：</p>
+		<ol>
+			<li>$w \left( V \right) \geq t$。</li>
+			<li>存在一个匹配 $M$ 饱和 $V$。</li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 20$)，分别表示 $V_1$ 和 $V_2$ 的大小。记 $V_1 = \left\{ a_1, a_2, \cdots, a_n \right\}, V_2 = \left\{ b_1, b_2, \cdots, b_m \right\}$。</p>
+		<p>接下来 $n$ 行，每行一个长度为 $m$ 的 $\texttt 0/\texttt 1$ 串，其中第 $i$ 行第 $j$ 个字符为 $\texttt 1$ 当且仅当 $a_i$ 和 $b_j$ 之间有一条边。</p>
+		<p>第 $n + 2$ 行包含 $n$ 个正整数 $x_{a_1}, x_{a_2}, \cdots, x_{a_n}$ ($x_{a_i} \leq 10^7$)，表示 $a_1, a_2, \cdots, a_n$ 的权值。</p>
+		<p>第 $n + 3$ 行包含 $m$ 个正整数 $x_{b_1}, x_{b_2}, \cdots, x_{b_m}$ ($x_{b_i} \leq 10^7$)，表示 $b_1, b_2, \cdots, b_m$ 的权值。</p>
+		<p>最后一行包含一个正整数 $t$ ($t \leq 4 \times 10^8$)，表示权值的限制。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的点集 $V$ 的个数。</p>
+
+		<h3>题解</h3>
+		<p>设 $L = V \cap V_1, R = V \cap V_2$ (则 $V = L \cup R$)。观察可以发现下列性质：</p>
+		<p><strong style="color: green">存在一个匹配 $M$ 饱和 $L \cup R$，当且仅当存在一个匹配 $M$ 饱和 $L$ 且存在一个匹配 $M$ 饱和 $R$</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>必要性显然，下证充分性。</p>
+				<p>反设结论不成立，那么设匹配 $M$ 满足 $M$ 在 $L \cup R$ 中饱和的点数 $\left| V \left( M \right) \cap \left( L \cup R \right) \right|$ 最大。</p>
+				<p>由条件和 Hall 定理知，对 $\forall A \subseteq L, N \left( A \right) \geq A$，且对 $\forall B \subseteq R, N \left( B \right) \geq B$。</p>
+				<p>任取 $x \in \left( L \cup R \right) \setminus V \left( M \right)$，不妨设 $x \in L$。</p>
+				<p>由 $M$ 的最大性知不存在以 $x$ 为端点的增广路。于是考虑 $V$ 在增广过程中到达的所有顶点 $U = U_1 \cup U_2$，其中 $U_1 \subseteq V_1, U_2 \subseteq V_2$。</p>
+				<p>则 $N \left( U_1 \right) = U_2, \left| U_1 \right| = \left| U_2 \right| + 1$ (因为 $U$ 是 $x$ 和一个匹配的并)，即 $\left| N \left( U_1 \right) \right| = \left| U_2 \right| = \left| U_1 \right| - 1$，与 Hall 定理矛盾。</p>
+				<p>综上这样的 $x$ 不存在，即存在匹配 $M$ 饱和 $L \cup R$。</p>
+			</div>
+		</div>
+		<p>于是我们将一个两侧的问题转化为了两个独立的单侧问题。</p>
+		<p>由于 $n, m \leq 20$，因此我们可以使用状态压缩 DP 处理出对于每个集合 $S$，$\left| N \left( S \right) \right| \geq \left| S \right|$ 是否成立。</p>
+		<p>然后跑一趟 <abbr title="Fast Möbius Transform, 快速 Möbius 变换">FMT</abbr> 就得到了对于每个集合 $S$，复合命题 $P \left( S \right) = \left( \forall T \subseteq S, \left| N \left( T \right) \right| \geq \left| T \right| \right)$ 是否成立。</p>
+		<p>从而原问题就转化为求 $$ \sum_{\substack{L \subseteq V_1 \\ P \left( L \right)}} \sum_{\substack{R \subseteq V_2 \\ P \left( R \right)}} \left[ w \left( L \right) + w \left( R \right) \geq t \right] $$</p>
+		<p>设 $V_1$ 的所有子集中满足性质的 $P$ 为 $\mathcal A_1$，$V_2$ 中为 $\mathcal A_2$，于是只需求 $$ \sum_{L \in \mathcal A_1} \sum_{R \in \mathcal A_2} \left[ w \left( L \right) + w \left( R \right) \geq t \right] $$</p>
+		<p>于是只需要将 $\mathcal A_1$ ($\mathcal A_2$) 中所有集合按照权值大小 $w$ 排序后双指针扫一遍即可。</p>
+		<p>时间复杂度 $O \left( 2^n n + 2^m m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define popc __builtin_popcount
+#define ctz __builtin_ctz
+using std::cin;
+using std::cout;
+
+const int N = 21, N2 = 1050000;
+
+int A, B, ALLa, ALLb, W;
+int Ga[N], Gb[N];
+int Wa[N2], Wb[N2];
+int cnt1, cnt2, p1[N2], p2[N2];
+int tmp[N2];
+bool fa[N2], fb[N2];
+char s[N];
+
+void get_hall_set(int n, int ALL, int *G, bool *f) {
+	int i, j, k, len = 1; *tmp = 0, *f = true;
+	for (i = 1; i &lt;= ALL; ++i)
+		tmp[i] = tmp[i &amp; (i - 1)] | G[ctz(i)],
+		f[i] = popc(tmp[i]) &gt;= popc(i);
+	for (i = 0; i &lt; n; ++i, len &lt;&lt;= 1)
+		for (j = 0; j &lt;= ALL; j += len &lt;&lt; 1)
+			for (k = j; k &lt; j + len; ++k)
+				f[k + len] &amp;= f[k];
+}
+
+int main() {
+	int i, j; long long ans = 0;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; A &gt;&gt; B, ALLa = ~(-1 &lt;&lt; A), ALLb = ~(-1 &lt;&lt; B);
+	for (i = 0; i &lt; A; ++i)
+		for (cin &gt;&gt; s, j = 0; j &lt; B; ++j)
+			if (s[j] &amp; 1) Ga[i] |= 1 &lt;&lt; j, Gb[j] |= 1 &lt;&lt; i;
+
+	get_hall_set(A, ALLa, Ga, fa);
+	for (i = 0; i &lt; A; ++i) cin &gt;&gt; Wa[1 &lt;&lt; i];
+	for (i = 0; i &lt;= ALLa; ++i) {
+		Wa[i] = Wa[i &amp; (i - 1)] + Wa[i &amp; -i];
+		if (fa[i]) p1[cnt1++] = Wa[i];
+	}
+	std::sort(p1, p1 + cnt1);
+
+	get_hall_set(B, ALLb, Gb, fb);
+	for (i = 0; i &lt; B; ++i) cin &gt;&gt; Wb[1 &lt;&lt; i];
+	for (i = 0; i &lt;= ALLb; ++i) {
+		Wb[i] = Wb[i &amp; (i - 1)] + Wb[i &amp; -i];
+		if (fb[i]) p2[cnt2++] = Wb[i];
+	}
+	std::sort(p2, p2 + cnt2, std::greater &lt;int&gt; ());
+
+	cin &gt;&gt; W;
+	for (j = i = 0; i &lt; cnt1; ++i) {
+		for (; j &lt; cnt2 &amp;&amp; p1[i] + p2[j] &gt;= W; ++j);
+		ans += j;
+	}
+	cout &lt;&lt; ans &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>双指针扫描时小心边界问题。</p>
+	</body>
+</html>

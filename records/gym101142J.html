@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym101142J]Java2016</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Java2016 是一种神奇的语言，它的语法用 Backus-Naur 范式表示如下：</p>
+		<pre>&lt;expression&gt; ::= &lt;expression&gt; 'min' &lt;sum&gt; | &lt;expression&gt; 'max' &lt;sum&gt; | &lt;sum&gt;
+&lt;sum&gt; ::= &lt;sum&gt; '+' &lt;term&gt; | &lt;sum&gt; '-' &lt;term&gt; | &lt;term&gt;
+&lt;term&gt; ::= &lt;term&gt; '*' &lt;factor&gt; | &lt;term&gt; '/' &lt;factor&gt; | &lt;factor&gt;
+&lt;factor&gt; ::= '(' &lt;expression&gt; ')' | '?' | &lt;macro&gt;
+</pre>
+		<p>其中 <code><em>a</em> min <em>b</em></code> 表示 $\min \left\{ a, b \right\}$，<code>max</code>, <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code> 同理。</p>
+		<p>特别地，<code>*</code> <code>/</code> 的优先级最高，<code>+</code> <code>-</code> 次之，<code>min</code> <code>max</code> 的优先级最低。同级之间的运算左结合 (从左到右进行)。</p>
+		<p>在 Java2016 语言中，所有的整数均为 <strong>$8$ 位无符号整数</strong> (即 $0 \sim 255$)。其中 <code>+</code>, <code>-</code>, <code>*</code> 三种运算均在 $\hspace{-0.444em} \pmod {256}$ 意义下进行。除法向下取整，若除数为 $0$ 则程序发生运行时错误。</p>
+		<hr />
+		<p>Java2016 语言中<em>没有确定性变量</em>，所有的变量 (表达式) 均为<em>离散型随机变量</em>。其中 <code>?</code> 表示在 $0 \sim 255$ 均匀分布的随机变量。不同的 <code>?</code> 作为随机变量是<strong>互相独立</strong>的。</p>
+		<p>如，表达式 <code>?/?/?</code> 有约 $98.2 \%$ 的概率等于 $0$，有约 $0.8 \%$ 的概率导致程序发生运行时错误。</p>
+		<p>Java2016 语言中还能定义宏。语法跟 C++ 类似，形式化地，它满足如下 Backus-Naur 范式：</p>
+		<pre>&lt;macrodef&gt; ::= &lt;macro&gt; '=' &lt;expression&gt;
+&lt;macro&gt; ::= 'a' | 'b' | ... | 'z'
+</pre>
+		<p>如，若定义了宏 <code>a = ? max ?</code>，那么表达式 <code>(a max a) / a</code> 会被展开为 <code>((? max ?) max (? max ?)) / (? max ?)</code>。</p>
+		<hr />
+		<p>你的任务是，给定整数 $c \in \left[ 0, 255 \right]$，构造一个表达式，使得它有<strong>不小于 $\dfrac 12$ 的概率等于 $c$</strong> <span style="color: red">(注意运行时错误是被计入的，不是条件概率)</span>。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个非负整数 $c$ ($0 \leq c \leq 255$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出若干行，表示一个满足条件的 Java2016 程序。<strong>你需要保证程序中非空白字符的个数不超过 $256$</strong>。</p>
+
+		<h3>题解</h3>
+		<p>一个直观的思路是，如果我们能构造出一个随机变量 $O$ 使得它等于 $1$ 的概率极高，然后随机变量 $T = O + O$ 几乎就等于 $2$，最后利用快速幂 (二进制/倍增) 的思想来得到任意数。</p>
+		<p>由于 $1$ 不是最小的数，因此 $\min$ 和 $\max$ 不好利用，因此我们尝试利用 $1 = 0 - 255$，将问题转化为构造 $255$ (最大的数)。</p>
+		<p>当然，这里还需要构造 $0$。</p>
+		<p>构造 $0$ 其实并不难，只需要利用模数 $256$ 有很多因子 $2$，因此我们只需要将若干个 <code>?</code> 乘起来即可。</p>
+		<p>具体地，用 $x$ 表示题目中的 <code>?</code> 随机变量，则对于稍大的正整数 $n$，$x^n$ 在 $\hspace{-0.444em} \pmod {256}$ 意义下几乎就等于 $0$ 了。</p>
+		<p style="color: red">(ps: 可以证明 $x^n \not\equiv 0 \pmod {256}$ 的概率不超过 $\dfrac {n^7} {2^n \cdot 7 !}, n \geq 7$)</p>
+		<hr />
+		<p>构造完 $0$ 后考虑构造 $255$。</p>
+		<p>容易想到一个比较简单的方法是 $\max \left\{ x, x, x, \cdots \right\}$ 这样下去，这样最终等于 $255$ 的概率会越来越大。</p>
+		<p>可惜这种方法的收敛速度比较慢，$n$ 个 $x$ 取 $\max$ 后不等于 $255$ 的概率仍有 $\left( \dfrac {255} {256} \right)^n$，从而导致代码过长。</p>
+		<p>因此我们希望找一个初值相对可观一点的：<span style="color: fuchsia">如果一个随机变量 $y$ 初始时不等于 $255$ 的概率是 $p$，那么 $n$ 个 $y$ 取 $\max$ 后不等于 $255$ 的概率只有 $y^n$，如果能做到 $y \approx \dfrac 12$ 这种那其实已经非常不错了</span>。</p>
+		<p>根据题目中的经验，善于利用除法可以有较大的概率获得 $1$。但是一个弊端是有 $\dfrac 1 {256}$ 的概率 RE。这个概率其实是很大的，因为它叠加几次 RE 的概率就会占据主导地位。</p>
+		<p>于是我们可以 "折中一下"：先令 $g = \max \left\{ x, x, x, \cdots \right\}$，大概 $n = 20$ 个左右的 $x$ 就够了，先让 $g = 0$ 的概率 $\dfrac 1 {256^n}$ 变得足够小，然后做除法：$z = \dfrac gg$，此时 $h$ 有约一半的概率为 $1$。</p>
+		<p>从而，$h = 0 - z$ 有约一半的概率等于 $255$，从而我们达到了前面的<span style="color: fuchsia">粉色</span>目标，接着令 $k = \max \left\{ h, h, h, \cdots \right\}$，它几乎就等于 $255$。最后令 $O = 0 - k$ 就几乎等于 $1$ 了。</p>
+		<p>这样，我们就完成了 "$1$" 的构造，然后利用一开始所说的快速幂的方法来得到任意 $c$ 了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+using std::cin;
+using std::cout;
+using std::string;
+/*
+	d = 0
+	g = not 0
+	h = 0 or 255
+	k = 1
+	l = 2
+*/
+const char *part1 = R"(a = ? * ? * ?
+b = a * a * a
+c = b * b * b
+d = c * c * c
+)", *part2 = R"(e = ? max ? max ?
+f = e max e max e
+g = f max f max f
+h = d - g / g
+i = h max h max h
+j = i max i max i
+k = d - (j max j max j)
+l = k + k
+)";
+
+int main() {
+	int i, n; string ret;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cout &lt;&lt; part1, cin &gt;&gt; n;
+	if (!n) return cout &lt;&lt; 'd' &lt;&lt; '\n', 0;
+	cout &lt;&lt; part2;
+	if (n == 1) ret = "k";
+	for (i = lg2(n) - 1; i &gt;= 0; --i)
+		if (ret.empty()) {
+			if (n &gt;&gt; i &amp; 1) ret = "(l + k)";
+			else ret = "l";
+		} else
+			if (n &gt;&gt; i &amp; 1) ret = "(" + ret + " * l + k)";
+			else ret += " * l";
+	if (ret.back() == ')') ret = ret.substr(1, ret.size() - 2);
+	cout &lt;&lt; ret &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意同一种操作很多次可以利用 "宏" 进行倍增。而这其中 "三路倍增" 的效率是最高的。</p>
+		<p><strong>坑2：</strong>$c = 0$ 时要输出构造出的 "$0$"，而不能留空。</p>
+	</body>
+</html>

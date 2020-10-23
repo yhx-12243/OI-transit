@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym100531K]Kebab House</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个长度为 $T = q_1 + q_2 + \cdots + q_n$ 的序列被依次分成长度为 $q_1, q_2, \cdots, q_n$ 的 $n$ 段。</p>
+		<p>求有多少个在每一个位置填入数字 $0$ 和 $1$ 的方案，满足：</p>
+		<ol>
+			<li>相邻两个 $0$ 之间至少相隔 $t$ 个 $1$。</li>
+			<li>第 $i$ 个段的数字总和至少为 $x_i$。</li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, t$ ($1 \leq n \leq 1000; 0 \leq t \leq 100$)，分别表示段的数量和相邻两个 $0$ 之间相隔的 $1$ 的个数的最小值。</p>
+		<p>接下来 $n$ 行，每行两个非负整数 $q_i, x_i$ ($1 \leq q_i \leq 250; 0 \leq x_i \leq q_i$)，分别表示每段的长度与总和的下界。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的填入 $0/1$ 的方案数对 $10^9 + 7$ 取模后的结果。</p>
+
+		<h3>题解</h3>
+		<p>考虑 DP。当我们完成对上一段的讨论后，<strong>仅仅只有上一段最后出现的 $0$ 的位置</strong>会对当前的状态产生影响。</p>
+		<p style="color: red">(ps: 精确地讲应该是最后一次出现 $0$ 的位置，因为上一段可能没有 $0$)</p>
+		<p>因此我们用 $f_i$ ($0 \leq i \leq t$) 表示，从当前段开始<strong>至少需要填 $i$ 个 $1$ 后才能填 $0$</strong> (即 $0$ 至少需要等到第 $i + 1$ 个位置才能出现)。每次加入一段 $\left( q_i, x_i \right)$，我们更新 $f_i$ 向量 $\mathbf f$。</p>
+		<p>初始时 $f_i = \left[ i = 0 \right]$ (即 $\mathbf f = \begin{bmatrix} 1 \\ 0 \\ \vdots \\ 0 \end{bmatrix}$)，最终答案就是 (转移完毕后) $\mathbf f$ 的各分量的和。</p>
+		<p>现在只需考虑加入 $\left( q, x \right)$ 后 $f$ 的转移。这个转移显然是一个线性变换，因此可以用一个矩阵 $$ \mathbf{M} = \begin{bmatrix}
+a_{0, 0} &amp; a_{0, 1} &amp; a_{0, 2} &amp; \cdots &amp; a_{0, t} \\
+a_{1, 0} &amp; a_{1, 1} &amp; a_{1, 2} &amp; \cdots &amp; a_{1, t} \\
+a_{2, 0} &amp; a_{2, 1} &amp; a_{2, 2} &amp; \cdots &amp; a_{2, t} \\
+\vdots &amp; \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
+a_{t, 0} &amp; a_{t, 1} &amp; a_{t, 2} &amp; \cdots &amp; a_{t, t}
+\end{bmatrix} $$ 来表示。</p>
+		<p>现在只需考虑计算单个 $a_{v, u}$ (即原先 $f_u$ 向新 $f'_v$ 转移的系数)。</p>
+		<p>考虑这样一个模型：<strong style="color: fuchsia">有一个长度为 $L$ 的 $0/1$ 序列，其中有 $k$ 个 $0$ ($k \in \mathbb N^*$) 且最后一个位置为 $0$，相邻两个 $0$ 之间至少有 $t$ 个 $1$</strong>。<strong style="color: teal">记这样的方案数为 $\eta_{L, k}$</strong>。</p>
+		<p>设这些极长 $1$ 段的长度分别为 $l_1, l_2, \cdots, l_k$，则：\begin{cases} l_1 + l_2 + \cdots + l_k = L - k \\
+l_1 \geq 0 \\
+l_i \geq t &amp; i = 2, 3, \cdots, k
+\end{cases}</p>
+		<p>换元知这样 $\left( l_1, l_2, \cdots, l_k \right)$ 数组的解数为 $\dbinom {L - t \cdot \left( k - 1 \right) - 1} {k - 1}$，即：$$ \large \color {red} {\eta_{L, k} = \binom {L - t \cdot \left( k - 1 \right) - 1} {k - 1}} $$</p>
+		<hr />
+		<p>现在考虑 $a_{v, u}$。首先，对于这个段 $\left( q, x \right)$，其中前 $u$ 个值必须是 $1$，后面 $q - u$ 个值就可以转化为刚才的模型。若 $v &gt; 0$，则说明倒数第 $t - v + 1$ 个位置是 $0$。$x$ 的意思就是 <em>$0$ 的总数不超过 $q - x$</em>。</p>
+		<p>因此对于 $v &gt; 0$ 的情形，相当于在一个长度为 $q - u - \left( t - v \right) = \left( v - u - t \right) + q$ 的带子上做上述<span style="color: fuchsia">粉色</span>的模型。由之前的结论知 \begin{align*}
+a_{v, u} &amp;= \left[ u = v + q \right] + \sum_{k=1}^{q-x} \eta_{\left( v - u - t \right) + q, k} \\
+&amp;= \left[ u = v + q \right] + \sum_{k=0}^{q-x-1} \binom {\left( v - u - t \right) + q - 1 - t \cdot k} k
+\end{align*}</p>
+		<p style="color: red">这里为了方便起见约定 $\dbinom {-n} r = 0$，其中 $n &gt; 0$。其中 $\left[ u = v + q \right]$ 项表示该段没有一个 $0$)</p>
+		<p>当 $v = 0$ 时，其实在某种意义上可以看成所有 $v \leq 0$ 情形的总和 (表示立即可以填入 $0$ 的状态)，因此有 \begin{align*}
+a_{0, u} &amp;= \sum_{v=0}^{+ \infty} \left[ u = -v + q \right] + \sum_{k=0}^{q-x-1} \binom {\left( -v - u - t \right) + q - 1 - t \cdot k} k \\
+&amp;= \left[ u \leq q \right] + \sum_{k=0}^{q-x-1} \binom {\left( 1 - u - t \right) + q - 1 - t \cdot k} {1 + k} &amp; \color {magenta} {\textrm{(上指标求和)}}
+\end{align*}</p>
+		<p>于是本质不同的 $a_{v, u}$ 只有 $O \left( t \right)$ 个，其中计算其中的每一个需要 $O \left( \dfrac qt \right)$ 时间，因此计算整个矩阵可以在 $O \left( q + t^2 \right)$ 时间内完成，最后暴力用它乘上向量 $\mathbf f$ 即完成转移。</p>
+		<p>总时间复杂度 $O \left( \sum q_i + n \cdot t^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int mod = 1000000007;
+
+int n, T;
+int dp[2][105], *cur = *dp, *nxt = dp[1];
+int mat[105][105], C[254][254];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+
+void trans(int *g, int *f, int a, int b) {
+	int i, j, k, dist = a, lim; ll coef;
+	for (j = 0; j &lt; T; ++j) {
+		lim = min(--dist / (1 + T), b - 1), coef = dist == ~T;
+		if (dist &gt;= 0) for (k = 0; k &lt;= lim; ++k) coef += C[dist - T * k][k];
+		mat[T][j] = coef % mod;
+	}
+	for (i = T; i &gt; 0; --i) {
+		lim = min(--dist / (1 + T), b - 1), coef = dist == ~T;
+		if (dist &gt;= 0) for (k = 0; k &lt;= lim; ++k) coef += C[dist - T * k][k];
+		mat[i][T] = coef % mod;
+	}
+	lim = min(--dist / (1 + T), b - 1), coef = dist &gt;= ~T;
+	if (dist &gt;= 0) for (k = 0; k &lt;= lim; ++k) coef += C[dist - T * k + 1][k + 1];
+	mat[0][T] = coef % mod;
+
+	for (i = T - 1; i &gt; 0; --i)
+		for (j = T - 1; j &gt;= 0; --j) mat[i][j] = mat[i + 1][j + 1];
+	for (j = T - 1; j &gt;= 0; --j) add(mat[0][j] = mat[0][j + 1], mat[1][j + 1]);
+
+	for (i = 0; i &lt;= T; ++i)
+		for (g[i] = j = 0; j &lt;= T; ++j)
+			g[i] = (g[i] + (ll)mat[i][j] * f[j]) % mod;
+}
+
+int main() {
+	int i, j, a, b;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (*C[0] = i = 1; i &lt; 254; ++i)
+		for (*C[i] = j = 1; j &lt;= i; ++j) add(C[i][j] = C[i - 1][j], C[i - 1][j - 1]);
+	cin &gt;&gt; n &gt;&gt; T, *nxt = 1;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; a &gt;&gt; b, std::swap(cur, nxt), trans(nxt, cur, a, a - b);
+	cout &lt;&lt; std::accumulate(nxt, nxt + (T + 1), 0ll) % mod &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>中间的二项式系数的上指标是 $\left( v - u - t \right) + \left( q - 1 \right) - t \cdot k$，不要推错了。</p>
+		<p><strong>坑2：</strong>当 $t = 0$ 时 <code>T - 1</code> 会变成负数，因此循环中需要写 <code>i &gt; 0</code> 而不是 <code>i</code>。</p>
+	</body>
+</html>

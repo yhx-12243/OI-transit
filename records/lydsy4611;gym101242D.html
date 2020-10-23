@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4611][CodeforcesGym101242D][WF2016]Clock Breaking</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个 $24$ 小时制液晶数字电子时钟，其中有些位置永远不亮，有些位置永远亮，其余位置工作正常。现在给定这个时钟在连续 $n$ 个时刻显示的情况，你需要推断出每个位置的状态 (永远不亮，永远亮，工作正常或者存在至少两种可能的状态)。</p>
+		<p>时钟显示的规则如下：</p>
+		<ol>
+			<li><p>小时数不带前导 $0$，分钟数带前导 $0$。如十点为 $\texttt{10:00}$，它的前一分钟为 $\texttt{9:59}$。</p></li>
+			<li><p>冒号 <code>:</code> 始终位于正中间且始终是亮着的。其余的位置可以分为四段，每段表示一个数 (如果是最开始的位置还是可以是空)，所有数的形态如下：</p>
+			<img class="center-block" src="uploads/267.png" alt="所有数的形态" /></li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 100$)，表示已知的时刻数 (单位：分钟)。</p>
+		<p>接下来 $8 n - 1$ 行，包含 $n$ 个 $7 \times 21$ 的字符点阵，相邻两个点阵之间有一个空行。</p>
+		<p>对于每个点阵，每个液晶状态用两个字符表示 (除了冒号用一个字符表示)。用 <code>X</code> 表示亮的状态，<code>.</code> 表示不亮的状态。</p>
+		<p>保证不存在液晶状态的部分一定为 <code>.</code>，一个位置如果有两个字符必定相同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $7 \times 21$ 的字符点阵，其中不存在的位置为 <code>.</code>，永远不亮、永远亮、工作正常分别用 <code>0</code>, <code>1</code>, <code>W</code> 表示，存在至少两种可能的状态的用 <code>?</code> 表示。</p>
+		<p>如果这种情况无论如何也不会出现，则只需输出 <code>impossible</code>。</p>
+
+		<h3>题解</h3>
+		<p>每个状态涉及到 $7 \times 4 + 2 = 30$ 个位置的开关状态，因此可以使用一个 $32$ 位整数 (<code>unsigned int</code>) 存储。</p>
+		<p>记所有时刻中全部亮的位置集合为 $A_1$，全部不亮的集合为 $A_0$，剩下位置的集合为 $R$。</p>
+		<p>则，对于 $A_1$ ($A_0$)，<strong>(如果原问题不是 <code>impossible</code>)</strong> 那么无论它们是不是工作正常，<strong>永远亮</strong> (或永远不亮) 的状态始终是<strong>可能出现的</strong>；而对于 $R$，它们<strong>只可能是工作正常的状态</strong>。</p>
+		<p>一天只有 $1440$ 分钟，因此枚举起点 $s \in \left[ 0, 1440 \right)$，我们检验 $\left[ s, s + n \right)$ 是否是可能的。</p>
+		<p>由于 $R$ 区<em>只可能是工作正常的状态</em>，因此这些位置必须和 $\left[ s, s + n \right)$ 的 $R$ 区<strong>完全匹配</strong>，否则这个 $s$ 就是不合法的。</p>
+		<p>这样就可以判定是否是 <code>impossible</code> 了：如果对于 $\forall s \in \left[ 0, 1440 \right)$，总有 $R$ 区的位置不匹配，那么就是无解；否则就是有解。</p>
+		<p style="color: red">(ps: 当然一个细节是判断冒号不可能出现在 $R$ 区，即如果冒号在 $R$ 区则直接无解)</p>
+		<p>考虑所有合法 $s$ 构成的集合 $S = \left\{ s_1, s_2, \cdots \right\}$，任取 $s \in S$，考虑 $A_1$ ($A_0$) 区的位置，如果它能匹配上，说明对应的位置既能是<em style="color: fuchsia">恒亮</em> (恒不亮) 又能是<em style="color: fuchsia">工作正常</em>。</p>
+		<p>最后根据上述讨论的情形即可得到每个位置是恒亮、恒不亮、工作正常还是至少两种情形。</p>
+		<p>对于集合的操作可以使用位运算进行<del>显著</del>加速。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef unsigned int state;
+constexpr state MASK_DIGIT = 0x0fffffffu, MASK_COLON = 0x30000000u, MASK_ALL = MASK_DIGIT | MASK_COLON;
+const state digits[10] = {125, 96, 55, 103, 106, 79, 95, 97, 127, 111};
+
+const int N = 108;
+
+int n;
+state a[N], st[1440 + N];
+char ty[30], ans[7][24];
+
+inline state parse_digit(char (*s)[24], int offset) {
+	return (s[0][offset + 1] == 88)
+		 | (s[3][offset + 1] == 88) &lt;&lt; 1
+		 | (s[6][offset + 1] == 88) &lt;&lt; 2
+		 | (s[1][offset + 0] == 88) &lt;&lt; 3
+		 | (s[4][offset + 0] == 88) &lt;&lt; 4
+		 | (s[1][offset + 3] == 88) &lt;&lt; 5
+		 | (s[4][offset + 3] == 88) &lt;&lt; 6;
+}
+
+inline state read_state() {
+	static char s[7][24];
+	for (int i = 0; i &lt; 7; ++i) cin &gt;&gt; s[i];
+	return parse_digit(s, 0)
+		 | parse_digit(s, 5) &lt;&lt; 7
+		 | parse_digit(s, 12) &lt;&lt; 14
+		 | parse_digit(s, 17) &lt;&lt; 21
+		 | (s[2][10] == 88) &lt;&lt; 28
+		 | (s[4][10] == 88) &lt;&lt; 29;
+}
+
+inline void fill_digit(char *data, int offset) {
+	ans[0][offset + 1] = ans[0][offset + 2] = data[0],
+	ans[3][offset + 1] = ans[3][offset + 2] = data[1],
+	ans[6][offset + 1] = ans[6][offset + 2] = data[2],
+	ans[1][offset + 0] = ans[2][offset + 0] = data[3],
+	ans[4][offset + 0] = ans[5][offset + 0] = data[4],
+	ans[1][offset + 3] = ans[2][offset + 3] = data[5],
+	ans[4][offset + 3] = ans[5][offset + 3] = data[6];
+}
+
+inline void print_ans() {
+	ans[2][10] = ty[28], ans[4][10] = ty[29],
+	fill_digit(ty, 0), fill_digit(ty + 7, 5), fill_digit(ty + 14, 12), fill_digit(ty + 21, 17);
+	for (int i = 0; i &lt; 7; ++i) cout &lt;&lt; ans[i];
+}
+
+void init_standard() {
+	int h1, h2, m1, m2, n = 0;
+	for (h1 = 0; h1 &lt; 3; ++h1)
+		for (h2 = 0; h2 &lt; 10; ++h2) {
+			if (h1 == 2 &amp;&amp; h2 == 4) {assert(n == 1440), memcpy(st + n, st, N &lt;&lt; 2); return;}
+			for (m1 = 0; m1 &lt; 6; ++m1)
+				for (m2 = 0; m2 &lt; 10; ++m2)
+					st[n++] = (h1 ? digits[h1] : 0) | digits[h2] &lt;&lt; 7 | digits[m1] &lt;&lt; 14 | digits[m2] &lt;&lt; 21 | MASK_COLON;
+		}
+	throw "gg";
+}
+
+int main() {
+	int i, j; bool flag = false;
+	state all0 = MASK_ALL, all1 = MASK_ALL, remain, err, U0 = 0, U1 = MASK_COLON;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	init_standard(), cin &gt;&gt; n;
+	for (i = 0; i &lt; n; ++i) a[i] = read_state(), all0 &amp;= ~a[i], all1 &amp;= a[i];
+	remain = MASK_ALL &amp; ~(all0 | all1);
+	for (i = 0; i &lt; 1440; ++i) {
+		for (err = j = 0; j &lt; n; ++j) err |= st[i + j] ^ a[j];
+		if (!(err &amp; remain)) flag = true, U0 |= all0 &amp; ~err, U1 |= all1 &amp; ~err;
+	}
+	if (!flag || remain &amp; MASK_COLON) return cout &lt;&lt; "impossible\n", 0;
+	for (i = 0; i &lt; 7; ++i) memset(ans[i], 46, 21), ans[i][21] = 10, ans[i][22] = 0;
+	for (i = 0; i &lt; 30; ++i)
+		if (all0 &gt;&gt; i &amp; 1) ty[i] = U0 &gt;&gt; i &amp; 1 ? 63 : 48;
+		else if (all1 &gt;&gt; i &amp; 1) ty[i] = U1 &gt;&gt; i &amp; 1 ? 63 : 49;
+		else ty[i] = 87;
+	return print_ans(), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>小时数不带前导 $0$。因此当 $h &lt; 10$ 时记得十位是全不亮的。</p>
+		<p><strong>坑2：</strong>由于冒号只有可能是恒亮或恒不亮，而恒亮蕴含工作正常，因此冒号处的输出只有可能是 <code>0</code> 或 <code>?</code>。</p>
+	</body>
+</html>

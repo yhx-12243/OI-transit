@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[loj6411][CodeforcesGym102482I][WF2018]Triangles</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>来到北京前，你准备了不少童书，许多书包含了像这样的问题：下图中有多少个三角形？</p>
+		<img class="center-block" src="uploads/268.png" alt="数三角形" />
+		<p>尽管这些题一开始吸引了你的兴趣，但你很快感到无聊，希望用算法来解决这样的问题。说不定今年的比赛会考到这样的问题，谁知道呢。所以今天你很幸运！</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $r, c$ ($r \leq 3000; c \leq 6000$)，表示顶点的行数和列数。</p>
+		<p>接下来 $2 r - 1$ 行，每行不超过 $2 c - 1$ 个字符。奇数行描述顶点 (<code>x</code>) 和零或多条水平边，偶数行描述零或多条对角线。</p>
+		<p>具体地，第 $4 k + 1$ 行的第 $4 l + 1$ 个字符是顶点 (<code>x</code>)，第 $4 k + 3$ 行的第 $4 l + 3$ 个字符是顶点 (<code>x</code>)，这里 $k, l \in \mathbb N$。</p>
+		<p>连接相邻顶点的水平边用 <code>---</code> 表示，对角线根据方向分别用 <code>/</code> 和 <code>\</code> 表示，位于两个端点的正中间。</p>
+		<p>其余位置均为空格，但字符串会经过 <code>rtrim</code> (去除行末空格)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示三角形的总数。</p>
+
+		<h3>题解</h3>
+		<p>这道题和 <a href="../index.html?redirect=553" target="_blank">[JOI 2015 Final]城墙</a> 是基本一致的，因此下面简要介绍一下不同点。</p>
+		<p>经过简单的输入处理后，我们可以得到<strong>对于每个点</strong>，它向六个方向 (<code>LE</code> [左]，<code>RI</code> [右], <code>SW</code> [左下], <code>NE</code> [右上], <code>SE</code> [右下], <code>NW</code> [左上]) 分别可以延伸多远。</p>
+		<p>由对称性，只需考虑顶点朝下的三角形的计数。对于一个顶点 $v = \left( i, j \right)$，那么以 $v$ 为顶点的 "$\bigtriangledown$" 型三角形的边长就不能超过 $D = \min \left\{ NE_{i, j}, NW_{i, j} \right\}$。</p>
+		<p>那么，对于 $1 \leq d \leq D$，它的边长能否为 $d$ 呢？这当且仅当 $RI_{i - d, j - d} \geq d$ (或 $RI_{i - d, j + d} \geq d$)。</p>
+		<p>记 $g = i - d \in \left[ i - D, i \right)$，那么一个 $g \in \left[ 1, r \right]$ 满足条件当且仅当 $$ \left( i - D \leq g \leq i - 1 \right) \wedge \left( RI_{g, g + \left( j - i \right)} + g \geq i \right) \tag 1 \label 1 $$</p>
+		<p>固定 $k = j - i$ 后，则 $RI_{g, g + \left( j - i \right)} + g = RI_{g, g + k} + g$ 是一个关于 $g$ 的函数，此时 $\eqref 1$ 就是一个二维数点模型。</p>
+		<p>即对于每个 $g \in \left[ 1, r \right]$，创建点 $\left( x_g, y_g \right) = \left( g, RI_{g, g + k} + g \right)$，然后对于每个 $i$ 统计有多少个 $g$ 满足 $$ \left( i - D \leq x_g \leq i \right) \wedge \left( y_g \geq i \right) $$</p>
+		<p>使用离线 + 树状数组解决。</p>
+		<p>对于顶点朝上的三角形的情形是完全类似地，甚至你也可以偷懒直接将输入翻转过来解决。</p>
+		<p>时间复杂度 $O \left( r c \cdot \log \min \left\{ r, c \right\} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+
+typedef unsigned char u8;
+typedef unsigned int u32;
+typedef std::vector &lt;int&gt; vector;
+const int N = 3054, M = 6054;
+const u8 LEFT = 1, RIGHT = 2, SOUTH_WEST = 4, NORTH_EAST = 8, SOUTH_EAST = 16, NORTH_WEST = 32;
+
+int R, C;
+u8 d[N][M];
+char s[2 * M];
+short LE[N][M], RI[N][M], SW[N][M], NE[N][M], SE[N][M], NW[N][M];
+vector qs[N];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+namespace BIT {
+	int n, x[M];
+
+	int sum(int h) {int s = 0; for (; h &lt;= n; h |= h + 1) s += x[h]; return s;}
+	inline void clear() {memset(x, 0, (n + 1) &lt;&lt; 2);}
+	void add(int h) {for (; h &gt;= 0; h &amp;= h + 1, --h) ++x[h];}
+}
+
+int main() {
+	int i, j, k, e; long long ans = 0;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; R &gt;&gt; C, BIT::n = R + (C + 1) / 2, cin.getline(s, 2 * M);
+	for (i = 0; ; ++i) {
+		memset(s, 0, 2 * M), cin.getline(s, 2 * M);
+		for (j = !(i &amp; 1); j &lt; C; j += 2)
+			if (s[2 * j] == 45) d[i][j - 1] |= RIGHT, d[i][j + 1] |= LEFT;
+		if (i == R - 1) break;
+		memset(s, 0, 2 * M), cin.getline(s, 2 * M);
+		for (j = 0; j &lt; C - 1; ++j)
+			if (s[2 * j + 1] == 47) d[i][j + 1] |= SOUTH_WEST, d[i + 1][j] |= NORTH_EAST;
+			else if (s[2 * j + 1] == 92) d[i][j] |= SOUTH_EAST, d[i + 1][j + 1] |= NORTH_WEST;
+	}
+	for (i = 0; i &lt; R; ++i)
+		for (j = i &amp; 1; j &lt; C; j += 2)
+			LE[i][j] = (d[i][j] &amp; LEFT       ? LE[i    ][j - 2] + 1 : 0),
+			NE[i][j] = (d[i][j] &amp; NORTH_EAST ? NE[i - 1][j + 1] + 1 : 0),
+			NW[i][j] = (d[i][j] &amp; NORTH_WEST ? NW[i - 1][j - 1] + 1 : 0);
+	for (i = R - 1; i &gt;= 0; --i)
+		for (j = C - ((i ^ C) &amp; 1); j &gt;= 0; j -= 2)
+			RI[i][j] = (d[i][j] &amp; RIGHT      ? RI[i    ][j + 2] + 1 : 0),
+			SW[i][j] = (d[i][j] &amp; SOUTH_WEST ? SW[i + 1][j - 1] + 1 : 0),
+			SE[i][j] = (d[i][j] &amp; SOUTH_EAST ? SE[i + 1][j + 1] + 1 : 0);
+	for (k = -((R - 1) &amp; -2); k &lt; C; k += 2) {
+		BIT::clear();
+		for (i = 0, j = k; i &lt; R; ++i, ++j) if ((u32)j &lt; (u32)C)
+			if ((e = min(NE[i][j], NW[i][j])) &lt; i) qs[i - e - 1].EB(i);
+		for (i = 0, j = k; i &lt; R; ++i, ++j) {
+			if ((u32)j &lt; (u32)C) BIT::add(i + RI[i][j]);
+			for (int v : qs[i]) ans -= BIT::sum(v);
+			if (i + 1 &lt; R &amp;&amp; u32(j + 1) &lt; (u32)C) ans += BIT::sum(i + 1);
+		}
+		for (i = 0; i &lt; R; ++i) qs[i].clear();
+	}
+	for (k = -((R - 1) &amp; -2); k &lt; C; k += 2) {
+		BIT::clear();
+		for (i = R - 1, j = k + i; i &gt;= 0; --i, --j) if ((u32)j &lt; (u32)C)
+			if ((e = min(SW[i][j], SE[i][j])) &lt; R - i - 1) qs[i + e + 1].EB(i);
+		for (i = R - 1, j = k + i; i &gt;= 0; --i, --j) {
+			if ((u32)j &lt; (u32)C) BIT::add((R - 1 - i) + LE[i][j]);
+			for (int v : qs[i]) ans -= BIT::sum(R - 1 - v);
+			if (i &gt; 0 &amp;&amp; u32(j - 1) &lt; (u32)C) ans += BIT::sum(R - i);
+		}
+		for (i = 0; i &lt; R; ++i) qs[i].clear();
+	}
+	cout &lt;&lt; ans &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>使用树状数组时记得清空和方向，以及访问时不要越界。</p>
+		<p><strong>坑2：</strong>固定 $k = j - i$ 后枚举一个变量 (如 $i$) 时不要忘记判断是否有 $j \in \left[ 1, c \right]$。</p>
+	</body>
+</html>

@@ -10,7 +10,7 @@
 		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 	</head>
 	<body>
-		<h3>完整多项式模板 (乘除、指对、分治、求值、插值) <sub class="text-muted">(三周年翻新版)</sub></h3>
+		<h3>完整多项式模板 (乘除、指对、分治、求值、插值) <sub class="text-muted">(线性递推更新版)</sub></h3>
 
 		<h4>目录</h4>
 		<pre><a href="#poly-base">namespace poly_base</a> (变换基础)
@@ -18,7 +18,8 @@
 <a href="#CDQ-NTT">namespace CDQ_NTT</a> (分治多项式技巧)
 <a href="#poly-evaluation">namespace poly_evaluation</a> (多点求值)
 <a href="#poly-interpolation">namespace poly_interpolation</a> (快速插值)
-<a href="#linear-recur">namespace linear_recur</a> (常系数线性齐次递推式)
+<a href="#linear-recur">namespace linear_recur</a> (常系数线性齐次递推式 - Fiduccia)
+<a href="#linear-recur-single">namespace linear_recur_single</a> (常系数线性齐次递推式 - 单点)
 <a href="#miscellaneous">namespace miscellaneous</a> (杂项)
 </pre>
 
@@ -429,6 +430,45 @@ namespace <span id="linear-recur">linear_recur</span> {
 			if (df &amp; 1) std::copy_backward(f, f + (2 * d - 1), f + 2 * d), *f = 0;
 			__builtin_divmod(d);
 		}
+	}
+}
+
+namespace <span id="linear-recur-single">linear_recur_single</span> {
+	using namespace poly;
+
+	int ld;
+	vec f, g, L1, L2, L3, L4;
+
+	int get(int Q, int d) {
+		if (Q &lt; d) return f[Q];
+
+		int i, j, ret = 0, halves = 0;
+		assert(d &gt; 0), ld = lg2(2 * d - 1) + 1,
+
+		mul(2 * d - 1, f, g, L1), memset(L1 + d, 0, (n - d) &lt;&lt; 2),
+		memcpy(L2, g, (d + 1) &lt;&lt; 2), memset(L2 + (d + 1), 0, (n - d - 1) &lt;&lt; 2);
+
+		for (; Q &gt;= d; Q &gt;&gt;= 1) {
+			NTT_init(ld), DIF(L1, L4), DIF(L2, L3),
+			NTT_init(ld - 1), ++halves;
+			if (Q &amp; 1) {
+				for (j = i = 0; i &lt; n; ++i, j += 2)
+					L4[i] = ((u64)L4[j] * L3[j + 1] + u64(mod - L3[j]) * L4[j + 1]) % mod;
+				for (i = 0; i &lt; n; ++i) L4[i] = (u64)L4[i] * w2[i] % mod;
+				IDNTT(L4), L4[n] = *L4, memcpy(L1, L4 + 1, d &lt;&lt; 2);
+			} else {
+				for (j = i = 0; i &lt; n; ++i, j += 2)
+					L4[i] = ((u64)L4[j] * L3[j + 1] + (u64)L3[j] * L4[j + 1]) % mod;
+				IDNTT(L4, L1);
+			}
+			for (j = i = 0; i &lt; n; ++i, j += 2) L3[i] = (u64)L3[j] * L3[j + 1] % mod;
+			IDNTT(L3, L2);
+			if (*L2 != 1) L2[d] = (*L2 ? *L2 : mod) - 1, *L2 = 1;
+		}
+
+		poly::inv(Q + 1, L2, L3);
+		for (i = 0; i &lt;= Q; ++i) ret = (ret + (u64)L1[i] * L3[Q - i]) % mod;
+		return PowerMod(iv2, halves, ret);
 	}
 }
 

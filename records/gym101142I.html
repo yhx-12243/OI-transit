@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym101142I]Integral Polygons</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个格点凸 $n$ 边形，求它有多少条对角线，满足被它所分成的两个子多边形的面积均为整数。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($3 \leq n \leq 2 \times 10^5$)，表示凸多边形的点数。</p>
+		<p>接下来 $n$ 行，每行两个整数 $x_i, y_i$ ($-10^9 \leq x_i, y_i \leq 10^9$)，表示第 $i$ 个点的坐标。</p>
+		<p>保证给出的点的坐标两两不同，无三点共线，且点以<em>逆时针或顺时针</em>方向给出。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的对角线的条数。</p>
+
+		<h3>题解</h3>
+		<p>不妨设凸多边形为 $P_0 P_1 P_2 \cdots P_{n-2} P_{n-1}$，约定 $P_n = P_0$。</p>
+		<p>首先，如果原凸多边形的面积都不是整数，那么直接输出 $0$ 即可。否则，两侧均为整数当且仅当其中一侧为整数，于是只需要考虑其中一侧。</p>
+		<p>则它的一条对角线可以表示成 $P_i P_j$，其中 $0 \leq i &lt; j \leq n - 1$。</p>
+		<p>由<a href="../index.html?redirect=769" target="_blank">面积公式</a>，$\displaystyle 2 \Delta_{i, j} = \left| \overrightarrow {OP_j} \times \overrightarrow {OP_i} + \sum_{p=i+1}^j \overrightarrow {OP_{p-1}} \times \overrightarrow {OP_p} \right|$ 应为偶数，这等价于 $$ \overrightarrow {OP_j} \times \overrightarrow {OP_i} + \sum_{p=i+1}^j \overrightarrow {OP_{p-1}} \times \overrightarrow {OP_p} \equiv 0 \pmod 2 $$</p>
+		<p>记 $c_p \equiv \overrightarrow {OP_{p-1}} \times \overrightarrow {OP_p} \pmod 2, C_p = c_1 + c_2 + \cdots + c_p$。则 \begin{align*}
+\overrightarrow {OP_j} \times \overrightarrow {OP_i} + \sum_{p=i+1}^j \overrightarrow {OP_{p-1}} \times \overrightarrow {OP_p} &amp;= \left( x_j y_i - x_i y_j \right) + \sum_{p=i+1}^j c_p \\
+&amp;= \left( x_j y_i - x_i y_j \right) + \left( C_j - C_i \right) \\
+&amp;\equiv x_i y_j + x_j y_i + C_i + C_j &amp; \pmod 2
+\end{align*}</p>
+		<p>也就是说，我们需要求有多少对 $0 \leq i &lt; j \leq n - 1$ 满足 $x_i y_j + x_j y_i + C_i + C_j$ 是偶数。</p>
+		<p>我们从小到大枚举 $j$，就相当于统计有少个 $i \in \left[ 0, j \right)$ 满足 $x_i y_j + x_j y_i + C_i + C_j$ 是偶数。注意到我们只关心这些变量的奇偶性，因此对于我们只需要统计三元组 $\left( x_i, y_i, C_i \right) \in \left\{ 0, 1 \right\}^3$ 的八个状态中每个状态有多少个对应的 $i$ 即可。</p>
+		<p>最终，还要减掉 $i + 1 = j$ 和 $i = 0, j = n - 1$ 的情形 (它们不是对角线)。但是注意到原多边形面积为偶数，因此这里会被多计算 $n$ 次，于是只需要将答案减 $n$ 即可。</p>
+		<p>时间复杂度 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+const int N = 200054;
+
+struct vec2 {
+	int x, y;
+	vec2 (int x0 = 0, int y0 = 0) : x(x0), y(y0) {}
+	friend std::istream &amp; operator &gt;&gt; (std::istream &amp;in, vec2 &amp;B) {return in &gt;&gt; B.x &gt;&gt; B.y, B.x &amp;= 1, B.y &amp;= 1, in;}
+	inline vec2 operator + (const vec2 &amp;B) const {return vec2(x + B.x, y + B.y);}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline int operator ^ (const vec2 &amp;B) const {return (x &amp; B.y) ^ (y &amp; B.x);}
+} p[N];
+
+int n;
+int X[N], f[8];
+
+int main() {
+	int i, u, v; long long ans = 0;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; p[i];
+	p[n] = *p;
+	for (i = 0; i &lt; n; ++i) X[i + 1] = p[i] ^ p[i + 1] ^ X[i];
+	if (X[n]) return cout &lt;&lt; '0' &lt;&lt; '\n', 0;
+	for (i = 0; i &lt; n; ++i) {
+		for (u = 0; u &lt; 2; ++u)
+			for (v = 0; v &lt; 2; ++v)
+				ans += f[u | v &lt;&lt; 1 | (p[i] ^ vec2(u, v) ^ X[i]) &lt;&lt; 2];
+		++f[p[i].x | p[i].y &lt;&lt; 1 | X[i] &lt;&lt; 2];
+	}
+	cout &lt;&lt; ans - n &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>最后答案不要忘记减去 $n$ (表示原多边形的的 $n$ 条边)。</p>
+		<p><strong>坑2：</strong>在枚举时其实只需枚举 $x_i$ 和 $y_i$，$C_i$ 可以通过恒等式 $x_i y_j + x_j y_i + C_i + C_j \equiv 0 \pmod 2$ 计算得到。</p>
+	</body>
+</html>

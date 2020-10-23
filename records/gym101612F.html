@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym101612F]Fygon 2.0</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Fygon 2.0 是这样一种语言：它只有两种语句，其中一种是 <code>lag</code>，一种是 <code>for</code> 循环，格式如下：</p>
+		<pre class="sh_sourceCode"><code class="sh_fygon"><span class="sh_keyword">for</span> <span class="sh_variable">&lt;variable&gt;</span> <span class="sh_keyword">in</span> <span class="sh_function">range</span><span class="sh_symbol">(</span><span class="sh_variable">&lt;from&gt;</span><span class="sh_symbol">,</span> <span class="sh_variable">&lt;to&gt;</span><span class="sh_symbol">):</span>
+	<span class="sh_variable">&lt;body&gt;</span>
+</code></pre>
+		<p>其中 <code>for</code> 循环等效于下列 Python 语句：</p>
+		<pre class="sh_sourceCode"><code class="sh_python"><span class="sh_keyword">for</span> <span class="sh_variable">&lt;variable&gt;</span> <span class="sh_keyword">in</span> <span class="sh_function">range</span><span class="sh_symbol">(</span><span class="sh_variable">&lt;from&gt;</span><span class="sh_symbol">,</span> <span class="sh_variable">&lt;to&gt;</span> <span class="sh_symbol">+</span> <span class="sh_number">1</span><span class="sh_symbol">):</span>
+	<span class="sh_variable">&lt;body&gt;</span>
+</code></pre>
+		<p>其中 <code>lag</code> 等效于下列 Python 语句：</p>
+		<pre class="sh_sourceCode"><code class="sh_python">cnt <span class="sh_symbol">+=</span> <span class="sh_number">1</span>
+</code></pre>
+		<p>其中 $cnt$ 的初始值为 $0$。</p>
+		<p>现在给定这样一个 Fygon 2.0 程序：它共有 $m$ 行，前 $m - 1$ 行均为 <code>for</code> 循环，最后一行为 <code>lag</code>。</p>
+		<p>设 $n$ 是一个外部的变量，则最终 $cnt$ 的值是一个关于 $n$ 的函数 $f \left( n \right)$。你需要求出 $c \in \mathbb Q^+$ 和 $k \in \mathbb N$，使得 $$ \lim_{n \to + \infty} \frac {f \left( n \right)} {C \cdot n^k} = 1 $$</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $m$ ($m \leq 21$)，表示程序的行数。</p>
+		<p>接下来 $m$ 行，每行一个字符串，描述 Fygon 程序的一行。保证前 $m - 1$ 行均为 <code>for</code> 循环，最后一行为 <code>lag</code>。所有循环的缩进均为 $4$ 空格。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含整数 $k$ 和有理数 $C$。有理数 $C$ 以 <code><em>p</em>/<em>q</em></code> 的形式输出，这里需要满足 $C = \dfrac pq$ 且 $\left( p, q \right) = 1$。</p>
+
+		<h3>题解</h3>
+		<p>对于语句</p>
+		<pre class="sh_sourceCode"><code class="sh_fygon"><span class="sh_keyword">for</span> x <span class="sh_keyword">in</span> <span class="sh_function">range</span><span class="sh_symbol">(</span>l<span class="sh_symbol">,</span> r<span class="sh_symbol">):</span>
+</code></pre>
+		<p>我们可以将其分解为</p>
+		<pre class="sh_sourceCode"><code class="sh_fygon"><span class="sh_keyword">for</span> x <span class="sh_keyword">in</span> <span class="sh_function">range</span><span class="sh_symbol">(</span><span class="sh_number">1</span><span class="sh_symbol">,</span> <span class="sh_variable">n</span><span class="sh_symbol">):</span>
+	<span class="sh_keyword">if</span> l <span class="sh_symbol">&lt;=</span> x <span class="sh_keyword">and</span> x <span class="sh_symbol">&lt;=</span> r<span class="sh_symbol">:</span>
+</code></pre>
+		<p>然后最后将所有的 <code>if</code> 提到最后面，因此前面就是对所有变量 $v_1, v_2, \cdots, v_k$ ($k = m - 1$) 在 $\left[ 1, n \right]$ 中枚举，剩下若干个 <code>if</code> 就可以看成若干个形如 $v_i \leq v_j$ 的不等式。</p>
+		<p>因此，原问题就转化为，设 $f \left( n \right)$ 表示，对于所有的 $k$ 元组 $\left( v_1, v_2, \cdots, v_k \right) \in \left[ 1, n \right]^k$，满足 $v_{i_1} \leq v_{j_1}, v_{i_2} \leq v_{j_2}, \cdots, v_{i_\gamma} \leq v_{j_\gamma}$ 的 $k$ 元组的数目。则需要判断 $f \left( n \right)$ 是多少阶的无穷大。</p>
+		<p>首先考虑建图，对于一个不等式 $v_i \leq v_j$，我们从顶点 $i$ 向顶点 $j$ 连接一条有向边 $i \to j$，得到一张有向图 $G$。</p>
+		<p>那么易知 $G$ 的每个<strong>强连通分量</strong>中的点对应的变量的取值<strong>必须相等</strong>。</p>
+		<p>因此我们需要对 $G$ 进行强连通分量缩点，然后得到一张 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> $H$。<strong style="color: navy">仍设其中的点数为 $k$</strong>。</p>
+		<p>由 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> 的拓扑序存在性知，<strong style="color: fuchsia">存在满足 $v_1, v_2, \cdots, v_k$ 互不相同的不等式组的解</strong>。</p>
+		<p>由于整个问题只需要关心 $\left\{ v_i \right\}$ 之间的<em>相对大小</em>，绝对大小是不影响本身性质的。因此我们至少得到了不等式组的 $\dbinom nk$ 个解 (即 $\left\{ 1, 2, \cdots, n \right\}$ 个元素中取 $k$ 个)。</p>
+		<p>也就是说，存在常数 $c_1$ 和 $N_1$ 使得当 $n &gt; N_1$ 时 $f \left( n \right) &gt; c_1 n^k$ 恒成立。</p>
+		<p>其次又显然有 $f \left( n \right) \leq n^k$，因此 $f \left( n \right) = \Theta \left( n^k \right)$。故原问题的 $k$ 就是这里的 $k$ —— $G$ 缩点后的点数。</p>
+		<hr />
+		<p>接下来考虑求 $C$ (并证明 $C$ 的存在性)。</p>
+		<p>设 $g \left( n \right)$ 表示满足 $v_1, v_2, \cdots, v_k$ 互不相同的不等式组的解的个数。</p>
+		<p>由于满足 $v_1, v_2, \cdots, v_k$ 至少有两个相同的解的个数不超过 $n^k - n^\underline k = O \left( n^{k-1} \right)$，因此 $f \left( n \right) - O \left( n^{k-1} \right) \leq g \left( n \right) \leq f \left( n \right)$，即 $1 - \dfrac {O \left( n^{k-1} \right)} {f \left( n \right)} \leq \dfrac {g \left( n \right)} {f \left( n \right)} \leq 1$，从而 $$ \lim_{n \to + \infty} \frac {g \left( n \right)} {f \left( n \right)} = 1 \tag 1 \label 1 $$</p>
+		<p>其次，设缩点后的图 $H$ 的拓扑序数量为 $N$，则容易证明 $g \left( n \right) = N \cdot \dbinom nk$。于是 $$ \lim_{n \to + \infty} \frac {g \left( n \right)} {n^k} = \lim_{n \to + \infty} \frac 1 {n^k} \left( N \cdot \dbinom nk \right) = \lim_{n \to + \infty} \left( \frac N {k !} \cdot \frac {n^\underline k} {n^k} \right) = \frac N {k !} \lim_{n \to + \infty} \frac {n^\underline k} {n^k} = \frac N {k !} \tag 2 \label 2 $$</p>
+		<p>结合 $\eqref 1 \eqref 2$ 知 $$ \lim_{n \to + \infty} \frac {f \left( n \right)} {n^k} = \frac N {k !} $$ 即 $C = \dfrac N {k !}$。</p>
+		<hr />
+		<p>于是最后只需要求出 $N$ —— 拓扑序的数量即可。</p>
+		<p>这是一个简单的状态压缩 DP，只需用 $f_S$ 表示导出子图 $H \left[ S \right]$ 的拓扑序数，只需枚举下一个点 (满足没有一条出边指向 $S$ 中的顶点) 转移即可。</p>
+		<p>时间复杂度 $O \left( 2^m \cdot m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ctz __builtin_ctz
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 22, N2 = 1050000;
+
+int n, V, ALL;
+int map[128], G[N];
+ll f[N2];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int C(int x) {return (x == 49 || x == 110 ? 0 : map[x] ? map[x] : map[x] = ++V) - 1;}
+
+ll solve() {
+	int i, j, J;
+	ALL = ~(-1 &lt;&lt; n), *f = 1;
+	for (*f = i = 1; i &lt;= ALL; ++i)
+		for (J = i; J; J &amp;= J - 1)
+			if (!(G[j = ctz(J)] &amp; i)) f[i] += f[i &amp; ~(1 &lt;&lt; j)];
+	return f[ALL];
+}
+
+namespace Graph {
+	int G[N];
+	int cnt = 0, id[N], low[N];
+	int stc = 0, sta[N];
+	int S, scc[N], bel[N];
+
+	inline void link(int x, int y) {G[x] |= 1 &lt;&lt; y;}
+
+	void dfs(int x) {
+		int y, Y;
+		id[x] = low[x] = ++cnt, S |= 1 &lt;&lt; x, sta[stc++] = x;
+		for (Y = G[x]; Y; Y &amp;= Y - 1)
+			if (!id[y = ctz(Y)])
+				dfs(y), down(low[x], low[y]);
+			else if (S &gt;&gt; y &amp; 1)
+				down(low[x], id[y]);
+		if (id[x] == low[x]) {
+			for (y = -1; y != x; bel[y = sta[--stc]] = n, scc[n] |= 1 &lt;&lt; y);
+			S &amp;= ~scc[n++];
+		}
+	}
+
+	void work() {
+		int i, j, J;
+		for (i = 0; i &lt; V; ++i) if (!id[i]) dfs(i);
+		for (i = 0; i &lt; V; ++i)
+			for (J = G[i]; J; J &amp;= J - 1)
+				if (bel[i] != bel[j = ctz(J)])
+					::G[bel[i]] |= 1 &lt;&lt; bel[j];
+	}
+}
+
+int main() {
+	int i, l; ll num, den = 1, gcd; char s[512], *p, u, v, w;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for ((cin &gt;&gt; l).getline(s, 512); l; --l) {
+		cin.getline(s, 512);
+		for (p = s; *p &lt; 33; ++p);
+		if (*p == 102) {
+			assert(sscanf(p, "for %c in range(%c, %c):", &amp;w, &amp;u, &amp;v) == 3);
+			w = C(w), u = C(u), v = C(v);
+			if (~u) Graph::link(u, w);
+			if (~v) Graph::link(w, v);
+		}
+	}
+	Graph::work();
+	for (i = n; i &gt; 1; --i) den *= i;
+	num = solve(), gcd = std::__gcd(num, den);
+	cout &lt;&lt; n &lt;&lt; ' ' &lt;&lt; num / gcd &lt;&lt; '/' &lt;&lt; den / gcd &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>答案较大，需要使用 <code>long long</code>。</p>
+		<p><strong>坑2：</strong>注意缩点这一步是必要的。否则会因为不存在拓扑序导致 $\lim\limits_{n \to + \infty} \dfrac {f \left( n \right)} {n^k} = 0$ (即 $n^k$ 实际上是比 $f \left( n \right)$ 的<em>高阶无穷大</em>)，而此时因为不等式的非严格性 $f \left( n \right) &gt; 0$，因此无法得到真正的 $C$ 和 $k$。</p>
+	</body>
+</html>
