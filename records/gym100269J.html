@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym100269J]J</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>在 J 语言中，基础的数据类型为<strong>标量</strong> (整数) 和<strong>向量</strong>，用 $N$ 表示向量的长度。</p>
+		<p>J 语言中的单目和双目运算符不仅适用于标量，而且还使用向量。对于一个双目运算符，当操作数为标量和向量时，它的效果是将标量和向量中的每一维分量分别做运算；当操作数为两个 (相同长度的) 向量时，它的效果是将向量中的每一维分量对应做运算 <del>(就像 Mathematica 一样)</del>。</p>
+		<p>J 语言如下几种运算：</p>
+		<ul>
+			<li>(双目运算符) 加 (<code>+</code>)，减 (<code>-</code>)，乘 (<code>*</code>)。效果同正常的加减乘。</li>
+			<li>(单目运算符) 取负 (<code>-</code>)，平方 (<code>*:</code>)，效果同正常的取负和平方。</li>
+			<li>(单目运算符) 折叠 (<code>*:</code>)，<strong>只能被用于向量</strong>，计算向量中各分量的<em>和</em>。</li>
+		</ul>
+		<p>所有运算符<strong>具有相同的优先级</strong>，且右结合，可以用括号改变运算顺序。形式化地，J 语言的表达式满足如下 Backus-Naur 范式：</p>
+		<pre>&lt;expression&gt; ::= &lt;term&gt; | &lt;term&gt; ('+' | '-' | '*') &lt;expression&gt; | ('-' | '*:' | '+/') &lt;expression&gt;
+&lt;term&gt; ::= '(' &lt;expression&gt; ')' | 'X' | 'N' | &lt;number&gt;
+&lt;number&gt; ::= ('0' | '1' | ... | '9')<sup>+</sup>
+</pre>
+		<hr />
+		<p>在本题中，每个表达式还被定义了称为<em>复杂性</em>的量，它的递归定义如下：</p>
+		<ul>
+			<li>所有标量 (数字，$N$，以及折叠运算所得的结果) 的<em>复杂性</em>为 $0$。</li>
+			<li>$X$ 的复杂性为 $1$。</li>
+			<li>加法运算和减法运算的结果的<em>复杂性</em>为，两侧操作数的<em>复杂性</em>的<em>较大值</em>。</li>
+			<li>乘法运算的结果的<em>复杂性</em>为，两侧操作数的<em>复杂性</em>的<em>和</em>。</li>
+			<li>单目取负运算的结果的<em>复杂性</em>和操作数相同。</li>
+			<li>单目平方运算的结果的<em>复杂性</em>是操作数<em>复杂性</em>的 $2$ 倍。</li>
+		</ul>
+		<p>如，表达式 <code>(3-+/*:*:X)-X**:X</code> 的<em>复杂性</em>为 $3$，而它的子表达式 <code>*:*:X</code> 的<em>复杂性</em>为 $4$。</p>
+		<p>给定一个 J 语言的表达式 $expr$ 和向量 $X$，你需要求它的值模 $10^9$ 的结果。保证该表达式的<strong>所有合法子表达式</strong>的<em>复杂性</em>不超过 $10$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $N$ ($1 \leq N \leq 10^5$)，表示向量 $X$ 的长度。</p>
+		<p>第二行包含 $N$ 非负整数 $X_1, X_2, \cdots, X_N$ ($0 \leq X_i &lt; 10^9$)，描述向量 $X$。</p>
+		<p>第三行包含一个字符串 $expr$ ($\left| expr \right| \leq 10^5$)，表示待求值的表达式。保证该表达式合法，其中涉及到的常数标量小于 $10^9$，每个合法子表达式的<em>复杂性</em>不超过 $10$，且结果一定是一个标量。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示该表达式的值模 $10^9$ 的结果。</p>
+
+		<h3>题解</h3>
+		<p>注意到只用乘法，因此在任意环上运算都是可以的 (即加减乘一边计算一边取模)。</p>
+		<p>当已经完成了表达式解析后，直接对 $N$ 维向量进行暴力运算是不现实的 (复杂度会达到 $O \left( N \left| expr \right| \right)$)。</p>
+		<p>考虑到每次操作都是对这个<em>向量整体</em>进行操作，而且只有加减乘，因此任意时刻向量第 $i$ 维的值 $Y_i$ 一定可以表示为 $X_i$ 的一个<strong>多项式函数</strong> $\displaystyle f \left( x \right) = \sum_{i=0}^d a_i x^i$。</p>
+		<p>考虑该多项式的次数 $d$，可以发现它恰好符合复杂性的定义。因此任意时刻这些多项式的次数都不超过 $10$，可以暴力计算。</p>
+		<p>对于折叠操作，我们就需要知道 $$ \sum_{i=1}^N f \left( X_i \right) = \sum_{i=1}^N \sum_{j=0}^d a_j X_i^j = \sum_{j=0}^d a_j \left( \sum_{i=1}^N X_i^j \right) $$ 的值，因此只需预处理 $X_i$ 的 $0, 1, \cdots, 10$ 次方和即可 $O \left( d \right)$ 计算。</p>
+		<p>因此当表达式解析完毕后，剩下部分的运算可以在 $O \left( \left( N + \left| expr \right| \right) d_\max \right)$ 的时间内完成。</p>
+		<p>于是最终只剩下一个 (带单目和双目的) (无优先级的) 表达式解析即可，无论使用离线的递归拆括号法，还是使用在线的双栈法都是可以的，可以参考 <a href="../index.html?redirect=806" target="_blank">[Codeforces582E]Boolean Function</a> 或<a href="https://www.luogu.com.cn/blog/tiger2005/qian-tan-biao-da-shi-di-qiu-zhi-hou-zhui-biao-da-shi-post" target="_blank">这里</a>。</p>
+		<p class="text-muted"><del>(下面代码为了通(du)用(liu)性写了一个带 CE 信息的在线线性的版本，事实上可以写得更短)</del></p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+using std::string;
+
+typedef long long ll;
+typedef std::vector &lt;int&gt; vector;
+typedef std::pair &lt;int, vector*&gt; pr;
+const int N = 100054, mod = 1000000000, VECTOR = -1;
+
+enum state {
+	NORMAL, DIGIT, PLUS_SIGN, ASTERISK
+};
+
+int n;
+int a[N], ss[27];
+int top = 0, stack[N];
+int pos, last_var;
+char s[N];
+
+inline int &amp; reduce(int &amp;x) {return x += x &gt;&gt; 31 &amp; mod;}
+inline void add(int &amp;x, const int y) {x += y - mod, x += x &gt;&gt; 31 &amp; mod;}
+inline void sub(int &amp;x, const int y) {x -= y, x += x &gt;&gt; 31 &amp; mod;}
+inline int &amp; neg(int &amp;x) {return x = (!x - 1) &amp; (mod - x);}
+
+namespace pool {
+	vector buf[N];
+	int top = 0;
+
+	inline vector * alloc() {return buf + top++;}
+}
+
+namespace evaluator {
+	int top = 0;
+	pr stack[N];
+
+	inline void insert_v(int x) {
+		vector *v;
+		if (~x)
+			stack[top++] = pr(x, nullptr);
+		else
+			v = pool::alloc(), v-&gt;EB(0), v-&gt;EB(1), stack[top++] = pr(VECTOR, v);
+	}
+
+	inline void negate(pr &amp;A) {
+		if (A.first == VECTOR) for (int &amp;x : *A.second) neg(x);
+		else neg(A.first);
+	}
+
+	inline void plus(pr &amp;A, pr &amp;B) {
+		int i;
+		if (A.first == VECTOR &amp;&amp; B.first == VECTOR) {
+			if (A.second-&gt;size() &lt; B.second-&gt;size()) A.second-&gt;resize(B.second-&gt;size());
+			for (i = 0; i &lt; (int)B.second-&gt;size(); ++i) add((*A.second)[i], (*B.second)[i]);
+		} else if (A.first == VECTOR) add(A.second-&gt;front(), B.first);
+		else if (B.first == VECTOR) A.second = B.second, add(A.second-&gt;front(), A.first), A.first = VECTOR;
+		else add(A.first, B.first);
+	}
+
+	inline void minus(pr &amp;A, pr &amp;B) {
+		int i, x;
+		if (A.first == VECTOR &amp;&amp; B.first == VECTOR) {
+			if (A.second-&gt;size() &lt; B.second-&gt;size()) A.second-&gt;resize(B.second-&gt;size());
+			for (i = 0; i &lt; (int)B.second-&gt;size(); ++i) sub((*A.second)[i], (*B.second)[i]);
+		} else if (A.first == VECTOR) sub(A.second-&gt;front(), B.first);
+		else if (B.first == VECTOR) x = A.first, A = pr(VECTOR, B.second), negate(A), add(A.second-&gt;front(), x);
+		else sub(A.first, B.first);
+	}
+
+	inline void times(pr &amp;A, pr &amp;B) {
+		int i, j;
+		if (A.first == VECTOR &amp;&amp; B.first == VECTOR) {
+			vector t(A.second-&gt;size() + B.second-&gt;size() - 1, 0);
+			for (i = 0; i &lt; (int)A.second-&gt;size(); ++i)
+				for (j = 0; j &lt; (int)B.second-&gt;size(); ++j)
+					t[i + j] = (t[i + j] + (ll)(*A.second)[i] * (*B.second)[j]) % mod;
+			A.second-&gt;swap(t);
+		} else if (A.first == VECTOR) for (int &amp;x : *A.second) x = (ll)x * B.first % mod;
+		else if (B.first == VECTOR) {
+			A.second = B.second;
+			for (int &amp;x : *A.second) x = (ll)x * A.first % mod;
+			A.first = VECTOR;
+		} else A.first = (ll)A.first * B.first % mod;
+	}
+
+	inline void square(pr &amp;A) {
+		int i, j;
+		if (A.first == VECTOR) {
+			vector t(A.second-&gt;size() * 2 - 1, 0);
+			for (i = 0; i &lt; (int)A.second-&gt;size(); ++i)
+				for (j = 0; j &lt; (int)A.second-&gt;size(); ++j)
+					t[i + j] = (t[i + j] + (ll)(*A.second)[i] * (*A.second)[j]) % mod;
+			A.second-&gt;swap(t);
+		} else A.first = (ll)A.first * A.first % mod;
+	}
+
+	inline void accumulate(pr &amp;A) {
+		int i, s = 0;
+		if (A.first == VECTOR) {
+			for (i = 0; i &lt; (int)A.second-&gt;size(); ++i) s = (s + (ll)ss[i] * (*A.second)[i]) % mod;
+			A.first = s, A.second = nullptr;
+		} else fputs("Runtime error: daklqw AK IOI (try to fold a scalar) !\n", stderr), exit(-1);
+	}
+
+	inline int poly(const vector &amp;f, int x) {
+		int i, ret = 0;
+		for (i = f.size() - 1; i &gt;= 0; --i) ret = ((ll)ret * x + f[i]) % mod;
+		return ret;
+	}
+
+	inline void insert_op(int x) {
+		switch (x) {
+			case 1: assert(top-- &gt; 0), plus(stack[top - 1], stack[top]); break;
+			case 2: assert(top-- &gt; 0), minus(stack[top - 1], stack[top]); break;
+			case 3: assert(top-- &gt; 0), times(stack[top - 1], stack[top]); break;
+			case 4: assert(top &gt; 0), negate(stack[top - 1]); break;
+			case 5: assert(top &gt; 0), square(stack[top - 1]); break;
+			case 6: assert(top &gt; 0), accumulate(stack[top - 1]); break;
+		}
+	}
+}
+
+__attribute__ ((noreturn))
+inline void raise(const char *s) {fprintf(stderr, "\x1b[01mprogram.J:%d: \x1b[31merror: \x1b[0m%s\n", pos, s), exit(-1);}
+
+__attribute__ ((noreturn))
+inline void raise(const string &amp;s) {raise(s.c_str());}
+
+inline void push_left_bracket() {
+	if (last_var == 1) raise("expression cannot be used as a function");
+	stack[top++] = -1;
+	last_var = 0;
+}
+
+inline void push_right_bracket() {
+	int x;
+	if (last_var == 0) raise("expected primary-expression before ')' token");
+	for (x = 0; top &amp;&amp; ~x; ) evaluator::insert_op(x = stack[--top]);
+	if (~x) raise("expected operator before ')' token");
+	last_var = 1;
+}
+
+inline void push_number(int x) {
+	if (last_var == 1) raise("expected operator before " + string(~x ? "numeric constant" : "'N'"));
+	evaluator::insert_v(x),
+	last_var = 1;
+}
+
+inline void push_x() {
+	if (last_var == 1) raise("expected operator before 'X'");
+	evaluator::insert_v(-1),
+	last_var = 1;
+}
+
+inline void push_plus() {
+	if (last_var == 0) raise("expected primary-expression before '+' token");
+	stack[top++] = 1, last_var = 0;
+}
+
+inline void push_minus() {
+	if (last_var == 1)
+		stack[top++] = 2, last_var = 0;
+	else if (last_var == 0)
+		stack[top++] = 4, last_var = 0;
+}
+
+inline void push_times() {
+	if (last_var == 0) raise("expected primary-expression before '*' token");
+	stack[top++] = 3, last_var = 0;
+}
+
+inline void push_square() {
+	if (last_var == 1) raise("expected operator before '*:' token");
+	stack[top++] = 5, last_var = 0;
+}
+
+inline void push_accmulate() {
+	if (last_var == 1) raise("expected operator before '+/' token");
+	stack[top++] = 6, last_var = 0;
+}
+
+int main() {
+	int i, j, x = 0; state t = NORMAL; char *p = s;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; n; ++i) {
+		cin &gt;&gt; a[i];
+		for (x = 1, j = 0; j &lt; 27; ++j, x = (ll)x * a[i] % mod) add(ss[j], x);
+	}
+	cin &gt;&gt; s, assert(*s);
+	for (last_var = 0, pos = 1; *p; ++p, ++pos) {
+		if (t == DIGIT &amp;&amp; !isdigit(*p)) push_number(x), t = NORMAL;
+		if (t == PLUS_SIGN &amp;&amp; *p != 47) push_plus(), t = NORMAL;
+		if (t == ASTERISK &amp;&amp; *p != 58) push_times(), t = NORMAL;
+		switch (*p) {
+			case 40:
+				push_left_bracket(); break;
+			case 41:
+				push_right_bracket(); break;
+			case 42:
+				t = ASTERISK; break;
+			case 43:
+				t = PLUS_SIGN; break;
+			case 45:
+				push_minus(); break;
+			case 47:
+				if (t != PLUS_SIGN) raise("found '/' in expression, expected '+/'");
+				t = NORMAL, push_accmulate(); break;
+			case 48 ... 57:
+				x = (t == DIGIT ? (x * 10ll + (*p - 48)) % mod : *p - 48);
+				t = DIGIT; break;
+			case 58:
+				if (t != ASTERISK) raise("found ':' in expression, expected '*:'");
+				t = NORMAL, push_square(); break;
+			case 78:
+				push_number(n); break;
+			case 88:
+				push_x(); break;
+			default:
+				raise("stray '" + string(1, *p) + "' in program");
+		}
+	}
+	if (t == DIGIT) push_number(x);
+	if (t == PLUS_SIGN) push_plus();
+	if (t == ASTERISK) push_times();
+	if (!last_var) raise("expected primary-expression at end of input");
+
+	for (x = 0; top &amp;&amp; ~x; ) evaluator::insert_op(x = stack[--top]);
+	if (!~x) raise("expected ')' at end of input");
+
+	assert(evaluator::top == 1);
+	pr &amp;ans = *evaluator::stack;
+
+	if (ans.first == VECTOR) {
+		fputs("\x1b[01mprogram.J: \x1b[35mwarning: \x1b[0moutput is a vector\n", stderr);
+		cout &lt;&lt; '[';
+		for (i = 0; i &lt; n; ++i) {
+			if (i) cout &lt;&lt; ',' &lt;&lt; ' ';
+			cout &lt;&lt; evaluator::poly(*ans.second, a[i]);
+		}
+		cout &lt;&lt; ']' &lt;&lt; '\n';
+	} else cout &lt;&lt; ans.first &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>善于利用自动机的思想设置状态，如 (在线算法) 中 <code>+</code> 和 <code>+/</code> 的区别，数字的读取，以及 <code>-</code> 是<em>减法</em>还是<em>取负</em>的区分 (上一次读入了表达式还是运算符)。</p>
+		<p><strong>坑2：</strong>注意<strong>标量</strong>减<strong>向量</strong>时不能直接交换，因为标量的系数为 $1$，向量的系数为 $-1$。</p>
+	</body>
+</html>

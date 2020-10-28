@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4790][lg3681][CodeforcesGym101173D][CERC2016]Dancing Disks</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个大小相同的圆盘，标号分别为 $1, 2, \cdots, n$。</p>
+		<p>现在有一个 $6 \times 6$ 的棋盘，每个格子上有一根柱子。圆盘可以以任意顺序放在柱子上。</p>
+		<img class="center-block" src="uploads/5.jpg" alt="二维 Hanoi 塔" />
+		<p>初始状态下，所有盘子按照某个顺序堆叠在左上角的柱子上。</p>
+		<p>类似 Hanoi 塔的规则，你每次可以选择一根有圆盘的柱子，然后在这根柱子上选择<strong>一个或多个</strong>圆盘，并将它们作为整体移动到<strong>它正下方或正右方</strong>与之相邻的柱子上。</p>
+		<p>你的目标是将所有的圆盘按照<strong>从下到上为 $n, n - 1, \cdots, 2, 1$ 的顺序</strong>移动到右下角的柱子上。</p>
+		<p>请给出一组构造，可以证明在题目条件下，问题一定有解。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 40000$)，表示圆盘的个数。</p>
+		<p>第二行包含 $n$ 个正整数 $a_1, a_2, \cdots, a_n$ ($1 \leq a_i \leq n$，且 $a_i$ 互不相同)，表示左上角柱子上<strong>从下到上</strong>各圆盘的标号。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $m$，表示操作次数。</p>
+		<p>接下来 $m$ 行，每行描述一个操作，格式为 <code><em>r<sub>k</sub></em> <em>c<sub>k</sub></em> <em>p<sub>k</sub></em> <em>n<sub>k</sub></em></code>，其中</p>
+		<ul>
+			<li>$\left( r_k, c_k \right)$ 表示操作的起始圆盘位置 ($1 \leq r_k, c_k \leq 6$)。</li>
+			<li>$d_k \in \left\{ \texttt D, \texttt R \right\}$，表示这次操作要将它们移动到<strong>正下方</strong>还是<strong>正右方</strong>。</li>
+			<li>$n_k$ 表示本次操作移动的圆盘个数，你需要保证 $n_k$ 不超过此时 $\left( r_k, c_k \right)$ 柱子上的圆盘总数。</li>
+		</ul>
+		<p>如果有多组方案，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>像这种 Hanoi 塔上的排序问题，而且还是构造性的，基本都是对一些<em>基础排序算法</em>的考察。</p>
+		<p>比如在这道题中缓冲区的数量就很多了，因此我们考虑使用<strong>多路归并</strong>排序算法。</p>
+		<p>设 $f_{r, c}$ 表示 $r \times c$ 的棋盘能排序的数的总数，则对于一个 $\left( r, c \right)$，我们可以进行如下构造：</p>
+		<ol>
+			<li>在 $\left( r, c - 1 \right), \left( r, c - 2 \right), \cdots, \left( r, 1 \right), \left( r - 1, c \right), \cdots, \left( r - 1, 1 \right), \cdots, \left( 1, c \right), \cdots \left( 1, 1 \right)$ 处分别调用排序算法。可知此时一共有 $\displaystyle \sum_{\substack{1 \leq i \leq r \\ 1 \leq j \leq c \\ \left( i, j \right) \neq \left( r, c \right)}} f_{i, j}$ 个数参与了排序。</li>
+			<li>此时我们得到了 $r c - 1$ 个有序表，考虑对其进行归并。由于这些数都能走到 $\left( r, c \right)$，因此只需要每次挑选最大值的，将其移动到 $\left( r, c \right)$，不断操作直到整个归并过程完成。</li>
+		</ol>
+		<p>从而有 $$ f_{r, c} \geq \sum_{\substack{1 \leq i \leq r \\ 1 \leq j \leq c \\ \left( i, j \right) \neq \left( r, c \right)}} f_{i, j} $$</p>
+		<p>结合 $f_{1, 1} = 1$，我们可以 $f_{r, c}$ 列一个表格 (注意这里表格里的数是<strong>下界</strong>，不是 $f_{r, c}$ 的精确值)：</p>
+		<table class="table table-bordered table-text-center table-vertical-middle table-hover table-striped">
+			<thead>
+				<tr><th>$r \backslash c$ ($f_{r, c} \geq$)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+			</thead>
+			<tbody>
+				<tr><td>1</td><td>$1$</td><td>$1$</td><td>$2$</td><td>$4$</td><td>$8$</td><td>$16$</td></tr>
+				<tr><td>2</td><td>$1$</td><td>$3$</td><td>$8$</td><td>$20$</td><td>$48$</td><td>$112$</td></tr>
+				<tr><td>3</td><td>$2$</td><td>$8$</td><td>$26$</td><td>$76$</td><td>$208$</td><td>$544$</td></tr>
+				<tr><td>4</td><td>$4$</td><td>$20$</td><td>$76$</td><td>$252$</td><td>$768$</td><td>$2208$</td></tr>
+				<tr><td>5</td><td>$8$</td><td>$48$</td><td>$208$</td><td>$768$</td><td>$2568$</td><td>$8016$</td></tr>
+				<tr><td>6</td><td>$16$</td><td>$112$</td><td>$544$</td><td>$2208$</td><td>$8016$</td><td>$26928$</td></tr>
+			</tbody>
+		</table>
+		<p>发现我们只得到 $f_{6, 6} \geq 26928$，它还不到 $40000$，那该怎么办呢？</p>
+		<hr />
+		<p>考察刚才的过程，可知我们是按照<em>传统的 Hanoi 规则</em>进行操作的 —— <strong>每次只移动一个圆盘</strong>。</p>
+		<p>但在这道题中，一次可以移动多个圆盘。众所周知，同时移动多个圆盘和依次移动的效果显然是不一样的 (大概是一个翻转的关系)。因此我们可以利用这个性质 ($n_k &gt; 1$) 来卡卡常。</p>
+		<p>事实上，对于一个 $1 \times 2$ ($2 \times 1$) 的棋盘，我们是可以对<strong>两个数</strong>进行排序的 —— 不妨设我们期望 (从底到顶) $a, b$，那么如果栈顶是 $a$ 的话，则<em>分两次移动</em>，如果栈顶就是 $b$ 话的，直接将这两个数作为整体移动即可。</p>
+		<p>因此我们可以得到更严格的 $\color {red} {f_{1, 2} = f_{2, 1} \geq 2}$，用它来修正上表，可知：</p>
+		<table class="table table-bordered table-text-center table-vertical-middle table-hover table-striped">
+			<thead>
+				<tr><th>$r \backslash c$ ($f_{r, c} \geq$)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+			</thead>
+			<tbody>
+				<tr><td>1</td><td>$1$</td><td>$\color {red} 2$</td><td>$3$</td><td>$6$</td><td>$8$</td><td>$24$</td></tr>
+				<tr><td>2</td><td>$\color {red} 2$</td><td>$5$</td><td>$13$</td><td>$32$</td><td>$48$</td><td>$176$</td></tr>
+				<tr><td>3</td><td>$3$</td><td>$13$</td><td>$42$</td><td>$122$</td><td>$332$</td><td>$864$</td></tr>
+				<tr><td>4</td><td>$6$</td><td>$32$</td><td>$122$</td><td>$404$</td><td>$1228$</td><td>$3520$</td></tr>
+				<tr><td>5</td><td>$12$</td><td>$76$</td><td>$332$</td><td>$1228$</td><td>$4104$</td><td>$12792$</td></tr>
+				<tr><td>6</td><td>$24$</td><td>$176$</td><td>$864$</td><td>$3520$</td><td>$12792$</td><td>$\color {fuchsia} {42960}$</td></tr>
+			</tbody>
+		</table>
+		<p>也就是说 $f_{6, 6} \geq 42960 &gt; 40000$。因此这个多路归并算法是可行的。</p>
+		<p>注意到每个格子最多被移动 $2 \cdot 6 - 2 = 10$ 次，因此方案数不超过 $10 n$，可以接受。</p>
+		<p>还有一个细节是，最后我们希望 (从底至顶) 升序，那么在这之前的 $35$ 个格子都应当是一个 (从底至顶) 降序的序列才能成功归并。因此整个递归过程其实是类似升序 —— 降序 —— 升序 —— 降序 …… 这样不断循环的。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+
+typedef std::vector &lt;int&gt; vector;
+
+int top = 0, stack[40054];
+vector s[6][6];
+std::priority_queue &lt;int, vector, std::greater &lt;int&gt;&gt; pq;
+
+inline void move(int r, int c, int r1, int c1, int count = 1) {
+	for (; c &lt; c1; cout &lt;&lt; -~r &lt;&lt; ' ' &lt;&lt; ++c &lt;&lt; ' ' &lt;&lt; 'R' &lt;&lt; ' ' &lt;&lt; count &lt;&lt; '\n');
+	for (; r &lt; r1; cout &lt;&lt; ++r &lt;&lt; ' ' &lt;&lt; -~c &lt;&lt; ' ' &lt;&lt; 'D' &lt;&lt; ' ' &lt;&lt; count &lt;&lt; '\n');
+}
+
+inline void work(int r, int c, bool reversed) {
+	int i, j, d, u, v, x;
+	vector &amp;cur = s[r][c];
+	assert(cur.empty());
+	if (!top) return;
+	if (!(r || c)) {
+		for (i = top - 1; i &gt; 0 &amp;&amp; reversed ^ (stack[i] &gt; stack[i - 1]); --i);
+		cur.assign(stack + i, stack + top), top = i;
+	} else if (r + c == 1) {
+		if (top == 1) return top = 0, move(0, 0, r, c, 1), cur.EB(*stack);
+		u = stack[--top], v = stack[--top];
+		if (reversed ^ (u &gt; v))
+			move(0, 0, r, c, 2), cur.EB(v), cur.EB(u);
+		else
+			move(0, 0, r, c, 1), move(0, 0, r, c, 1), cur.EB(u), cur.EB(v);
+	} else {
+		for (d = r + c - 1; d &gt;= 0; --d)
+			for (i = d, j = 0; i &gt;= 0; --i, ++j)
+				if (i &lt;= r &amp;&amp; j &lt;= c)
+					if (work(i, j, !reversed), reversed) for (int &amp;x : s[i][j]) x = 65536 - x;
+		for (d = r + c - 1; d &gt;= 0; --d)
+			for (i = d, j = 0; i &gt;= 0; --i, ++j)
+				if (i &lt;= r &amp;&amp; j &lt;= c &amp;&amp; !s[i][j].empty())
+					pq.push(j | i &lt;&lt; 3 | s[i][j].back() &lt;&lt; 6);
+		for (; !pq.empty(); ) {
+			d = pq.top(), pq.pop(), x = d &gt;&gt; 6, i = d &gt;&gt; 3 &amp; 7, j = d &amp; 7,
+			assert(s[i][j].back() == x), s[i][j].pop_back(),
+			move(i, j, r, c), cur.EB(x);
+			if (!s[i][j].empty()) pq.push(j | i &lt;&lt; 3 | s[i][j].back() &lt;&lt; 6);
+		}
+		if (reversed) for (int &amp;x : cur) x = 65536 - x;
+	}
+}
+
+int main() {
+	int i;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; top;
+	for (i = 0; i &lt; top; ++i) cin &gt;&gt; stack[i];
+	return work(5, 5, true), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意一些边界情况。比如当 $\left( r, c \right) = \left( 1, 2 \right)$ 时不要漏移动元素了。</p>
+		<p><strong>坑2：</strong>由于多路归并排序的分叉数 (可以达到 $35$) 相对较大，因此推荐使用<strong>堆</strong>来维护。在使用堆时，还是要注意一个经典问题，如果使用全局堆的话，那么一定要等所有子问题 (更小规模的排序规模) 解决后才能使用堆。</p>
+	</body>
+</html>

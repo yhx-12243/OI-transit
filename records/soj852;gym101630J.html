@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[soj852][CodeforcesGym101630J][NEERC2017]Journey from Petersburg to Moscow</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张连通无向简单图 $G$，每条边有一个边权。</p>
+		<p>给定正整数 $k$，你需要找到 $G$ 的一条从 $1$ 到 $n$ 的路径，设该路径的长度为 $l$，你需要使得这条路径中边权前 $\min \left\{ k, l \right\}$ 大的边的边权总和尽可能小。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, m, k$ ($2 \leq n \leq 3000; 1 \leq m \leq 3000; 1 \leq k \leq n$)，分别表示图 $G$ 的点数，边数和统计边权的边的数量上限。</p>
+		<p>接下来 $m$ 行，每行三个正整数 $u_i, v_i, w_i$ ($1 \leq u_i, v_i \leq n; u_i \neq v_i; 1 \leq w_i \leq 10^9$)，表示 $G$ 中有一条连接顶点 $u_i, v_i$，边权为 $w_i$ 的无向边，保证 $G$ 为连通无向简单图。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示该路径中边权前 $\min \left\{ k, l \right\}$ 大的边的边权总和的最小可能值。</p>
+
+		<h3>题解</h3>
+		<p>Hmmm... 又是前 $k$ 大。</p>
+		<p>根据 <a href="../index.html?redirect=1065" target="_blank">[WF2018]Gem Island</a> 的经验，我们考虑将所有边权减去 $1$ 后，由于只取前 $k$ 大，因此总边权减去的一定是 $k$。当然有个前提是，所有的边权不是 $0$ 就是 $\geq 1$ 的数。</p>
+		<p>在那道题中，我们需要枚举有 $l$ 个数非 $0$，然后将总和减去 $\min \left\{ k, l \right\}$。这道题中，由于是最短路，显然 $l$ 是没法枚举的。因此我们可以换一种思路，<strong>枚举第 $k$ 大边的权值 $w$</strong>。</p>
+		<p>设最优路径的边权为 $w_1 \geq w_2 \geq \cdots \geq w_k \geq \cdots \geq w_l$，答案 $A = w_1 + w_2 + \cdots + w_k$。</p>
+		<p>则如果我们将路径中的每一条边权都减去 $w_k$ 再对 $0$ 取 $\max$ 后，最终路径的权值就变成了 $\left( w_1 - w_k \right) + \left( w_2 - w_k \right) + \cdots + \left( w_k - w_k \right) = A - k \cdot w_k$。</p>
+		<p>因此我们可以尝试将每条边减去一个权值 $w$ 后再对 $0$ 取 $\max$，最终补上 $k \cdot w$。设这个 $w$ 所得到的最短路为 $S_w$，我们希望有 $$ A = \min_{w \geq 0} S_w $$</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>分两种情况讨论。</p>
+				<ol>
+					<li><p>$l &gt; k$。</p>
+					<p>取 $w = w_k$，知 $S_{w_k} \leq A$，从而 $\min\limits_{w \geq 0} S_w \leq A$。</p>
+					<p>故只需证明对 $\forall w \geq 0, A \leq S_w$。</p>
+					<p>考察新图的最短路，设其中非零边权有 $\mu$ 条。</p>
+					<p>若 $\mu &gt; k$，则该路径加上 $k \cdot w$ 后，会得到一条合法路径的权值额外加上后 $\mu - k$ 条边的权值，因此它大于原图中的一个可能权值，从而大于等于最小权值 $A$。</p>
+					<p>若 $\mu \leq k$，则该路径加上 $k \cdot w$ 后，会得到一条合法路径的权值额外加上 $\left( k - \mu \right) \cdot w$，因此它大于等于原图中的一个可能权值，从而大于等于最小权值 $A$。</p></li>
+					<li><p>$l \leq k$。</p>
+					<p>取 $w = 0$，值 $S_0 \leq A$，即 $\min\limits_{w \geq 0} S_w \leq A$。</p>
+					<p>剩下部分 ($A \leq S_w$) 同 1。</p></li>
+				</ol>
+			</div>
+		</div>
+		<p>同时，注意到取到等号的情形只有 $w$ 等于某个 $w_k$ <span style="color: blue">或 $0$</span> 的情形，因此我们只需要枚举所有的 $w_k$，即 $$ A = \min \left\{ S_0, \min_{1 \leq k \leq m} S_{w_k} \right\} $$</p>
+		<p>也就是说，我们只需做 $m$ 次最短路即可。使用 Dijkstra 算法，时间复杂度 $O \left( m \left( n + m \right) \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 3054, M = 6054;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int V, E, K, Es = 0;
+int first[N], next[M];
+
+inline ll max(const ll x, const ll y) {return x &lt; y ? y : x;}
+inline bool down(ll &amp;x, const ll y) {return x &gt; y ? x = y, 1 : 0;}
+
+inline void addedge(int u, int v, int w) {
+	e[++Es] = edge(u, v, w), next[Es] = first[u], first[u] = Es;
+	e[++Es] = edge(v, u, w), next[Es] = first[v], first[v] = Es;
+}
+
+namespace SP {
+	typedef std::pair &lt;ll, int&gt; node;
+
+	ll d[N];
+	std::priority_queue &lt;node, std::vector &lt;node&gt;, std::greater &lt;node&gt;&gt; pq;
+
+	void Dakstrij(int s, int w) {
+		int i, x, y; ll t;
+		memset(d + 1, 63, V &lt;&lt; 3);
+		for (pq.emplace(d[s] = 0, s); !pq.empty(); ) {
+			std::tie(t, x) = pq.top(), pq.pop();
+			if (d[x] != t) continue;
+			for (i = first[x]; i; i = next[i])
+				if (down(d[y = e[i].v], t + max(e[i].w - w, 0)))
+					pq.emplace(d[y], y);
+		}
+	}
+}
+
+int main() {
+	int i, u, v, w; ll ans;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; V &gt;&gt; E &gt;&gt; K;
+	for (i = 1; i &lt;= E; ++i) cin &gt;&gt; u &gt;&gt; v &gt;&gt; w, addedge(u, v, w);
+	SP::Dakstrij(1, 0), ans = SP::d[V];
+	for (i = 1; i &lt;= Es; i += 2) SP::Dakstrij(1, e[i].w), down(ans, SP::d[V] + (ll)K * e[i].w);
+	cout &lt;&lt; ans &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意该题是无向边，枚举边权时不要遗漏了。</p>
+		<p><strong>坑2：</strong>统计时不要忘记 $w = 0$ 的情形 (即 $S_0$)，因为当 $l &lt; k$ 时只有这种情形才能取到最优值。</p>
+	</body>
+</html>

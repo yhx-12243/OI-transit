@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym100307H][NEERC2013]Hack Protection</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个序列 $a_1, a_2, \cdots, a_n$，求有多少对 $l, r$ 满足 $1 \leq l \leq r \leq n$ 且 $a_l \oplus a_{l+1} \oplus \cdots a_r = a_l \mathbin\&amp; a_{l+1} \mathbin\&amp; \cdots \mathbin\&amp; a_r$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10^5$)，表示序列的长度。</p>
+		<p>第二行包含 $n$ 个非负整数 $a_1, a_2, \cdots a_n$ ($a_i \leq 2^{31} - 1$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的 $\left( l, r \right)$ 对的个数。</p>
+
+		<h3>题解</h3>
+		<p>定义 $X_i = a_1 \oplus a_2 \oplus \cdots \oplus a_i$，则有 $a_l \oplus a_{l+1} \oplus \cdots a_r = X_{l-1} \oplus X_r$。</p>
+		<p>定义 $f_{i, j} = a_i \mathbin\&amp; a_{i+1} \mathbin\&amp; \cdots \mathbin\&amp; a_j$，则不难注意到 $f_{1, i}, f_{2, i}, \cdots, f_{i, i}$ 单调递增且可以分为 $O \left( \log a_i \right)$ 个连续段。</p>
+		<p>且当我们枚举 $i = 1, 2, \cdots, n$，可以很方便地维护出这些连续段的变化。</p>
+		<p>现在设一个连续段为 $\left( u, v \right]$，即当 $u &lt; k \leq v$ 时 $f_{k, v} = c$ (常量)。</p>
+		<p>则考虑何时有 $a_k \oplus a_{k+1} \oplus \cdots \oplus a_i = a_k \mathbin\&amp; a_{k+1} \mathbin\&amp; \cdots \mathbin\&amp; a_i$，此即 $X_{k-1} \oplus X_i = c \Rightarrow \color {fuchsia} {X_{k-1} = X_i \oplus c}$。因此我们只需查找在 $\left[ u, v \right)$ 中有多少个 $X_k$ 等于 $X_i \oplus c$ 即可。</p>
+		<p>我们可以记录对于每个 $x$，满足 $X_i = x$ 的 $i$ 的有序列表。因为不同的 $X_i$ 只有不超过 $n$ 个，因此直接对每个 $X_i$ 散列后用 <code>std::vector</code> 存储，最后查询时只需在对应 <code>std::vector</code> 上二分。</p>
+		<p>时间复杂度 $O \left( n \log n \log a_i \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+
+typedef unsigned int u32;
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+typedef std::unordered_map &lt;u32, int&gt; map;
+
+int n, L = 0, W = 0;
+pr pre[54];
+vector pos[100054];
+map U;
+
+inline int get_id(u32 x) {
+	map::iterator it; bool ret; std::tie(it, ret) = U.emplace(x, W);
+	return ret ? W++ : it-&gt;second;
+}
+
+inline int totalize(u32 x, int L, int R) {
+	map::iterator it = U.find(x);
+	if (it == U.end()) return 0;
+	vector &amp;v = pos[it-&gt;second];
+	return std::lower_bound(v.begin(), v.end(), R) - std::lower_bound(v.begin(), v.end(), L);
+}
+
+int main() {
+	int i, j, k; u32 x, S = 0; long long ans = 0;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	pos[get_id(0)].EB(0);
+	for (i = 0; i &lt; n; ++i) {
+		cin &gt;&gt; x, S ^= x, pre[L++] = pr(i, x);
+		for (j = 0; j &lt; L; ++j) pre[j].second &amp;= x;
+		for (k = j = 1; j &lt; L; ++j)
+			if (pre[j].second != pre[k - 1].second) pre[k++] = pre[j];
+		L = k, pre[L].first = i + 1;
+		for (j = 0; j &lt; L; ++j) ans += totalize(S ^ pre[j].second, pre[j].first, pre[j + 1].first);
+		pos[get_id(S)].EB(i + 1);
+	}
+	cout &lt;&lt; ans &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意 $l - 1$ 可以等于 $0$，不要把这一项遗漏了。</p>
+	</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym100851K][NEERC2015]King's Inspection</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张 $n$ 个顶点 $m$ 条边的有向图 $G$，请判断 $G$ 是否是 Hamilton 图，如果是，并给出一个 Hamilton 圈。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($2 \leq n \leq 10^5; \color {red} {0 \leq m \leq n + 20}$)，分别表示 $G$ 的点数和边数。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq n$)，表示一条从 $a_i$ 到 $b_i$ 的有向边。</p>
+
+		<h3>输出格式</h3>
+		<p>如果 $G$ 中不存在 Hamilton 圈，则输出 <code>There is no route, Karl!</code>。</p>
+		<p>如果 $G$ 中存在 Hamilton 圈，则输出一行 $n + 1$ 个整数 $v_0, v_1, v_2, \cdots, v_n$，你需要保证 $v_0 = v_n = 1$ 且对每个 $i = 0, 1, \cdots, n - 1$ 存在边 $\left( v_i, v_{i+1} \right)$。</p>
+		<p>如果有多个 Hamilton 圈，输出任意一个均可。</p>
+
+		<h3>题解</h3>
+		<p>如果 $G$ 是 Hamilton 图，考虑它的一个 Hamilton 圈 $C$，则 $C$ 在 $G$ 中生成的子图满足<strong>每个点的入度和出度恰为 $1$</strong>。</p>
+		<p>因此 $G$ 是 Hamilton 一个<strong>必要条件</strong> (非充分) 是，<em>$G$ 中每个顶点的入度和出度都 $\geq 1$</em>。因此当这个条件不满足时可以直接判掉。</p>
+		<p>其次，如果一个顶点 $v \in G$ 的出度为 $1$，那么设 $N^+ \left( v \right) = \left\{ u \right\}$，那么它在 Hamilton 圈 $C$ 中的<em>后继</em>一定是 $u$。</p>
+		<p>此时我们在新建立的图 $H$ 上连接一条边 $v \to u$。</p>
+		<p>同理，如果一个顶点 $v \in G$ 的入度为 $1$，同理可知 $v$ 在 Hamilton 中的前趋是唯一的，设为 $u$，则在 $H$ 中连接一条边 $u \to v$。</p>
+		<p>于是我们得到了一张图 $H$，表示<strong>必须出现在 Hamilton 圈中的边，即 $H \subseteq C$</strong>。</p>
+		<p>此时 $H$ 中每个点的入度和出度都<strong>不能超过 $1$</strong> (否则无解)，且如果 $H$ 中有圈，那么这个圈的大小必须是 $n$ (因为圈不可能有真子圈)。</p>
+		<p>判掉 $H = C$ 的情形，在剩下的情况下 $H$ 就是若干条有向链的直和了，设这些链分别为 $s_1 \leadsto e_1, s_2 \leadsto e_2, \cdots, s_k \leadsto e_k$。</p>
+		<p>然后，我们只需要关心 $G$ 中形如 "$e_i \to s_j$" 的边，将这些链依次 "串" 成一个圈即可。</p>
+		<p>用图论的语言描述就是，我们在 $G$ 中只保留链上的边和形如 "$e_i \to s_j$" 的边，然后将每条链 $s_i \leadsto e_i$ "收缩" 成一个点，将 $G$ 的 Hamilton 圈问题转化为新的 $2 k$ 阶图上的 Hamilton 圈问题。</p>
+		<hr />
+		<p>接下来我们来估计 $k$ 的大小。</p>
+		<p>由 "点数 = 边数 + 连通块数" 可知，$k = n - \left| E \left( H \right) \right|$。</p>
+		<p>但是注意到，题目中有 $m \leq n + 20$，即 $\displaystyle \sum_v d^+ \left( v \right) = m \leq n + 20$，而 $\forall v \in G, d^+ \left( v \right) \geq 1$，因此出度 $&gt; 1$ 的点不超过 $n - m$ 个，也就是说<strong>至少有 $2 n - m$ 个点的出度为 $1$</strong>。</p>
+		<p>因此 $\left| E \left( H \right) \right| \leq 2 n - m$，从而 $\color {fuchsia} {k = n - \left| E \left( H \right) \right| \leq n - \left( 2 n - m \right) = m - n \leq 20}$。</p>
+		<p>于是我们只需要解决一个<strong>点数不超过 $20$</strong> 的 Hamilton 圈问题，因此可以使用状态压缩 DP：固定以 $1$ 为起点，用 $f_S$ 表示以 $1$ 为起点，经过的点的集合为 $S$，可以到达的终点集合，转移可以用位运算优化到 $O \left( k \right)$。</p>
+		<p>即可以在时间复杂度 $O \left( 2^k \cdot k \right)$ 的时间内解决 $k$ 个点的 Hamilton 圈问题。</p>
+		<p>结合最开始的预处理和结尾的还原，总时间复杂度 $O \left( n + m + 2^{m-n} \left( m - n \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define ctz __builtin_ctz
+#define fail "There is no route, Karl!\n"
+using std::cin;
+using std::cout;
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int N = 100054, M = 25, M2 = 1050000;
+
+int V, E, n = 0;
+vector Go[N], Gi[N];
+int prev[N], next[N], bel[N];
+int first[N], last[N];
+int anslen = 0, ans[N];
+pr CH[M], recover[N];
+
+inline void addedge(int u, int v) {Go[u].EB(v), Gi[v].EB(u);}
+
+int FIRST(int x) {return first[x] == x ? x : (first[x] = FIRST(first[x]));}
+int LAST(int x) {return last[x] == x ? x : (last[x] = LAST(last[x]));}
+
+int print() {
+	assert(anslen == V), ans[anslen++] = 1;
+	for (int i = 0; i &lt;= V; ++i) cout &lt;&lt; ans[i] &lt;&lt; (i == V ? '\n' : ' ');
+	return 0;
+}
+
+namespace dp {
+	int ALL;
+	int Go[M], Gi[M];
+	int f[M2];
+	int len = 0, seq[N];
+
+	inline void link(int u, int v) {Go[u] |= 1 &lt;&lt; v, Gi[v] |= 1 &lt;&lt; u;}
+
+	bool main() {
+		int i, v, S; ALL = ~(-1 &lt;&lt; n);
+		f[1] = 1;
+		for (i = 3; i &lt;= ALL; i += 2)
+			for (S = i; S; S &amp;= S - 1)
+				if (v = ctz(S), f[i &amp; ~(1 &lt;&lt; v)] &amp; Gi[v])
+					f[i] |= 1 &lt;&lt; v;
+		if (!(f[ALL] &amp; *Gi)) return false;
+		seq[len++] = v = 0;
+		for (S = ALL; S; S &amp;= ~(1 &lt;&lt; v)) seq[len++] = v = ctz(f[S] &amp; Gi[v]);
+		return std::reverse(seq, seq + len), true;
+	}
+}
+
+int main() {
+	int i, j, u, v;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; V &gt;&gt; E;
+	for (i = 0; i &lt; E; ++i) cin &gt;&gt; u &gt;&gt; v, addedge(u, v);
+	for (i = 1; i &lt;= V; ++i)
+		if (first[i] = last[i] = i, Go[i].empty() || Gi[i].empty()) return cout &lt;&lt; fail, 0;
+	for (v = 0, i = 1; i &lt;= V; ++i)
+		if (Go[i].size() == 1u) {
+			next[i] = j = Go[i].back();
+			if (prev[j]) return cout &lt;&lt; fail, 0;
+			prev[j] = i, ++v;
+			if (i == LAST(j)) { // cycle
+				if (v != V) return cout &lt;&lt; fail, 0;
+				v = 1;
+				do ans[anslen++] = v, v = next[v]; while (v != 1);
+				return print();
+			}
+			last[i] = LAST(j), first[j] = FIRST(i);
+		}
+	for (i = 1; i &lt;= V; ++i) if (last[i] == i) CH[n] = pr(FIRST(i), i), bel[i] = n++;
+	for (i = 1; i &lt;= V; ++i) bel[i] = bel[LAST(i)];
+	for (i = 1; i &lt;= V; ++i) if (last[i] == i)
+		for (int j : Go[i]) if (first[j] == j)
+			dp::link(bel[i], bel[j]);
+	if (!dp::main()) return cout &lt;&lt; fail, 0;
+	u = 0, v = CH-&gt;first;
+	do {
+		ans[anslen++] = v;
+		if (last[v] != v)
+			v = next[v];
+		else
+			v = CH[dp::seq[++u]].first;
+	} while (v != CH-&gt;first);
+	assert(anslen == V), std::rotate(ans, std::find(ans, ans + V, 1), ans + V);
+	return print();
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意输出时要以 $1$ 为起点，但是缩点后 $1$ 可能在某条链的中间，因此最后不要忘记 <code>std::rotate</code> 一下。</p>
+		<p><strong>坑2：</strong>在缩点时如果遇到圈不要忘记判掉「这个圈就是 Hamilton 圈」的情形。</p>
+	</body>
+</html>

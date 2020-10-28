@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg4749][CodeforcesGym101620K][CERC2017]Kitchen Knobs</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个数字旋钮，每个旋钮上有 $7$ 个数字，如下图所示：</p>
+		<img class="center-block" src="uploads/270.png" alt="数字旋钮" />
+		<p>定义一个旋钮的<em>值</em>为从正上方顺时针读一圈搜得到的数值 (如上图第一个旋钮的<em>值</em>为 $9689331$)。</p>
+		<p>你每次可以选择<strong>连续的一段</strong>旋钮，将其按照同一个方向旋转相同的角度 (方向任意，角度值任意)，你希望通过尽可能少的操作次数，让<em>所有</em>旋钮上的<em>值</em>同时达到最大。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 500$)，表示旋钮的个数。</p>
+		<p>接下来 $n$ 行，每行一个长度为 $7$ 的数字串，依次表示各个旋钮初始的<em>值</em>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示操作次数的最小值。</p>
+
+		<h3>题解</h3>
+		<p>由于长度 $7$ 是素数，因此长度为 $7$ 的串如果有循环同构 (即是周期串)，则它一定是<em>纯位数</em> (即所有数位都相同的数)。</p>
+		<p>于是所有旋钮可以分为两类：</p>
+		<ul>
+			<li><p>所有位置上的数都相同。</p>
+			<p>那么无论怎么旋转这个按钮都不影响结果，因此可以直接删去 (然后将两侧拼起来) 不影响结果。</p></li>
+			<li><p><em>不是</em>所有位置上的数都相同。</p>
+			<p>此时它的所有循环移位互不相同，固有唯一一个是最大值，因此可以它有一个<strong>目标度数</strong> $r \cdot \dfrac {2 \pi} 7$ ($r$ 在 $\hspace{-0.444em} \pmod 7$ 意义下讨论)，表示最大值需要通过初始状态逆时针旋转 $r \cdot \dfrac {2 \pi} 7 + 2 k \pi$ 的角度。</p></li>
+		</ul>
+		<p>现在问题就变成了：</p>
+		<blockquote>有一个序列 $a_1, a_2, \cdots, a_n$ ($a_i \in \mathbb F_7$)，每次可以选择一段区间 $\left[ l, r \right]$ 和值 $x \in \mathbb F_7$，并令所有的 $a_i \gets a_i + x$，求至少需要多少次操作才能让所有数都变成 $0$。</blockquote>
+		<p>考虑差分，令 $\Delta a_i = a_{i+1} - a_i$ ($i = 0, 1, 2, \cdots, n$)，则每次操作就可以看成 "<span style="color: fuchsia">选择 $0 \leq l &lt; r \leq n$ 和 $x \in \mathbb F_7$，并令 $\Delta a_l \gets \Delta a_l + x, \Delta a_r \gets \Delta a_r - x$</span>"，最终欲使所有 $\Delta a_i = 0$ 所需的最小操作次数。</p>
+		<p>不难发现此时 $\Delta a_i$ 之间的相对顺序已经无关紧要，因此我们可以将所有 $\Delta a_i$ 看成一个可重集合 $S = \left\{ \Delta a_0, \Delta a_1, \cdots, \Delta a_n \right\}$。</p>
+		<p>用 $b_i$ ($0 \leq i \leq 6$) 表示 $S$ 中 $i$ 的出现次数。<em>显然 $b_0$ 是无关紧要的</em>。</p>
+		<p>考虑所有 $\left| V \right| = b_1 + b_2 + b_3 + b_4 + b_5 + b_6$ 个非零数，将其看成图上的 (带权) 顶点 $V$。如果两个数中被 (作为 $l, r$) 同时操作过，则在这两个点间连接一条边。这样可以得到一张图 $G = \left( V, E \right)$。</p>
+		<p>则有如下性质：</p>
+		<p><strong style="color: orange">(性质 1) 对于 $u, v \in V$，$u, v$ 至多被操作一次</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>如果有多次，则由操作的可交换性可知将其合并后更优。</p>
+			</div>
+		</div>
+		<p><strong style="color: orange">(性质 2) $G$ 中无圈，从而 $G$ 是森林</strong>。</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>由于操作在 $\mathbb F_7$ 上进行，如果操作序列中有圈 $\left( v_1, v_2 \right), \left( v_2, v_3 \right), \cdots, \left( v_{l-1}, v_l \right), \color {fuchsia} {\left( v_l, v_1 \right)}$，则将 $\left( v_l, v_1 \right)$ 的操作 (设为 $v_l \gets v_l + d, v_1 \gets v_1 - d$) 平摊到 $\left( v_1, v_2 \right), \left( v_2, v_3 \right), \left( v_{l-1}, v_l \right)$ 上 ($v_i \gets v_i - d, v_{i+1} \gets v_{i+1} + d$ 各一个)，则操作等效且操作次数严格少 $1$。</p>
+			</div>
+		</div>
+		<p><strong style="color: orange">(性质 3) 每个连通分量上的权值总和为 $0 \pmod 7$，且每个总和为 $0 \pmod 7$ 的子集均可以作为一个连通分量</strong>。</p>
+		<div class="panel panel-danger">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>前者显然 (每次操作所有 $u$ 和 $v$ 的权值总和不变)。</p>
+				<p>对于后者，第 $i$ 操作将前 $i$ 个数归零，由于总和为 $0$，因此将前 $l - 1$ 个数归零时第 $l$ 个数自然也就归零了。</p>
+			</div>
+		</div>
+		<p>最后，由森林的性质知 $\left| E \right| = \left| V \right| - \left| C \right|$，其中 $\left| E \right|$ (边数) 等于操作次数，$\left| C \right|$ 为连通分量数。</p>
+		<p>因此我们需要最小化 $\left| E \right|$，也就是<strong>最大化 $\left| C \right|$</strong>，即<strong style="color: red">将 $S$ 分为尽量多的子集，使得每个子集的和均为 $0 \pmod 7$</strong>。</p>
+		<hr />
+		<p>首先，可以发现 $a$ 和 $-a$ 可以构成一个集合。我们证明这样的操作一定是不劣的。</p>
+		<div class="panel panel-warning">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>如果最优解中 $a$ 和 $-a$ 在同一个集合中，则将它们单独分出来集合个数增加。</p>
+				<p>否则，设 $a \in A, -a \in B$，则将其改造为 $\left\{ a, -a \right\}$ 和 $\left( A \setminus \left\{ a \right\} \right) \cup \left( B \setminus \left\{ -a \right\} \right)$，总集合个数不变<!--但 $\left\{ a, -a \right\}$ 型集合的个数严格增加-->。</p>
+			</div>
+		</div>
+		<p>于是问题可以转化为，当 <strong style="color: blue">$S$ 中 $1$ 和 $6$ 至多只有一种，$2$ 和 $5$ 至多只有一种，$3$ 和 $4$ 至多只有一种</strong> 时，$S$ 至多能分为多少个零和子集。</p>
+		<p>先假设 $S$ 中只有 $1, 2, 3$。使用数位 DP，考虑用 $f_{i, j, k}$ 表示当 $S = \left\{ 1^{\times i}, 2^{\times j}, 3^{\times k} \right\}$ 时的答案 (分为子集个数的最大值)。然后枚举所有<strong>没有零和真子集</strong>的零和子集 (记为本原零和子集) 进行转移即可。</p>
+		<p>由 $1, 2, 3$ 构成的<em>本原零和子集</em>共有 $11$ 个，列举如下：</p>
+		<ol>
+			<li>$\left\{ 1, 3, 3 \right\}$。</li>
+			<li>$\left\{ 2, 2, 3 \right\}$。</li>
+			<li>$\left\{ 1, 1, 2, 3 \right\}$。</li>
+			<li>$\left\{ 1, 2, 2, 2 \right\}$。</li>
+			<li>$\left\{ 1, 1, 1, 1, 3 \right\}$。</li>
+			<li>$\left\{ 1, 1, 1, 2, 2 \right\}$。</li>
+			<li>$\left\{ 2, 3, 3, 3, 3 \right\}$。</li>
+			<li>$\left\{ 1, 1, 1, 1, 1, 2 \right\}$。</li>
+			<li>$\left\{ 1, 1, 1, 1, 1, 1, 1 \right\}$。</li>
+			<li>$\left\{ 2, 2, 2, 2, 2, 2, 2 \right\}$。</li>
+			<li>$\left\{ 3, 3, 3, 3, 3, 3, 3 \right\}$。</li>
+		</ol>
+		<p>其余的情况也可以类似地分析。不过为了避免麻烦，我们可以考虑<strong>构造 $\mathbb Z_7$ 上的自同构</strong>来简化问题：</p>
+		<ol>
+			<li>$\varphi : x \to 2 x$。则 $\left\{ 1, 2, 3 \right\} \mapsto \left\{ 2, 4, 6 \right\}$。</li>
+			<li>$\varphi : x \to 3 x$。则 $\left\{ 1, 2, 3 \right\} \mapsto \left\{ 2, 3, 6 \right\}$。</li>
+			<li>$\varphi : x \to 4 x$。则 $\left\{ 1, 2, 3 \right\} \mapsto \left\{ 1, 4, 5 \right\}$。</li>
+			<li>$\varphi : x \to 5 x$。则 $\left\{ 1, 2, 3 \right\} \mapsto \left\{ 1, 3, 5 \right\}$。</li>
+			<li>$\varphi : x \to 6 x$。则 $\left\{ 1, 2, 3 \right\} \mapsto \left\{ 4, 5, 6 \right\}$。</li>
+		</ol>
+		<p>你看瞬间就解决了六个集合呢！还剩下两个集合 $\left\{ 1, 2, 4 \right\}$ 和 $\left\{ 3, 5, 6 \right\}$ 可以发现 $\varphi : x \to 6 x$ 在这两个集合间建立了双射。因此只需要讨论 $\left\{ 1, 2, 4 \right\}$ 即可。</p>
+		<p>由 $1, 2, 4$ 构成的<em>本原零和子集</em>共有 $13$ 个，列举如下：</p>
+		<ol>
+			<li>$\left\{ 1, 2, 4 \right\}$。</li>
+			<li>$\left\{ 1, 1, 1, 4 \right\}$。</li>
+			<li>$\left\{ 1, 2, 2, 2 \right\}$。</li>
+			<li>$\left\{ 2, 4, 4, 4 \right\}$。</li>
+			<li>$\left\{ 1, 1, 1, 2, 2 \right\}$。</li>
+			<li>$\left\{ 1, 1, 4, 4, 4 \right\}$。</li>
+			<li>$\left\{ 2, 2, 2, 4, 4 \right\}$。</li>
+			<li>$\left\{ 1, 1, 1, 1, 1, 2 \right\}$。</li>
+			<li>$\left\{ 1, 4, 4, 4, 4, 4 \right\}$。</li>
+			<li>$\left\{ 2, 2, 2, 2, 2, 4 \right\}$。</li>
+			<li>$\left\{ 1, 1, 1, 1, 1, 1, 1 \right\}$。</li>
+			<li>$\left\{ 2, 2, 2, 2, 2, 2, 2 \right\}$。</li>
+			<li>$\left\{ 4, 4, 4, 4, 4, 4, 4 \right\}$。</li>
+		</ol>
+		<p>最后用总点数减去子集个数的最大值即得答案。状态数是 $O \left( n^3 \right)$ 的，转移可以在常数时间内完成 (本原零和子集的个数是 $O \left( 1 \right)$) 的，故总时间复杂度为 $O \left( n^3 \right)$ (常数较小)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+const int N = 540;
+
+int n;
+int a[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+int read() {
+	static char s[14];
+	int i, ret = 0;
+	cin &gt;&gt; s, memcpy(s + 7, s, 7);
+	if (std::count(s, s + 7, *s) == 7) return -1;
+	for (i = 1; i &lt; 7; ++i) if (memcmp(s + i, s + ret, 7) &gt; 0) ret = i;
+	return ret;
+}
+
+namespace solver {
+	int n, b[7];
+	int f[N][N][N / 7];
+
+	int sym_solve(int a, int b, int c) {
+		int mn = min(min(a, b), c), u = 0, v = 0, res = mn; a -= mn, b -= mn, c -= mn;
+		if (!a) u = b, v = c;
+		if (!b) u = c, v = a;
+		if (!c) u = a, v = b;
+		res += mn = min(u, v / 3), u -= mn, v -= mn * 3,
+		res += mn = min(u / 3, v / 2), u -= mn * 3, v -= mn * 2,
+		res += mn = min(u / 5, v), u -= mn * 5, v -= mn;
+		return res + (u + v) / 7;
+	}
+
+	int solve(int a, int b, int c) {
+		if (a &lt; 0 || b &lt; 0 || c &lt; 0) return INT_MIN;
+		int &amp;ret = f[a][b][c / 7];
+		if (~ret) return ret;
+		ret = 0;
+		up(ret, solve(a - 1, b,     c - 2) + 1), // 1 3 3
+		up(ret, solve(a,     b - 2, c - 1) + 1), // 2 2 3
+		up(ret, solve(a - 2, b - 1, c - 1) + 1), // 1 1 2 3
+		up(ret, solve(a - 1, b - 3, c    ) + 1), // 1 2 2 2
+		up(ret, solve(a - 4, b,     c - 1) + 1), // 1 1 1 1 3
+		up(ret, solve(a - 3, b - 2, c    ) + 1), // 1 1 1 2 2
+		up(ret, solve(a,     b - 1, c - 4) + 1), // 2 3 3 3 3
+		up(ret, solve(a - 5, b - 1, c    ) + 1), // 1 1 1 1 1 2
+		up(ret, solve(a - 7, b,     c    ) + 1), // 1 x7
+		up(ret, solve(a,     b - 7, c    ) + 1), // 2 x7
+		up(ret, solve(a,     b,     c - 7) + 1); // 3 x7
+		return f[a][b][c / 7] = ret;
+	}
+
+	int main() {
+		int i, mn, cnt = 0, ans = 0;
+		for (i = n = ::n + 1; i; --i) a[i] = (a[i] - a[i - 1] + 7) % 7;
+		for (i = 1; i &lt;= n; ++i) a[i] &amp;&amp; (++cnt, ++b[a[i]]);
+		ans += mn = min(b[1], b[6]), b[1] -= mn, b[6] -= mn,
+		ans += mn = min(b[2], b[5]), b[2] -= mn, b[5] -= mn,
+		ans += mn = min(b[3], b[4]), b[3] -= mn, b[4] -= mn,
+		memset(f, -1, sizeof f), ***f = 0;
+		switch (!b[1] * 4 + !b[2] * 2 + !b[3]) {
+			case 0: ans += solve(b[1], b[2], b[3]); break; // 123
+			case 1: ans += sym_solve(b[1], b[2], b[4]); break; // 124
+			case 2: ans += solve(b[5], b[3], b[1]); break; // 135
+			case 3: ans += solve(b[4], b[1], b[5]); break; // 145
+			case 4: ans += solve(b[3], b[6], b[2]); break; // 236
+			case 5: ans += solve(b[2], b[4], b[6]); break; // 246
+			case 6: ans += sym_solve(b[6], b[5], b[3]); break; // 356
+			case 7: ans += solve(b[6], b[5], b[4]); break; // 456
+		}
+		return cnt - ans;
+	}
+}
+
+int main() {
+	int i, x, m;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; m;
+	for (i = 0; i &lt; m; ++i) if (~(x = read())) a[n++] = x;
+	cout &lt;&lt; solver::main() &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>$\left\{ 1, 2, 4 \right\}$ 的部分可以使用贪心，具体实现可以见代码。</p>
+		<p><strong>坑2：</strong>开头转化问题时不要忘记去除所有的<em>纯位数</em>。</p>
+	</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4053][CodeforcesGym100299D][CERC2013]Subway</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>一座城市中有 $n$ 个站点，这些站点通过 $m$ 条地铁互相连通。现在要从站点 $s$ 通往站点 $t$，你需要规划一条合适的路径，满足：</p>
+		<ol>
+			<li><p>换乘的次数尽可能少。</p></li>
+			<li><p>在<em>换乘次数最少</em>的条件下，经过的站点尽可能多。</p>
+			<p style="color: red">(ps: 在同一条线路上掉头算作一次换乘，或者说不允许在同一条线路上掉头)</p></li>
+		</ol>
+		<p>求经过不同线路数的最小值 (等于换乘次数 $+ 1$) 和在前一条件下，坐的总站数的最大值 (等于经过不同站点数 $- 1$)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 5$)，表示数据组数。</p>
+		<p>对于每组数据，第一行为空。第二行描述所有站点，格式如下：</p>
+		<pre>Stops: &lt;stop 1&gt;, &lt;stop 2&gt;, ..., &lt;stop <em>n</em>&gt;
+</pre>
+		<p>第三行描述所有线路，格式如下：</p>
+		<pre>Lines: &lt;line 1&gt;, &lt;line 2&gt;, ..., &lt;line <em>m</em>&gt;
+</pre>
+		<p>接下来 $m$ 行，每行描述一条线路经过的站点，格式如下：</p>
+		<pre>&lt;line <em>i</em>&gt; route: &lt;stop<sub><em>i</em>,1</sub>&gt;, &lt;stop<sub><em>i</em>,2</sub>&gt;, ..., &lt;stop<sub><em>i</em>,<em>l<sub>i</sub></em></sub>&gt;
+</pre>
+		<p>最后两行描述起点和终点，格式如下：</p>
+		<pre>
+Johny lives at &lt;origin&gt;
+Michelle lives at &lt;destination&gt;
+</pre>
+		<p>保证 $1 \leq n \leq 3 \times 10^5; 1 \leq m \leq 10^5; \sum l_i \leq 10^6$，线路和站点的名字只包含大小写字母，数字和三种标点符号 (连字符 <code>-</code>，撇号 <code>'</code> 和与号 <code>&amp;</code>)，且长度不超过 $50$。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，设经过不同线路的最小值为 $m$，在前一条件下坐的总站数的最大值为 $M$，则输出如下：</p>
+		<pre>optimal travel from &lt;origin&gt; to &lt;destination&gt;: &lt;<em>m</em>&gt; line[<em>s</em>], &lt;<em>M</em>&gt; minute[<em>s</em>]
+</pre>
+		<p>其中字母 <code>s</code> 是否输出取决于 $m$ 或 $M$ 是否大于 $1$ (即单复数)。</p>
+
+		<h3>题解</h3>
+		<p>经过<em>烦躁又恶心</em>的输入处理后，我们可以建立图论模型。首先，第一问 "使换乘次数 $m$ 尽量少" 是比较简单的，直接考虑从起点开始宽度优先搜索 (bfs) 即可。</p>
+		<p>接下来最大化经过的站点。我们用 $d_i$ 表示从起点 $s$ 到 $i$ 经过不同线路数的最小值 (即第一问 bfs 的结果)，用 $D_i$ 表示从 $s$ 到 $t$ 经过不同站点数的最大值减 $1$ (即第二问的结果)。</p>
+		<p>考虑一条线路 $L = \left[ v_1, v_2, \cdots, v_l \right]$，容易发现 $d_{v_1}, d_{v_2}, \cdots, d_{v_l}$ 的<strong>极差</strong>不超过 $1$ (即最大的减去最小的不超过 $1$)。<span class="text-muted">(反证，如果存在 $\geq 2$ 的，则从其中一个走向另一个会有更优解)</span></p>
+		<p>因此，我们考虑按照 <strong style="color: fuchsia">$d_i$ 从小到大的顺序确定 $D_i$</strong>。首先，对于唯一的 $d_s = 0$，显然 $D_s = 0$。</p>
+		<p>然后，考虑从 $d_i = A$ 到 $A + 1$。考察所有这样的线路 $L = \left[ v_1, v_2, \cdots, v_l \right]$，满足 $\left\{ d_{v_1}, d_{v_2}, \cdots, d_{v_l} \right\} = \left\{ A, A + 1 \right\}$。</p>
+		<p>由于这条线路至少要换乘 $A - 1$ 次才能到达，因此这条线路对所有 $d_i = A$ 的站点的 $D$ 值已经毫无影响了。</p>
+		<p>对于 $d_i = A + 1$ 的站点，这条线路是可以有影响的。假设我们是从站点 $v_j$ ($d_j = A$) 来到这条线路进行换乘的，那么我们有 $$ D_i \geq D_j + \left| i - j \right| $$</p>
+		<p>因此，对于 $d_i = A + 1$，它的转移方程为 $$ D_i = \max_{\substack{1 \leq j \leq l \\ d_j = A}} \left( D_j + \left| i - j \right| \right) \tag 1 \label 1 $$</p>
+		<p>对于 $\eqref 1$ 式的具体实现，我们先将绝对值拆开，化为可分离变量的形式：$$ D_i = \max \left\{ \max_{\substack{1 \leq j &lt; i \\ d_j = A}} \left( \left( D_j - j \right) + i \right), \max_{\substack{i &lt; j \leq l \\ d_j = A}} \left( \left( D_j + j \right) - i \right), \right\} $$</p>
+		<p>不难发现我们<del>连单调队列都不需要</del>，只需要维护 $D_j - j$ 的<strong>前缀最大值</strong>和 $D_j + j$ 的<strong>后缀最大值</strong>即可完成转移。</p>
+		<p>$D_i$ 的转移可以和 bfs 同步完成，这样顺序也不会乱掉。总时间复杂度自然是关于输入长度线性的。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+using std::string;
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 300054, M = 100054, INF = 0x3f3f3f3f;
+
+struct quantity {
+	int m; string u;
+	quantity () {}
+	quantity (int magnitude, const string &amp;unit) : m(magnitude), u(unit) {}
+	friend std::ostream &amp; operator &lt;&lt; (std::ostream &amp;out, const quantity &amp;B) {return out &lt;&lt; B.m &lt;&lt; ' ' &lt;&lt; B.u, B.m &gt; 1 ? out &lt;&lt; 's' : out;}
+};
+
+int n, m, si, ti;
+int que[N], d[N], D[N];
+bool used[M];
+vector c[M], bel[N];
+std::hash &lt;string&gt; hasher;
+std::unordered_map &lt;size_t, int&gt; Q;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+void work() {
+	int i, h, t = 1, w, x, y, L; string buf, bufs, buft; bool last;
+	cin &gt;&gt; buf, assert(buf == "Stops:"),
+	n = m = 0, Q.clear();
+	for (last = false; !last &amp;&amp; cin &gt;&gt; buf; ) {
+		if (!(last = buf.back() != ',')) buf.pop_back();
+		Q.emplace(hasher(buf), ++n);
+	}
+	for (i = 1; i &lt;= n; ++i) bel[i].clear();
+	cin &gt;&gt; buf, assert(buf == "Lines:"), std::getline(cin, buf);
+	for (; ; ++m) {
+		cin &gt;&gt; buf &gt;&gt; buf;
+		if (buf == "lives") break;
+		assert(buf == "route:"), c[m].clear();
+		for (last = false; !last &amp;&amp; cin &gt;&gt; buf; ) {
+			if (!(last = buf.back() != ',')) buf.pop_back();
+			assert(x = Q[hasher(buf)]), bel[x].EB(m), c[m].EB(x);
+		}
+	}
+	cin &gt;&gt; buf, assert(buf == "at");
+	cin &gt;&gt; bufs, si = Q[hasher(bufs)];
+	cin &gt;&gt; buf, assert(buf == "Michelle");
+	cin &gt;&gt; buf, assert(buf == "lives");
+	cin &gt;&gt; buf, assert(buf == "at");
+	cin &gt;&gt; buft, ti = Q[hasher(buft)];
+	/**************** main program begin ****************/
+	memset(d, 63, (n + 1) &lt;&lt; 2), d[si] = 0, *que = si,
+	memset(D, 0, (n + 1) &lt;&lt; 2), memset(used, false, m);
+	for (h = 0; h &lt; t; ++h)
+		for (int j : bel[x = que[h]]) if (!used[j]) {
+			used[j] = true, L = c[j].size();
+			for (int y : c[j]) if (d[y] &gt;= INF) d[y] = d[x] + 1, que[t++] = y;
+			for (w = -INF, i = 0; i &lt; L; ++i) d[y = c[j][i]] == d[x] ? up(w, D[y] - i) : up(D[y], w + i);
+			for (w = -INF; i &gt; 0; ) d[y = c[j][--i]] == d[x] ? up(w, D[y] + i) : up(D[y], w - i);
+		}
+	/**************** main program end ****************/
+	cout &lt;&lt; "optimal travel from " &lt;&lt; bufs &lt;&lt; " to " &lt;&lt; buft &lt;&lt; ": " &lt;&lt; quantity(d[ti], "line") &lt;&lt; ", " &lt;&lt; quantity(D[ti], "minute") &lt;&lt; '\n';
+}
+
+int main() {
+	int T;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于字符串总长度较长，因此确定性的 Trie 树在此题中不太适合 (空间较大)，而使用字符串 Hash 是一个不错的选择。但是模数要选择 $2^{64}$ 级别的，因为 $n$ 有 $3 \times 10^5$ 级别。</p>
+		<p><strong>坑2：</strong>多组数据时记得清空 <code>std::unordered_map</code>, <code>std::vector</code> 等相关容器，避免运行超时或数组溢出。</p>
+	</body>
+</html>
