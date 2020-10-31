@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4080][lg6900][CodeforcesGym101221I][WF2014]Sensor Network</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定平面上 $n$ 个点 $\left( x_i, y_i \right)$，你需要选取尽可能多的点，使得这些点两两 Euclid 距离不超过 $d$。</p>
+		<p>求选取的点的数量的最大值，并给出一组构造。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, d$ ($n \leq 100; d \leq 10000$)，分别表示点的个数和距离限制。</p>
+		<p>接下来 $n$ 行，每行两个整数 $x_i, y_i$ ($-10000 \leq x_i, y_i \leq 10000$)，描述第 $i$ 个点的坐标。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $m$，表示选取的点的数量的最大值。</p>
+		<p>第二行输出 $m$ 个不同的 $1 \sim n$ 中的整数，依次表示选取的点 (在输入中) 的标号。</p>
+		<p>如果有多组点数最多的解，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>考虑建立图论模型：如果两个点的距离 $&gt; d$，则我们在其中连接一条边，设最终得到图 $G$。</p>
+		<p>于是问题就转化了<strong>求 $G$ 的一个最大独立集</strong>。</p>
+		<p><del>完了！最大独立集可是 NPC 问题啊！那可怎么办呢？</del></p>
+		<p>不用怕啊，最大独立集是 NPC 并不代表原问题是 NPC 啊，因为我们归约的方向是向难走的。我们或许考虑可以利用一下 <em>Euclid 距离</em>的一些性质。</p>
+		<p>设点数最多的点集为 $S$，不妨设 $\left| S \right| \geq 2$。考虑 $S$ 中距离最大的点对 $A, B$，设 $\left| A B \right| = R$。于是 $S$ 中剩下的所有点到 $A, B$ 的距离都不能超过 $R$，于是这些点一定在一个纺锤形区域中，如下图中的<span style="color: teal">青色</span>区域：</p>
+		<img class="center-block" src="uploads/276.png" alt="纺锤形区域" />
+		<p>设这个纺锤形区域中的所有点为 $K$。则现在只需要考虑在 $K$ 中选取尽可能多的点，使得两两距离 $\leq d$，即<strong style="color: teal">求 $K$ 导出的子图 $G \left[ K \right]$ 的最大独立集</strong>。</p>
+		<p>这个子图 $G \left[ K \right]$ 有什么性质呢？不难发现，Ⅰ 中的任意两个点的距离都 $\leq R$，从而 $\leq d$！也就是说，$G \left[ K \right]$ 中所有的边都是从 Ⅰ 区域的点连向 Ⅱ 区域的，因此，<span style="color: red">$G \left[ K \right]$ 一定是一个二分图</span>！</p>
+		<p>而二分图的最大独立集，是一个经典的问题，首先将其转化为最小点覆盖的补集，然后使用 König 定理求出一组最小点覆盖。</p>
+		<p>因此，我们就得到了解决整个问题的一个算法：</p>
+		<ol>
+			<li><p>枚举 $A, B$ 为集合中最远的两个点。</p></li>
+			<li><p>取所有满足 $\max \left\{ \left| P A \right|, \left| P B \right| \right\} \leq \left| A B \right|$ 的点 $P$，取这些点在 $G$ 中的导出子图。</p></li>
+			<li><p>由上述分析知该图一定是二分图，因此求出它的一组最大独立集，更新答案。</p></li>
+		</ol>
+		<hr />
+		<p>时间复杂度 $O \left( n^4 \right)$，常数较小。当然可以通过剪枝与适当的枚举顺序 (按照 $\left| A B \right|$ 从大到小的顺序枚举点对)，期望时间复杂度就在 $O \left( n^3 \right)$ 左右。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 108;
+typedef std::bitset &lt;N&gt; bitset;
+
+int n, d, V = 0, ans = 1;
+int x[N], y[N], dist2[N][N];
+int ps[N], col[N], match[N];
+bitset used, G[N];
+pr all[N * N];
+int best[N];
+
+void dye(int x) {
+	for (int y = G[x]._Find_first(); y != N; y = G[x]._Find_next(y))
+		if (!~col[y]) col[y] = !col[x], dye(y);
+}
+
+bool augment(int x) {
+	for (int y = G[x]._Find_first(); y != N; y = G[x]._Find_next(y))
+		if (!used.test(y) &amp;&amp; (used.set(y), !~match[y] || augment(match[y])))
+			return match[x] = y, match[y] = x, true;
+	return false;
+}
+
+void konig(int x) {
+	for (int y = G[x]._Find_first(); y != N; y = G[x]._Find_next(y))
+		if (!used.test(y)) used.set(y), konig(match[y]);
+}
+
+void work(int u, int v) {
+	int i, j; V = 0;
+	for (i = 0; i &lt; n; ++i)
+		if (i != u &amp;&amp; i != v &amp;&amp; dist2[u][i] &lt;= dist2[u][v] &amp;&amp; dist2[i][v] &lt;= dist2[u][v])
+			ps[V++] = i;
+	if (2 + V &lt;= ans) return;
+	for (i = 0; i &lt; V; ++i)
+		for (G[i].reset(), j = 0; j &lt; V; ++j) G[i].set(j, dist2[ps[i]][ps[j]] &gt; d);
+	memset(col, -1, V &lt;&lt; 2), memset(match, -1, V &lt;&lt; 2);
+	for (i = 0; i &lt; V; ++i) if (!~col[i]) col[i] = 0, dye(i);
+	for (i = 0; i &lt; V; ++i) if (col[i]) used.reset(), augment(i);
+	used.reset();
+	for (i = 0; i &lt; V; ++i) if (col[i] &amp;&amp; !~match[i]) konig(i);
+	for (i = 0; i &lt; V; ++i) if (col[i] &amp;&amp; ~match[i] &amp;&amp; !used.test(match[i])) used.set(i);
+	if (2 + V - (int)used.count() &lt;= ans) return;
+	best[0] = u, best[1] = v, ans = 2;
+	for (i = 0; i &lt; V; ++i) if (!used.test(i)) best[ans++] = ps[i];
+}
+
+int main() {
+	int i, j, m = 0;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; d, d *= d;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; x[i] &gt;&gt; y[i];
+	for (i = 0; i &lt; n; ++i)
+		for (j = 0; j &lt; n; ++j) dist2[i][j] = (x[i] - x[j]) * (x[i] - x[j]) + (y[i] - y[j]) * (y[i] - y[j]);
+	for (i = 0; i &lt; n; ++i)
+		for (j = i + 1; j &lt; n; ++j)
+			if (dist2[i][j] &lt;= d) all[m++] = pr(-dist2[i][j], i | j &lt;&lt; 8);
+	std::sort(all, all + m);
+	for (i = 0; i &lt; m; ++i) work(all[i].second &amp; 255, all[i].second &gt;&gt; 8);
+	cout &lt;&lt; ans &lt;&lt; '\n', std::sort(best, best + ans);
+	for (i = 0; i &lt; ans; ++i) cout &lt;&lt; best[i] + 1 &lt;&lt; (i == ans - 1 ? '\n' : ' ');
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>使用 König 定理时要区分二分图的左部和右部，因此需要先对原图进行一次 $2-$染色。</p>
+		<p><strong>坑2：</strong>可以使用剪枝和适当的枚举顺序，如有必要可以加一点随机化来减少期望时间复杂度。</p>
+	</body>
+</html>

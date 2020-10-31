@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg7037][CodeforcesGym101142I]Gangsters in Central City</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个顶点的有根树，其中 $1$ 为根节点。初始时每个顶点都是白色的。</p>
+		<p>现在有 $q$ 次操作，每次操作可以改变一个<strong>叶节点</strong>的颜色 (白 &#8596; 黑)。在每次操作后，你需要：</p>
+		<p>求出最少割断多少条边，才能使得 $1$ 号点与所有黑色顶点都不连通。并求出，<strong>在满足割断的边数最少的情况下</strong>，与 $1$ 号点不连通的<strong>白色叶节点</strong>数的最小值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($2 \leq n \leq 10^5; 1 \leq q \leq 10^5$)，分别表示树的顶点数和操作的个数。</p>
+		<p>第二行包含 $n - 1$ 个正整数 $p_2, p_3, \cdots, p_n$ ($1 \leq p_i &lt; i$)，$p_i$ 表示 $i$ 的父节点标号。</p>
+		<p>最后 $q$ 行，每行描述一次操作。格式两种：<code>+ <em>v</em></code> 表示将顶点 $v$ 变成黑色，<code>- <em>v</em></code> 表示将顶点 $v$ 变成白色。保证 $v$ 是叶节点，且操作是合法的 (即 <code>+</code> 操作保证顶点 $v$ 之前是白色的，<code>-</code> 操作保证顶点 $v$ 之前是黑色的)。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每次操作，输出一行，包含两个整数，分别表示该操作结束后「欲使 $1$ 与所有黑色顶点不连通所需割断的边数的最小值」和在前一条件下「与 $1$ 不连通的白色叶节点数的最小值」。</p>
+
+		<h3>题解</h3>
+		<p>设 $1$ 号节点的子节点为 $c_1, c_2, \cdots, c_k$，以它们为根的子树分别为 $S_1, S_2, \cdots, S_k$。</p>
+		<p>不难发现，在这 $k$ 个子树 $S_1, S_2, \cdots, S_k$ 中的问题是互相独立的，因此我们只需将这 $k$ 个子树的答案依次相加即可，因此现在假设只有一棵子树的情形。</p>
+		<p>对于一棵子树 $S$ 的情形，割断的边数的最小值显然是 $1$，因为只需将原树的根到这棵子树的根的路径 $\left( 1, s \right)$ 切断即可让 $1$ 和这棵子树不连通。</p>
+		<p>因此问题转化为对于一棵子树 $S$，你需要割掉一条边使得 $1$ 和所有黑色顶点都不连通，并最小化被 "割掉" 的白色叶节点数。</p>
+		<p>设被割的这条边为 $e = \left( v, p_v \right)$ ($v \in S$)，则将 $e$ 割掉后 $1$ 与 $b$ 不连通当且仅当 <em style="color: blue">$v$ 是 $b$ 的祖先节点</em>。</p>
+		<p>因此，设 $b_1, b_2, \cdots$ 为所有黑色叶节点，则 $\left( v, p_v \right)$ 满足条件 (即割掉一条边使得不连通) 当且仅当 <strong style="color: fuchsia">$v$ 是 $b_1, b_2, \cdots$ 的一个公共祖先，等价地，$v$ 是 $\operatorname{LCA} \left( b_1, b_2, \cdots \right)$ 的祖先</strong>。</p>
+		<p>其次，我们又需要 $v$ 子树中白色叶节点数的最小值，由于所有黑色叶节点都在 $v$ 子树中，因此其实我们要最小化的就是<strong>以 $v$ 为根的子树中叶节点数的最小值</strong>。而 $v$ 又要求是 $\operatorname{LCA} \left( b_1, b_2, \cdots \right)$ 的祖先，那只能在 $\color {red} {\operatorname{LCA} \left( b_1, b_2, \cdots \right)}$ 时取最小值了。</p>
+		<p>此时的答案也很好求，因为一棵子树中的叶节点数可以通过一遍 dfs 预处理的。因此最后的任务就是，在可以加删黑点的情况下快速维护 $\operatorname{LCA} \left( b_1, b_2, \cdots \right)$。</p>
+		<p>由 dfs 序的性质，设这些点按照 dfs 序从小到大排序为 $b'_1, b'_2, \cdots, b'_m$，则有 $$ \operatorname{LCA} \left( b'_1, b'_2, \cdots, b'_m \right) = \operatorname{LCA} \left( b'_1, b'_m \right) $$ (证明不难，留作练习)</p>
+		<p>因此我们只需要使用 <code>std::set</code> (或可删除的堆) 维护这些黑点的 dfs 序最小值和最大值，这样就转化为了求两点 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 的问题了。于是整个问题就可以在 $O \left( n + q \log n \right)$ 时间内解决。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+using std::cin;
+using std::cout;
+
+typedef std::set &lt;int&gt; set;
+const int N = 100054;
+
+int n, q, n_tr, n_ver;
+int p[N], fc[N], nc[N];
+int cnt = 0, o[N], id[N], size[N], size_o[N];
+int st[18][N], top[N], ans[N];
+set s[N];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline void link(int x, int px) {p[x] = px, nc[x] = fc[px], fc[px] = x;}
+
+void dfs(int x) {
+	o[++cnt] = x, id[x] = cnt, st[0][cnt - 1] = id[p[x]], size[x] = !fc[x];
+	for (int y = fc[x]; y; y = nc[y]) dfs(y), size[x] += size[y];
+}
+
+inline int LCA(int x, int y) {
+	if (x == y) return x;
+	if (x &gt; y) std::swap(x, y);
+	int c = lg2(y - x);
+	return min(st[c][x], st[c][y - (1 &lt;&lt; c)]);
+}
+
+void build_sparse_table() {
+	int *f, *g = *st, i, j, k = n - 1;
+	for (j = 0; 1 &lt;&lt; (j + 1) &lt; n; ++j) {
+		f = g, g = st[j + 1], k -= 1 &lt;&lt; j;
+		for (i = 1; i &lt;= k; ++i)
+			g[i] = min(f[i], f[i + (1 &lt;&lt; j)]);
+	}
+}
+
+inline void set_ans(int id, int x) {if (ans[id] != x) n_tr += !ans[id] - !x, n_ver += size_o[x] - size_o[ans[id]], ans[id] = x;}
+
+inline void insert(int id, int x) {
+	set &amp;S = s[id];
+	S.emplace(x), set_ans(id, LCA(*S.begin(), *S.rbegin()));
+}
+
+inline void erase(int id, int x) {
+	set &amp;S = s[id];
+	if (S.erase(x), S.empty()) return set_ans(id, 0);
+	set_ans(id, LCA(*S.begin(), *S.rbegin()));
+}
+
+int main() {
+	int i, x, tot = 0; char op;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; q;
+	for (i = 2; i &lt;= n; ++i) cin &gt;&gt; x, link(i, x), top[i] = (x == 1 ? i : top[x]);
+	dfs(1), build_sparse_table();
+	for (i = 1; i &lt;= n; ++i) size_o[i] = size[o[i]];
+	for (; q; --q) {
+		if (cin &gt;&gt; op &gt;&gt; x, op == 43) ++tot, insert(top[x], id[x]);
+		else --tot, erase(top[x], id[x]);
+		cout &lt;&lt; n_tr &lt;&lt; ' ' &lt;&lt; n_ver - tot &lt;&lt; '\n';
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 等树上操作时记得分清是原编号还是 dfs 序。</p>
+		<p><strong>坑2：</strong>使用 <code>std::set</code> 或堆维护时存 dfs 序会相对方便一些 (可以直接比较，效率略高)。</p>
+	</body>
+</html>

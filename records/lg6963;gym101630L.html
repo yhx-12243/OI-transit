@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6963][CodeforcesGym101630L][NEERC2017]Laminar Family</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style>
+			dfn {font-weight: bold; color: fuchsia}
+		</style>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个顶点的树 $T$ 和树上的 $m$ 条路径 $u_i \leadsto v_i$，设第 $i$ 条路径 $u_i \leadsto v_i$ 经过的点的集合为 $F_i$ (包含 $u_i, v_i$)。</p>
+		<p>你需要判断 $\left\{ F_1, F_2, \cdots, F_m \right\}$ 是否满足<dfn>嵌套关系 (Nested relation)</dfn>，即对于 $\forall 1 \leq i, j \leq m; i \neq j$，总有 $F_i \subseteq F_j, F_j \subseteq F_i, F_i \cap F_j = \varnothing$ 三者<strong>至少一个</strong>成立。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 10^5$)，表示树的顶点个数和路径的条数。</p>
+		<p>接下来 $n - 1$ 行，每行两个正整数 $u_i, v_i$ ($1 \leq u_i &lt; v_i \leq n; u_i \neq v_i$)，描述树上的一条边。保证这 $n - 1$ 条边恰好构成一棵树。</p>
+		<p>最后 $m$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq n$)，描述一条路径 $u_i \leadsto v_i$ 及其对应的集合 $F_i$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个字符串，如果 $\left\{ F_i \right\}_{1 \leq i \leq m}$ 满足嵌套关系，则为 <code>Yes</code>，否则为 <code>No</code>。</p>
+
+		<h3>题解</h3>
+		<p>考虑一个满足嵌套关系的集簇 $\mathbf F = \left\{ F_1, F_2, \cdots, F_m \right\}$，不妨设 $\left| F_1 \right| \geq \left| F_2 \right| \geq \cdots \geq \left| F_m \right|$。则对于 $i &lt; j$，只可能有 $F_j \subseteq F_i$ 或 $F_i \cap F_j = \varnothing$。</p>
+		<p>因此，对于一个固定的 $j$，集合 $F_1, F_2, \cdots, F_{i-1}$ 中<strong>要么完全包含 $F_j$，要么和 $F_j$ 不交</strong>。</p>
+		<p>从而对于 $x, y \in F_j$，$x, y$ 在 $F_1, F_2, \cdots, F_{j-1}$ 的从属关系是一致的 (即 $\forall i &lt; j, x \in F_i \Leftrightarrow y \in F_i$)，某种意义上来说可以看成 $x$ 和 $y$ 是<strong>等价的</strong>。</p>
+		<p>于是考虑给每个元素 $x$ 一个权值 $w_x$，来刻画这种等价关系，即，$x \sim y \Leftrightarrow w_x = w_y$。</p>
+		<p>事实上，我们可以令 $w_x$ 为当前考虑过的集合 ($F_1, F_2, \cdots, F_{i-1}$) 中，最后一个包含 $x$ 的。那么，此时 <strong style="color: green">$x \sim y$ 的充分必要条件是 $w_x = w_y$</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>必要性显然。考虑充分性，设 $w_x = w_y$，则考虑 $i &lt; j$，若 $x, y$ 在 $F_i$ 的从属关系不一致，不妨设 $x \in F_i \wedge y \notin F_i$。</p>
+				<p>则由 $x \in F_i$ 知 $w_x = w_y &gt; i$，设 $k = w_x$，则 $x, y \in F_k$。</p>
+				<p>这与 $F_k \subseteq F_i$ 和 $F_i \cap F_k = \varnothing$ 都是矛盾的，因此假设不成立，从而 $x \sim y$。</p>
+			</div>
+		</div>
+		<p>因此我们得到了一个算法：</p>
+		<ol>
+			<li><p>依次扫描 $i = 1, 2, \cdots, n$，检查 $F_i$ 中的所有元素 $x$ 的 $w_x$ 是否全部相同。</p></li>
+			<li><p>如果不一致，说明 $\left\{ F_i \right\}_{1 \leq i \leq m}$ 不满足嵌套关系，<em>直接返回</em>。</p></li>
+			<li><p>否则，对于 $\forall x \in F_i$，令 $w_x \gets i$。</p></li>
+		</ol>
+		<p>而对于这道题中，保证 $F_i$ 为树上一条链的点的集合，因此我们只需要判断树上的一条链的所有权值是否相同，以及链上的赋值。于是可以使用树链剖分 + 线段树解决。</p>
+		<p>对于 $F_i$ 的大小 $\left| F_i \right|$，它等于两端点的距离再加一 ($\operatorname{dist} \left( u_i, v_i \right) + 1$)，也容易求得。</p>
+		<p>总时间复杂度 $O \left( n + m \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef std::tuple &lt;int, int, int&gt; tup;
+const int N = 100054, M = N * 2;
+const auto _ = std::ignore;
+
+int n, m, E = 0, stamp = 0;
+int to[M], first[N], next[M];
+int p[N], dep[N], size[N];
+int cnt = 0, id[N], eid[N], prf[N], top[N];
+tup path[N];
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs_wt(int x) {
+	int i, y, &amp;z = prf[x]; size[x] = !next[first[x]];
+	for (i = first[x]; i; i = next[i])
+		if ((y = to[i]) != p[x]) {
+			p[y] = x, dep[y] = dep[x] + 1;
+			dfs_wt(y), size[x] += size[y];
+			size[y] &gt; size[z] ? z = y : 0;
+		}
+}
+
+void dfs_hld(int x, int r) {
+	int i, y; id[x] = ++cnt, top[x] = r;
+	if (prf[x]) dfs_hld(prf[x], r);
+	for (i = first[x]; i; i = next[i])
+		if (!top[y = to[i]]) dfs_hld(y, y);
+	eid[x] = cnt;
+}
+
+int LCA(int u, int v) {
+	if (id[u] &lt; id[v]) std::swap(u, v);
+	if (id[u] &lt;= eid[v]) return v;
+	for (; id[u] &gt; id[v]; u = p[top[u]]);
+	return u;
+}
+
+inline int dist(int u, int v) {return dep[u] + dep[v] - 2 * dep[LCA(u, v)];}
+
+namespace ST {
+	#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+	int x[262144];
+
+	int work(int id, int L, int R, int ql, int qr, int v) {
+		if (ql &lt;= L &amp;&amp; R &lt;= qr) return std::swap(x[id], v), v;
+		segc, l, r, ret;
+		if (~x[id]) x[lc] = x[rc] = x[id];
+		if (qr &lt;= M) ret = work(lc, L, M, ql, qr, v);
+		else if (ql &gt; M) ret = work(rc, M + 1, R, ql, qr, v);
+		else
+			l = work(lc, L, M, ql, M, v), r = work(rc, M + 1, R, M + 1, qr, v),
+			ret = l == r ? l : -1;
+		return x[id] = x[lc] == x[rc] ? x[lc] : -1, ret;
+	}
+}
+
+bool work(int u, int v) {
+	int x = top[u], y = top[v], c, A = -1; ++stamp;
+	for (; x != y; u = p[x], x = top[u]) {
+		if (dep[x] &lt; dep[y]) std::swap(u, v), std::swap(x, y);
+		c = ST::work(1, 1, n, id[x], id[u], stamp);
+		if (!~c || (~A &amp;&amp; A != c)) return false;
+		A = c;
+	}
+	if (dep[u] &gt; dep[v]) std::swap(u, v);
+	c = ST::work(1, 1, n, id[u], id[v], stamp);
+	return ~c &amp;&amp; (!~A || A == c);
+}
+
+int main() {
+	int i, u, v;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; m;
+	for (i = 1; i &lt; n; ++i) cin &gt;&gt; u &gt;&gt; v, addedge(u, v);
+	dfs_wt(1), dfs_hld(1, 1);
+	for (i = 0; i &lt; m; ++i) cin &gt;&gt; u &gt;&gt; v, path[i] = tup(-dist(u, v), u, v);
+	std::sort(path, path + m);
+	for (i = 0; i &lt; m; ++i) {
+		std::tie(_, u, v) = path[i];
+		if (!work(u, v)) return cout &lt;&lt; "No\n", 0;
+	}
+	return cout &lt;&lt; "Yes\n", 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>线段树的查询和修改可以合并在一起，但注意返回值和赋值的先后顺序问题。</p>
+		<p><strong>坑2：</strong>开头不要忘记将所有集合按照大小 (即路径长度) 排序。</p>
+	</body>
+</html>

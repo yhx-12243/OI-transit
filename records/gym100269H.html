@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym100269H]Heavy Chain Clusterization</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定 $n$ 个长度为 $\geq k$ 的字符串 $s_1, s_2, \cdots, s_k$，你需要将它们分为<strong>尽可能少</strong>的组，使得每一组满足<strong>下列条件之一</strong>：</p>
+		<ul>
+			<li>该组中所有字符串的最长公共前缀 (<abbr title="Longest Common Prefix, 最长公共前缀">LCP</abbr>) $\geq k$。</li>
+			<li>该组中所有字符串的最长公共后缀 (<abbr title="Longest Common Suffix, 最长公共后缀">LCS</abbr>) $\geq k$。</li>
+		</ul>
+		<p>求分成的组数的最小值，并给出一组构造。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, k$ ($n \leq 5000; k \leq 550$)，表示字符串的个数和要求相等的前后缀长度。</p>
+		<p>接下来 $n$ 行，每行一个由大写英文字母构成字符串 $s_i$ ($k \leq \left| s_i \right| \leq 550$)。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出一个整数 $g$，表示分成的组数的最小值。</p>
+		<p>接下来 $g$ 行，每行第一个整数 $m_i$ 表示第 $i$ 组的大小，紧跟 $m_i$ 个整数表示该组中所有字符串 (在输入中) 的编号，从 $1$ 开始。</p>
+		<p>你可以以任意顺序排列这些组和 (组内) 字符串，如果有多组解，输出任意一组均可。</p>
+
+		<h3>题解</h3>
+		<p>首先，显然一个串只有它的 $k-$前缀和 $k-$后缀是有用的，因此我们可以用类似字符串 Hash 的方法就一个字符串转化成一个二元组 $\left( a_i, b_i \right)$，满足 $\operatorname{LCP} \left( s_i, s_j \right) \geq k \Leftrightarrow a_i = a_j, \operatorname{LCS} \left( s_i, s_j \right) \geq k \Leftrightarrow b_i = b_j$。</p>
+		<p>于是每一个分组就需要满足：<strong style="color: orange">该组中所有的 $a_i$ 均相同，或该组中所有的 $b_i$ 均相同</strong>。</p>
+		<p>考虑建立图论模型，由于每个字符串是二元组 $\left( a_i, b_i \right)$，因此可以看成一条连接 $a_i, b_i$ 的<strong>边</strong>。</p>
+		<p>则所有 $a_i$ 顶点都在左边，$b_i$ 顶点都在右边，得到 (平凡) 二分图 $G$。然后，考虑的将所有 $a_i$ 相同的顶点缩在一起，$b_i$ 相同的顶点也缩在一起。这样就可以得到一个点数更少的二分图，它可以是重图。</p>
+		<p>现在，考虑一个分组，由条件知其中的所有 $a_i$ 均相同，或所有 $b_i$ 均相同。翻译成图论语言就是，<strong style="color: fuchsia">一个 (边的) 分组中的所有边都有一个公共端点</strong>。</p>
+		<p>因此我们可以使用这个公共端点来代替这个分组。那么这些端点的集合有什么性质呢？由于每条边都要在一个分组中，因此由定义知这些点构成了该二分图的一个<strong>点覆盖</strong>。</p>
+		<p>也就是说，我们需要求出这个二分图的<strong>最小点覆盖</strong>，然后取对应的组，就可以还原出原问题的一组解了。</p>
+		<p>二分图的最小点覆盖可以通过 König 定理 (的算法) 求解。由于图的点数和边数都是 $O \left( n \right)$ 级别的，因此时间复杂度 $O \left( \operatorname{Hashing} \left( n, k \right) + n^2 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+using std::string;
+
+typedef std::vector &lt;int&gt; vector;
+typedef std::pair &lt;size_t, size_t&gt; phh;
+typedef std::pair &lt;size_t, int&gt; phi;
+const int N = 5054;
+
+int n, K, nL, nR;
+vector G[N], cluL[N], cluR[N];
+int belL[N], belR[N];
+int L[N], R[N];
+bool used[N], covL[N], covR[N];
+std::hash &lt;string&gt; hasher;
+phh a[N];
+
+namespace DC {
+	int F[N]; phi D[N];
+
+	int Discretize(int n) {
+		int i, cnt = 0; std::sort(D, D + n);
+		for (i = 0; i &lt; n; ++i)
+			F[D[i].second] = (i &amp;&amp; D[i].first == D[i - 1].first ? cnt - 1 : (D[cnt] = D[i], cnt++));
+		return cnt;
+	}
+}
+
+bool dfs(int x) {
+	for (int y : G[x])
+		if (!used[y] &amp;&amp; (used[y] = true, !L[y] || dfs(L[y]))) return L[y] = x, R[x] = y, true;
+	return false;
+}
+
+void konig(int x) {
+	for (int y : G[x])
+		if (!covR[y]) covR[y] = true, konig(L[y]);
+}
+
+inline bool check_used(int x) {return used[x];}
+
+int main() {
+	int i, M = 0; string s;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; K;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; s, a[i] = phh(hasher(s.substr(0, K)), hasher(s.substr(s.size() - K)));
+	for (i = 0; i &lt; n; ++i) DC::D[i] = phi(a[i].first, i);
+	nL = DC::Discretize(n);
+	for (i = 0; i &lt; n; ++i) cluL[ belL[i] = DC::F[i] + 1 ].EB(i + 1);
+	for (i = 0; i &lt; n; ++i) DC::D[i] = phi(a[i].second, i);
+	nR = DC::Discretize(n);
+	for (i = 0; i &lt; n; ++i) cluR[ belR[i] = DC::F[i] + 1 ].EB(i + 1);
+	for (i = 0; i &lt; n; ++i) G[belL[i]].EB(belR[i]);
+
+	for (i = 1; i &lt;= nL; ++i) memset(used, 0, nR + 1), M += dfs(i);
+	for (i = 1; i &lt;= nL; ++i) if (!R[i]) konig(i);
+	cout &lt;&lt; M &lt;&lt; '\n';
+
+	memset(used, 0, n + 1);
+	for (i = 1; i &lt;= nL; ++i)
+		if ((covL[i] = R[i] &amp;&amp; !covR[R[i]])) {
+			cluL[i].erase(std::remove_if(cluL[i].begin(), cluL[i].end(), check_used), cluL[i].end());
+			cout &lt;&lt; cluL[i].size();
+			for (int x : cluL[i]) used[x] = true, cout &lt;&lt; ' ' &lt;&lt; x;
+			cout &lt;&lt; '\n';
+		}
+	for (i = 1; i &lt;= nR; ++i)
+		if (covR[i]) {
+			cluR[i].erase(std::remove_if(cluR[i].begin(), cluR[i].end(), check_used), cluR[i].end());
+			cout &lt;&lt; cluR[i].size();
+			for (int x : cluR[i]) used[x] = true, cout &lt;&lt; ' ' &lt;&lt; x;
+			cout &lt;&lt; '\n';
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>最终求出来的解中一条边 (一个字符串) 可能会属于多个分组 (即它的两个端点都在最小点覆盖中)，此时需要将它从一个分组中去掉，不要输出两次。</p>
+		<p><strong>坑2：</strong>字符串 Hash 时注意模数不要太小。</p>
+	</body>
+</html>

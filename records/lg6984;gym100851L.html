@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6984][CodeforcesGym100851L][NEERC2015]Landscape Improved</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张 $N$ 列的 "直方图" (即无限行 $N$ 列的方格表，满足每列中最下面的若干个小方格被标记)，用 $\left( i, j \right)$ 表示左数第 $i$ 列<strong>下数</strong>第 $j$ 行的小方格。</p>
+		<p>设直方图中第 $i$ 列的高度 (即第 $i$ 列被标记的格子数目) 为 $h_i$。</p>
+		<p>你现在可以进行不超过 $V$ 次 "扩展" 操作，每次 "扩展" 操作如下：</p>
+		<ul>
+			<li>若 $\left( i - 1, j - 1 \right), \left( i - 1, j \right), \left( i - 1, j + 1 \right)$ 均存在且被标记，则可标记格子 $\left( i, j \right)$。</li>
+		</ul>
+		<p>如下图，它通过 $4$ 次操作将 (高度为 $4$ 的) 直方图的高度变味了 $5$。</p>
+		<img class="center-block" src="uploads/275.png" alt="'扩展' 操作" />
+		<p>求在不超过 $V$ 次操作后，直方图中最高一列的高度 $\max\limits_{1 \leq i \leq n} h'_i$ <strong>的最大值</strong>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, V$ ($1 \leq n \leq 10^5; 0 \leq V \leq 10^{18}$)，分别表示方格表 (直方图) 的列数和 "扩展" 操作使用次数的上限。</p>
+		<p>第二行包含 $n$ 个正整数 $h_1, h_2, \cdots, h_n$ ($1 \leq h_i \leq 10^9$)，依次表示方格表 (直方图) 中每一列的高度。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示在不超过 $V$ 次操作后，直方图最高一列的高度的最大值。</p>
+
+		<h3>题解</h3>
+		<p>给定操作次数求高度并不太方便，而给定高度求操作次数 (添加的格子数的最小值) 相对容易些，因此考虑二分答案，转化为 (对偶问题) 对于给定的高度 $y$，为了到达这个高度至少需要再标记多少个格子，或说明无法到达这个高度。</p>
+		<p class="text-muted">(显然答案具有单调性，因此可以二分)</p>
+		<p>对于给定的高度 $y$，我们需要求出达到这个高度所需添加的格子数量的最小值。首先考虑枚举是哪一列达到这个高度的，不妨设为第 $c$ 列。</p>
+		<p>可以不妨假设 $y &gt; \max\limits_{1 \leq i \leq n} h_i$，因此第 $c$ 列的初始高度没有达到 $h$，由放置的规则可知第 $c - 1, c, c + 1$ 列的最终高度都要 $\geq y - 1$。</p>
+		<p>此时，如果第 $c - 1$ 列的高度 $h_{c - 1} &lt; y - 1$，那么 $\left( c - 1, y - 1 \right)$ 也需要被标记，由规则可知第 $c - 2$ 列的最终高度要 $\geq y - 2$。</p>
+		<p>这样以此类推，直到找到一个 $l$，满足 $h_{c - l} \geq y - l$，然后我们就不用向左递推了，从这一个基点开始 "搭积木" 即可。</p>
+		<p>同理，我们还能找到一个 $r$ 满足 $h_{c + r} \geq y - r$。于是整个策略就是<span style="color: fuchsia">将区间 $\left( l, r \right)$ 填成阶梯状</span>。所需的操作次数也不难计算，它就等于 $$ \sum_{i = \color {red} 0}^l \left( y - i - h_{c - i} \right) + \sum_{i = \color {red} 1}^r \left( y - i - h_{c + i} \right) \tag 1 \label 1 $$</p>
+		<p>即两个等差数列求和加上一个 $h$ 的区间和。因此剩下的任务就是如何<strong>对每个 $c$ 找到与之对应的 $l$ 和 $r$</strong>。</p>
+		<hr />
+		<p>由对称性只需考虑 $l$。那么，对一个 $c$，设 $d \left( c \right) = c - l$，则 $d$ 需要满足 $$ h_d \geq y - c + d $$</p>
+		<p>因为 $d$ 出现了两次而 $c$ 只出现一次，因此考虑使用刷表的思想，可知，对于固定的 $d$，某个 $c$ 可以使用它，当且仅当 $$ c \geq d + y - h_d $$</p>
+		<p>于是我们只需要枚举 $d$，然后可知它能更新的 $c$ 是一段<strong>后缀</strong>。于是 $d \left( c \right)$ 关于 $c$ 单调递增，只需要处理出关键点后做一遍前缀 $\max$ 即可。</p>
+		<p>对于 $r$ 的情形也是一样的。也就是说我们可以在 $O \left( n \right)$ 时间内求出给定高度 $y$ 所需的代价。容易发现答案一定介于区间 $\left[ \max\limits_{1 \leq i \leq n} h_i, \max\limits_{1 \leq i \leq n} h_i + \dfrac n2 \right]$ 中，因此二分的次数为 $O \left( \log n \right)$，也就是说总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 100054;
+
+int n, h[N];
+int L[N], R[N];
+ll V, H[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline ll arith(int l, int r) {return (l + r) * (r - l + 1ll) / 2;}
+
+inline bool check(int y) {
+	int i;
+	memset(L, 0, (n + 2) &lt;&lt; 2), memset(R, 63, (n + 2) &lt;&lt; 2);
+	for (i = 1; i &lt;= n; ++i) {
+		up(L[i], L[i - 1]);
+		if (i + y - h[i] &lt;= n) L[i + y - h[i]] = i;
+	}
+	for (i = n; i; --i) {
+		down(R[i], R[i + 1]);
+		if (i &gt; y - h[i]) R[i - y + h[i]] = i;
+	}
+	for (i = 1; i &lt;= n; ++i)
+		if (0 &lt; L[i] &amp;&amp; R[i] &lt;= n &amp;&amp; H[R[i] - 1] - H[L[i]] + V
+			&gt;= arith(y - (i - L[i]) + 1, y) + arith(y - (R[i] - i) + 1, y - 1)) return true;
+	return false;
+}
+
+int main() {
+	int i, L = 0, R, M;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; V;
+	for (i = 1; i &lt;= n; ++i) cin &gt;&gt; h[i], H[i] = H[i - 1] + h[i], up(L, h[i]);
+	for (R = L + (n - 1) / 2; L &lt; R; check(M = (L + R + 1) / 2) ? L = M : R = M - 1);
+	cout &lt;&lt; L &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>阶梯状的等差数列求和时，中间第 $c$ 列的求和应当恰好被算一次，不要多算也不要少算 ($\eqref 1$ 式中的<span style="color: red">红色</span>部分)。</p>
+		<p><strong>坑2：</strong>二分时注意上下界，如下界设为 $y = \max\limits_{1 \leq i \leq n} h_i$ 可以避免 $y &lt; h_c$ 等无谓的讨论。</p>
+	</body>
+</html>
