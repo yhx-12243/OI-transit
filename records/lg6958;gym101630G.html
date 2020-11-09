@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6958][CodeforcesGym101630G][NEERC2017]The Great Wall</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个 $3 \times n$ 的矩阵 $\left\{ a_{i, j} \right\}_{0 \leq i \leq 2, 1 \leq j \leq n}$，满足对 $\forall i \in \left[ 1, n \right]$ 都有 $a_{0, i} &lt; a_{1, i} &lt; a_{2, i}$。</p>
+		<p>你现在要在 $1, 2, \cdots, n$ 中选择两个不同的长度为 $r$ (即包含 $r$ 个整数) 的区间 $I, J$，如下定义该无序区间对 $\left( I, J \right)$ 的权值 $w \left( I, J \right)$：</p>
+		<p>定义辅助数列 $c_i$ 满足 $c_i = \left[ i \in I \right] + \left[ i \in J \right]$，则 $$ w \left( I, J \right) = \sum_{i=1}^n a_{c_i, i} $$</p>
+		<p>求所有 $\dbinom {n - r + 1} 2$ 个无序区间对中，权值第 $k$ 小的方案的权值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个正整数 $n, r, k$ ($2 \leq n \leq 30000; 1 \leq r &lt; n; 1 \leq k \leq \dbinom {n - r + 1} 2$)，分别表示序列的长度，选取的区间长度和选择方案的排名。</p>
+		<p>接下来三行，每行 $n$ 个正整数 $a_{i, j}$ ($1 \leq a_{i, j} &lt; a_{i + 1, j} \leq 10^6$)，描述矩阵的元素。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示第 $k$ 小的权值。</p>
+
+		<h3>题解</h3>
+		<p>记 $\displaystyle b_{i, j} = a_{i, j} - a_{0, j}, B = \sum_{j=1}^n a_{0, j}$，则答案就相当于对 $b$ 矩阵求解原问题后再加上 $B$ 的值，从而减少一个数组。</p>
+		<p>考虑二分答案，统计权值不超过 $k$ 的无序区间对数量。</p>
+		<p>分为两种情形：</p>
+		<ol>
+			<li><p>两个区间不相交。</p>
+			<p>设这两个区间为 $I = \left( i, i + r \right]$ 和 $J = \left( j, j + r \right]$，不妨设 $0 \leq i \leq j - r \leq n - 2 r$，则 $$ w \left( I, J \right) = \sum_{i &lt; t \leq i + r} b_{1, t} + \sum_{j &lt; t \leq j + r} b_{1, t} $$</p>
+			<p>使用前缀和优化，令 $\displaystyle U_i = \sum_{t \leq i} b_{1, t}$，则 $$ w \left( I, J \right) = \left( U_{i + r} - U_i \right) + \left( U_{i + r} - U_i \right) $$</p>
+			<p>换元令 $f_i = U_{i + r} - U_i$，则 $$ w \left( I, J \right) = f_i + f_j $$</p>
+			<p>于是问题转化为：统计有多少个 $i, j$，满足</p>
+			<ul>
+				<li>$0 \leq i \leq j - r \leq n - 2 r$。</li>
+				<li>$f_i + f_j \leq k$。</li>
+			</ul>
+			<p>不难发现，这是典型的二维数点，使用离散化 + 树状数组解决。</p></li>
+			<li><p>两个区间相交。</p>
+			<p>仍设这两个区间为 $I = \left( i, i + r \right]$ 和 $J = \left( j, j + r \right]$，不妨设 $0 \leq i &lt; j \leq n  - r; j &lt; i + r$，则 $$ w \left( I, J \right) = \sum_{i &lt; t \leq j} b_{1, t} + \sum_{j &lt; t \leq i + r} b_{2, t} + \sum_{i + r &lt; t \leq j + r} b_{1, t} $$</p>
+			<p>令前缀和 $\displaystyle V_i = \sum_{t \leq i} b_{2, t}$，再记 $g_i = V_{i + r} - U_i - U_{i + r}, h_j = U_j + U_{j + r} - V_j$，则 $$ w \left( I, J \right) = g_i + h_j $$</p>
+			<p>然后问题转化为：统计有多少个 $i, j$，满足</p>
+			<ul>
+				<li>$0 \leq i &lt; j \leq n - r; j &lt; i + r$。</li>
+				<li>$g_i + h_j \leq k$。</li>
+			</ul>
+			<p>仍然是二维数点。</p></li>
+		</ol>
+		<p>于是最终整个问题可以在 $O \left( n \log n \log W \right)$ 时间内解决。</p>
+		<blockquote>
+			<p>有一个技巧可以在二维数点时避免离散化：以两区间相交为例，我们预先将所有 $g_i$ 和 $h_i$ 排序，则排完序后满足 $g_1 \leq g_2 \leq \cdots \leq g_n; h_1 \leq h_2 \leq \cdots \leq h_n$。</p>
+			<p>于是条件 $g_i + h_j \leq k$ 转化为，对每个 $i$，存在一个 $\gamma = \gamma \left( i \right)$，需要满足 $j \leq \gamma \left( i \right)$。这个 $\gamma$ 可以通过<strong>双指针</strong>得到。</p>
+			<p>对于原先 $i, j$ 一维的关系，可知每个 $g_i, h_j$ 对应原先序列中的位置 (排名) $rg_i, rh_j$，然后该条件就转化为 $rg_i &lt; rh_j &lt; rg_i + r$。</p>
+			<p>由于 $rg, rh$ 的值域都是 $O \left( n \right)$ 的，因此我们就避免了离散化和对应的二分查找。</p>
+		</blockquote>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef std::pair &lt;ll, int&gt; pr;
+const int N = 30054;
+
+int n, m, r, K;
+int base[N];
+ll A1[N], A2[N];
+pr f[N], g[N], h[N];
+
+namespace BIT {
+	int x[N];
+
+	inline void clear() {memset(x, 0, m &lt;&lt; 2);}
+	int sum(int h) {int s = 0; for (; h &gt;= 0; h &amp;= h + 1, --h) s += x[h]; return s;}
+	void add(int h, int v) {for (; h &lt; m; h |= h + 1) x[h] += v;}
+}
+
+ll count(ll s) {
+	int i, j; ll ret = 0;
+	for (BIT::clear(), i = m - 1, j = 0; i &gt;= 0; ret += BIT::sum(f[i].second - r), --i)
+		for (; j &lt; m &amp;&amp; f[i].first + f[j].first &lt;= s; ++j) BIT::add(f[j].second, 1);
+	if (r == 1) return ret;
+	for (BIT::clear(), i = m - 1, j = 0; i &gt;= 0; ret += BIT::sum(g[i].second - 1) - BIT::sum(g[i].second - r), --i)
+		for (; j &lt; m &amp;&amp; g[i].first + h[j].first &lt;= s; ++j) BIT::add(h[j].second, 1);
+	return ret;
+}
+
+int main() {
+	int i, x; ll I = 0, L, R, M;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; r &gt;&gt; K, m = n - r + 1;
+	for (i = 1; i &lt;= n; ++i) cin &gt;&gt; base[i], I += base[i];
+	for (i = 1; i &lt;= n; ++i) cin &gt;&gt; x, A1[i] = A1[i - 1] + x - base[i];
+	for (i = 1; i &lt;= n; ++i) cin &gt;&gt; x, A2[i] = A2[i - 1] + x - base[i];
+	for (i = 0; i &lt; m; ++i)
+		f[i] = pr(A1[i + r] - A1[i], i),
+		g[i] = pr(A1[i] + A1[i + r] - A2[i], i),
+		h[i] = pr(A2[i + r] - A1[i] - A1[i + r], i);
+	std::sort(f, f + m), std::sort(g, g + m), std::sort(h, h + m);
+	for (L = 0, R = A2[n]; L &lt; R; count(M = (L + R) / 2) &lt; K ? L = M + 1 : R = M);
+	cout &lt;&lt; I + L &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>树状数组处理下标时注意避免越界导致死循环。</p>
+		<p><strong>坑2：</strong>二分时注意边界，以及一些 <code>&lt;</code> 还是 <code>&lt;=</code> 的判断。</p>
+	</body>
+</html>

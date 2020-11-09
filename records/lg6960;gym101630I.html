@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6960][CodeforcesGym101630I][NEERC2017]Interactive Sort</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个整数 $1, 2, \cdots, n$，设其中所有的偶数为 $e_1, e_2, \cdots, e_\lambda$ ($\lambda = \left \lfloor \dfrac n2 \right \rfloor$)，所有的奇数为 $o_1, o_2, \cdots, o_\mu$ ($\mu = \left \lceil \dfrac n2 \right \rceil$)。</p>
+		<p>你可以给出若干组询问，每次询问你需要给出 $1 \leq i \leq \lambda$ 和 $1 \leq j \leq \mu$，交互库会回答命题 $e_i &lt; o_j$ 是否成立。</p>
+		<p>你需要在 $3 \times 10^5$ 次询问内还原出 $e_1, e_2, \cdots, e_\lambda$ 和 $o_1, o_2, \cdots, o_\mu$ 各自的值。</p>
+
+		<h3>交互方式</h3>
+		<p>一开始，你需要从标准输入中读取一个正整数 $n$ ($n \leq 10000$)，表示数的个数。</p>
+		<p>接下来你可以输出若干组询问，用 <code>? <em>i</em> <em>j</em></code> 表示询问是否有 $e_i &lt; o_j$，输出它并刷新缓存。</p>
+		<p>如果 $e_i &lt; o_j$，则交互库会向标准输入中加入字符 <code>&lt;</code>，否则加入字符 <code>&gt;</code>。</p>
+		<p>当你确定 $\left\{ e_i \right\}, \left\{ o_j \right\}$ 排列后，你需要输出 <code>! <em>e</em><sub>1</sub> <em>e</em><sub>2</sub> ... <em>e<sub>λ</sub></em> <em>o</em><sub>1</sub> <em>o</em><sub>2</sub> ... <em>o<sub>μ</sub></em></code> 并刷新缓存，然后退出程序。</p>
+		<p>你需要保证询问的次数不超过 $3 \times 10^5$。</p>
+
+		<h3>题解</h3>
+		<p>不妨设 $n$ 为奇数。否则往奇数后面补充常数 $n + 1$ 并在询问中判掉。</p>
+		<p>假设我们要确定序列 $o_1, o_2, \cdots, o_\mu$，我们考虑使用快速排序的思想，将原序列按照值域进行分段 —— 即对于一个中间值 $\xi$，先求出 $\left[ 1, \xi \right]$ 中的所有奇数在 $\left\{ o_j \right\}$ 中的下标集合，再求出 $\left[ \xi, n \right]$ 中的所有奇数在 $\left\{ o_j \right\}$ 中的下标集合。</p>
+		<p>然后利用这些奇数对偶数进行重分段，然后向两边递归。</p>
+		<p>事实上也不用这么麻烦，我们并不需要对偶数进行重分段，实际上我们可以维护出奇数的分段，然后拿偶数作为参考点 (Pivot)，每次二分出它在奇数中的哪个段，然后在该段暴力，将其分为两段，顺便得到该偶数的值。</p>
+		<p>具体实现的时候，设现在奇数的段 (从小到大) 分别为 $I_1 = \left[ 1 = m_1, M_1 \right], I_2 = \left[ m_2, M_2 \right], \cdots, I_k = \left[ m_k, M_k = n \right]$。由我们的过程知 $I_i$ 和 $I_{i+1}$ 之间的偶数是已经被访问过的，而 $I_1$ 前面和 $I_k$ 后面是没有偶数的 (因为 $n$ 是奇数)。因此这个新的偶数 $x$ 一定<strong>恰好落在某个 $I_i$ 中</strong>。</p>
+		<p>二分的时候，设现在 $x \in I_l \cup I_{l+1} \cup \cdots \cup I_r$ (即可行的 $i \in \left[ l, r \right]$)，那么询问一个 $l &lt; m &lt; r$ 可以让候选区间缩减为 $\left[ l, m \right]$ 或 $\left[ m, r \right]$。因此最后可能会缩减到两个区间 $\left[ i, i + 1 \right]$，因此需要逐一验证这个偶数在 $I_i$ 还是 $I_{i+1}$ 中。</p>
+		<p>由于第 $i$ 次操作前段数为 $i$，期望下每段的长度是 $O \left( \dfrac ni \right)$。因此期望的询问次数就等于 $$ \sum_{i=1}^n \left( O \left( \log i \right) + O \left( \frac ni \right) \right) = O \left( n \log n \right) $$</p>
+		<p>当然要防止 (像快速排序一样) 退化的情形，因此我们可以在一开始将偶数序列 $\left\{ e_i \right\}$ 随机打乱，然后就相当于随机取 Pivot，这样就能达到期望的时间。</p>
+		<p>在维护奇数段的时候可能会有 <code>vector</code> 的插入，不过这部分是 $5000$ 的 $n^2$ 且常数较小，因此不用担心复杂度问题。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+using std::endl;
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 5054;
+
+bool add_odd;
+int n;
+int perm[N], o[N];
+int even[N], odd[N];
+vector sp;
+
+inline bool query(int a, int b) {
+	char ch;
+	if (add_odd &amp;&amp; b == n + 1) return true;
+	return cout &lt;&lt; '?' &lt;&lt; ' ' &lt;&lt; a &lt;&lt; ' ' &lt;&lt; b &lt;&lt; endl, cin &gt;&gt; ch, ch == 60;
+}
+
+inline void answer(vector e, vector o) {
+	cout &lt;&lt; '!';
+	for (int x : e) cout &lt;&lt; ' ' &lt;&lt; x;
+	for (int x : o) cout &lt;&lt; ' ' &lt;&lt; x;
+	cout &lt;&lt; endl;
+}
+
+void work(int n_) {
+	std::mt19937 gen((std::random_device())());
+	int _, i, L, R, M, l, r, m, l1, r1, m1;
+	n = n_, add_odd = !(n &amp; 1), n /= 2;
+	std::iota(o, o + (n + 1), 1), std::shuffle(o, o + (n + 1), gen), sp.EB(n),
+	std::iota(perm, perm + n, 1), std::shuffle(perm, perm + n, gen);
+	for (_ = 0; _ &lt; n; ++_) {
+		i = perm[_];
+		for (L = 0, R = sp.size() - 1; L + 1 &lt; R; query(i, o[sp[M]]) ? R = M : L = M) M = (L + R) / 2;
+		if (L == R) {
+			l = (L ? sp[L - 1] + 1 : 0), r = sp[L];
+			m = std::partition(o + l, o + (r + 1), [i] (const int x) {return !query(i, x);}) - o - 1;
+			assert(l &lt;= m &amp;&amp; m &lt; r), even[i] = 2 * (m + 1);
+			sp.insert(std::lower_bound(sp.begin(), sp.end(), m), m);
+		} else {
+			assert(L + 1 == R);
+			l = (L ? sp[L - 1] + 1 : 0), r = sp[L], l1 = r + 1, r1 = sp[L + 1];
+			m = std::partition(o + l, o + (r + 1), [i] (const int x) {return !query(i, x);}) - o - 1;
+			m1 = std::partition(o + l1, o + (r1 + 1), [i] (const int x) {return !query(i, x);}) - o - 1;
+			if (l &lt;= m &amp;&amp; m &lt; r &amp;&amp; m1 == l1 - 1)
+				even[i] = 2 * (m + 1), sp.insert(std::lower_bound(sp.begin(), sp.end(), m), m);
+			else if (m == r &amp;&amp; l1 &lt;= m1 &amp;&amp; m1 &lt; r1)
+				even[i] = 2 * (m1 + 1), sp.insert(std::lower_bound(sp.begin(), sp.end(), m1), m1);
+			else throw "error !";
+		}
+	}
+	assert((int)sp.size() == n + 1);
+	for (i = 0; i &lt;= n; ++i) odd[o[i]] = i * 2 + 1;
+	answer(vector(even + 1, even + (n + 1)), vector(odd + 1, odd + (n + !add_odd + 1)));
+}
+
+int main() {
+	int n;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n, work(n);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>当 $n$ 为偶数时不能将新加的奇数 $n + 1$ 返回，询问时也要将 $n + 1$ 提前判掉。</p>
+		<p><strong>坑2：</strong>第一次分段时注意总共只有一个段 $I_1 = \left[ 1, n \right]$，因此不要访问两个区间。</p>
+	</body>
+</html>

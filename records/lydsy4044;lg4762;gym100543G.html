@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4044][lg4762][CodeforcesGym100543G][CERC2014]Virus synthesis</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你有一个串 $s$，初始时为空串。你需要对其不断进行下列两种操作：</p>
+		<ul>
+			<li>在串 $s$ 开头或结尾添加一个字符 $c$。即令 $s \gets c \cdot s$，或 $s \gets s \cdot c$。</li>
+			<li>将串 $s^R$ 翻转后接到串 $s$ 的开头或结尾。即令 $s \gets s^R \cdot s$，或 $s \gets s \cdot s^R$。</li>
+		</ul>
+		<p>给定目标串 $t$，求至少要多少次才能使 $s = t$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$ ($T \leq 3 \times 10^5$)，表示数据组数。</p>
+		<p>对于每组数据，共一行，包含一个由 $\texttt A, \texttt C, \texttt G, \texttt T$ 构成的字符串 $t$ ($\left| t \right| \leq 10^5; \sum \left| t \right| \leq 3 \times 10^7$)，表示目标字符串。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，输出一行一个整数，表示欲使得 $s = t$ 所需的操作次数的最小值。</p>
+
+		<h3>题解</h3>
+		<p>由于第二种操作所得的结果 ($s \cdot s^R$) 一定是一个偶回文串，因此整个问题一定和回文串有关。</p>
+		<p>设最后一次 2 操作后得到了字符串 $s$ (此时应有 $s$ 是 $t$ 的子串)，此时共进行了 $B$ 次操作，则最后使用 1 操作将 $s$ 补成 $t$，所需的总操作次数就等于 $$ A = B + \left( \left| t \right| - \left| s \right| \right) $$</p>
+		<p>因此，设原串 $t$ 的所有长度为偶数的回文子串的集合为 $P$，为得到串 $s$ 所需的操作次数的最小值为 $f_s$，则答案就等于 $$ f_t = \min \left\{ \left| t \right|, \min_{s \in P} \left( f_s + \left( \left| t \right| - \left| s \right| \right) \right) \right\} $$</p>
+		<p>于是现在的任务就是求出集合 $P$，并对 $P$ 中每个元素 $s$ 求出 $f_s$ 的值。</p>
+		<p>注意到 $f_s$ 只和 $s$ 本身有关，与它在 $t$ 中的出现位置无关，因此 $P$ 实质上就是 <strong style="color: fuchsia">$s$ 中所有不同的偶回文子串</strong>，可以使用回文自动机求得。</p>
+		<p style="color: red">(ps: 实际上我们只需要偶子串，因此只需要回文自动机的 "偶树" 部分 [以 "偶根" 为根的子树])</p>
+		<p>建立出回文自动机 (回文树) 结构后，考虑对其进行自上而下的 (树形) DP。</p>
+		<p>对于一个偶回文串 $S = s \cdot s^R$，创建它有三种不同的方法：</p>
+		<ul>
+			<li><p>D1. 最后一步是 2 操作。</p>
+			<p>即先创建 $s$，然后复制为 $s \cdot s^R = S$。<span class="text-muted">由于显然有 $f_s = f_{s^R}$，因此无需考虑先创建 $s^R$ 的情形</span>。</p></li>
+			<li><p>D2. 最后一步不是 2 操作，且两端都添加过字符。</p>
+			<p>由于两端都添加过字符，不妨设两端是最后添加的。因此这个问题就转化为了一个更短的回文串 $s \left[ 2 .. \left| s \right| \right] \cdot s \left[ 2 .. \left| s \right| \right]^R$ 的问题。</p></li>
+			<li><p>D3. 最后一步不是 2 操作，且有一端未添加过字符。</p>
+			<p>如果没有 2 操作，那么可以转化为 D2。因此最后一次 2 操作一定可以得到一个回文前缀 (后缀和前缀等价)，然后在尾部添加字符知道等于 $S$。</p>
+			<p>因此这个过程一定会有某个时刻等于 $next \left[ S \right]$，即 $S$ 的最长偶回文前缀，因此只需从它这里转移过来即可。</p></li>
+		</ul>
+		<p>由于 D1 中讨论到创建 $s$ 的情形，因此还要对 $s$ 的情形进行讨论，而创建 $s$ 有两种不同的方法 <span style="color: blue">(这里用 $s$ 表示某个偶回文串的前一半)</span>：</p>
+		<ul>
+			<li><p>E1. $s_1$ 是通过 1 操作得到的。</p>
+			<p>此时，将问题转化为 $s \left[ 2 .. \left| s \right| \right]$，它仍然是一个偶回文串的前一半。</p></li>
+			<li><p>E2. $s_1$ 是通过 2 操作得到的。</p>
+			<p>类似 D3，找到 $s$ 的最长回文前缀，将问题转化为它。</p></li>
+		</ul>
+		<p>对于回文树上的节点 $i$，设它表示的串为 $S_i = s_i \cdot S_i^R$，则我们用 $f_i$ 表示创建 $S_i$ 所需的最小操作次数 (即 $f_{S_i}$)，用 $g_i$ 表示创建 $s$ 所需的最小操作次数 (即 $f_{s_i}$)，则上述五类转移分别如下：</p>
+		<ul>
+			<li><p>D1. $f_i \downarrow g_i + 1$。</p></li>
+			<li><p>D2. $f_i \downarrow f_t + 2$ <span style="color: teal">($t$ 表示将 $S_i$ 去掉头部和尾部所得的回文串的对应节点)</span>。</p></li>
+			<li><p>D3. $f_i \downarrow f_p + \left( \left| S_i \right| - \left| S_p \right| \right)$ <span style="color: teal">($p$ 表示 $next \left[ S_i \right]$ 即 $S_i$ 的最长偶回文前 (后) 缀对应节点)</span>。</p></li>
+			<li><p>E1. $g_i \downarrow g_t + 1$。</p></li>
+			<li><p>E2. $g_i \downarrow f_q + \left( \left| s_i \right| - \left| S_q \right| \right)$ <span style="color: teal">($q$ 表示 $s_i$ 的最长偶回文前缀对应节点)</span>。</p></li>
+		</ul>
+		<p>$t$ 和 $p$ 在构建回文自动机的时候立即就能得到，而 $q$ 可以通过最终在回文树上 dfs 一遍用栈配合双指针得到。</p>
+		<p>于是整个问题可以在线性时间内完成。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+const int N = 100054;
+
+int n;
+char s[N], *ptr;
+int f[N], g[N], p_even[N], p_half[N];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace PAM {
+	int p, cnt;
+	int d[N][4], fail[N], val[N], trim[N];
+
+	inline void init() {
+		memset(d, 0, (cnt + 2) &lt;&lt; 4),
+		val[1] = -1, p = 0, *fail = cnt = 1;
+	}
+
+	int get_fail(int x) {for (; ptr[~val[x]] != *ptr; x = fail[x]); return x;}
+
+	int extend(int x) {
+		int &amp;q = d[p = get_fail(p)][x];
+		if (!q) fail[++cnt] = d[get_fail(fail[p])][x], val[q = cnt] = val[p] + 2, trim[q] = p;
+		return p = q;
+	}
+}
+
+namespace tree {
+	int p[N], fc[N], nc[N];
+	int top, stack[N];
+
+	inline void link(int x, int px) {nc[x] = fc[px], fc[px] = x;}
+
+	void dfs(int x, int pos) {
+		int y, lim = PAM::val[x] / 2;
+		stack[top++] = x;
+		for (; pos + 1 &lt; top &amp;&amp; PAM::val[ stack[pos + 1] ] &lt;= lim; ++pos);
+		p_half[x] = stack[pos];
+		for (y = fc[x]; y; y = nc[y]) dfs(y, pos);
+		--top;
+	}
+}
+
+void work() {
+	int i, p, q, t, ans;
+	PAM::init(), cin &gt;&gt; (s + 1), *s = 5;
+	for (ptr = s + 1; *ptr; ++ptr) PAM::extend(*ptr = *ptr % 5 - (*ptr == 84));
+	ans = n = ptr - (s + 1);
+	for (i = 2; i &lt;= PAM::cnt; ++i) {
+		p = PAM::fail[i], p_even[i] = (PAM::val[p] &amp; 1 ? p_even[p] : p);
+		if (!(PAM::val[i] &amp; 1)) tree::link(i, p_even[i]);
+	}
+	tree::top = 0, tree::dfs(0, 0), memset(tree::fc, 0, (PAM::cnt + 1) &lt;&lt; 2);
+	for (i = 2; i &lt;= PAM::cnt; ++i) if (!(PAM::val[i] &amp; 1))
+		p = p_even[i], q = p_half[i], t = PAM::trim[i],
+		g[i] = min(g[t] + 1, f[q] + (PAM::val[i] / 2 - PAM::val[q])),
+		f[i] = min(g[i] + 1, f[t] + 2),
+		down(f[i], f[p] + (PAM::val[i] - PAM::val[p])),
+		down(ans, f[i] + (n - PAM::val[i]));
+	cout &lt;&lt; ans &lt;&lt; '\n';
+}
+
+int main() {
+	int T;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意回文自动机找 <code>fail</code> 时 <code>ptr[~val[x]] != *ptr</code> 要防止越界，因此读入时字符串的下标最好从 $1$ 开始。</p>
+		<p><strong>坑2：</strong>DP 时记得剔除所有奇回文串。</p>
+	</body>
+</html>

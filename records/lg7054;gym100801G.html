@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg7054][CodeforcesGym100801G]Graph</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张有向无环图 $G$，你需要在图中添加不超过 $k$ 条有向边，使得它仍然是 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，并使得它<strong>字典序最小的拓扑序</strong>的字典序尽可能大。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含三个非负整数 $n, m, k$ ($1 \leq n \leq 10^5; 0 \leq m, k \leq 10^5$)，表示有向图的点数、边数和可额外添加的边数<strong>上限</strong>。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，表示图中有一条从 $u$ 到 $v$ 的有向边。</p>
+		<p>保证图为有向无环图 (从而没有自环)，但是可能有重边。</p>
+
+		<h3>输出格式</h3>
+		<p>第一行输出 $n$ 个整数，表示添加若干条边后所得的图的字典序最小的拓扑序。你需要保证你输出的排列是所有可行排列中最大的。</p>
+		<p>第二行输出一个整数 $x$ ($0 \leq x \leq k$)，表示额外添加的边数。</p>
+		<p>最后 $x$ 行，每行两个整数 $u, v$，表示额外添加了一条从 $u$ 到 $v$ 的有向边。</p>
+		<p>你需要保证添加完边后的图仍然是有向无环图，但可以有重边。</p>
+
+		<h3>题解</h3>
+		<p>首先有这样一个性质：<strong style="color: green">设最终的 (字典序最小的) 拓扑序为 $p_1, p_2, \cdots, p_n$，则 (存在一种加边方案满足) 所有额外添加的边一定形如 $p_i \to p_{i+1}$</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>反设添加的边中有一条形如 $p_i \to p_j$，显然 $i &lt; j$。</p>
+				<p>若 $i + 1 &lt; j$，我们在图 $G$ 中将这条边换成 $p_{i+1} \to p_j$，设得到的新图为 $G'$。下面证明 $G$ 和 $G'$ 有着相同的字典序最小的拓扑序。</p>
+				<p>首先 $G'$ 字典序最小的拓扑序显然以 $p_1, p_2, \cdots, p_i$ 开头。考虑第 $i + 1$ 项，由于有边 $p_{i+1} \to p_j$，因此它不能为 $p_j$，因此第 $i + 1$ 项也是 $p_{i+1}$。</p>
+				<p>将前 $i + 1$ 个点去掉后，$G$ 和 $G'$ 剩下的图是相等的，因此余下的 $n - i - 1$ 项也对应相等。</p>
+				<p>因此 $G'$ 的字典序最小的拓扑序也是 $p_1, p_2, \cdots, p_n$。</p>
+				<p>重复该调整过程中，可以发现所有边 $p_i \to p_j$ 的 $\left( j - i \right)$ 之和严格递减，直到所有 (可替换的边) 都变成 $p_i \to p_{i+1}$。</p>
+			</div>
+		</div>
+		<p>现在考虑最大化 $G$ (字典序最小) 的拓扑序。</p>
+		<p>因为我们只能加边而不是删边，所以若一个点的入度大于 $0$，则它<strong>不可能作为拓扑序的首元素</strong>。</p>
+		<p>于是，可设入度为 $0$ 的元素 (按照标号顺序) 分别为 $v_1 &lt; v_2 &lt; \cdots &lt; v_\kappa$。</p>
+		<p>由字典序的性质，首先我们要不惜一切代价最大化 (字典序最小的) 拓扑序中的第一个元素。</p>
+		<p>故我们希望 $v_1, v_2, \cdots$ 这些点的入度都 $&gt; 0$，这样就能让第一个元素尽可能大了。</p>
+		<p>我们<span style="color: teal">用一个集合 $R$ 表示，目前<strong>待接受入边的元素</strong>。具体地，这些元素需要接受一条形如 $p_i \to p_{i+1}$ 的边使得它不会过早的被 <code>pop</code></span>。</p>
+		<p>于是，在初始阶段，我们就应当把 $v_1, v_2, \cdots, v_{\min \left\{ k, \kappa \right\}}$ 加入集合 $R$，表示它们需要接受边。</p>
+		<hr />
+		<p>接下来考虑中间的整个过程。</p>
+		<p>如果在队列空之前 $k$ 已经等于 $0$ 了 (即无法再加边了)，说明加入的边不足以使剩下的 $0$ 入度点往后 "压"，因此此时队列中最小的点就会被 <code>pop</code> 出来，然后产生新的若干 $0$ 入度点，循环往复。</p>
+		<p>如果 $k$ 值足够让队列变为空，说明此时所有的点都已经被加入 $R$。因此我们可以适当调整它们的顺序，使得弹出的元素一定是 $R$ 中的最大元。</p>
+		<p>设弹出的元素为 $x = \max R$，则拓扑序中在该位置的元素就应该是 $x$。则此时还要分两种情形讨论：</p>
+		<ol>
+			<li><p>$x$ 是<strong>本轮加入 $R$ 的元素</strong>，从而它也是<strong>本轮加入 $R$ 的最大元素</strong>。</p>
+			<p>由于本轮加入 $R$ 的元素<em style="color: red">还未确定是否必须安排一条 $p_i \to p_{i+1}$ 的边以防它过早 <code>pop</code></em>。因此对于本轮加入 $R$ 的所有元素中，比 $x$ 小者，这些边是必须安排上的，否则会影响答案；而这个 $x$ 其实就不需要额外安排一条边了，因为这个时候也只有 $x$ 能够弹出了。</p>
+			<p>因此 $x$ 其实不需要这条 $p_i \to p_{i+1}$ 的边，因此我们可以将这一次加边机会 "退回"，即 $k \gets k + 1$。</p></li>
+			<li><p>$x$ 不是<strong>本轮加入 $R$ 的元素</strong>。</p>
+			<p>于是，本轮加入 $R$ 的所有元素都必须要 $p_i \to p_{i+1}$ 型边的支持，于是不能将加边机会 "退回"。</p>
+			<p>同时，连向 $x$ 的边也可以被确认：设拓扑序中位于它前面的元素为 $y$ (可以证明此时 $y$ 一定存在)，则连接边 $y \to x$。</p></li>
+		</ol>
+		<p>最终不断执行这个过程，直到整个图的拓扑序被确定。</p>
+		<p>考虑具体实现，拓扑排序的队列可以使用一个小根堆来实现，而集合 $R$ 我们也只需要维护并删除最大元素，因此可以使用一个大根堆来实现。</p>
+		<p>综上，该题可以在 $O \left( n \log n + m \right)$ 时间内完成 <span class="text-muted">(由开头证明可知最多添加 $n - 1$ 条边)</span>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+using std::vector;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 100054;
+
+int V, E, n;
+int to[N], first[N], next[N], deg[N];
+int topo[N];
+std::priority_queue &lt;int, vector &lt;int&gt;, std::greater &lt;int&gt;&gt; pq;
+std::priority_queue &lt;int&gt; recept;
+vector &lt;pr&gt; Es;
+
+inline void addedge(int u, int v, int id) {to[id] = v, next[id] = first[u], first[u] = id, ++deg[v];}
+
+int main() {
+	int i, h, u, v, x, y;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; V &gt;&gt; E &gt;&gt; n;
+	for (i = 1; i &lt;= E; ++i) cin &gt;&gt; u &gt;&gt; v, addedge(u, v, i);
+	for (i = 1; i &lt;= V; ++i) if (!deg[i]) pq.emplace(i);
+	for (h = 0; h &lt; V; ++h) {
+		for (v = 0; n &amp;&amp; !pq.empty(); --n) v = pq.top(), pq.pop(), recept.emplace(v);
+		if (!pq.empty()) x = pq.top(), pq.pop();
+		else {
+			x = recept.top(), recept.pop();
+			if (x == v) ++n;
+			else Es.EB(topo[h - 1], x);
+		}
+		topo[h] = x;
+		for (i = first[x]; i; i = next[i]) if (!--deg[y = to[i]]) pq.emplace(y);
+		cout &lt;&lt; x &lt;&lt; (h == V - 1 ? '\n' : ' ');
+	}
+	std::sort(Es.begin(), Es.end()), cout &lt;&lt; Es.size() &lt;&lt; '\n';
+	for (const pr &amp;e : Es) cout &lt;&lt; e.first &lt;&lt; ' ' &lt;&lt; e.second &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>不要忘记当 $x$ 是本轮加入 $R$ 的元素时要退回这次加边机会，否则会导致这 $k$ 条边没有完全利用。</p>
+		<p><strong>坑2：</strong>由于图是有向图，因此输出边时不能反向。</p>
+	</body>
+</html>

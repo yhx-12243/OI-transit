@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg4738][CodeforcesGym101620C][CERC2017]Cumulative Code</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义 $T_k$ 为深度为 $k - 1$ 的满二叉树 (根节点深度为 $0$)，它共有 $2^k - 1$ 个顶点。其中 $1$ 号点为根节点，其中顶点 $i$ ($1 \leq i \leq 2^{k-1}$) 的两个子节点的编号分别为 $2 i$ 和 $2 i + 1$。</p>
+		<p>设 $T_k$ 的 <a href="https://en.wikipedia.org/wiki/Pr%C3%BCfer_sequence" target="_blank">Prüfer 序列</a>为 $\left[ p_1, p_2, \cdots, p_{2^k-3} \right]$。现在有若干组询问，每组询问给定 $a, d, m$，你需要求出 $\displaystyle \sum_{i=0}^{m-1} p_{a + i \cdot d}$ 的值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $k, q$ ($2 \leq k \leq 30; 1 \leq q \leq 300$)，表示满二叉树的深度和询问的个数。</p>
+		<p>接下来 $q$ 行，每行三个正整数 $a_j, d_j, m_j$ ($a_j + \left( m_j - 1 \right) d_j \leq 2^k - 3; d_j \leq 2^k - 3$)，描述一组询问。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示 $\displaystyle \sum_{i=0}^{m_j-1} p_{a_j + i \cdot d_j}$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>对于一棵二叉树 $T_k$，在对它建立 Prüfer 序列的过程，我们观察其删除的<strong>叶子序列</strong>，可以发现如下规律：</p>
+		<p>首先，它对于根节点 $1$ 的左子树 $L$，删除的叶子序列<em style="color: blue">就是子树 $L$ 的后序遍历</em>，然后删除顶点 $1$ (因为此时 $1$ 已经是叶子)，最后对原先 $1$ 的右子树 $R$ 执行和 $T_{k-1}$ 类似的过程。</p>
+		<p>如，当 $k = 5$ 时，Prüfer 叶子序列如下：$$ l^\left( 5 \right) = \left[ \color {red} {16, 17, 8, 18, 19, 9, 4, 20, 21, 10, 22, 23, 11, 5, 2}, \color {fuchsia} {\fbox 1}, \quad \color {red} {24, 25, 12, 26, 27, 13, 6}, \color {fuchsia} {\fbox 3}, \quad \color {red} {28, 29, 14}, \color {fuchsia} {\fbox 7}, \quad \color {red} {30} \right], \color {gray} {15, 31} $$</p>
+		<p>可以发现，除了上面几个<span style="color: fuchsia">粉色</span>的步骤 (即删除某棵二叉树的根)，满足对应的<em>相邻顶点</em>是它的右子节点，其余情况 (<span style="color: red">红色</span>步骤) <em>相邻顶点</em>都是它的父节点。</p>
+		<p>因此，根据 $l^\left( 5 \right)$ 就容易写出它的 Prüfer 序列 $p^\left( 5 \right)$：$$ p^\left( 5 \right) = \left[ \color {red} {8, 8, 4, 9, 9, 4, 2, 10, 10, 5, 11, 11, 5, 2, 1}, \color {fuchsia} {\fbox 3}, \quad \color {red} {12, 12, 6, 13, 13, 6, 3}, \color {fuchsia} {\fbox 7}, \quad \color {red} {14, 14, 7}, \color {fuchsia} {\fbox {15}}, \quad \color {red} {15} \right] $$ (即<span style="color: red">红色</span>数除以 $2$ 下取整，<span style="color: fuchsia">粉色</span>数乘 $2$)</p>
+		<hr />
+		<p>首先，不难注意到<span style="color: fuchsia">粉色</span>数的个数为 $n - 2$，且它们的位置分布也较为简单，因此在询问中直接将其处理掉即可。故接下来只需讨论这些<span style="color: fuchsia">粉色</span>数将<span style="color: red">红色</span>数分成的若干段 (也就是若干棵<strong>左子树</strong>)。</p>
+		<p>这里，每一段 (左子树) 都是一个后序遍历的变种 <span style="color: blue">($l^\left( k \right)$ 才是真正的后序遍历，$p^\left( k \right)$ 是后序遍历中每个数除以 $2$ 后的结果)</span>，因此我们可以从后序遍历的角度去处理它。</p>
+		<p>由我们二叉树的编号规则知，对于一条确定的左/右子树路径，目标的编号总能表示成源点编号的一个一次函数，如从顶点 $x$ 出发，<strong>左-右-右-左</strong>，走到的目标顶点一定是 $16 x + 6$。</p>
+		<p>因此，如果<strong style="color: orange">对一棵深度为 $k$ 的二叉树，维护出对应后序遍历中每个顶点关于 $x$ 的一次函数，那么在求任意深度为 $k$ 的二叉树的后序遍历时，只需代入 $x$ 的值就可以了</strong>。如，对于 $k = 4$ 的情形，这个一次函数序列就是 $$ l^\left( 4 \right) \left( x \right) = \left[ 8 x, 8 x + 1, 4 x, 8 x + 2, 8 x + 3, 4 x + 1, 2 x, 8 x + 4, 8 x + 5, 4 x + 2, 8 x + 6, 8 x + 7, 4 x + 3, 2 x + 1, x \right] $$</p>
+		<p>同理，对于 Prüfer 序列而非叶子序列的情形，注意到此时的根 $x$ 一定是某个顶点的左儿子，因此可将其表示成关于 $t = \dfrac x2$ 的一次函数。同样，对于 $k = 4$，有 $$ p^\left( 4 \right) \left( t \right) = \left[ 8 t, 8 t, 4 t, 8 t + 1, 8 t + 1, 4 t, 2 t, 8 t + 2, 8 t + 2, 4 t + 1, 8 t + 3, 8 t + 3, 4 t + 1, 2 t, t \right] $$</p>
+		<p>考虑 $p^\left( k \right) \left( t \right)$ 和 $p^\left( k + 1 \right) \left( t \right)$ 的递推关系。</p>
+		<ul>
+			<li><p>先分析一次项系数。</p>
+			<p>注意到深度为 $k + 1$ 的二叉树的后序遍历可以拆分成左子树的后序遍历 + 右子树的后序遍历 + 根，而两棵子树的一次项系数显然是相同的，因此 $p^\left( k + 1 \right) \left( t \right)$ 的一次项系数序列就等于 $p^\left( k \right) \left( t \right)$ 的一次项系数序列乘以 $2$ 后重复两遍再添上 $1$ (即 $t$)。</p>
+			<p>如，$\left[ t \right] p^\left( 3 \right) = \left[ 4, 4, 2, 4, 4, 2, 1 \right]$，那么 $\left[ t \right] p^\left( 4 \right) = \left[ 8, 8, 4, 8, 8, 4, 2, 8, 8, 4, 8, 8, 4, 2, 1 \right]$。</p></li>
+			<li><p>再分析常数项。</p>
+			<p>对于左子树，相当于路径最前方加入了一段 "<em>左</em>"，因此新的编号等于 $k \left( 2 x \right) + b = 2 k x + b$，常数项不变。</p>
+			<p>对于右子树，相当于路径最前方加入了一段 "<em>右</em>"，因此新的编号等于 $k \left( 2 x + 1 \right) + b = 2 k x + \left( k + b \right)$，常数项变为原先一次项系数<em>的一半</em>和常数项之和 <span style="color: red">(ps: 在 Prüfer 序列中，原先的一次项应为 $2 k t = 2 k \cdot \dfrac x2$)</span>。</p>
+			<p>因此，$p^\left( k + 1 \right) \left( t \right)$ 的常数项序列就等于「$p^\left( k \right)$ 的常数项序列并上 $p^\left( k \right) \left( t \right)$ 的一次项系数<em>的一半</em>和常数项之和」序列再添上 $0$。当然，如果一次项系数是 $1$ 除掉后就没了。</p>
+			<p>如，$\left[ 1 \right] p^\left( 3 \right) = \left[ 0, 0, 0, 1, 1, 0, 0 \right]$，那么 $\left[ 1 \right] p^\left( 4 \right) = \left[ 0, 0, 0, 1, 1, 0, 0, \color {blue} {2, 2, 1, 3, 3, 1, 0}, 0 \right]$。</p></li>
+		</ul>
+		<hr />
+		<p>在掌握递推关系后，就可以考虑原题的计算了。</p>
+		<p>我们的目的就是计算 $p^\left( k \right) \left( t \right)$ 中下标为等差数列的那些项之和。由上面的递推关系，可知一个 $p^\left( k \right) \left( t \right)$ 的问题可以转化为两次计算 $p^\left( k - 1 \right) \left( t \right)$ 的问题。</p>
+		<p>因此可以利用分治的思想，分而治之。但是这里 $k$ 有 $30$，如果每次计算都老老实实算到底的话时间复杂度就会达到 $O \left( 2^k \right)$，不可接受。因此我们需要合理的进行剪枝。</p>
+		<p>其中一个直观的剪枝是，当 $p^\left( k \right) \left( t \right)$ 中已经没有元素要求和时，直接 <code>return {0, 0};</code>，于是同一般分治，复杂度就不超过 $O \left( m \log m \right)$ 了。</p>
+		<p>当然 $m$ 还有可能过大，此时可以发现，如果我们利用前缀和的思想，可以发现每一段 (子树) $p^\left( k \right)$ 中的求和任务只有 $O \left( 2^k \right)$ 种 (只需固定右端点，然后向左以公差 $d$ 延伸)，因此如果我们对于较小的 $k$ 将所有 $2^k$ 种答案预处理 (或在搜索过程中进行<strong>记忆化</strong>)，那么就不会造成更多深层次的递归。</p>
+		<p>分析一下时间复杂度，对于 $p^\left( i \right) \left( t \right)$，一方面，由于我们进行了记忆化，因此最多计算 $2^i$ 次；另一方面，由于每棵二叉树只有两棵子树，因此这一层的二叉树总数不超过 $2^{k - i}$。</p>
+		<p>最终，单组询问的时间复杂度就是 $$ \sum_{i=0}^k \min \left\{ 2^i, 2^{k-i} \right\} = O \left( 2^{k/2} \right) $$ (根据上述分析可知记忆化只需到 $\dfrac k2$ 层即可)</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef unsigned int u32;
+typedef long long ll;
+typedef std::pair &lt;ll, ll&gt; pr;
+
+int n, q, d;
+int mem[15][32769];
+pr f[15][32769];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+inline bool include(int a, int m, int x) {
+	u32 t = x - a, q = t / d, r = t % d;
+	return !r &amp;&amp; q &lt; (u32)m;
+}
+
+pr segment_prefix(int depth, int n) {
+	if (n &lt;= 0) return pr(0, 0);
+	int len = (2 &lt;&lt; depth) - 1; pr ret;
+	assert(n &lt;= len);
+	if (depth &lt; 15 &amp;&amp; mem[depth][n] == q) return f[depth][n];
+	if (n == len) ret = segment_prefix(depth, n - d), ++ret.first;
+	else if (n &lt; 1 &lt;&lt; depth) ret = segment_prefix(depth - 1, n), ret.first *= 2;
+	else {
+		int rm = n - (1 &lt;&lt; depth), dc = rm / d + 1; ll u1, v1, u2, v2;
+		std::tie(u1, v1) = segment_prefix(depth - 1, n - dc * d),
+		std::tie(u2, v2) = segment_prefix(depth - 1, rm + 1),
+		ret = pr(2 * (u1 + u2), v1 + v2 + u2 / 2);
+	}
+	if (depth &lt; 15) mem[depth][n] = q, f[depth][n] = ret;
+	return ret;
+}
+
+pr segment(int depth, int a, int m) {
+	int e, len = (2 &lt;&lt; depth) - 1; ll u, v;
+	if (a &lt;= 0) e = -a / d + 1, a += e * d, m -= e;
+	if (m &lt;= 0 || a &gt; len) return pr(0, 0);
+	down(m, (len - a) / d + 1), e = a + (m - 1) * d;
+	pr ret = segment_prefix(depth, e);
+	if (a &gt; d) std::tie(u, v) = segment_prefix(depth, a - d), ret.first -= u, ret.second -= v;
+	return ret;
+}
+
+int main() {
+	int i, j, a, m, x; ll u, v, ans;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; n &gt;&gt; q; q; --q) {
+		cin &gt;&gt; a &gt;&gt; d &gt;&gt; m, ans = 0;
+		for (x = i = 0, j = n - 1; j &gt; 0; ++i, --j) {
+			std::tie(u, v) = segment(j - 1, a - x, m),
+			ans += u * ((2 &lt;&lt; i) - 1) + v;
+			if (include(a, m, x + (1 &lt;&lt; j))) ans += (4 &lt;&lt; i) - 1;
+			x += 1 &lt;&lt; j;
+		}
+		cout &lt;&lt; ans &lt;&lt; '\n';
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在调整边界的时候可能会用到除法，注意除法的取整和边界问题，不要出现越界或死循环。</p>
+		<p><strong>坑2：</strong>递推过程中不要忘记最后的一项 $t$。</p>
+	</body>
+</html>

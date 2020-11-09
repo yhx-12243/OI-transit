@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4078][lg6898][CodeforcesGym101221G][WF2014]Metal Processing Plant</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个带权无向完全图 $K_n = \left( V, E \right)$，其中点 $u, v$ 的边权为 $w \left( u, v \right)$，保证 $w \left( u, v \right) = w \left( v, u \right), w \left( v, v \right) = 0$。</p>
+		<p>对于点集 $S \subseteq V$，定义 $$ D \left( S \right) = \max_{u, v \in S} w \left( u, v \right) $$ (特别地，定义 $D \left( \varnothing \right) = 0$)</p>
+		<p>你需要将 $V$ <strong>划分</strong>为两个集合 $V_1, V_2$，使得 $D \left( V_1 \right) + D \left( V_2 \right)$ 的值最小，求出这个最小值。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 200$)，表示无向图的点数。</p>
+		<p>接下来 $n - 1$ 行，其中的第 $i$ 行包含 $n - i$ 个整数 $w \left( i, i + 1 \right), w \left( i, i + 2 \right), \cdots, w \left( i, n \right)$ ($0 \leq w \left( i, j \right) \leq 10^9$)，依次表示各条边的边权。对于剩下的边权，你可以通过规则 $w \left( u, v \right) = w \left( v, u \right), w \left( v, v \right) = 0$ 得到。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $\min\limits_{\substack{V_1 \cup V_2 = V \\ V_1 \cap V_2 = \varnothing}} \left( D \left( V_1 \right) + D \left( V_2 \right) \right)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>不妨设 $D \left( V_1 \right) \geq D \left( V_2 \right)$。假设我们已经固定 $D \left( V_1 \right) = C$，则考虑所有边权大于 $C$ 的边，设为 $E_C \subseteq E$，由定义知 <strong style="color: green">$E_C$ 生成的子图必须是二分图</strong> <span class="text-muted">(因为 $F$ 存在二部划分 ($V_1, V_2$) 满足同一部之间没有边)</span>。</p>
+		<p>因此，我们可以二分或暴力找到最大的 $C$，满足 $E_C$ 生成的子图是二分图 (事实上不需要使用并查集，直接暴力即可)。因此一定有 $D \left( V_1 \right) \geq C$。</p>
+		<p>容易发现 $D \left( V_1 \right)$ 和 $D \left( V_2 \right)$ 一定恰好等于图中某条边的边权，因此这样的边权至多只有 $O \left( n^2 \right)$ 种。</p>
+		<p>考虑从 $C$ 开始<strong>从小到大</strong>枚举 $D \left( V_1 \right)$，可以发现边集 $E_C$ 会变得越来越小。形式化地，设我们枚举了 $C_1 &lt; C_2 &lt; \cdots &lt; C_m$，则有 $E_{C_1} \supseteq E_{C_2} \supseteq \cdots \supseteq E_{C_m}$。</p>
+		<p>对于固定的 $D \left( V_1 \right) = C$ 和 $D \left( V_2 \right) = c &lt; C$，所有的边可以分为三类：</p>
+		<ol>
+			<li><p>$w \left( u, v \right) &gt; C$。</p>
+			<p>此即在 $E_C$ 中的边，它要求 $u$ 和 $v$ <strong>一定在两个不同的集合中</strong>。</p></li>
+			<li><p>$c &lt; w \left( u, v \right) \leq C$。</p>
+			<p>此时要求 $u$ 和 $v$ <strong>不能同时在 $V_2$ 中</strong>。</p></li>
+			<li><p>$w \left( u, v \right) \leq c$。</p>
+			<p>此时这条边对整张图没有任何限制。</p></li>
+		</ol>
+		<p>于是，如果我们对每个顶点 $v$ 建立一个变量 $x_v$，表示它是否在 $V_1$ 中，于是上述三类条件可以写成：</p>
+		<ol>
+			<li>$x_u \oplus x_v = \mathrm{true}$。将异或展开，得 $x_u \vee x_v = \mathrm{true}, \neg x_u \vee \neg x_v = \mathrm{true}$。</li>
+			<li>$x_u \vee x_v = \mathrm{true}$。</li>
+			<li class="text-muted">(无)</li>
+		</ol>
+		<p>因此不难想到使用 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 建图，即建立 $2 n$ 个点，然后连接对应的边。</p>
+		<p>由于我们只需要判断是否有解，因此只需对每个 $v \in V$ 判断 $x_v$ 和 $\neg x_v$ 是否在同一个强连通分量中即可。</p>
+		<hr />
+		<p>暴力枚举时间复杂度显然会爆炸，因此我们要进一步分析性质。</p>
+		<p>首先，考虑对于固定的大 $C$，可能的小 $c$ 的范围一定是一个形如 $\left[ c_\min, C \right]$ 的区间，且其中有一个最小的可行 $c$，我们将这个 $c$ 记作 $c \left( C \right)$。</p>
+		<p>设我们枚举了 $C_1 &lt; C_2$，那么 $\left( C_1, c \left( C_1 \right) \right)$ 的一组解一定也是 $\left( C_2, c \left( C_1 \right) \right)$ 的一组解，因此可得 $\color {red} {c \left( C_1 \right) \geq c \left( C_2 \right)}$，即 <strong style="color: fuchsia">$c \left( C \right)$ 关于 $C$ 单调递减</strong>。</p>
+		<p>因此可以使用类似双指针的方法，如果对于一个 $C$，我们得到了 $c \left( C \right)$，那么对于之后更大的 $C$，我们只需从之前的 $c$ 开始往下枚举即可。</p>
+		<p>于是，<em style="color: blue">$c$ 和 $C$ 的总枚举量是 $O \left( n^2 \right)$ 的</em>。</p>
+		<p>但是如果现在使用 Tarjan 求连通分量 (dfs)，那么时间复杂度还会达到 $O \left( n^4 \right)$，甚至如果显式建图也会达到 $O \left( n^4 \right)$ 的复杂度，无法接受。</p>
+		<p>因此需要考虑类似增量的方法，每次加入一条边，删除一条边求连通分量之类的。</p>
+		<hr />
+		<p>由于 $C$ 是从小到大枚举的，因此第一类边是<strong>逐渐减小</strong>的，而与此同时由于 $c$ 是从大到小枚举的，因此第二类边是<strong>逐渐增加</strong>的。</p>
+		<p>逐渐增加看起来就比逐渐减小容易处理，事实上，确实是这样的：</p>
+		<ol>
+			<li><p>考虑实时维护整张 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 图的传递闭包 $A$，即 $A_{u, v} = \mathrm{true}$ 当且仅当 $u$ 能在 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 图中<strong>到达</strong> $v$。</p></li>
+			<li><p>当添加边 $\left( u, v \right)$ 时，所有 $A_{x, y}$ 被影响的 $\left( x, y \right)$ 对一定是满足在添加之前有 $A_{x, u} = A_{v, y} = \mathrm{true}$ 的，然后可以通过 $x \leadsto u \to v \leadsto y$ 达到 $y$。</p>
+			<p>因此，我们只需枚举有哪些 $x$ 满足 $A_{x, u} = \mathrm{true}$，然后令 $A_{x, y} = A_{x, y} \vee A_{v, y}$，容易发现这可以使用 <code>bitset</code> 进行优化。从而一次更新的复杂度为 $O \left( \dfrac {n^2} \omega \right)$。</p></li>
+			<li><p>最后判定的过程仍然还是 $O \left( n \right)$，因为我们只需对每一对点 $x_v, \neg x_v$，判定是否有 $A_{x_v, \neg x_v} = A_{\neg x_v, x_v} = \mathrm{true}$ 即可。</p></li>
+		</ol>
+		<p>于是，对 <strong>$c$ 从大到小枚举</strong>的部分，也就是说<strong>第二类边增加</strong>的部分，它们对总时间复杂度的贡献为 $O \left( \dfrac {n^4} \omega \right)$，已经可以接受。</p>
+		<p>但是，对 $C$ 从小到大枚举的部分，由于是删边，我们每次都要重新求一次传递闭包，但是求传递闭包需要 $O \left( \dfrac {n^3} \omega \right)$ 的时间，从而这部分的时间复杂度为 $O \left( \dfrac {n^5} \omega \right)$ 是无法接受的。</p>
+		<p>但我们可以观察到这些边 ($E_C$) 的性质：这些边其实限制的是 $x_v$ 的<strong>等价关系</strong> (即若干组 $x_i = x_j, x_i = \neg x_k$)，因此每一个限制会连接四条边 <span style="color: fuchsia">(以 $x_u \oplus x_v = \mathrm{true}$ 为例，会连接 $x_u \to \neg x_v, x_v \to \neg x_u, \neg x_u \to x_v, \neg x_v \to x_u$)</span>，<strong>它们恰好构成两组双向边</strong> <span style="color: fuchsia">(以 $x_u \oplus x_v = \mathrm{true}$ 为例，等价于 $x_u \leftrightarrow \neg x_v, x_v \leftrightarrow \neg x_u$)</span>。</p>
+		<p>因此，这些 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 边的功能其实本质上就是在维护 $E_C$ 这张二分图的<strong>二部划分</strong>。</p>
+		<p>现在重新回到 $E_C$，考虑 ($C$ 从大到小) 依次往一张图中加边，并保证这张图是二分图。那么考虑加边 $\left( u, v \right)$，可以分为两种情形：</p>
+		<ol>
+			<li><p>在加入边之前，$u, v$ 已经连通。</p>
+			<p>此时，由于加入边后还是二分图，<strong>这条边对图的二部划分不产生影响</strong>。</p></li>
+			<li><p>在加入边之前，$u, v$ 尚未连通。</p>
+			<p>此时，加入边后会合并两个连通块，并限制了一半的二部划分，即<strong>这条边对图的二部划分产生了限制</strong>。</p>
+			<p>我们把会对图的二部划分产生限制的边 $\left( u, v \right)$，称为<strong style="color: orange">本质的 (essential)</strong>。</p></li>
+		</ol>
+		<p>因此，只有本质的边才会对二分图的二部划分产生限制，从而才会<strong>实质性的影响 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 图的传递闭包</strong>。也就是说，我们只需要在本质边被删除的时候重构一下传递闭包即可。</p>
+		<p>而本质的边有多少条呢？由于每加入一条本质的边，图的连通分量个数就会减少 $1$，因此本质的边的数量是 $O \left( n \right)$ 的。</p>
+		<p>因此，我们只需要跑 $n$ 遍传递闭包，这部分的时间复杂度也就被降到了 $O \left( \dfrac {n^4} \omega \right)$。</p>
+		<p>于是，整个问题就可以在 $O \left( \dfrac {n^4} \omega \right)$ 的时间内解决了，这个时间对于 $n = 200$ 来说还是绰绰有余的。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef std::bitset &lt;401&gt; bitset;
+const int N = 254, M = 20054;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+	bool operator &lt; (const edge &amp;B) const {return w &lt; B.w;}
+} e[M];
+
+int n, E = 0;
+int conn[2][N], *cur = *conn, *nxt = conn[1];
+bool essential[M];
+
+inline int update(int u, int v) {
+	memcpy(cur, nxt, (n + 1) &lt;&lt; 2);
+	if (cur[u] == cur[v]) return 0;
+	if ((cur[u] ^ cur[v]) == 1) return 1;
+	for (int i = 1; i &lt;= n; ++i)
+		if (cur[i] == cur[v]) nxt[i] = cur[u] ^ 1;
+		else if (cur[i] == (cur[v] ^ 1)) nxt[i] = cur[u];
+	return -1;
+}
+
+namespace graph {
+	bitset G[401], out[401];
+
+	inline void preflip(int u, int v) {G[u].flip(v);}
+	inline void preflip_2(int u, int v) {G[u].flip(v), G[v].flip(u);}
+
+	inline void make() {
+		int i, j;
+		for (i = 1; i &lt;= 2 * n; ++i) out[i] = G[i], out[i].set(i);
+		for (i = 1; i &lt;= 2 * n; ++i)
+			for (j = 1; j &lt;= 2 * n; ++j) if (out[j].test(i)) out[j] |= out[i];
+	}
+
+	inline void dynlink(int u, int v) {
+		for (int i = 1; i &lt;= 2 * n; ++i) if (out[i].test(u)) out[i] |= out[v];
+	}
+
+	inline bool check() {
+		for (int i = 1; i &lt;= n; ++i)
+			if (out[i].test(i + n) &amp;&amp; out[i + n].test(i)) return false;
+		return true;
+	}
+}
+
+int main() {
+	int i, j, w, lim = -1, ans = INT_MAX;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	if (n &lt; 3) return cout &lt;&lt; '0' &lt;&lt; '\n', 0;
+	for (i = 1; i &lt;= n; ++i)
+		for (j = i + 1; j &lt;= n; ++j)
+			cin &gt;&gt; w, e[E++] = edge(i, j, w);
+	std::sort(e, e + E);
+
+	for (i = 1; i &lt;= n; ++i) nxt[i] = 2 * (i - 1);
+	for (i = E - 1; i &gt;= 0; --i) {
+		switch (update(e[i].u, e[i].v)) {
+			case 0: lim = i;
+			case -1: essential[i] = true; break;
+		}
+		if (~lim) break;
+	}
+	for (assert(~lim); lim + 1 &lt; E &amp;&amp; e[lim].w == e[lim + 1].w; ++lim);
+	essential[lim] = true;
+
+	for (i = lim; i &lt; E; ++i)
+		graph::preflip_2(e[i].u, e[i].v + n),
+		graph::preflip_2(e[i].v, e[i].u + n);
+
+	for (j = i = lim; i &lt; E; ++i) {
+		graph::preflip_2(e[i].u, e[i].v + n),
+		graph::preflip_2(e[i].v, e[i].u + n);
+		if (essential[i]) graph::make();
+		if (i &lt; E - 1 &amp;&amp; e[i].w == e[i + 1].w) continue;
+
+		for (; j &gt;= 0 &amp;&amp; e[i].w + e[j].w &gt;= ans; --j)
+			graph::preflip(e[j].u, e[j].v + n),
+			graph::preflip(e[j].v, e[j].u + n);
+
+		for (; j &gt;= 0; --j) {
+			if (e[j].w != e[j + 1].w &amp;&amp; graph::check()) ans = e[i].w + e[j].w;
+			graph::dynlink(e[j].u, e[j].v + n),
+			graph::dynlink(e[j].v, e[j].u + n),
+			graph::preflip(e[j].u, e[j].v + n),
+			graph::preflip(e[j].v, e[j].u + n);
+		}
+
+		if (e[i].w &gt;= ans) break;
+		if (graph::check()) ans = e[i].w;
+	}
+	cout &lt;&lt; ans &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>更新答案应当只在边权交界处更新，因为边权相同的边是作为整体的。</p>
+		<p><strong>坑2：</strong>边权为 $C$ 的边可能不是本质的，但由于它是第一条边，因此也需要 "重构" 整张 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 图的传递闭包。</p>
+		<p><strong>坑3：</strong>对于一些边界情形可能会因为奇怪的原因 (如 $K_n$ 本身是二分图) 而出问题，因此可以进行适当的特判 (如当 $n &lt; 3$ 时输出 $0$)。</p>
+	</body>
+</html>

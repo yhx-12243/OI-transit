@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6982][CodeforcesGym100851J]Jump</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个长度为 $n$ ($2 \mid n$) 的 $\texttt 0/\texttt 1$ 串 $S$。</p>
+		<p>你可以给出若干组询问，每次询问你需要给出一个长度为 $n$ 的 $\texttt 0/\texttt 1$ 串 $Q$。设 $S$ 和 $Q$ 对应相同的位置个数为 $k$，则交互库会返回 \begin{cases} k &amp; k = n \vee k = \dfrac n2 \\ 0 &amp; \text{otherwise} \end{cases}</p>
+		<p>你需要在 $n + 500$ 次询问内找到确定字符串 $S$ 的每一位。</p>
+
+		<h3>交互方式</h3>
+		<p>一开始，你需要从标准输入中读取一个正整数 $n$ ($2 \leq n \leq 1000; 2 \mid n$)，表示 $\texttt 0/\texttt 1$ 串的长度。</p>
+		<p>接下来你可以输出若干组询问，对于每次询问，你可需要向标准输出中输出一个长度为 $n$ 的 $\texttt 0/\texttt 1$ 串并刷新缓存，交互库会向标准输入中放入对应的答案。</p>
+		<p>当你得到 $n$ 的答案时 (即你已经猜中)，你<strong>应该立即退出程序</strong>。</p>
+		<p>你需要保证询问的次数不超过 $n + 500$。</p>
+
+		<h3>题解</h3>
+		<p>注意到交互库返回的信息只有 $0$ 和 $\dfrac n2$ 两种 (因为 $n$ 意味着已经结束了，如果碰巧遇到可以直接 <code>exit(0)</code>)，因此从信息量的角度来看，(在得到 $\dfrac n2$ 前) 得到 $0$ 的信息其实几乎是没有任何信息量的，因此我们希望得到一个初始串 $I$，满足 $I$ 和 $S$ 恰有 $\dfrac n2$ 个位置相同。</p>
+		<p>现在假设我们已经得到这个初始串 $I$ 了，考虑将问题进行转化：</p>
+		<p><strong style="color: teal">对于一个串 $S$，我们定义它对应的集合 $S$ 表示其中为 $\texttt 1$ 的下标集合</strong>。</p>
+		<p>因此询问就相当于，给定任意一个 $U = \left\{ 1, 2, \cdots, n \right\}$ 的子集 $T$，询问 $\left| S \oplus T \right|$ 是否等于 $\dfrac n2$。</p>
+		<p>那么，现在我们相当于已经有 $\left| S \oplus I \right| = \dfrac n2$，记 $A = S \oplus I$。如果我们能求出集合 $A$，那么由于集合 $I$ 已知自然就能还原出集合 $S$。重新叙述问题，得到：</p>
+		<blockquote>有一个 $\dfrac n2$ 元集 $A$，你每次可以询问 $A$ 与 $U$ 的一个子集的对称差的大小是否是 $\dfrac n2$，你需要得到集合 $A$。</blockquote>
+		<p>注意到 $\left| A \oplus T \right| + \left| \bar A \oplus T \right| = n$，因此 $A$ 满足条件当且仅当 $\bar A$ 满足条件。通过上述分析可知，如果仅凭这些条件我们<strong>不可能</strong>知道特定的元素是否属于 $A$，最多也只能得到一对候选 $\left( B, \bar B \right)$，然后分别检验是否猜对。</p>
+		<p>取 $u, v \in U$。由容斥原理，可知 $\left| A \oplus \left\{ u, v \right\} \right| = \left| A \right| + \left| \left\{ u, v \right\} \right| - 2 \left| A \cap \left\{ u, v \right\} \right| = \dfrac n2 + 2 \left( 1 - \left| A \cap \left\{ u, v \right\} \right| \right)$，于是我们可以通过一次询问得到一个二元集 $\left\{ u, v \right\}$ 与 $A$ 的交是否为 $1$。</p>
+		<p>因此，如果固定 $u = 1$，此时我们可以得到每个二元集 $\left\{ 1, v \right\}$ 与 $A$ 的交是否为 $1$，从而一旦确定是否有 $1 \in A$，我们就可以还原出这个 $A$ 集合。</p>
+		<p>而对于 $S$ 的情形，由对称差的性质可知 $A \oplus T = \left( S \oplus I \right) \oplus T = S \oplus \left( I \oplus T \right)$，因此只需询问 $I \oplus \left\{ u, v \right\}$ 即可。</p>
+		<hr />
+		<p>可以发现，在较坏情况下这部分的询问总次数为 $n$。因此我们需要在 $500$ 次询问内得到一个初始串 $I$。</p>
+		<p>而一个比较直观的做法是利用 (离散) 介值定理，依次枚举 $I = \varnothing, \left\{ 1 \right\}, \left\{ 1, 2 \right\}, \left\{ 1, 2, 3 \right\}, \cdots, \left\{ 1, 2, \cdots, n - 1 \right\}, U$，并注意到 $\left| S \oplus \varnothing \right| + \left| S \oplus U \right| = n$，且相邻两次结果相差一定是 $\pm 1$，因此中间一定存在某个时刻结果为 $\dfrac n2$。</p>
+		<p>但是，这样又需要 $n$ 次询问，而 $n$ 可以到 $1000 &gt; 500$。</p>
+		<p>那该怎么办呢？确定性算法应该已经没有什么希望了，我们考虑使用概率算法 (随机算法)。</p>
+		<p>考虑对于所有的集合 $I \subseteq U$，$S \oplus I$ 恰好遍历 $U$ 的所有子集，而 $U$ 的所有子集中，$\dfrac n2$ 元子集的出现频率为 $$ p = \frac {\dbinom n {n/2}} {2^n} = \frac {n !} {2^n \left( n / 2 \right) !^2} \sim \frac {\sqrt {2 \pi n}} {2 \pi \cdot n / 2} \frac {n^n \left( \mathrm e^{n/2} \right)^2} {2^n \mathrm e^n \left( n / 2 \right)^n} = \sqrt {\frac 2 {\pi n}} $$</p>
+		<p>当 $n = 1000$ 时，这个频率是大于 $2.52 \%$ 的，因此如果我们等概率随机 $U$ 的所有子集，在 $500$ 次之内仍然不出现的概率小于 $2.9 \times 10^{-6}$，因此是可以接受的。</p>
+		<p>从而，只需要随机 $U$ 的子集 $I$，直到 $\left| S \oplus I \right| = \dfrac n2$ 为止，这样我们就到了初始串，然后利用最开始分析的方法，还原出整个串 $S$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+using std::endl;
+
+const int N = 1054;
+
+int n;
+char s[N], ans[N];
+
+inline bool query(const char *s) {
+	int x;
+	cout &lt;&lt; s &lt;&lt; endl, cin &gt;&gt; x;
+	if (x == n) exit(0);
+	return x;
+}
+
+int main() {
+	int i;
+	std::mt19937 gen((std::random_device())());
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (memset(s, 48, n); !query(s); ) for (i = 0; i &lt; n; ++i) s[i] = (gen() &amp; 1) | 48;
+	*ans = *s, *s ^= 1;
+	for (i = 1; i &lt; n; ++i) s[i] ^= 1, ans[i] = s[i] ^ !query(s), s[i] ^= 1;
+	query(ans);
+	for (i = 0; i &lt; n; ++i) ans[i] ^= 1;
+	query(ans);
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意最后不要忘记询问 $A$ 和 $\bar A$ 各一遍。</p>
+		<p><strong>坑2：</strong>当得到 $n$ 的结果时应该立即退出程序 <code>exit(0)</code>，而不能再询问 (如果使用函数式交互可以使用 <code>try</code> - <code>catch</code> 块来处理)。</p>
+	</body>
+</html>

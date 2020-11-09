@@ -49,6 +49,7 @@
 			'Möbius 函数' : ['MOBIUS函数', '莫比乌斯函数'],
 			'Möbius 反转变换' : ['MÖBIUS反演', 'MOBIUS反转变换', 'MOBIUS反演', '莫比乌斯反转变换', '莫比乌斯反演'],
 			'Möbius 变换' : ['MOBIUS变换', '莫比乌斯变换'],
+			'Prüfer 序列' : ['PRUFER序列', 'PRÜFER编码', 'PRUFER编码', 'PRÜFER SEQUENCE', 'PRUFER SEQUENCE', 'PRÜFER CODE', 'PRUFER CODE'],
 			'Pólya 计数定理' : ['PÓLYA定理', 'POLYA计数定理', 'POLYA定理', '波利亚计数定理', '波利亚定理'],
 			'SPFA 判负圈' : ['SPFA判负环', 'SPFA负圈', 'SPFA负环'],
 			'ST 表' : ['SPARSE TABLE', '稀疏表', 'ST算法'],

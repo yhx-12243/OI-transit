@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4404][lg6124][CodeforcesGym100851B][NEERC2015]Binary vs Decimal</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>求第 $n$ 小的满足下列性质的正整数 $x$：</p>
+		<ul>
+			<li>$x$ 的十进制表示是 $x$ 的二进制表示的一个后缀。</li>
+		</ul>
+		<p>满足此性质的前 $12$ 项分别为 $1, 10, 11, 100, 101, 110, 111, 1000, 1001, 1100, 1101, 10000$。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$ ($n \leq 10000$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示第 $n$ 小的满足题目性质的正整数 (的十进制表示)。</p>
+
+		<h3>题解</h3>
+		<p>考虑依次枚举 $x$ 在十进制下的位数 (长度) $l$，并求出所有满足条件的 $l$ 位正整数。</p>
+		<p>由于 $2 \mathbin \Vert 10$，因此 $2^{l-1} \mathbin \Vert 10^{l-1}$，于是 $10^{l-1}$ 的二进制表示的末尾恰有 $l - 1$ 个 $0$，从而 $10^{l-1}$ 是它二进制表示的后缀，也就是说 $10^{l-1}$ 是一个满足条件的 $l$ 位正整数。</p>
+		<p>又因为 $10^{l-1}$ 的二进制表示的后 $l$ 位中有且仅有一个 $1$，因此，可以得到，<strong style="color: green">对于一个 $l$ 位正整数 $x$，$x$ 满足条件当且仅当 $x - 10^{l-1}$ 加上前导零补齐到 $l$ 位后仍是它二进制 (加上无穷多个前导零) 的后缀</strong>。</p>
+		<p class="text-muted">(证明甚易，此处略去)</p>
+		<p>结合 $x - 10^{l-1}$ 是一个 $l - 1$ 位整数，因此它补齐到 $l$ 位后仍是二进制的后缀的一个<strong>必要条件</strong>是，它补齐到 $l - 1$ 位后仍是二进制的一个后缀。因此我们就将问题简化到了 $l - 1$ 位的情形。</p>
+		<p>具体地，我们对于每个 $l$，维护出所有 $l$ 位 $\texttt 0/\texttt 1$ 串，满足它是「将这个串看成十进制后的二进制表示」的后缀。</p>
+		<p>这样的串恰有 $2 c$ 个，其中 $c$ 个首位为 $0$，另外 $c$ 个首位为 $1$，且每个首位为 $0$ 和首位为 $1$ 的串一一对应。而这首位为 $1$ 的 $c$ 个串就是 "真实的" $l$ 位整数，用来统计答案。</p>
+		<p>考虑从 $l$ 扩展到 $l + 1$，使用宽度优先搜索 (bfs) 的手段，对于这 $2 c$ 个 $l$ 位串的每一个，检验这些串二进制的第 $l$ 位是否是 $0$。如果是 $0$，将这个数以及它加上 $10^l$ 的结果加入新的列表。</p>
+		<p>这里有两个细节：</p>
+		<ol>
+			<li><p>我们需要维护出这 $2 c$ 个串的<strong>二进制</strong>，因为要检验它的第 $l$ 为是否是 $0$。</p>
+			<p>事实上，我们也只需存储二进制，而不需存储十进制 (因为十进制是二进制的后缀)。</p></li>
+			<li><p>由于我们需要求 "第 $k$ 小"，因此我们还需要维护这些数的相对顺序。</p>
+			<p>然而我们也不需要排序，由于位数相同的串的大小比较就是字典序比较，因此我们可以先存储出原来 $2 c$ 个数中 "存活下来" 的数的列表 (由于有序数组的子序列仍然有序)，最后将这些数分别加上 $10^l$ 加入列表尾部即可。</p></li>
+		</ol>
+		<p>经检验可知，当 $n = 10000$ 时答案在二进制下的位数只有 $532$，因此使用压不压位的高精都能通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+using std::vector;
+
+typedef unsigned int u32;
+typedef unsigned long long u64;
+
+struct binary : vector &lt;u32&gt; {
+	using vector::vector;
+
+	inline bool test(int x) {return (*this)[x &gt;&gt; 5] &gt;&gt; (x &amp; 31) &amp; 1;}
+	inline bool test_cb(int x) {return x &lt; (int)size() &lt;&lt; 5 ? test(x) : 0;}
+
+	binary &amp; operator += (const binary &amp;B) {
+		int i, n; u32 carry = 0; union add_u {u64 r; u32 w[2];} t;
+		if (size() &lt; B.size()) resize(B.size());
+		for (n = size(), i = 0; i &lt; n; ++i)
+			t.r = (u64)carry + (*this)[i] + (i &lt; (int)B.size() ? B[i] : 0),
+			(*this)[i] = t.w[0], carry = t.w[1];
+		if (carry) EB(1);
+		return *this;
+	}
+
+	binary &amp; shift() {
+		int i, n = size();
+		if ((*this)[n - 1] &gt;&gt; 31) EB(0), ++n;
+		for (i = n - 1; i &gt; 0; --i) (*this)[i] = (*this)[i] &lt;&lt; 1 | (*this)[i - 1] &gt;&gt; 31;
+		return front() &lt;&lt;= 1, *this;
+	}
+};
+
+int n, m, K;
+binary pw10, buf[2][540], *cur = *buf, *nxt = buf[1];
+char ans[254];
+bool ok[540];
+
+inline void upd_pow10() {binary r = pw10; r.shift().shift(), r += pw10, r.shift().swap(pw10);}
+
+void extend() {
+	int i, j = 0, c = 0;
+	std::swap(cur, nxt);
+	for (i = 0; i &lt; m; ++i) c += ok[i] = !cur[i].test_cb(n);
+	for (i = 0; i &lt; m; ++i) if (ok[i]) nxt[j] = nxt[j + c] = cur[i], nxt[j++ + c] += pw10;
+	m = 2 * c;
+}
+
+int main() {
+	int i;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	if (cin &gt;&gt; K, !--K) return cout &lt;&lt; '1' &lt;&lt; '\n', 0;
+	--K, m = 2, nxt[0] = binary(1, 0), pw10 = nxt[1] = binary(1, 1);
+	for (n = 1; ; ++n) {
+		upd_pow10(), extend();
+		if (K &lt; m / 2) {
+			binary &amp;A = nxt[K + m / 2];
+			for (i = 0; i &lt;= n; ++i) ans[i] = A.test_cb(n - i) | 48;
+			return ans[i] = 10, cout &lt;&lt; ans, 0;
+		}
+		K -= m / 2;
+	}
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在此处，由于我们维护的仍然是二进制的高精度，因此计算 $10$ 的幂次时可以用 <code>(r * 4 + 1) * 2</code> 简化。</p>
+		<p><strong>坑2：</strong>高精度时加法/乘法进位后可能会超过原先的最高位，需要扩充数组。</p>
+	</body>
+</html>

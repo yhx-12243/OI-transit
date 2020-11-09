@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4848][lg6973][CodeforcesGym101190L][NEERC2016]List of Primes</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义无穷字符串 $$ s = \texttt{[2], [3], [2, 3], [5], [2, 5], [7], [3, 5], [2, 7], [2, 3, 5], [3, 7], [11], [2, 3, 7], [5, 7], [2, 11], [13], [2, 5, 7],} \cdots $$</p>
+		<p>具体地，它描述了所有的素数集合，且按照如下规则排序：</p>
+		<ol>
+			<li>元素总和较小的集合总排在元素总和较大的集合前面。</li>
+			<li>当两个集合有元素总和相同时，字典序较小的集合总排在字典序较大的集合的前面。</li>
+		</ol>
+		<p>特别地，在这里集合用中括号 $\texttt [$ 和 $\texttt ]$ 包围，集合或元素之间用逗号 $\texttt ,$ 分隔，逗号的后面总是有一个空格。</p>
+		<p>现在，给定 $a, b$，你需要求出 $s \left[ a .. b \right]$ (下标从 $1$ 开始)。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含两个正整数 $a, b$ ($1 \leq a \leq b \leq 10^{18}; b - a \leq 10^5$)。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个长度为 $b - a + 1$ 的字符串，表示 $s \left[ a .. b \right]$。</p>
+
+		<h3>题解</h3>
+		<p><del>打表或猜想或拉 std</del> 可知，在 $s \left[ 1 .. 10^{18} \right]$ 中，所有集合的元素总和不会超过 $2096$，从而涉及到的素数个数不超过 $\pi \left( 2096 \right) = 316$ 个。</p>
+		<p>对于一个素数 $p$，我们定义它的权值为 $w \left( p \right) = 3 + \left \lfloor \lg p \right \rfloor$，则一个素数集合 $S$ (连同它尾部的 "$\texttt{, }$") 占用的字符串长度就等于 $\displaystyle 2 + \sum_{p \in S} w \left( p \right)$。</p>
+		<p>设元素总和为 $j$ 的所有素数集合的个数为 $f_j$，所有素数的权值之和为 $F_j$，那么它们的长度总和等于 $2 f_j + F_j$。从而可以得到元素总和为 $i$ 的所有集合在字符串中的<em>开始位置</em>和<em>结束位置</em>。</p>
+		<p>至于如果求 $f_j$，则是一个非常经典的背包 DP：</p>
+		<p>用 $f_{i, j}, F_{i, j}$ 分别表示<strong>只考虑 $\geq p_i$ 的素数，元素总和为 $j$ 的集合的个数与权值之和</strong> <span style="color: red">(ps: 至于为什么是 $\geq$ 而不是 $\leq$ 和后面的字典序要求有关)</span>，然后转移时只需枚举当前素数 $p_i$ 是否在集合中，可得 \begin{align*}
+f_{i, j} &amp;= f_{i + 1, j} + f_{i + 1, j - p_i} \\
+F_{i, j} &amp;= F_{i + 1, j} + F_{i + 1, j - p_i} + w \left( p_i \right) \cdot f_{i + 1, j - p_i}
+\end{align*}</p>
+		<p>最终 $f_{1, j}, F_{1, j}$ 即为所求。</p>
+		<hr />
+		<p>确定总和后，我们只需对每个 (可行的) 元素总和 $j$，进行 "模拟输出" 即可。</p>
+		<p>由于字典序较小的集合总在字典序较大的集合的前面，因此对于一个固定的前缀 $P$，以 $P$ 为前缀的所有集合都是 "紧挨在一起" 的。</p>
+		<p>于是考虑 dfs，维护一个类似栈的结构，表示当前的固定前缀 $P$。然后用过程 <code>recursion(mi, sum, L, R)</code> 表示现在考虑<span style="color: blue">所有「以 $P$ 为前缀，剩下部分的最小素因子为 $p_{mi}$，总和为 $sum$」的集合，你需要得到它对应的字符串 $t$ 的第 $L \sim R$ 个字符</span> (当然，这里保证 $1 \leq L \leq R \leq \left| t \right|$)。</p>
+		<p>如果 $sum = 0$，说明集合已经确定，按需输出即可。</p>
+		<p>否则，考虑 $p_{mi}$ 是否在集合中，分为两类情况：</p>
+		<ol>
+			<li><p>$p_{mi}$ 在集合中。</p>
+			<p>由<em>字典序条件</em>，这一类的所有集合都会在另一类的前面。设这一类集合对应的字符串的总长度为 $M$。</p>
+			<p>此时，我们将 $p_{mi}$ 压入 $P$，然后递归调用 <code>recursion(mi + 1, sum - p[mi], L, min(M, R))</code>，这里用 $\min \left\{ M, R \right\}$ 来修正范围。</p>
+			<p>当然，此时需要保证 $L \leq M$，否则无需调用。</p></li>
+			<li><p>$p_{mi}$ 不在集合中。</p>
+			<p>此时的字符串至少是从第 $M + 1$ 位开始的。</p>
+			<p>我们将 $P$ 的栈顶 ($p_{mi}$) 弹出，然后递归调用 <code>recursion(mi + 1, sum, max(L - M, 1), R - M)</code>，这里用 $\max \left\{ L - M, 1 \right\}$ 来修正范围。</p>
+			<p>当然，此时则需要保证 $M &lt; R$，否则无需调用。</p></li>
+		</ol>
+		<p>最后一个问题是如何求 $M$。由递推关系可知 $$ M = \left( L + 2 \right) f_{mi + 1, sum - p_{mi}} + F_{mi + 1, sum - p_{mi}} $$ (其中 $L$ 表示前缀部分 $P$ 的长度)</p>
+		<p>时间复杂度 $O \left( w \cdot \pi \left( w \right) + \left( b - a \right) \right)$ ($w$ 为最大总和 $\leq 2096$)。</p>
+		<p style="color: red">(ps: 下面代码实现中对字符串开闭区间的处理 (左闭右开) 与上述叙述 (两端闭) 略有不同，需要适当调整)</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+using std::string;
+
+typedef long long ll;
+const int N = 350, W = 2160;
+
+ll L, R;
+int pn = 0, c[W], p[N];
+int lg[W], w[N], samp[W];
+ll f[N][W], F[N][W];
+
+int preL = 0;
+char prefix[W];
+char ans[100054], *pans = ans;
+
+inline ll min(const ll x, const ll y) {return x &lt; y ? x : y;}
+inline ll max(const ll x, const ll y) {return x &lt; y ? y : x;}
+
+void sieve(int n) {
+	int i, j, v;
+	memset(c, -1, sizeof c);
+	for (*lg = -1, i = 1; i &lt;= n; ++i) lg[i] = lg[i / 10] + 1;
+	for (i = 2; i &lt;= n; ++i) {
+		if (!~c[i]) p[pn] = i, w[pn] = 3 + lg[i], c[i] = pn++;
+		for (j = 0; (v = i * p[j]) &lt;= n &amp;&amp; j &lt;= c[i]; ++j) c[v] = j;
+	}
+	for (i = 0; i &lt; pn; ++i) std::to_string(p[i]).copy((char *)(samp + i), w[i] - 2);
+}
+
+void dp() {
+	int i, j; *f[pn] = 1;
+	for (i = pn - 1; i &gt;= 0; --i) {
+		*f[i] = 1;
+		for (j = p[i]; j &lt; W; ++j)
+			f[i][j] = f[i + 1][j] + f[i + 1][j - p[i]],
+			F[i][j] = F[i + 1][j] + F[i + 1][j - p[i]] + w[i] * f[i + 1][j - p[i]];
+	}
+}
+
+inline void insert_prefix(int id) {memcpy(prefix + (preL + 1), samp + id, w[id] - 2), preL += w[id], prefix[preL - 1] = 44, prefix[preL] = 32;}
+
+void recursion(int mi, int sum, ll L, ll R) {
+	if (!sum) {
+		prefix[preL - 1] = 93, prefix[preL] = 44, prefix[preL + 1] = 32,
+		memcpy(pans, prefix + L, R - L), pans += R - L;
+		return;
+	}
+	if (p[mi] &lt;= sum) {
+		int back = preL;
+		insert_prefix(mi);
+		ll M = (preL + 2) * f[mi + 1][sum - p[mi]] + F[mi + 1][sum - p[mi]];
+		if (L &lt; M) recursion(mi + 1, sum - p[mi], L, min(M, R));
+		preL = back;
+		if (M &lt; R) recursion(mi + 1, sum, max(L - M, 0), R - M);
+	}
+}
+
+int main() {
+	int i; ll s = 0, t, len;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	sieve(W - 1), dp(), *prefix = 91;
+	cin &gt;&gt; L &gt;&gt; R, --L;
+	for (i = 2; ; ++i, s = t) {
+		len = 2 * f[0][i] + F[0][i], t = s + len;
+		if (R &lt;= s) break;
+		if (L &lt; t) recursion(0, i, max(L - s, 0), min(R - s, len));
+	}
+	return *pans = 10, cout &lt;&lt; ans, 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在递归 <code>recursion</code> 过程中记得及时剪枝，避免时间复杂度错误。</p>
+		<p><strong>坑2：</strong>$f_{i, j}, F_{i, j}$ 都要使用 <code>long long</code>。题解中 $F_{i, j}$ 的意义是<strong>所有元素的权值 $w$ 之和</strong>，因此对应的字符串的长度应为 $2 f_{i, j} + F_{i, j}$。</p>
+	</body>
+</html>
