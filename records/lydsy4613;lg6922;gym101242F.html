@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4613][lg6922][CodeforcesGym101242F][WF2016]Longest Rivers</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵有根树，每条边有长度。每个顶点 $v$ 有一个颜色 $c \left( v \right)$，这些颜色需要满足如下性质：</p>
+		<ol>
+			<li>所有叶子的颜色互不相同。</li>
+			<li>对于每个分支节点，它的颜色应恰好与它的某个子节点的颜色相同。</li>
+		</ol>
+		<p>对于一种颜色 $c$，定义 $l \left( c \right)$ 为所有颜色为 $c$ 的顶点到它父节点的边的长度之和。</p>
+		<p>你需要对于每个叶节点 $v$ 求出，在所有可行的染色方案中，$l \left( c \left( v \right) \right)$ 在所有颜色的 $l$ 中排名 (从大到小) 的最小值。</p>
+		<p>这里，如果有多个颜色的 $c$ 相同 (即并列)，则认为它们的排名都是最小的。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n, m \leq 5 \times 10^5$)，表示树的叶节点数和非根分支节点数。规定根节点的标号为 $0$，非根叶节点的标号为 $1, 2, \cdots, m$。</p>
+		<p>接下来 $n$ 行，每行描述一个叶节点，包含一个字符串 $s$ ($\left| s \right| \leq 10$) 和两个整数 $c, d$ ($0 \leq c \leq m; 1 \leq d \leq 10^9$)，分别表示该叶节点的名称 (叶节点用名称区分)，它的父节点<em>标号</em>和它到父节点的边的长度。</p>
+		<p>保证所有叶节点的名称互不相同，只包含大小写英文字母，且长度在 $1 \sim 10$ 之间。</p>
+		<p>最后 $m$ 行，每行描述一个分支节点，共两个正整数 $c, d$ ($0 \leq c \leq m; 1 \leq d \leq 10^9$)，分别表示该分支节点的父节点标号和它到父节点的边的长度。</p>
+		<p>保证每个非根分支节点至少有两个子节点，根节点至少有一个子节点，所有顶点构成了一棵树。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $n$ 行，每行一个字符串和一个整数，表示对应叶节点的名称和答案 (最优排名)，叶节点之间的顺序和输入相同。</p>
+
+		<h3>题解</h3>
+		<p>先考虑只有一组询问 (只解决一个叶节点) 的情形。</p>
+		<p>注意到染色的方案有点类似 "轻重链" 剖分，因此首先容易证明，对于叶节点 $v$ 我们要最小化 $l \left( c \left( v \right) \right)$ 的排名，首先 $v$ 到根的所有顶点都应该是同一种颜色。</p>
+		<p>否则，我们可以通过将 $v$ 到根的所有顶点的颜色都设成 $c \left( v \right)$，于是 $l \left( c \left( v \right) \right)$ 单调不减，其余的 $l \left( c' \right)$ 单调不增，因此排名单调不增。</p>
+		<p>设此时的 $L = l \left( c \left( v \right) \right)$。于是我们希望其它颜色的 $l$ 值中，不超过 $L$ 的尽量多。</p>
+		<p>考虑树形 DP，对于每个顶点 $i$，维护 $f_i$ 表示以它为根的子树中，是否已经有一个颜色的总长度 $l &gt; L$，顺便用 $F_i$ 表示 $l \leq L$ 的叶节点 (颜色) 数量的最大值。</p>
+		<p>在转移时，如果它有一个子节点 $c$ 满足 $f_c &gt; L$，则我们可以令 $i$ 和 $c$ 同色，于是 $f_i = \mathrm{true}$，$F_i$ 就等于所有子节点的 $F_c$ 之和。</p>
+		<p>否则，说明所有子节点 $c$ 的 $f_c \leq L$。但是由规则知，我们必须选择一种颜色进行 "延伸" —— 即将它的 $l$ 变成 $l + \operatorname{dist} \left( i, p_i \right)$。</p>
+		<p>那么我们自然选择其中 $l$ 最小的子节点 $c$ 进行延伸。根据延伸的结果是否大于 $L$，决定 $f_i$ 是 $\mathrm{true}$ 还是 $\mathrm{false}$，决定 $F_i$ 是 $\displaystyle \sum_{c \in child \left( i \right)} F_c$ 还是 $\displaystyle \sum_{c \in child \left( i \right)} F_c - 1$。</p>
+		<p>最终 $F_1$ 的值就是该询问的答案。</p>
+		<hr />
+		<p>注意到该策略 (选择 "重链" 的策略) 不取决于 $L$ 的值。因此我们可以先构造一个一般策略：</p>
+		<p>首先，对于每个顶点 $c$，记录 $S_i$ 表示 $i$ 的颜色的 $l$ 的最小值。</p>
+		<p>于是，对于叶节点 $v$，有 $S_v = w_v$ (定义 $w_i = \operatorname{dist} \left( i, p_i \right)$)。</p>
+		<p>对于非叶节点，有 $$ S_i = w_i + \min_{u \in child \left( i \right)} w_u $$</p>
+		<p>在判定时，只需统计出有多少个 $S_j$ 满足 $S_j &gt; L$，但是这里 "多少个" 要求选数的关系满足：<strong style="color: green">若一个顶点被计入答案，则它的所有祖先顶点都不能被计入答案</strong> (否则就重复了)。</p>
+		<p>最后，满足上述条件的 $j$ 的个数 (再加 $1$)，即为该问题的答案。</p>
+		<hr />
+		<p>考虑有被多个叶节点 $v$ 的情形，由于我们的操作和 $L$ 有关，因此考虑将所有叶节点按照 $l \left( c \left( v \right) \right)$ ($L$) 值从小到大排序，依次考虑每个顶点。</p>
+		<p>首先，这个 $L$ 是单调不减的，因此我们可以考虑依次加入这些点 $j$，其次，由于一个顶点被计算答案，则所有的后代都不能被计算答案，因此每个被统计的点的子树中一定没有 $S_j \leq L$ 的其它点，否则将其换成那个点后答案更优。即，<span style="color: red">选取的点是当前树的某个含根连通块的叶节点集合</span>。</p>
+		<p>于是，我们使用一个堆维护当前的叶节点集合。初始时加入所有的叶节点，每一轮中，我们将权值 $\leq L$ 的堆顶扔掉，<strong>同时在树上对应删除这个点</strong>。但是注意到删去若干个叶节点可能会让某个分支节点重新变回叶节点，因此删完后需要检查它的父节点能否入堆。</p>
+		<p>最终每个顶点对应的答案就是上述操作结束后优先队列的大小 (再加 $1$)，时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef std::pair &lt;ll, int&gt; pr;
+const int N = 1000054, M = N / 2;
+
+int n_leaf, n_branch, V;
+int p[N], fc[N], nc[N], deg[N], w[N];
+int o[M], ans[M];
+ll deep[N], Short[N];
+char s[M][12];
+std::priority_queue &lt;pr, std::vector &lt;pr&gt;, std::greater &lt;pr&gt;&gt; pq;
+
+inline void link(int x, int px) {p[x] = px, nc[x] = fc[px], fc[px] = x, ++deg[px];}
+inline void down(ll &amp;x, const ll y) {x &gt; y ? x = y : 0;}
+
+void dfs(int x) {
+	int y; Short[x] = LLONG_MAX;
+	for (y = fc[x]; y; y = nc[y]) deep[y] = deep[x] + w[y], dfs(y), down(Short[x], Short[y]);
+	if (!deg[x]) Short[x] = 0;
+	Short[x] += w[x];
+}
+
+int main() {
+	int i, u, v, x, $; ll L;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n_leaf &gt;&gt; n_branch, V = n_leaf + n_branch + 1;
+	for (i = 0, u = n_branch + 2; i &lt; n_leaf; ++i, ++u) cin &gt;&gt; s[i] &gt;&gt; v &gt;&gt; w[u], link(u, v + 1);
+	for (i = 1; i &lt;= n_branch; ++i) cin &gt;&gt; v &gt;&gt; w[i + 1], link(i + 1, v + 1);
+	dfs(1);
+	std::iota(o, o + n_leaf, n_branch + 2);
+	std::sort(o, o + n_leaf, [] (const int x, const int y) {return deep[x] &lt; deep[y];});
+	for (i = n_branch + 2; i &lt;= V; ++i) pq.emplace(Short[i], i);
+	for ($ = 0; $ &lt; n_leaf; ++$) {
+		x = o[$], L = deep[x];
+		for (; !pq.empty() &amp;&amp; pq.top().first &lt;= L; ) {
+			u = pq.top().second, pq.pop();
+			if (!--deg[v = p[u]] &amp;&amp; v != 1) pq.emplace(Short[v], v);
+		}
+		ans[x - n_branch - 2] = pq.size() + 1;
+	}
+	for (i = 0; i &lt; n_leaf; ++i) cout &lt;&lt; s[i] &lt;&lt; ' ' &lt;&lt; ans[i] &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意根节点不要入堆，否则可能导致 WA 或 RE。</p>
+		<p><strong>坑2：</strong>注意编号问题，根节点的编号为 $0$，因此需要适当偏移。</p>
+	</body>
+</html>

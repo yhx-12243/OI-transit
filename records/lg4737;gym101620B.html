@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg4737][CodeforcesGym101620B][CERC2017]Buffalo Barricades</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>坐标平面上有 $n$ 头牛，每一头牛占据一个单位正方形。现在需要进行 $m$ 次操作，每次操作如下：</p>
+		<ol>
+			<li><p>选定一个整数坐标点 $\left( x, y \right)$，并在此处安装一个栅栏柱。保证所有 $x$ 互不相同，所有 $y$ 互不相同。</p></li>
+			<li><p>从该栅栏柱开始尽可能向左和下延伸栅栏，直到碰到坐标轴或另一段栅栏。</p></li>
+			<li><p>你需要输出以栅栏柱右上角的封闭区域中的牛的总数。</p>
+			<p style="color: red">(ps: 尽管这些牛可能会被后续的操作重新统计到，但也要统计在内)</p></li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 3 \times 10^5$)，表示牛的数量。</p>
+		<p>接下来 $n$ 行，每行两个正整数 $x_i, y_i$ ($x_i, y_i \leq 10^9$)，表示有一头牛占据了单位正方形 $\left[ x_i - 1, x_i \right] \times \left[ y_i - 1, y_i \right]$ 中。保证所有牛的位置互不相同。</p>
+		<p>第 $n + 2$ 行包含一个正整数 $m$ ($m \leq 3 \times 10^5$)，表示操作的数量。</p>
+		<p>最后 $m$ 行，每行两个正整数 $x_j, y_j$ ($x_j, y_j \leq 10^9$)，表示一次右上角为 $\left( x_j, y_j \right)$ 操作。保证所有的 $x_j$ 互不相同，所有的 $y_j$ 互不相同。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $m$ 行，每行一个整数，表示对应区域中牛的总数。</p>
+
+		<h3>题解</h3>
+		<p>先不考虑一头牛会统计到多次的情形，统计出在最终的栅栏图中，每个区域中有多少头牛。</p>
+		<p>这个可以使用扫描线来完成。具体地址，由于每条边都是向左或向下的，因此我们考虑<strong>从右往左</strong>进行扫描线，维护与当前 $x = x_0$ 截线相交的栅栏的纵坐标集合 $S$。</p>
+		<p>那么，当我们遇到一头牛，这头牛肯定会在纵坐标不小于它的第一个栅栏所对应的区域中。</p>
+		<p>而当我们遇到一个栅栏柱 $\left( x, y \right)$ 时，首先我们肯定要往 $S$ 中插入 $y$。</p>
+		<p>但观察可知，这根栅栏柱也会向下延伸，直到碰到第一个<strong>编号比它小的栅栏</strong>为止，而中间的这些栅栏由于编号比它大 (插入时间比它晚)，就不再向左延伸，就应当从 $S$ 中删去。</p>
+		<p>于是，向 Chtholly 树一样维护集合 $S$，每次加入 $1$ 个元素，删除若干个元素，就能在 $O \left( n \log n \right)$ 的时间复杂度求出，<strong style="color: fuchsia">在最后的划分中，每个区域中牛的数量</strong>，<span style="color: teal">记为 $f_i$</span>。</p>
+		<hr />
+		<p>当然，这并不是最终的答案，这是因为，如果有两个相邻的栅栏柱 $\left( x_i, y_i \right), \left( x_j, y_j \right)$ 满足 $x_i &lt; x_j, y_i &lt; y_j$ 且 $i &gt; j$，那么 $i$ 的答案会被加入 $j$ 中。</p>
+		<p>对于这种情况，我们 (建立一张有向图) 连接一条从 $i$ 指向 $j$ 的边，于是我们得到了一张 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>。</p>
+		<p>更精细地，这张 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr> 实际上是一个<em>传递闭图</em>。因此，我们不用连接这么多边，我们只需对 "相邻" 的 $\left( j, i \right)$ 连接这条边即可，即不存在栅栏 $\left( x_k, y_k \right)$ 满足 $x_j &lt; x_k &lt; x_i, y_j &lt; y_k &lt; y_i$。</p>
+		<p>不考虑 $i &lt; j$ 的情形，我们只考虑坐标之间的关系，那么，每个点的出边如果存在是唯一的，于是就可以得到一个内向森林。</p>
+		<p>在这个森林中，如果 $j$ 是 $i$ 的祖先，且<em style="color: green">路径 $i \leadsto j$ 上的所有点都大于 $j$</em>，则这些点的 $f_i$ 都会被加到 $j$ 上。</p>
+		<p>于是每个点的答案就是森林中一个连通块的 $f_i$ 的和。因此考虑使用并查集来维护。</p>
+		<p>考虑将问题离线，从大到小枚举 $i$，加入 $i \to p_i$ 的边。于是当扫描到 $j$ 时，$j$ 所在的连通块的所有点都 $\geq j$，于是该连通块的 $f_i$ 之和即为所求。</p>
+		<p>总时间复杂度 $O \left( n \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef std::map &lt;int, int&gt; map;
+const int N = 300054, M = N * 2;
+
+struct sweepLine {
+	int x, id;
+	sweepLine () {}
+	sweepLine (int x_, int id_) : x(x_), id(id_) {}
+	inline bool operator &lt; (const sweepLine &amp;B) const {return x &gt; B.x || (x == B.x &amp;&amp; id &gt; B.id);}
+} sl[M];
+
+int n, np;
+int y[M], f[N], pa[N], p[N];
+int ans[N];
+map s;
+
+int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+int main() {
+	int i, j, x, Y;
+	map::iterator it, jt, kt;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; np;
+	for (i = 0; i &lt; np; ++i) cin &gt;&gt; x &gt;&gt; y[i], sl[i] = sweepLine(x, i);
+	cin &gt;&gt; n;
+	for (i = np; i &lt; np + n; ++i) cin &gt;&gt; x &gt;&gt; y[i], sl[i] = sweepLine(x, i);
+	std::sort(sl, sl + i), memset(pa, -1, n &lt;&lt; 2);
+	for (j = 0; j &lt; np + n; ++j) {
+		i = sl[j].id, Y = y[i];
+		if (i &lt; np) {
+			it = s.lower_bound(Y);
+			if (it != s.end()) ++f[it-&gt;second];
+		} else {
+			it = s.emplace(Y, i -= np).first;
+			for (kt = jt = it; jt != s.begin() &amp;&amp; (--kt)-&gt;second &gt;= i; jt = kt);
+			s.erase(jt, it);
+			if (++it != s.end()) pa[i] = it-&gt;second;
+		}
+	}
+	std::iota(p, p + n, 0);
+	for (i = n - 1; i &gt;= 0; --i)
+		if (ans[i] = f[i], ~pa[i]) p[i] = ancestor(pa[i]), f[p[i]] += f[i];
+	for (i = 0; i &lt; n; ++i) cout &lt;&lt; ans[i] &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>还是要注意扫描线的顺序问题：由于具有相同横坐标的牛在栅栏的左边，因此 (从右往左) 扫描的时候对于相同的 $x$ 应先处理栅栏，后处理牛。</p>
+		<p><strong>坑2：</strong>$i &lt; j$ 这一维我们是离线下来当时间来处理的，因此在连边的时候只要判坐标是否满足即可。</p>
+	</body>
+</html>

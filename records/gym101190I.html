@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym101190I][NEERC2016]Indiana Jones and the Uniform Cave</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张 $n$ ($2 \leq n \leq 20$) 个顶点的有向图 $G$，其中每个点的<strong>出度</strong>恰好为 $m$，且 $G$ 是强连通的。</p>
+		<p>你希望经过每条边各一次，但你无法区分这些边。具体地，每个点 $v$ 有一个 $0 \sim 2$ 的标记 $col_v$，当你每次到达一个新的点 $v$ 后，可以观察到 $col_v$，当你要从点 $v$ 离开时，你可以修改 $col_v$。</p>
+		<p>其次，对于每个点 $v$ 的 $m$ 条出边，你可以认为这些边足够长且等角度均匀分布，因此你无法分辨这些边的特点。但是，每个点 $v$ 处有一个手电筒，你可以选择一条边将其照亮，然后从照亮的边开始，逆时针将所有边标号为 $0, 1, 2, \cdots, m - 1$。</p>
+		<p>同样，当你要从一个点离开时，你可以修改该点的手电筒所照亮的边。</p>
+		<p>你仅需通过每个点的标记和手电筒，在规定的步数内经过所有边至少一次。</p>
+
+		<h3>交互方式</h3>
+		<p>最开始标准输入中会有一个正整数 $m$ ($2 \leq m \leq 20$)，表示每个点的出度。</p>
+		<p>对于每一轮，首先交互库会像标准输入放入一个字符串 (<code>center</code>, <code>left</code> 或 <code>right</code>)，表示你<strong>当前所在的点</strong>的标记 ($0, 1, 2$)。保证初始时所有点的标记都是 <code>center</code> ($0$)。</p>
+		<p>然后，设以该点手电筒照亮的边为基准，逆时针将所有出边依次标号为 $0, 1, 2, \cdots, m - 1$。设你要走第 $p$ ($0 \leq p \leq m - 1$) 条边，并将该点的标记重新设为 $c$ ($c \in \left\{ \texttt{center}, \texttt{left}, \texttt{right} \right\}$)，手电筒指向第 $s$ ($0 \leq s \leq m - 1$) 条边，则只需输出 <code><em>s</em> <em>c</em> <em>p</em></code> 并刷新缓存即可。</p>
+		<p>走完后，交互库便开始新一轮交互 (先输入一个字符串，然后你输出移动方向)。</p>
+		<p>当你某一轮交互结束后，你已经经过所有边至少一次了，则下一轮交互库会输出 <code>treasure</code>，你应该立即退出程序。</p>
+		<p>你需要保证在 $20000$ 次移动内经过所有边至少一次。</p>
+
+		<h3>题解</h3>
+		<p>考虑对该图进行 dfs，那么<del>根据套路</del>这三种标记恰好可以用来表示 dfs 中的三个状态：<strong>未访问</strong> ($0$)，<strong>已访问</strong> ($1$)，<strong>在栈中</strong> ($2$)。</p>
+		<p>于是我们可以通过这种方式来对点进行标记，然后手电筒就指向当前 dfs 下来的边即可。</p>
+		<p>但是我们还需要处理如果 dfs 遇到<strong>后向边</strong>和<strong>横叉边/前向边</strong>的情形，下面要对其进行具体的讨论。</p>
+		<p>设当前在顶点 $x$。我们对其进行 dfs，设走到的点为 $y$。根据 $y$ 此时的状态可以分成三种情形：</p>
+		<ol>
+			<li><p>$y$ 未访问 (状态为 $0$)。</p>
+			<p>此时递归调用 $\mathrm{dfs} \left( y \right)$ 即可。</p>
+			<p style="color: red">(ps: 在实际的 dfs 中，我们是不知道点的标号的，因此要像动态开点一样每调用一次 $\mathrm{dfs}$ 函数生成一个新的标号)</p></li>
+			<li><p>$y$ 在栈中 (状态为 $2$)。</p>
+			<p>这说明，$x \to y$ 是一条<strong>后向边</strong>。但我们已经到达顶点 $y$ 了 (而且由于是有向图直接回去显然是不行的)，我们一时半会也不能立即知道 $y$ 的标号。</p>
+			<p>但是，可以注意到链 $y \leadsto x$ 上的所有顶点都处于<strong>在栈中</strong> ($2$) 状态，且对应的手电筒都指向这条路径。因此，我们只需沿着手电筒的方向走，即可走到 $x$。</p>
+			<p><strong style="color: fuchsia">但是我们怎么知道是否已经到达 $x$ 了呢？</strong>因此，在 $y$ 时，我们将它的状态<strong>临时改为</strong> $1$ 或 $0$ (即不是 $2$)，然后沿着手电筒走。由于此时<span style="color: blue">点 $x$ 处的手电筒指向边 $x \to y$</span>，因此当遇到一个不是状态 $2$ 的点，就说明我们又回到了 $y$。</p>
+			<p>而此时我们是可以数清我们走了多少次的，而且也容易使用栈维护从根到当前点的路径中所有点的标号，因此我们可以计算出 $y$ 的深度，从而得到 $y$ 的标号。</p>
+			<p>得到 $y$ 的标号后，原路返回 $x$ 即可，别忘了把 $y$ 的状态重新改回 $2$。</p></li>
+			<li><p>$y$ 已访问 (状态为 $1$)。</p>
+			<p>这说明，$x \to y$ 是一条<strong>横叉边</strong>或<strong>前向边</strong>。</p>
+			<p>我们的主要目标就是，在不调用 dfs 的基础上，<strong>尽快回到点 $x$</strong>。</p>
+			<p>首先，<strong>在栈中</strong> ($2$) 的边的手电筒一定是指向当前 dfs 的路径的，但<strong>已访问</strong> ($1$) 的边的手电筒的方向是没有规定的 <em style="color: blue">(况且对于 dfs 上的叶节点，必须指向一条后向边或横叉边)</em>。</p>
+			<p>那我们希望位于其它子树的 $y$ 能<strong>回到</strong> $x$，就希望它们能指向一条较浅的边。</p>
+			<p style="color: fuchsia">对，较浅的边，这就使我们想到 Tarjan 算法中的 <code>low[]</code> 数组。</p>
+			<p>对于每个非根的顶点 $x$，由于整张图强连通，因此一定有 $low_x &lt; id_x$。</p>
+			<p>于是对于顶点 $x$，我们将手电筒指向<strong>能到达 $low_x$ 的路径的方向</strong>。</p>
+			<p>这样，对于一个其它的点 $y$，只要沿着手电筒走，它最终一定会回到主链 $r \leadsto x$ 上，从而遇到一个<strong>在栈中</strong> ($2$) 的顶点，从而转化为情形 2。</p>
+			<p>即，仍然沿着手电筒走，直到遇到<strong>在栈中</strong> ($2$) 的顶点 $z$，<span class="text-muted">然后将 $z$ 的状态临时改掉 (此时不改也可以)</span>，继续沿着手电筒走，直到遇到非状态 $2$ 的顶点，统计出两段各自的长度，最后原路返回 $x$。</p>
+			<hr />
+			<p>这样我们还可以顺便得到 $z$ 的标号 (因为知道 $\operatorname{dist} \left( z, x \right)$ 和 dfs 栈)，但并不能得到 $y$ 的标号。<del class="text-muted">(事实上我们也并不需要得到 $y$ 的标号)</del></p></li>
+			<li><p>此外，根据情形 3 中的经验，我们还需要维护出每个点的 $low$ 并让手电筒指着它。</p>
+			<p>由 Tarjan 算法 (求强连通分量) 的过程可知，$low$ 的更新可以分为两种：</p>
+			<ol>
+				<li><p>遇到新的树边 $x \to y$，在搜索完 $x \to y$ 后令 $low_x \downarrow low_y$。</p>
+				<p>如果最终的 $low_x$ 是这种类型，我们只需要将顶点 $x$ 处的手电筒指向这条树边 $x \to y$ 即可。</p></li>
+				<li><p>对非树边 (后向边/横叉边/前向边) $x \to y$ 的更新，令 $low_x \downarrow id_y$。</p>
+				<p>如果最终的 $low_x$ 是这种类型，我们还是只需将顶点 $x$ 处的手电筒指向 $x \to y$ 的边。当然，在情形 3 中，由于 $id_z &lt; id_y$，因此我们可以直接用 $z$ 来代替 $y$ 的功能。</p></li>
+			</ol></li>
+		</ol>
+		<p>最后，当一个点 dfs 完毕后，它也该变成<strong>已访问</strong> ($1$) 状态了，而我们也已经知道它的手电筒应该指向哪了，我们就试着让手电筒指向那里，然后回到父节点。</p>
+		<p>但是由题目的要求知，当我们要改变手电筒的指向时就必须移动一步，同时，由于是有向图，一步回到父节点也是不可能的，因此我们还要进行一次 "最后的旅行"。</p>
+		<p>由于我们手电筒指向的边是 "最浅的" 边，因此 (当 $x$ 不是根时) 这条边最终一定会走向 $x$ 的一个祖先 $z$。因此沿着手电筒走到 $z$ 后，再沿着手电筒走回 $x$ 的父节点。具体的方法还是同 2，先通过改变 $x$ 的标记为 $1$ 走到 $x$ 并记录长度，再走一次即可到 $x$ 的父节点。</p>
+		<p>从而我们就完成了 dfs 的整个过程。由于每搜索一条边会造成不超过 $2 n$ 次的移动，因此总移动次数就不超过 $$ 2 n \cdot \left| E \right| = 2 n^2 m &lt; 20000 $$</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+using std::endl;
+using std::string;
+
+const string encode[3] = {"center", "left", "right"};
+const int N = 27;
+
+int n;
+int cnt = 0, low[N];
+int stc = 0, sta[N];
+int col[N];
+
+inline bool down(int &amp;x, const int y) {return x &gt; y ? x = y, 1 : 0;}
+
+inline int step(int mark, int col, int dir) {
+	int vd; static string ret; cout &lt;&lt; mark &lt;&lt; ' ' &lt;&lt; encode[col] &lt;&lt; ' ' &lt;&lt; dir &lt;&lt; endl;
+	cin &gt;&gt; ret, vd = std::find(encode, encode + 3, ret) - encode;
+	if (vd == 3) exit(0);
+	return vd;
+}
+
+inline int pass(int col) {return step(0, col, 0);}
+inline int next_edge() {return step(1, 2, 1);}
+
+int dfs() {
+	int i, j, x = ++cnt, y, c, best = 0, u1, u2;
+	low[x] = x, col[x] = 2, sta[stc++] = x;
+	for (i = 0; i &lt; n; ++i) {
+		c = next_edge();
+		if (c) {
+			for (u1 = 0; c == 1; c = pass(1), ++u1);
+			for (u2 = 0; c == 2; c = pass(1), ++u2);
+			for (j = 0; j &lt; u1; ++j) pass(1);
+			for (j = 1; j &lt; u2; ++j) pass(2);
+			y = sta[stc - u2];
+			if (down(low[x], y)) best = i;
+		} else {
+			y = dfs();
+			if (down(low[x], low[y])) best = i;
+		}
+	}
+	if (x == low[x]) return assert(x == 1), x;
+	best = (best + 1) % n, c = step(best, 1, best);
+	for (u1 = 0; c == 1; c = pass(1), ++u1);
+	for (u2 = 0; c == 2; c = pass(2), ++u2);
+	pass(1);
+	for (j = 0; j &lt; u1; ++j) pass(1);
+	for (j = 1; j &lt; u2; ++j) pass(2);
+	return --stc, x;
+}
+
+int main() {
+	string center;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	return cin &gt;&gt; n &gt;&gt; center, dfs(), 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意交互方式，是交互库先输出，你后输出。因此不要忘记读入最开始的 <code>center</code>。</p>
+		<p><strong>坑2：</strong>当交互库返回 <code>treasure</code> 时你应该立即退出，否则会造成错认编号导致不可预料的结果。</p>
+	</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>3-边连通分量的另一种算法</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+		<style>
+			dfn {font-weight: bold; color: fuchsia}
+			.th {font-weight: bold; color: green}
+			.pr {font-weight: bold; color: orange}
+		</style>
+	</head>
+	<body>
+		<h3>$3-$边连通分量的另一种算法</h3>
+		<p><strong style="color: red">前置技能：<a href="14.html" target="_blank">图论概念梳理</a>。</strong></p>
+		<p>众所周知，$3-$边连通分量有很多算法，其中不乏很多线性的做法，如<a href="https://www.cnblogs.com/tweetuzki/p/13157847.html" target="_blank">这里</a>。</p>
+		<p>不过那些算法<del>可能会不太好理解</del>，下面将给出一个不同于上文的做法，相对易于理解，且需要的引理也比较少。可惜它的时间复杂度是 $O \left( \left( \left| V \right| + \left| E \right| \right) \alpha \left( \left| V \right| \right) \right)$，不过在实际应用方面完全不逊于常规写法。</p>
+		<hr />
+		<p>首先，一些相关的前置知识，如<dfn>切边</dfn>、<dfn>切边对</dfn>、<dfn>切边等价</dfn>的概念可以在<a href="14.html" target="_blank">图论概念梳理</a>或<a href="../index.html?redirect=1094" target="_blank">这里</a>找到。</p>
+		<p>由 <a href="../index.html?redirect=1094" target="_blank">[WF2015]Tours</a> 的定理 2，可以通过随机权值的方法在线性时间内构造 "切边等价" 关系的等价类 $E_1, E_2, \cdots, E_\kappa$。</p>
+		<p>(留坑待填)</p>
+
+		<h4>一个 <a href="https://www.luogu.com.cn/problem/P6658" target="_blank">P6658</a> 的实现：</h4>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define ad(x) (((x - 1) ^ 1) + 1)
+using std::cin;
+using std::cout;
+
+typedef unsigned long long u64;
+typedef std::pair &lt;u64, int&gt; pui;
+typedef std::vector &lt;int&gt; vector;
+const int N = 500054, M = N * 2;
+
+struct edge {
+	int u, v;
+	edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+} e[M];
+
+int V, E, C, Es = 0;
+int first[N], next[M], col[M];
+int cnt = 0, p[N], id[N], low[N];
+bool bridge[M], treeQ[M];
+pui ew[M];
+u64 weight[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+inline void addedge(int u, int v) {
+	e[++Es] = edge(u, v), next[Es] = first[u], first[u] = Es;
+	e[++Es] = edge(v, u), next[Es] = first[v], first[v] = Es;
+}
+
+void dfs(int x) {
+	int i, y;
+	id[x] = low[x] = ++cnt;
+	for (i = first[x]; i; i = next[i])
+		if (!id[y = e[i].v]) {
+			p[y] = i, treeQ[i] = treeQ[ad(i)] = true, dfs(y), down(low[x], low[y]);
+			if (id[x] &lt; low[y]) bridge[ad(i)] = bridge[i] = true;
+		} else if ((p[x] - 1) ^ (i - 1) ^ 1)
+			down(low[x], id[y]);
+}
+
+void dfs2(int x) {
+	int i, y;
+	for (i = first[x]; i; i = next[i])
+		if (p[y = e[i].v] == i) dfs2(y), weight[x] ^= weight[y], ew[ad(i)].first = ew[i].first = weight[y];
+}
+
+namespace e3cc {
+	typedef std::list &lt;int&gt; list;
+
+	int n_e3cc = 0, p[N], deg[N], count[M];
+	int na = 0, absQ[M];
+	int nd = 0, deg2Q[N];
+	list li[N];
+	vector e3cc[N];
+
+	int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+	void main() {
+		int i, j, c, u, v, x, z[3], nz;
+		for (i = 1; i &lt;= Es; i += 2) if (!bridge[i]) ++count[col[i]];
+		for (i = 1; i &lt;= Es; i += 2) if (!bridge[i]) {
+			++deg[e[i].u], ++deg[e[i].v];
+			if (count[col[i]] == 1) absQ[na++] = i;
+		}
+		for (i = 1; i &lt;= V; ++i) {
+			li[i].EB(i), p[i] = i, assert(deg[i] != 1);
+			if (deg[i] == 2) deg2Q[nd++] = i;
+		}
+		for (; ; )
+			if (na) {
+				i = absQ[--na], u = ancestor(e[i].u), v = ancestor(e[i].v);
+				if (u == v) deg[u] -= 2;
+				else p[v] = u, deg[u] += deg[v] - 2, li[u].splice(li[u].end(), li[v]);
+				if (deg[u] == 2) deg2Q[nd++] = u;
+			} else if (nd) {
+				x = deg2Q[--nd];
+				if (deg[x] != 2) continue;
+				x = ancestor(x), nz = 0;
+				for (int r : li[x])
+					for (i = first[r]; i; i = next[i])
+						if (!bridge[i] &amp;&amp; ancestor(e[i].v) != x)
+							z[nz++] = i;
+				assert(nz == 2), u = e[i = *z].v, v = e[j = z[1]].v;
+				assert(col[i] == col[j]), c = col[i];
+				if (p[u] == p[v]) continue;
+				e[i].u = e[ad(i)].v = v, next[i] = first[v], first[v] = i, p[x] = p[v];
+				if (--count[c] == 1) absQ[na++] = i;
+			} else break;
+		for (i = 1; i &lt;= V; ++i) if (!li[i].empty()) e3cc[n_e3cc++].assign(li[i].begin(), li[i].end());
+	}
+}
+
+int main() {
+	int i, u, v; u64 w; vector *ans = e3cc::e3cc;
+	std::mt19937_64 gen((std::random_device())());
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; V &gt;&gt; E;
+	for (i = 1; i &lt;= E; ++i) if (cin &gt;&gt; u &gt;&gt; v, u != v) addedge(u, v);
+	for (i = 1; i &lt;= V; ++i) if (!id[i]) dfs(i);
+	for (i = 1; i &lt;= Es; i += 2) if (!treeQ[i])
+		ew[ad(i)].first = ew[i].first = w = gen(), weight[e[i].u] ^= w, weight[e[i].v] ^= w;
+	for (i = 1; i &lt;= V; ++i) if (!p[i]) dfs2(i);
+	for (i = 1; i &lt;= Es; ++i) ew[i].second = i;
+	std::sort(ew + 1, ew + (Es + 1));
+	for (i = 1; i &lt;= Es; ++i) col[ew[i].second] = (i != 1 &amp;&amp; ew[i].first == ew[i - 1].first ? C : ++C);
+	e3cc::main();
+	for (i = 0; i &lt; e3cc::n_e3cc; ++i) std::sort(ans[i].begin(), ans[i].end());
+	std::sort(ans, ans + e3cc::n_e3cc), cout &lt;&lt; e3cc::n_e3cc &lt;&lt; '\n';
+	for (i = 0; i &lt; e3cc::n_e3cc; ++i) {
+		v = ans[i].size();
+		for (u = 0; u &lt; v; ++u) cout &lt;&lt; ans[i][u] &lt;&lt; (u == v - 1 ? '\n' : ' ');
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+	</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg4739][CodeforcesGym101620D][CERC2017]Donut Drone</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个 $r$ 行 $c$ 列的环形网格，其中第 $1$ 行和第 $r$ 行相连，第 $1$ 列和第 $c$ 列相连。每个格子中有一个权值 $e_{i, j}$。对于第 $i$ 行第 $j$ 列的格子 $\left( i, j \right)$，我们定义它的<em>后继格子</em>为第 $i + \varepsilon$ 行第 $j + 1$ 列的格子，其中满足 $e_{i + \varepsilon, j + 1}$ 是 $e_{i - 1, j + 1}, e_{i, j + 1}, e_{i + 1, j + 1}$ 中最大的。</p>
+		<p style="color: red">(ps: 这里行列下标分别按照 $\hspace{-0.444em} \pmod r, \hspace{-0.444em} \pmod c$ 理解，保证任意时刻这样三个位置的权值互不相同，因此任意一个格子的<em>后继格子</em>都是良定义的)</p>
+		<p>现在你在 $\left( 1, 1 \right)$，你需要处理 $m$ 次操作，操作分为两类：</p>
+		<ul>
+			<li><code>move <em>k</em></code> 表示你沿<em>后继格子</em>移动 $k$ 步。</li>
+			<li><code>change <em>a</em> <em>b</em> <em>e</em></code> 表示重新修改第 $a$ 行第 $b$ 列的格子的权值为 $e$。</li>
+		</ul>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $r, c$ ($3 \leq r, c \leq 2000$)，表示网格的行数和列数。</p>
+		<p>接下来 $r$ 行，每行 $c$ 个正整数 $e_{i, j}$ ($1 \leq e_{i, j} \leq 10^9$)，描述各个格子的初始权值。</p>
+		<p>第 $r + 2$ 行包含一个正整数 $m$ ($1 \leq m \leq 5000$)，表示操作的总次数。</p>
+		<p>最后 $m$ 行，每行描述一次操作，格式形如 <code>move <em>k</em></code> ($1 \leq k \leq 10^9$) 或 <code>change <em>a</em> <em>b</em> <em>e</em></code> ($1 \leq a \leq r; 1 \leq b \leq c; 1 \leq e \leq 10^9$)。保证任意时刻竖直相邻的三个位置的权值互不相同。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每次 <code>move</code> 操作，输出一行，包含两个整数，表示该 <code>move</code> 操作后你所处的位置的行标和列标。</p>
+
+		<h3>题解</h3>
+		<p>首先我们考虑实时维护每个格子的<em>后继格子</em>，可以发现，每次修改只会影响<em style="color: fuchsia">至多 $4$ 个</em>格子的<em>后继格子</em>，因此直接暴力维护即可。于是剩下的部分和权值无关了，因为整个移动过程只和<em>后继格子</em>有关 <span class="text-muted">(当然权值还可以用来证明一些性质)</span>。</p>
+		<p>考虑一次移动，由于移动的步数 ($10^9$) 太多了，考虑减少步数。由抽屉原理可知，在移动的过程中一定能进入循环，不过这个循环可能要等 $O \left( r c \right)$ 步后才能发现，因此时间复杂度 $O \left( m r c \right)$ 也是无法接受的。</p>
+		<p>不过我们可以接受 $O \left( m \cdot r \right)$ 或 $O \left( m \cdot c \right)$ 的复杂度，因此我们希望在一个小的样本上使用抽屉原理。</p>
+		<p>不难发现，每次移动后，所在位置的<strong>列标</strong>一定是原来的列标再 $+ 1$，是很有规律的。因此我们可以利用它的周期性，"一圈一圈" 地分析。</p>
+		<p>因此我们希望出发地和目的地都在第 $1$ 列。不过庆幸地是，我们可以暴力模拟 $O \left( c \right)$ 步让当前位置回到第 $1$ 列，在最终也可以留 $O \left( c \right)$ 步从第 $1$ 列走到该到的列。</p>
+		<p>也就是说，我们现在只需要考虑它在第 $1$ 列时行的变化情形。</p>
+		<p>对于一个<strong>确定的<em>后继格子</em>列表</strong>，我们可以对每个 $1 \leq i \leq r$，处理出 $p \left( i \right)$ —— 表示从 $\left( i, 1 \right)$ 除法沿<em>后继格子</em>移动 $c$ 步后所在位置的行标。</p>
+		<p>于是，从 $i$ 开始，走一圈 ($c$ 步) 就是 $p \left( i \right)$，走两圈 ($2 c$ 步) 就是 $p \left( p \left( i \right) \right) = p^\left&lt; 2 \right&gt; \left( i \right)$，……，走 $k$ 圈 ($k \cdot c$ 步) 就是 $p \left( p^\left&lt; k - 1 \right&gt; \left( i \right) \right) = p^\left&lt; k \right&gt; \left( i \right)$。</p>
+		<p>由抽屉原理知，在 $r$ 圈之内必有重复。因此我们可以模拟这个过程，当它出现重复的时候直接计算即可。</p>
+		<p>因此，在知道 $p$ 数组的情况下，我们可以在 $O \left( m \left( r + c \right) \right)$ 的时间内处理询问。</p>
+		<hr />
+		<p>那么，在初始情况下，$p$ 数组是可以 $O \left( r c \right)$ 得到的，因此现在只需关心<em style="color: blue">当 $e_{i, j}$ 发生变化时如何在 $O \left( r + c \right)$ 时间内维护</em>。</p>
+		<p>由上述分析可知，$e_{i, j}$ 的变化可以分解为不超过 $4$ ($= O \left( 1 \right)$) 个格子的<em>后继格子</em>的变化，因此我们只需分析<strong>当一个格子 $\left( r_0, c_0 \right)$ 的<em>后继格子</em>发生变化时</strong> $p$ 的变化。</p>
+		<p>设 $p \left( i \right)$ 从 $u$ 变成了 $v$，那一定可以得到：</p>
+		<ol>
+			<li><p><strong style="color: green">现在从 $\left( i, 1 \right)$ 开始，不断沿着<em>后继格子</em>移动，一定会到达 $\left( r_0, c_0 \right)$</strong>。</p>
+			<blockquote>否则，$\left( r_0, c_0 \right)$ 后继的修改不影响 $\left( i, 1 \right)$ 的整条轨迹，故 $p \left( i \right)$ 不变。</blockquote></li>
+			<li><p>于是，<strong style="color: orange">从 $\left( r_0, c_0 \right)$ 开始，不断沿着<em>后继格子</em>移动，一定会到达 $\left( v, 1 \right)$</strong>。从而，<strong style="color: fuchsia">一次修改的效果是将若干个 $p \left( i \right)$ 变为 $v$</strong>。</p></li>
+		</ol>
+		<p>因此，我们可以先模拟一遍从 $\left( r_0, c_0 \right)$ 沿后继会走到哪个 $\left( v, 1 \right)$，然后尝试去反向找到哪些 $\left( i, 1 \right)$ 可以根据现在的后继走到 $\left( r_0, c_0 \right)$。</p>
+		<p>前面一部分的时间显然是 $O \left( c \right)$ 没问题，关键是后面一部分，因为一个位置的原像可以是多个位置，因此时间复杂度可能会退化到 $O \left( r c \right)$。</p>
+		<p>这个时候，我们就要利用到<em>用权值决定后继格子</em>的性质了，即：<strong style="color: green">对于相邻的两列 $j, j + 1$，设 $I$ 为一个环形区间。则集合 $F = \left\{ i \mid \exists i' \in F, \left( i, j \right) \text{的后继格子是} \left( i', j + 1 \right) \right\}$ 也是环形区间。即，环形区间的原像仍是环形区间</strong>。</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>不妨设 $I = \left[ l, r \right]$，且 $2 \leq l &lt; r \leq R - 1$。</p>
+				<p>于是对 $l &lt; i &lt; r$，$\left( i, j \right)$ 的后继格子的行标一定在 $I$ 中。</p>
+				<p>考虑 $l - 1, l, r, r + 1$，我们只需说明，<strong>若 $l - 1 \in F$，则 $l \in F$；若 $r + 1 \in F$，则 $r \in F$</strong>。</p>
+				<p>设 $l - 1 \in F$，而 $l - 1, l - 2 \notin I$。因此 $e_{l, j + 1} &gt; e_{l - 1, j + 1}$。</p>
+				<p>这说明 $\left( l, j \right)$ 的后继格子的行标不可能是 $l - 1$，而只能是 $l, l + 1$，而 $l, l + 1 \in I$，这说明 $l - 1 \in F \Rightarrow l \in F$，同理 $r + 1 \in F \Rightarrow r \in F$。</p>
+				<p style="color: red">(ps: 对于 $\left| I \right| &lt; 2$ 或 $\left| I \right| &gt; R - 2$ 的情形类似，但会有一些分类讨论，留做练习。</p>
+			</div>
+		</div>
+		<p>于是，我们只需要维护每一列的可行(x&#237;ng)行(h&#225;ng)的环状区间，每向左移动一列，只需要判断不超过 $4$ ($= O \left( 1 \right)$) 个格子的<em>后继格子</em>即可。</p>
+		<p>从而这一部分的时间复杂度也为 $O \left( m \cdot c \right)$，最终整个问题的时间复杂度为 $O \left( r c + m \left( r + c \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+const int N = 2054, INF = 0x3f3f3f3f;
+
+int R, C, q;
+int a[N][N];
+int c[N][N], p[N];
+int stamp = 0, used[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int pred(int x) {return x == 1 ? C : x - 1;}
+inline int succ(int x) {return x == C ? 1 : x + 1;}
+inline bool include(int x, int a, int b) {return a &lt;= b ? a &lt;= x &amp;&amp; x &lt;= b : !(b &lt; x &amp;&amp; x &lt; a);}
+
+inline void update(int i, int j) {
+	int *f = i == R ? a[1] : a[i + 1], jc, &amp;ret = c[i][j]; ret = j;
+	if (f[ jc = pred(j) ] &gt; f[ret]) ret = jc;
+	if (f[ jc = succ(j) ] &gt; f[ret]) ret = jc;
+}
+
+inline void tour(int i, int j) {
+	int k, g = j, l = j, r = j, l1, r1, w = 1; bool Le, Li, Re, Ri;
+	for (k = i; k &lt;= R; ++k) g = c[k][g];
+	for (k = i - 1; k &gt; 0; --k) {
+		l1 = l, r1 = r,
+		Le = include(c[k][pred(l1)], l, r),
+		Li = include(c[k][l1], l, r),
+		Re = include(c[k][succ(r1)], l, r),
+		Ri = include(c[k][r1], l, r);
+		if (w == R - 1) {
+			if (!Li) l1 = succ(l1), --w;
+			else if (Le) l1 = pred(l1), ++w;
+			if (!Ri) r1 = pred(r1), --w;
+			else if (Re) r1 = succ(r1), ++w;
+		} else {
+			if (Le) l1 = pred(l1), ++w;
+			else if (!Li) l1 = succ(l1), --w;
+			if (Re) r1 = succ(r1), ++w;
+			else if (!Ri) r1 = pred(r1), --w;
+		}
+		if (w &lt;= 0) return;
+		if (w &gt;= C) {std::fill(p + 1, p + (C + 1), g); return;}
+		l = l1, r = r1;
+	}
+	if (l &lt;= r) std::fill(p + l, p + (r + 1), g);
+	else std::fill(p + 1, p + (r + 1), g), std::fill(p + l, p + (C + 1), g);
+}
+
+int main() {
+	int i, j, w, W, u, x = 1, y = 1, len; char op[10];
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; C &gt;&gt; R;
+	for (j = 1; j &lt;= C; ++j)
+		for (i = 1; i &lt;= R; ++i) cin &gt;&gt; a[i][j];
+	for (i = 1; i &lt;= R; ++i)
+		for (j = 1; j &lt;= C; ++j) update(i, j);
+	for (j = 1; j &lt;= C; p[j] = u, ++j)
+		for (u = j, i = 1; i &lt;= R; ++i) u = c[i][u];
+	for (cin &gt;&gt; q; q; --q)
+		if (cin &gt;&gt; op, *op == 99) {
+			cin &gt;&gt; j &gt;&gt; i, cin &gt;&gt; a[i][j], u = i == 1 ? R : i - 1,
+			update(i, j), update(u, j), update(u, pred(j)), update(u, succ(j));
+			tour(i, j),   tour(u, j),   tour(u, pred(j)),   tour(u, succ(j));
+		} else {
+			cin &gt;&gt; w;
+			if (x != 1) {
+				for (; x &lt;= R &amp;&amp; w; --w, ++x) y = c[x][y];
+				if (x == R + 1) x = 1;
+			}
+			W = w / R, w %= R;
+			for (++stamp; W &amp;&amp; used[y] != stamp; y = p[y], --W) used[y] = stamp;
+			if (W) {
+				u = y, len = 0;
+				do u = p[u], ++len; while (u != y);
+				W %= len;
+			}
+			for (; W; --W) y = p[y];
+			for (; w; --w, ++x) y = c[x][y];
+			cout &lt;&lt; y &lt;&lt; ' ' &lt;&lt; x &lt;&lt; '\n';
+		}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>对于 $\left| I \right| &lt; 2$ 或 $\left| I \right| &gt; R - 2$ 的情形，逻辑会有少许区别，应当加以特判。如当 $I = \varnothing$ 或 $\left| I \right| = R$ 时就可以直接决策了。</p>
+		<p><strong>坑2：</strong>在暴力模拟让位置回到第 $1$ 列时，如果步数已经耗尽，应提前 <code>break</code> 掉。</p>
+	</body>
+</html>

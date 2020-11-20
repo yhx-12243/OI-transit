@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4435][lg4214][CodeforcesGym101480J][CERC2015]Juice Junctions</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一张无向简单图，每个点的度数不超过 $3$，求所有点对之间的最大流之和。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($2 \leq n \leq 3000; 0 \leq m \leq 4500$)，表示图的点数和边数。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $u, v$ ($1 \leq u, v \leq n; u \neq v$)，表示一条连接 $u, v$ 的边。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示所有点对之间的最大流之和。</p>
+
+		<h3>题解</h3>
+		<p>由<a href="https://en.wikipedia.org/wiki/Max-flow_min-cut_theorem" target="_blank">最大流最小割定理</a> (或 <a href="https://en.wikipedia.org/wiki/Menger%27s_theorem" target="_blank">Menger 定理</a>)，两点间的最大流等于它们的最小边割集的大小。</p>
+		<p>因此我们只需要考虑两两之间最小割。</p>
+		<p>注意到每个点的度不超过 $3$，因此对于 $\forall u, v \in G$，我们将和 $v$ 关联的所有边都割掉后，$u$ 和 $v$ 就不连通了。因此 $u$ 和 $v$ 的最小割 $c \left( u, v \right) \leq 3$。</p>
+		<p>因此我们只需考虑两个点 $u, v$ 的最小割什么时候等于 $0, 1, 2, 3$。</p>
+		<ol>
+			<li><p>$c \left( u, v \right) = 0$，当且仅当 $u, v$ 不连通。</p></li>
+			<li><p>$c \left( u, v \right) = 1$，说明存在一条边，将其断掉之后 $u, v$ 从连通变成了不连通，即 $u, v$ 连通且在两个不同的边双连通分量中。</p></li>
+			<li><p>$c \left( u, v \right) = 2$，同理可知 $u, v$ 在两个不同的 $3-$边连通分量中。</p></li>
+			<li><p>$c \left( u, v \right) = 3$，就是剩下的情形 —— $u, v$ 在同一个 $3-$边连通分量中。</p></li>
+		</ol>
+		<p>并注意到高阶边连通分量是低阶连通分量是划分 (即一个 $k-$边连通分量是若干个 $\left( k + 1 \right)-$边连通分量的并)，因此考虑求出 $G$ 的所有 $3-$边连通分量后，依次加入非桥边，桥边即可统计答案。</p>
+		<p>时间复杂度取决于求解 $3-$边连通分量的时间，$O \left( m \left( n + m \right) \right)$ 或 $O \left( n + m \right)$。求解 $3-$边连通分量的方法可以见<a href="../memos/29.html" target="_blank">这里</a>。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define ad(x) (((x - 1) ^ 1) + 1)
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef std::vector &lt;int&gt; vector;
+const int N = 3054, M = 9054;
+
+struct edge {
+	int u, v;
+	edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+} e[M];
+
+int V, E, C, Es = 0;
+int first[N], next[M];
+int cnt = 0, id[N], low[N];
+int col[M], count[N];
+bool banned[M];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+inline void addedge(int u, int v) {
+	e[++Es] = edge(u, v), next[Es] = first[u], first[u] = Es;
+	e[++Es] = edge(v, u), next[Es] = first[v], first[v] = Es;
+}
+
+void dfs(int x, int px = 0) {
+	int i, y;
+	id[x] = low[x] = ++cnt;
+	for (i = first[x]; i; i = next[i]) if (!banned[i] &amp;&amp; ~col[i]) {
+		if (!id[y = e[i].v]) {
+			dfs(y, x), down(low[x], low[y]);
+			if (id[x] &lt; low[y]) assert(!col[i]), col[i] = col[ad(i)] = C;
+		} else if (y != px)
+			down(low[x], id[y]);
+	}
+}
+
+inline void coloring() {
+	cnt = 0, memset(id, 0, (V + 1) &lt;&lt; 2);
+	for (int i = 1; i &lt;= V; ++i) if (!id[i]) dfs(i);
+}
+
+namespace dsu0 {
+	int p[N], size[N];
+	ll acc;
+
+	inline void init(int n) {acc = 0, std::iota(p, p + (n + 1), 0), std::fill(size, size + (n + 1), 1);}
+
+	int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+	void connect(int x, int y) {
+		if ((x = ancestor(x)) == (y = ancestor(y))) return;
+		acc += (ll)size[x] * size[y], size[x] &gt; size[y] ? (p[y] = x, size[x] += size[y]) : (p[x] = y, size[y] += size[x]);
+	}
+}
+
+namespace e3cc {
+	typedef std::list &lt;int&gt; list;
+
+	int n_e3cc = 0, p[N], deg[N], count[M];
+	int na = 0, absQ[M];
+	int nd = 0, deg2Q[N];
+	list li[N];
+	vector e3cc[N];
+
+	int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+	void main() {
+		int i, j, c, u, v, x, z[3], nz;
+		for (i = 1; i &lt;= Es; i += 2) if (~col[i]) ++count[col[i]];
+		for (i = 1; i &lt;= Es; i += 2) if (~col[i]) {
+			++deg[e[i].u], ++deg[e[i].v];
+			if (count[col[i]] == 1) absQ[na++] = i;
+		}
+		for (i = 1; i &lt;= V; ++i) {
+			li[i].EB(i), p[i] = i;
+			if (deg[i] == 2) deg2Q[nd++] = i;
+		}
+		for (; ; )
+			if (na) {
+				i = absQ[--na], u = ancestor(e[i].u), v = ancestor(e[i].v);
+				if (u == v) deg[u] -= 2;
+				else p[v] = u, deg[u] += deg[v] - 2, li[u].splice(li[u].end(), li[v]);
+				if (deg[u] == 2) deg2Q[nd++] = u;
+			} else if (nd) {
+				x = deg2Q[--nd];
+				if (deg[x] != 2) continue;
+				x = ancestor(x), nz = 0;
+				for (int r : li[x])
+					for (i = first[r]; i; i = next[i])
+						if (~col[i] &amp;&amp; ancestor(e[i].v) != x)
+							z[nz++] = i;
+				u = e[i = *z].v, v = e[j = z[1]].v, c = col[i];
+				if (p[u] == p[v]) continue;
+				e[i].u = e[ad(i)].v = v, next[i] = first[v], first[v] = i, p[x] = p[v];
+				if (--count[c] == 1) absQ[na++] = i;
+			} else break;
+		for (i = 1; i &lt;= V; ++i) if (!li[i].empty()) e3cc[n_e3cc++].assign(li[i].begin(), li[i].end());
+	}
+}
+
+int main() {
+	int i, u, v; ll ans;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; V &gt;&gt; E;
+	for (i = 1; i &lt;= E; ++i) cin &gt;&gt; u &gt;&gt; v, addedge(u, v);
+	C = -1, coloring(), C = 0;
+	for (i = 1; i &lt;= Es; i += 2) if (!col[i])
+		banned[i] = banned[i + 1] = true,
+		col[i] = col[i + 1] = ++C, coloring(),
+		banned[i] = banned[i + 1] = false;
+	e3cc::main();
+	dsu0::init(V);
+	for (i = 0; i &lt; e3cc::n_e3cc; ++i) {
+		vector &amp;C = e3cc::e3cc[i];
+		for (int x : C) dsu0::connect(x, C.back());
+	}
+	ans = dsu0::acc;
+	for (i = 1; i &lt;= Es; i += 2) if (~col[i]) dsu0::connect(e[i].u, e[i].v);
+	ans += dsu0::acc;
+	for (i = 1; i &lt;= Es; i += 2) if (!~col[i]) dsu0::connect(e[i].u, e[i].v);
+	cout &lt;&lt; ans + dsu0::acc &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意边数大于点数，因此数组不要开小。</p>
+		<p><strong>坑2：</strong>如果使用和<a href="../index.html?redirect=1094" target="_blank">这里</a>类似的方法，不要忘记 "染色" 之前将 $C \gets 0$。</p>
+	</body>
+</html>

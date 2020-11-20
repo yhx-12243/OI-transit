@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[CodeforcesGym100307I][NEERC2013]Interactive Interception</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个一次函数 $f \left( x \right) = k x + b$，你只知道 $k$ 是 $0 \sim K$ 之间的整数，$b$ 是 $0 \sim B$ 之间的整数。</p>
+		<p>你想要知道这个函数的有关信息，因此在第 $t$ 时刻 (最开始为第 $0$ 时刻)，你可以给定整数 $L, R$，来询问是否有 $L \leq f \left( t \right) \leq R$。</p>
+		<p>你希望在某个不超过 $100$ 的时刻 $t$ 获得该时刻 $f \left( t \right)$ 的值。</p>
+
+		<h3>交互方式</h3>
+		<p>首先你需要从标准输入中读取两个正整数 $B, K$ ($1 \leq B, K \leq 10^5$)，分别表示 $b$ 和 $k$ 的上界。</p>
+		<p>接下来令 $t \gets 0$。每个时刻，你可以有两种决策：</p>
+		<ol>
+			<li><code>check <em>L</em> <em>R</em></code> ($0 \leq L \leq R \leq 10^9$)，表示询问 $f \left( t \right)$ 是否在区间 $\left[ L, R \right]$ 中。如果是，交互库会在标准输入中放入 <code>Yes</code>，否则为 <code>No</code>。然后令 $t \gets t + 1$。</li>
+			<li><code>answer <em>x</em></code> 表明你已经知道此时 $f \left( t \right)$ 值，其中的 $x$ 就是 $f \left( t \right)$。输出完毕后应立即退出程序。</li>
+		</ol>
+		<p>特别地，当 $t = 100$ 时你只能调用 <code>answer <em>x</em></code>。</p>
+
+		<h3>题解</h3>
+		<p>其实获得 $f \left( t \right)$ 也没什么捷径，还是老老实实地获取 $k$ 和 $b$ 吧。</p>
+		<p>首先，如果 $k = 0$，那么是一个基本的二分查找模型。而如果有 $b = 0$ 的话，其实二分查找仍然是可以的：因为 $f \left( t \right) = k t$，因此 $k \in \left[ L, R \right] \Leftrightarrow k t \in \left[ L t, R t \right]$。</p>
+		<p>那现在我们 $k$ 和 $b$ 都不知道，又该怎么办呢？</p>
+		<p>实际上，虽然直接二分是不行了，但是这个二分的思路我们还是可以借鉴的：</p>
+		<p>考虑知道 $k = 0$ 或 $b = 0$ 的情形，就相当于<span style="color: fuchsia">初始有一个容量为 $10^5$ 的样本 (有 $10^5$ 种可行的答案)，每次你选取一个合适的命题 $P$，使得样本中满足 $P$ 的元素和不满足 $P$ 的元素各占一半，然后通过询问命题 $P$ 是否成立，来筛去一半的元素</span>，最终直到只剩下一个元素。</p>
+		<p>那现在，我们将二元组 $\left( k, b \right)$ 看成整体，于是就相当于有一个<span style="color: red">容量为 $10^{10}$ 的样本</span>，在这个样本中进行二分 (选命题并筛选)，直到只剩下一个元素。</p>
+		<p>于是，现在我们要解决的问题就是两个：(1) 样本个数 $10^{10}$ 太多，如何存储；(2) 如何找到合适的命题使得筛选的元素大致平均。</p>
+		<ol>
+			<li><p>对于样本个数太多的问题，我们可以尝试利用<strong>介值性</strong>来压缩存储，即对于样本中的两个个体 $l, r$，则位于 $\left( l, r \right)$ 中的所有元素都在样本中。</p>
+			<p>就像一般二分的情形，任何一步的样本永远是一个<strong>区间</strong>。对这种二元组的情形，如果我们选取命题为<strong>半平面</strong>的形式 ($A k + B b + C \geq 0$)，那么由半平面的凸性可知样本具有介值性。</p>
+			<p>从而，我们可以记录对于每个 $k$，可行的 $b$ 的区间 (可能为空)，这样空间就是 $O \left( K \right)$ 的了，可以接受。</p>
+			<p style="color: red">(ps: 当然对于每个 $b$ 记录可行的 $k$ 的区间也是可以，但是后面计算时会比较麻烦)</p></li>
+			<li><p>找到合适的命题使得筛选的元素大致平均。</p>
+			<p>前面已经提到过，由题目的性质，我们必须选择<strong>半平面</strong>形式的命题 (即 $f \left( t \right) \leq C$)，而 $t$ 在一次询问中是固定的 <del class="text-muted">(你显然不能为了等一个较好的 $t$ 而浪费次数，因为总共只有 $100$ 次)</del>。</p>
+			<p>于是对当前剩下的所有函数，考察它们在 $t$ 处的值，取这些值的<strong>中位数</strong> $C_{mid}$，然后做一次询问「$f \left( t \right) \leq C_{mid}$？」就将整个样本大致均匀地划分为了两半。</p>
+			<p>而求中位数的过程，则可以二分完成 <span class="text-muted">(二分套二分！)</span>，即枚举 $C$，判断当前剩下的函数中有多少个满足在 $t$ 处的值不超过 $C$ 的，由于我们对每个 $k$ 记录了 $b$ 的区间，因此这个值是比较容易获得的。</p></li>
+		</ol>
+		<p>最后的问题是，这样的二分是否会退化？其实是不会的：$\because 0 \leq k, b \leq 10^5$，因此同一时刻至多有 $10^5$ 个函数的值相等，因此在 $20$ 回合内剩余的样本数一定不超过 $2 \times 10^5$；其次，由于两个样本至多在一个时刻取值相等，从而剩下二分的次数就不超过 $2$ 倍 $\log$ ($40$ 次)。</p>
+		<p>从而总询问次数不超过 $60$，可以接受 <span class="text-muted">(经过实测询问次数不超过 $34$)</span>。时间复杂度 $O \left( K \log^2 \left( K B \right) \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+using std::endl;
+
+typedef long long ll;
+const int N = 100000;
+
+int inf[N + 1], sup[N + 1];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline ll min(const ll x, const ll y) {return x &lt; y ? x : y;}
+inline ll max(const ll x, const ll y) {return x &lt; y ? y : x;}
+
+inline bool check(int L, int R) {
+	static char ret[6];
+	return cout &lt;&lt; "check " &lt;&lt; L &lt;&lt; ' ' &lt;&lt; R &lt;&lt; endl, cin &gt;&gt; ret, *ret == 89;
+}
+
+inline ll count(int t, int lim) {
+	int i; ll ret = 0;
+	for (i = 0; i &lt;= N; ++i, lim -= t) if (~inf[i]) ret += min(max(lim, inf[i] - 1), sup[i]) - inf[i] + 1;
+	return ret;
+}
+
+int intercept(int, int) {
+	int i, j, t, L, R, M; ll C;
+	for (i = 0; i &lt;= N; ++i) inf[i] = 0, sup[i] = N;
+	for (t = 0; ; ++t) {
+		L = 0, R = N * (1 + t), C = 0;
+		for (i = 0; i &lt;= N; ++i) if (~inf[i]) C += sup[i] - inf[i] + 1, j = i;
+		if (C == 1) return inf[j] + j * t;
+		for (; L &lt; R; ) 2 * count(t, M = (L + R) / 2) &gt;= C ? R = M : L = M + 1;
+		if (check(0, L))
+			for (i = 0; i &lt;= N; ++i, L -= t)
+				if (!~inf[i] || L &lt; inf[i]) inf[i] = -1;
+				else down(sup[i], L);
+		else
+			for (i = 0; i &lt;= N; ++i, L -= t)
+				if (!~inf[i] || L &gt;= sup[i]) inf[i] = -1;
+				else up(inf[i], L + 1);
+	}
+}
+
+int main() {
+	int a, b;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; a &gt;&gt; b, cout &lt;&lt; "answer " &lt;&lt; intercept(a, b) &lt;&lt; endl;
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>$k$ 和 $b$ 可以等于 $0$，二分时不要把它漏了。</p>
+	</body>
+</html>

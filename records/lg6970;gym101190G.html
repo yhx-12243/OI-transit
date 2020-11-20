@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6970][CodeforcesGym101190G][NEERC2016]Game on Graph</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>Alice 和 Bob 在一张有向图 $G = \left( V, E \right)$ 上玩游戏，初始时，在某个顶点 $s_0$ 上有一枚石子。</p>
+		<p>每当轮到某个玩家操作时，设石子在顶点 $u$，则她需要选择顶点 $v$ 满足 $\left( u \to v \right) \in E$，然后将石子从 $u$ 移到 $v$。如果找不到这样的顶点 $v$，则该玩家输掉游戏。</p>
+		<p>可以发现，游戏一共有三种状态：Alice 赢 (Bob 输)、Bob 赢 (Alice 输) 和无限进行 (平局)。</p>
+		<p>她们对这三种状态的排名是不相同的：Alice 最希望<strong>无限进行</strong>，其次是 <strong>Alice 赢</strong>，最后是 <strong>Bob 赢</strong>。Bob 最希望 <strong>Bob 赢</strong>，其次是 <strong>Alice 赢</strong>，最后是<strong>无限进行</strong>。</p>
+		<p>两个人严格会按照上述策略进行 (如，若 Alice 能使游戏无限进行，她决不会赢；同理，若 Bob 能输，她决不会使游戏无限进行)。</p>
+		<p>求对于每个 $s_0 \in V$，当 Alice 先手和 Bob 先手时，最终游戏的状态。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($n \leq 10^5; m \leq 2 \times 10^5$)，分别表示图 $G$ 的顶点数和边数。</p>
+		<p>接下来 $m$ 行，每行两个正整数 $a, b$ ($1 \leq a, b \leq n$)，表示一条从顶点 $a$ 指向顶点 $b$ 的边。保证 $G$ 中没有重边，<strong>但可能有自环</strong>。</p>
+
+		<h3>输出格式</h3>
+		<p>输出两行，每行一个字符串，分别记为 $A, B$。每个字符为 $\texttt W, \texttt L, \texttt D$ 之一，分别表示<strong>先手赢</strong>，<strong>后手赢</strong>和<strong>无限进行</strong>。其中 $A_i$ 表示当 Alice 先手且 $s_0 = i$ 时，游戏最终的状态，$B_i$ 表示当 Bob 先手且 $s_0 = i$ 时，游戏最终的状态。</p>
+
+		<h3>题解</h3>
+		<p>用 $v_A$ 表示现在石子在 $v$ 处且下一步轮到 Alice 的状态，$v_B$ 同理。显然，我们就是要得到每个 $v_A$ 和 $v_B$ 的 (最终) 状态 (Alice 赢，Bob 赢，无限进行)</p>
+		<p>根据图论的传统定义，用 $N^+ \left( v \right)$ 表示 $v$ 通过一条边可以到达的顶点集合。</p>
+		<p>对于 $N^+ \left( v_A \right)$，规定里面的元素为下一步轮到 Bob 的状态，$N^+ \left( v_B \right)$ 里的元素都是下一步轮到 Alice 的状态。</p>
+		<hr />
+		<h4> ---- Part 1 ---- </h4>
+		<p>我们考虑一个状态什么时候可以<strong>无限进行</strong>。</p>
+		<ol style="color: fuchsia">
+			<li><p>$u_A$ 是<strong>无限进行</strong>的充分必要条件是，存在 $v_B \in N^+ \left( u_A \right)$，使得 $v_B$ 是<strong>无限进行</strong>。</p></li>
+			<li><p>$u_B$ 是<strong>无限进行</strong>的充分必要条件是，$N^+ \left( u_B \right) \neq \varnothing$ 且对于每个 $v_A \in N^+ \left( u_B \right)$，都有 $v_A$ 是<strong>无限进行</strong>。</p>
+			<p class="text-muted">(充分性显然，对于必要性，若 $N^+ \left( u_B \right) = \varnothing$，显然 $u_B$ 是 <strong>Alice 赢</strong>。若存在 $v_A \in u_B$ 使得 $v_A$ 不是<strong>无限进行</strong>，那么 $B$ 肯定会将石子从 $v$ 移到 $u$)</p></li>
+		</ol>
+		<p>首先，对于 $d^+ \left( v \right) = 0$ (出度为零) 的顶点 $v$，显然 $v_A, v_B$ 都是<strong>后手赢</strong>，总之，不是<strong>无限进行</strong>。</p>
+		<p>考虑根据有向图博弈的经验，按照拓扑序的逆序进行更新。根据之前<span style="color: fuchsia">粉色</span>的结论，对于边 $u_B \to v_A$，如果 $v_A$ <strong>不是无限进行</strong>，则可得 $u_B$ 不是无限进行；对于 $u_A \to v_B$，如果所有的 $v_B$ 都不是无限进行 (即像拓扑排序一样没入度了)，则 $u_A$ 也被确定为无限进行。</p>
+		<p>于是，通过上述算法，我们可以得到若干<strong>不是无限进行</strong>的点。那剩下的点是否一定是<strong>无限进行</strong>呢？答案是肯定的，证明如下：</p>
+		<div class="panel panel-success">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>设剩下的点的集合为 $R$。考虑 $u_A \in R_A$，先证明 $u_A$ 是<strong>无限进行</strong>。</p>
+				<p>首先，由算法的过程知，$N^+ \left( u_A \right) \cap R_B \neq \varnothing$，因此存在 $v_B \in N^+ \left( u_A \right) \cap R_B$。</p>
+				<p>而因为 $v_B \in R_B$，则由算法的过程知 $\varnothing \subset N^+ \left( v_B \right) \subseteq R_A$，于是 $B$ 不会输，且无论 B 如何决策，下一步时石子仍在 $R$ 中。</p>
+				<p>于是 Alice 就有主动权了，她有能力保持游戏无限进行。从而 $u_A$ 是<strong>无限进行</strong>。</p>
+				<p>对于 $u_B \in R_B$，可以发现 Bob 无论如何只能走向 $R_A$ 中的点，于是转化为 Alice 先手的情形，由上面分析知该情形是无限进行的。这说明 $u_B$ 的所有后继状态都是无限进行，由<span style="color: fuchsia">粉色</span>结论知 $u_B$ 本身也是<strong>无限进行</strong>。</p>
+			</div>
+		</div>
+		<p>从而我们可以在 $O \left( n + m \right)$ 的时间内得到每个点是否是无限进行。</p>
+		<hr />
+		<h4> ---- Part 2 ---- </h4>
+		<p>接下来，考虑一个非<strong>无限进行</strong>的状态是 <strong>Alice 赢</strong>还是 <strong>Bob 赢</strong>。</p>
+		<p>我们将所有<strong>无限进行</strong>的状态从图中删去，得到新图 $G'$。</p>
+		<p>此时，我们就可以按照传统的有向图博弈的方法去更新了：若一个点存在先负的后继状态，则它一定是先胜；若一个点的所有后继状态都是先胜 (含没有后继状态)，则它是先负。</p>
+		<p>于是还是按照拓扑序的逆序更新即可。当然这里要对于每个顶点 $v$ 同时记录 $v_A$ 的剩余入度和 $v_B$ 的剩余入度。</p>
+		<p>但是，$G'$ 也不一定是 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>，因此如果最后遇到了圈，那些点的状态又如何呢？</p>
+		<p>设剩下的点的集合为 $S$。考察 $u_A \in S_A$，则 $N^+ \left( u_A \right)$ 要么在 $S$ 中，要么是 <strong>Bob 赢</strong>。同理，对 $u_B \in S_B$，$N^+ \left( u_B \right)$ 中的元素也是要么在 $S$ 中，要么是 <strong>Alice 赢</strong>。</p>
+		<p>我们证明，<strong style="color: orange">这些点的状态都是 Alice 赢</strong>。</p>
+		<div class="panel panel-info">
+			<div class="panel-heading">证明</div>
+			<div class="panel-body">
+				<p>反证法。假设有一个点不是 <strong>Alice 赢</strong>。</p>
+				<p>首先，显然 $S$ 中的点不可能<strong>无限进行</strong>，因此它只可能是 <strong>Bob 赢</strong>。</p>
+				<p>于是，Bob 存在必胜策略。这个必胜策略显然存在一步会离开集合 $S$，离开集合 $S$ 分为两种情况：</p>
+				<ol>
+					<li><p>Bob 主动离开集合 $S$。</p>
+					<p>而对于 $u_B \in S_B$，$N^+ \left( u_B \right) \setminus S$ 中的所有元素都是 <strong>Alice 赢</strong>，矛盾。</p></li>
+					<li><p>Alice 被 Bob 逼着离开集合 $S$。</p>
+					<p>而对于 $u_A \in S_A$，一定有 $N^+ \left( u_A \right) \cap S = \varnothing$。否则由算法的过程知 $u_A$ 就不应该属于 $S$。</p>
+					<p>从而 Alice 存在一种策略，使得永远不会被 Bob 逼着离开 $S$，该情况也矛盾。</p></li>
+				</ol>
+				<p>这说明，假设 Bob 赢是错误的，又这里的点不可能无限进行，于是这些点都是 <strong>Alice 赢</strong>。</p>
+			</div>
+		</div>
+		<p>这样我们就确定了所有的点最终的状态，整个算法只需要两次 bfs (类似拓扑排序)，故时间复杂度 $O \left( n + m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+const int N = 100054, M = N * 2;
+
+struct edge {
+	int u, v;
+	edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+} e[M];
+
+int V, E;
+int first[N], next[M];
+int deg[N], Deg[N], que[M];
+bool leaf[N];
+char alice[N], bob[N];
+
+inline void addedge(int u, int v, int id) {e[id] = edge(u, v), next[id] = first[u], first[u] = id;}
+
+void solve_infinity() {
+	int i, h, t = 0, x, y;
+	for (i = 1; i &lt;= E; ++i) ++deg[e[i].v];
+	for (i = 1; i &lt;= V; ++i) if ((leaf[i] = !deg[i])) alice[i] = bob[i] = 1, que[t++] = i, que[t++] = -i;
+	for (h = 0; h &lt; t; ++h)
+		if ((x = que[h]) &gt; 0) {
+			for (i = first[x]; i; i = next[i])
+				if (bob[y = e[i].v] == 68) bob[y] = 1, que[t++] = -y;
+		} else
+			for (i = first[-x]; i; i = next[i])
+				if (!--deg[y = e[i].v]) alice[y] = 1, que[t++] = y;
+}
+
+void solve_winlose() {
+	int i, h, t = 0, x, y;
+	for (i = 1; i &lt;= E; ++i) {
+		if (alice[e[i].u] == 1) ++deg[e[i].v];
+		if (bob[e[i].u] == 1) ++Deg[e[i].v];
+	}
+	for (i = 1; i &lt;= V; ++i) if (leaf[i]) alice[i] = bob[i] = 76, que[t++] = i, que[t++] = -i;
+	for (h = 0; h &lt; t; ++h)
+		if ((x = que[h]) &gt; 0) {
+			for (i = first[x]; i; i = next[i]) if (bob[y = e[i].v] != 68) {
+				if (alice[x] == 76) {
+					if (bob[y] == 1) bob[y] = 87, que[t++] = -y;
+				} else {
+					if (!--deg[y]) bob[y] = 76, que[t++] = -y;
+				}
+			}
+		} else
+			for (i = first[-x]; i; i = next[i]) if (alice[y = e[i].v] != 68) {
+				if (bob[-x] == 76) {
+					if (alice[y] == 1) alice[y] = 87, que[t++] = y;
+				} else {
+					if (!--Deg[y]) alice[y] = 76, que[t++] = y;
+				}
+			}
+	std::replace(alice + 1, alice + (V + 1), 1, 87),
+	std::replace(bob + 1, bob + (V + 1), 1, 76);
+}
+
+int main() {
+	int i, u, v;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; V &gt;&gt; E;
+	for (i = 1; i &lt;= E; ++i) cin &gt;&gt; u &gt;&gt; v, addedge(v, u, i);
+	memset(alice + 1, 68, V), memset(bob + 1, 68, V),
+	solve_infinity(), solve_winlose();
+	cout &lt;&lt; alice + 1 &lt;&lt; '\n' &lt;&lt; bob + 1 &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong><span style="color: fuchsia">粉色</span>条件中的 2 不要忘记 $N^+ \left( u_B \right) = \varnothing$，度数为 $0$ 的点一定是先手必败的。</p>
+		<p><strong>坑2：</strong>点的度数要利用多次，因此不要把上次拓扑排序更改后的 <code>deg</code> 拿来用。</p>
+	</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4840][lg6965][CodeforcesGym101190B][NEERC2016]Binary Code</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>定义一个 $\texttt 0/\texttt 1$ 串的 (可重) 集合 $S = \left\{ s_1, s_2, \cdots, s_n \right\}$ 为一套<em>编码</em>，当且仅当其中对于任意 $i \neq j$，$s_i$ 不是 $s_j$ 的前缀 (含相等)。</p>
+		<p>现在，给定 $n$ 个字符串，每个字符串有<strong>至多一个</strong>位置是未知的。求是否存在一种将未知字符换为 $\texttt 0$ 或 $\texttt 1$ 的方案，使得这些串的集合构成一套<em>编码</em>。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 5 \times 10^5$)，表示字符串的数量。</p>
+		<p>接下来 $n$ 行，每行一个由 $\texttt 0, \texttt 1, \texttt ?$ 构成的非空字符串 $s_i$ ($\sum \left| s_i \right| \leq 5 \times 10^5$，$s_i$ 中至多只有一个 $\texttt ?$)，表示字符串集合中的一个字符串，其中用 $\texttt ?$ 表示未知字符。</p>
+
+		<h3>输出格式</h3>
+		<p>如果存在一种方案使得这些串的集合构成一套<em>编码</em>，则第一行输出 <code>YES</code>，接下来 $n$ 行，按照输入中的顺序输出这些 $\texttt 0/\texttt 1$ 串复原后的结果。如果有多组解，输出任意一组均可。</p>
+		<p>如果不存在满足条件的方案，则只需输出一行 <code>NO</code>。</p>
+
+		<h3>题解</h3>
+		<p>暴力枚举 ($2^n$) 显然是不可行的，我们要分析<em>编码</em>的性质。</p>
+		<p>由于<em>编码</em>和字符串的前缀关系有关，因此我们考虑建立一套<em>编码</em>的 Trie。</p>
+		<p>于是，题目中的条件就相当于<strong>任意两个串在 Trie 中对应的顶点都不是祖先关系</strong>。</p>
+		<p>此外，注意到每个串至多只有一个 $\texttt ?$，因此一个 $s_i$ 在最终只有两种可能的形式，记作 $s_i^\left( 0 \right)$ 和 $s_i^\left( 1 \right)$。</p>
+		<p>我们对所有 $s_i^\left( 0 \right)$ 和 $s_i^\left( 1 \right)$ 这不超过 $2 n$ 个串建立 Trie 树。于是，问题就转化为：</p>
+		<blockquote>在一棵有根树上有 $n$ 对顶点 $\left( A_i, B_i \right)$，你需要在每一对顶点中选择一个，使得选出的 $n$ 个顶点两两不是祖先关系。</blockquote>
+		<p>这是一个<em>二选一</em>的模型，因此我们考虑使用 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 来求解。</p>
+		<p>首先，暴力连边那仍然是 $O \left( n^2 \right)$ 的，无法接受。因此考虑利用 Trie 树的结构来优化连边。</p>
+		<p>比如，若顶点 $v$ 是 $u$ 的祖先，那么我们就需要有这样的路径：$u \leadsto \neg v = \mathrm{true}$。当然我们不能直接连接 $u$ 和 $\neg v$，因此可以将 $u$ 连接到 Trie 上对应的顶点，然后沿着 Trie 向上爬，最终爬到 $v$ 在 Trie 上顶点后连接 $\neg v$。</p>
+		<p>因此，我们需要连接三类边：</p>
+		<ol>
+			<li>对于 Trie 上的边，我们是从子节点连向父节点的 (当然由于是 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr>，会有对应的反图，此时在反图中就是从父节点连向子节点的)。</li>
+			<li>对于 $s_i^\left( t \right)$ ($t \in \left\{ 0, 1 \right\}$)，设它在 Trie 上的位置为 $u$，则需要连一条从 $s_i^\left( t \right)$ 到 $u$ 的边 (当然反图中就是从 $\neg u$ 到 $s_i^\left( 1 - t \right)$)。</li>
+			<li>对于 $s_i^\left( t \right)$ ($t \in \left\{ 0, 1 \right\}$)，设它在 Trie 上的位置为 $u$，则还需要连一条从 $u$ 到 $s_i^\left( 1 - t \right)$ 的边 (当然反图中就是从 $s_i^\left( t \right)$ 到 $\neg u$)。</li>
+		</ol>
+		<p style="color: red">(ps: 可以看出，反图其实就是用 Trie 优化子节点关系的建图)</p>
+		<p>连完所有边后，直接跑 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 就可以了。</p>
+		<p><del>但是，会发现连样例都跑不出来</del>，因为注意到祖先的关系是自反的，因此就会形如 $s_i^\left( t \right) \to u \to s_i^\left( 1 - t \right)$ 的边，从而 $s_i^\left( 0 \right) \to s_i^\left( 1 \right) \to s_i^\left( 0 \right)$，这显然是矛盾的。</p>
+		<p>因此，如果一个顶点 $u$ 上有若干个串，我们希望保留的串的个数<strong>不超过一个</strong>，同时也不希望 "<em>误杀</em>" (即选了一个串却把子集毙了)，于是我们还希望对这个建图进行调整。</p>
+		<p>一个愚蠢的办法是对 $u$ 上的串两两连接禁止边，这样当一个点上的串过多时，边数就会达到 $O \left( n^2 \right)$，不可接受。</p>
+		<p>此时，可以根据 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 中非常常见的技巧，<a href="../index.html?tag=2-SAT" target="_blank"><strong>建立前后缀变量</strong></a>，来将边数限制到 $O \left( n \right)$。</p>
+		<p>当然，我们只需选择前缀和后缀的一个即可。不妨设我们选择了前缀变量，那么若在 $u$ 是 Trie 中 $v$ 的子节点，那么 $u$ 就需要连向 $v$ 的<em>整体前缀</em>的那个顶点 (即最后一个)，然后 $v$ 的<em>空前缀</em>的顶点 (即第一个) 再去连向它的父节点，循环往复。</p>
+		<p>这样的建图就是正确的了，最终使用 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 输出方案即可。</p>
+		<p>时间复杂度 $O \left( n + \sum \left| s_i \right| \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+#define True(x) (2 * (x) - 1)
+#define False(x) (2 * (x))
+#define ad(x) ((((x) - 1) ^ 1) + 1)
+using std::cin;
+using std::cout;
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 1000054;
+
+int n;
+char s[N];
+int v1[N], v2[N], rp[N];
+vector all[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+namespace Graph {
+	const int N = ::N * 4, M = ::N * 8;
+
+	struct edge {
+		int u, v;
+		edge (int u0 = 0, int v0 = 0) : u(u0), v(v0) {}
+	} e[M];
+
+	int V, E = 0, V1;
+	int first[N], next[N];
+	int cnt = 0, id[N], low[N], topo[N];
+	int stc = 0, stack[N], top[N];
+	bool in_stack[N];
+	int col[N], conflict[N];
+
+	inline void addedge(int u, int v) {e[++E] = edge(u, v), next[E] = first[u], first[u] = E;}
+	inline void implies(int u, int v) {addedge(u, v), addedge(ad(v), ad(u));}
+	inline void must(int x) {addedge(ad(x), x);}
+
+	void dfs(int x) {
+		int i, y; id[x] = low[x] = ++cnt, in_stack[x] = true, stack[stc++] = x;
+		for (i = first[x]; i; i = next[i])
+			if (!id[y = e[i].v])
+				dfs(y), down(low[x], low[y]);
+			else if (in_stack[y])
+				down(low[x], id[y]);
+		if (id[x] == low[x]) {
+			for (y = 0; y != x; y = stack[--stc], in_stack[y] = false, top[y] = x);
+			topo[V1++] = x;
+		}
+	}
+
+	inline bool _2_SAT() {
+		int i, u, v;
+		for (i = 1; i &lt;= V; ++i) if (!id[i]) dfs(i);
+		for (i = 1; i &lt;= V; i += 2) {
+			if ((u = top[i]) == (v = top[i + 1])) return false;
+			conflict[u] = v, conflict[v] = u;
+		}
+		for (i = 0; i &lt; V1; ++i)
+			if (!col[v = topo[i]]) col[v] = 1, col[conflict[v]] = -1;
+		for (i = 1; i &lt;= V; ++i) col[i] = col[top[i]];
+		return true;
+	}
+}
+
+namespace trie {
+	int V = 1, d[N][2], p[N], ch[N];
+
+	int append(const char *s) {
+		int t = 1, id;
+		for (; *s; ++s) id = *s &amp; 1, t = (d[t][id] ? d[t][id] : (p[++V] = t, ch[V] = id, d[t][id] = V));
+		return t;
+	}
+
+	void travel(int t, char *s) {
+		char *q = s;
+		for (; t != 1; t = p[t]) *q++ = ch[t] | 48;
+		std::reverse(s, q), *q = 0;
+	}
+}
+
+int main() {
+	int i, j, l, z, &amp;c = Graph::V;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; n; ++i) {
+		cin &gt;&gt; s, l = strlen(s), j = std::find(s, s + l, '?') - s;
+		if (j == l) v1[i] = trie::append(s), Graph::must(True(i + 1));
+		else s[j] = 48, v1[i] = trie::append(s), s[j] = 49, v2[i] = trie::append(s);
+		all[v1[i]].EB(True(i + 1));
+		if (v2[i]) all[v2[i]].EB(False(i + 1));
+	}
+	c = trie::V + n;
+	for (i = 2; i &lt;= trie::V; ++i) {
+		rp[i] = trie::p[i] + n;
+		if (!(z = all[i].size())) continue;
+		for (j = 0; j &lt; z; ++j)
+			Graph::implies(all[i][j], True(rp[i])),
+			Graph::implies(True(c + j + 1), ad(all[i][j])),
+			Graph::implies(True(c + j + 1), True(rp[i])),
+			rp[i] = c + j + 1;
+		c += z;
+	}
+	for (i = 2; i &lt;= trie::V; ++i) Graph::implies(True(i + n), True(rp[i]));
+	c *= 2;
+	if (!Graph::_2_SAT()) return cout &lt;&lt; "NO\n", 0;
+	cout &lt;&lt; "YES\n";
+	for (i = 0; i &lt; n; ++i) trie::travel(Graph::col[True(i + 1)] == 1 ? v1[i] : v2[i], s), cout &lt;&lt; s &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意没有 $\texttt ?$ 的情况，此时可以通过类似 $\neg u \to u$ 这种边来处理。</p>
+		<p><strong>坑2：</strong>此题中 <abbr title="2-Satisfiability Problem, 2-满足性问题">2-SAT</abbr> 的图的规模较大，点数和边数分别可以达到 $4 \times 10^6, 8 \times 10^6$ 的级别，数组不要开小。</p>
+		<p style="color: fuchsia">不过，可以发现当 $n$ 过大时较短的串一定很多，因此一定是无解的。事实上，可以证明当 $n &gt; 10^5$ 时直接输出 <code>NO</code>，这样就可以节省很多空间。</p>
+	</body>
+</html>

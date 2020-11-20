@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4449][lg6976][CodeforcesGym100851D][NEERC2015]Distance on Triangulation</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个凸 $n$ 边形的三角剖分，将其看成一张 $n$ 个点 $2 n - 3$ 条边的无向图 $G$。现在给出 $q$ 组询问，每组询问给定两个顶点 $x, y$，你需要求出 $x$ 到 $y$ 的最短路的长度。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($4 \leq n \leq 50000$)，表示凸多边形的边数，同时也是 $G$ 的点数。</p>
+		<p>接下来 $n - 3$ 行，每行两个正整数 $a_i, b_i$ ($1 \leq a_i, b_i \leq n; a_i \neq b_i$)，描述凸多边形<strong>内部</strong>的一条边。保证这 $2 n - 3$ 条边恰好构成凸多边形的三角剖分。</p>
+		<p>第 $n - 1$ 好包含一个正整数 $q$ ($1 \leq q \leq 10^5$)，表示询问的组数。</p>
+		<p>最后 $q$ 行，每行两个正整数 $x_i, y_i$ ($1 \leq x_i, y_i \leq n$)，你需要求出 $x_i$ 到 $y_i$ 的最短路经过的边数。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示最短路的长度。</p>
+
+		<h3>题解</h3>
+		<p>根据<a href="../index.html?redirect=571" target="_blank">以往的套路</a>，对于这种比较稀疏的平面图，我们考虑将询问离线下来分治解决。</p>
+		<p>具体地，我们任取多边形的一条边 $u - v$，它将多边形切成了两块 $P_1, P_2$。</p>
+		<p>于是任意两点 $x, y$ 间的最短路可以分成两种情况：</p>
+		<ol>
+			<li><p>最短路经过 $u$ 或 $v$。</p>
+			<p>于是，我们可以从 $u, v$ 开始 <del>Dijkstra</del> <abbr title="Breadth-first Search, 宽度优先搜索"><ins style="color: fuchsia">BFS</ins></abbr>，求出 $u, v$ 到每个点 $x$ 的最短路，记为 $d_x^\left( u \right), d_x^\left( v \right)$，然后更新 $$ \operatorname{dist} \left( x, y \right) \downarrow \min \left\{ d_x^\left( u \right) + d_y^\left( u \right), d_x^\left( v \right) + d_y^\left( v \right) \right\} $$</p>
+			<p style="color: red">(ps: 注意形如 $d_x^\left( u \right) + d_y^\left( v \right) + 1$ 的式子是不需要更新的，因为 bfs 的结果自然有 $d_y^\left( u \right) \leq d_y^\left( v \right) + 1$)</p></li>
+			<li><p>最短路不经过 $u, v$ 中的一个。</p>
+			<p>此时，$x, y$ 必同在 $P_1$ 中或同在 $P_2$ 中，于是可以递归子问题。</p></li>
+		</ol>
+		<p>而我们希望选取的边 $u - v$ 能将多边形尽量 "均匀地" 切成两份。形式化地，就是让两侧多边形边数的差 (的绝对值) 尽可能小。</p>
+		<p>这能否做到呢？我们仍然要利用多边形三角剖分的一个基本性质：<strong style="color: green">任意一个多边形的三角剖分图的对偶图 $G_T$ 为一棵树，且每个点的度数不超过 $3$</strong>。</p>
+		<p>考虑在多边形分治的结构，我们每次选择的边都是<strong>使多边形两侧边数之差最小</strong>，即使多边形两侧三角形数量之差最小，等价于使树的两侧连通块点数之差最小。</p>
+		<p>因此在对偶图 $G_T$ 上我们其实就是在做<strong>边分治</strong>。</p>
+		<p>注意到 $G_T$ 的最大度 $\Delta \left( G_T \right) \leq 3$，因此每次递归后连通块大小不超过原先连通块大小的 $\dfrac 23$，于是递归层数确实是 $O \left( \log n \right)$ 的。</p>
+		<p>故总时间复杂度 $O \left( \left( n + q \right) \log n \right)$，可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int N = 50054, M = 100054;
+
+int n, q;
+vector G[N];
+int qu[M], qv[M], ans[M];
+int stamp = 0, tag[N], pos[N];
+int que[N], du[N], dv[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline void link(int u, int v) {G[u].EB(v), G[v].EB(u);}
+
+void bfs(int s, int *d) {
+	int h, t = 1, x;
+	d[s] = 0, *que = s;
+	for (h = 0; h &lt; t; ++h) {
+		x = que[h];
+		for (int y : G[x])
+			if (tag[y] == stamp &amp;&amp; d[y] == INT_MAX) d[y] = d[x] + 1, que[t++] = y;
+	}
+}
+
+void partition(const vector &amp;V, const vector &amp;qs) {
+	int n = V.size();
+	if (n &lt; 4) return;
+	int i, j, x, y, cur, dist = 0, mu = 0, mv = 1;
+	vector vl, vr, ql, qr, eu, ev;
+	vector::iterator it;
+	for (++stamp, i = 0; i &lt; n; ++i) tag[V[i]] = stamp, pos[V[i]] = i;
+	for (i = 0; i &lt; n; ++i) {
+		x = V[i], du[x] = dv[x] = INT_MAX;
+		for (int y : G[x]) if (tag[y] == stamp &amp;&amp; i &lt; (j = pos[y])) {
+			cur = min(j - i, n - (j - i));
+			if (cur &gt; dist) dist = cur, mu = i, mv = j;
+		}
+	}
+	assert(dist &gt; 1), bfs(V[mu], du), bfs(V[mv], dv);
+	vl.assign(V.begin() + mu, V.begin() + (mv + 1)),
+	vr.assign(V.begin() + mv, V.end()), vr.insert(vr.end(), V.begin(), V.begin() + (mu + 1));
+	it = std::partition(G[V[mu]].begin(), G[V[mu]].end(), [mu, mv] (const int x) {return mu &lt; pos[x] &amp;&amp; pos[x] &lt; mv;});
+	eu.assign(it, G[V[mu]].end()), G[V[mu]].erase(it, G[V[mu]].end());
+	it = std::partition(G[V[mv]].begin(), G[V[mv]].end(), [mu, mv] (const int x) {return mu &lt; pos[x] &amp;&amp; pos[x] &lt; mv;});
+	ev.assign(it, G[V[mv]].end()), G[V[mv]].erase(it, G[V[mv]].end());
+	for (int id : qs) {
+		x = qu[id], y = qv[id],
+		down(ans[id], du[x] + du[y]),
+		down(ans[id], dv[x] + dv[y]),
+		x = pos[x], y = pos[y];
+		if (x &gt; y) std::swap(x, y);
+		if (mu &lt; x &amp;&amp; y &lt; mv) ql.EB(id);
+		if (mv &lt; x || y &lt; mu || (mv &lt; y &amp;&amp; x &lt; mu)) qr.EB(id);
+	}
+	partition(vl, ql), G[V[mu]].swap(eu), G[V[mv]].swap(ev), partition(vr, qr);
+}
+
+int main() {
+	int i, u, v; vector v0, q0;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n, link(1, n);
+	for (i = 1; i &lt; n; ++i) link(i, i + 1);
+	for (i = 3; i &lt; n; ++i) cin &gt;&gt; u &gt;&gt; v, link(u, v);
+	cin &gt;&gt; q;
+	for (i = 0; i &lt; q; ++i) {
+		cin &gt;&gt; qu[i] &gt;&gt; qv[i];
+		if (qu[i] &gt; qv[i]) std::swap(qu[i], qv[i]);
+		ans[i] = min(qv[i] - qu[i], n - (qv[i] - qu[i]));
+		if (ans[i] &gt; 1) q0.EB(i);
+	}
+	v0.resize(n), std::iota(v0.begin(), v0.end(), 1),
+	partition(v0, q0);
+	for (i = 0; i &lt; q; ++i) cout &lt;&lt; ans[i] &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意分治多层后的多边形的标号并不一定是区间，因此需要用 <code>std::vector</code> 等存储当前多边形的标号集合。</p>
+		<p><strong>坑2：</strong>判断一条边 $\left( x, y \right)$ ($u &lt; v$) 是否在一个过 $0$ 的环形区间 $\left[ l, r \right]$ 内注意细节，$\left( x, y \right)$ 在 $\left[ l, r \right]$ 中当且仅当 $r &lt; x \vee y &lt; l \vee \left( x &lt; l \wedge r &lt; y \right)$。</p>
+		<p><strong>坑3：</strong>分治时注意重构 $u, v$ 的邻接 (边) 表，因为一个顶点可能会参与 $O \left( n \right)$ 次计算。</p>
+	</body>
+</html>
