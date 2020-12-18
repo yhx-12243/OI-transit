@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6992][CodeforcesGym100553H][NEERC2014]Hidden Maze</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵 $n$ 个顶点的树 $T$，每条边有一个边权。对于一个无序点对 $\left( u, v \right)$，如果连接 $u, v$ 的路径有奇数条边，则<span style="color: fuchsia">定义 $f \left( u, v \right)$ 为路径 $u \leadsto v$ 上所有边的边权的<strong>中位数</strong></span>。</p>
+		<p>设 $S$ 为所有距离 (经过的边数) 为奇数的无序对构成的集合，求 $S$ 中所有元素的 $f$ 的平均数，即 $$ \frac 1 {\left| S \right|} \sum_{\left( u, v \right) \in S} f \left( u, v \right) \tag 1 \label 1 $$</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($2 \leq n \leq 30000$)，表示树的点数。</p>
+		<p>接下来 $n - 1$ 行，每行三个正整数 $u_i, v_i, c_i$ ($1 \leq u_i, v_i \leq n; u_i \neq v_i; 1 \leq c_i \leq 10^6$)，表示一条连接 $u_i$ 和 $v_i$，权值为 $c_i$ 的边。保证这 $n - 1$ 条边恰好构成一棵树。</p>
+		<p>题目保证树以某种随机方式生成。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个实数，表示 $\eqref 1$ 式的值。答案被认为正确当且仅当相对或绝对误差不超过 $10^{-9}$。</p>
+
+		<h3>题解</h3>
+		<p>不妨设所有 $c_i$ 互不相同。否则可以通过<del>微扰</del><ins style="color: fuchsia">指定一个相对顺序</ins>而不影响答案。</p>
+		<p>用 $D_c$ 表示中位数为 $c$ 的路径集合，即 $$ D_c = \left\{ \left( u, v \right) \mid \left( u, v \right) \in S \wedge f \left( u, v \right) = c \right\} $$</p>
+		<p>于是答案就等于 $\dfrac {\displaystyle \sum_c c \cdot \left| D_c \right|} {\displaystyle \sum_c \left| D_c \right|}$。注意到有用的 $c$ 一定是某条边的权值 ($c_i$)，因此只需对这些 $c_i$ 求出 $D_c$ 的大小即可。</p>
+		<p>先考虑对一个固定的 $c$ 求出 $\left| D_c \right|$。由之前的假设，应当恰有一条边 $\left( u, v \right)$ 的权值等于 $c$。</p>
+		<p><del>根据中位数的常见套路</del>，我们将所有权值大于 $c$ 的所有边的权值改为 $1$，小于 $c$ 的所有边的权值改为 $-1$。</p>
+		<p>由于这条路径必须经过边 $\left( u, v \right)$，因此设 $T_u, T_v$ 为 $T$ 断掉边 $\left( u, v \right)$ 后 $u, v$ 分别所在的子树。则该路径必有一个端点在 $T_u$ 中，一个端点在 $T_v$ 中。不妨设 $p \in T_u, q \in T_v$。</p>
+		<p>于是，<strong style="color: blue">$\left( p, q \right) \in D_c$ 当且仅当在重新定过边权的树中，$\operatorname{dist} \left( p, u \right) + \operatorname{dist} \left( v, q \right) = 0$</strong>。</p>
+		<p>因此，我们可以树形 DP 求出，对于每个点 $v$ 和每个距离 $d$，$subtree \left( v \right)$ 中有多少个点到 $v$ 的距离为 $d$。尽管可以使用线段树合并做，不过事实上由于树是随机生成的，直接暴力就可以了，将这个值记为 $f_{v, d}$。</p>
+		<p>对 $T_u, T_v$ 分别 DP 后，就有 $$ \left| D_c \right| = \sum_i f_{u, i} f_{v, -i} \tag 2 \label 2 $$</p>
+		<hr />
+		<p>接下来考虑对所有的 $c$ 求 $\left| D_c \right|$。由于这个 DP 本身就是 $\Omega \left( n \right)$ 的，因此做 $n$ 遍显然是不现实的。</p>
+		<p>由于每条边都会被断掉，因此形如 $T_u, T_v$ 这样的子树就有 $2 n - 2$ 个，更新时会涉及换根 DP，就会导致每次更新会影响一整棵树的 DP 值。</p>
+		<p>因此我们首先就需要避免换根 DP。对于一条边 $\left( u, v \right)$，它所分裂成的两棵子树中，其中一棵是 "正常的" 子树 <span style="color: fuchsia">(即为固定某个点 $r$ 为根后的一棵子树)</span>，不妨设是 $T_v$。而另一棵 $T_u$ 则为子树的补。</p>
+		<p>正常的子树我们在树形 DP 时自然会记录 DP 值，而对于另一棵子树，从 $u$ 出发的路径可以分为两种：</p>
+		<ol>
+			<li>$u \to p_u \to \cdots$。</li>
+			<li>$u \to x \to \cdots$ (其中 $x$ 是 $u$ 的子节点，且 $x \neq v$)。</li>
+		</ol>
+		<p>其中 (对于某个 $d$) 第二种路径的数量我们是可以得到的，即 $f_{u, d} - f_{v, d - w \left( u, v \right)}$。</p>
+		<p>对于第一种路径，我们就需要把 "锅" 甩给 $p_u$，然后以此类推。</p>
+		<p>形式化地，我们枚举 $u$ 的某个祖先 $L$ (即该路径的最近公共祖先)，设它在对应方向上的子节点为 $m$，则 <abbr title="Lowest Common Ancestor, 最近公共祖先">LCA</abbr> 为 $L$，长度为 $d$ 的路径数就等于 $$ f_{L, d - \operatorname{dist} \left( u, L \right)} - f_{m, d - \operatorname{dist} \left( u, L \right) - w \left( m, L \right)} \tag 3 \label 3 $$</p>
+		<p>最后使用类似 $\eqref 2$ 的方法统计答案即可。</p>
+		<hr />
+		<p>避免了换根 DP 后，接下来我们就可以考虑对所有的 $c$ 求 $\left| D_c \right|$ 了。</p>
+		<p>考虑从小到大枚举 $c$，这样每次只需改变一条边的边权，设为 $\left( u, v \right)$ ($p_v = u$)。</p>
+		<p>由于我们现在只有每棵子树的 DP 值，因此受影响的 DP 值仅有 $u$ 及其祖先。</p>
+		<p>考虑 $u$ 的祖先 $L$，则从 $L$ 出发向下的路径中，受到影响的路径就是形如 "$L \leadsto u \to v \leadsto \cdots$" 的路径，而这些路径可以通过 $v$ 的 DP 值得到。</p>
+		<p>于是我们只需枚举 $u$ 的各个祖先依次更新即可。</p>
+		<p>分析一下时间复杂度，对于更新部分，首先我们需要枚举 $u$ 的祖先，因此有 $dep_u$ 个；对于每个 $u$ 的祖先，受影响的 $d$ 的数量就是 $f_v$ 对 $d$ 的定义域 (即 $f_{v, d}$ 中 $d$ 的数量)，<span style="color: fuchsia">(设点 $x$ 到其子树中最深的点的距离 (边数) 为 $fd_x$)</span> 不超过 $2 fd_v$，故这部分的时间复杂度为 $O \left( dep_v \cdot fd_v \right)$。</p>
+		<p>对于统计答案部分，我们仍然需要枚举 $u$ 的所有祖先，对于 $\eqref 2$ 式中 $i$ 的范围，注意到 $v$ 这棵子树的参与，因此 $i$ 的范围仍然不超过 $f_v$ 对 $d$ 的定义域，即 $O \left( fd_v \right)$，因此这部分的时间复杂度仍为 $O \left( dep_v \cdot fd_v \right)$。</p>
+		<p>故总时间复杂度为 $O \left( \sum\limits_{v \in T} dep_v \cdot fd_v \right)$。在题目中的随机方式下，可以证明 $O \left( \sum\limits_{v \in T} dep_v \cdot fd_v \right) = O \left( n \sqrt n \right)$ (具体证明较繁琐，此处略去)。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef unsigned int u32;
+typedef std::vector &lt;ll&gt; vector;
+const int N = 30054, M = N * 2;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+} e[M];
+
+int n, E = 0;
+int first[N], next[M];
+int p[N], pw[N], dep[N], fd[N];
+int cnt = 0, o[N], id[N], oo[N];
+int sign[N];
+vector f[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline ll &amp; F(int x, int t) {return f[x][t + fd[x]];}
+inline ll F_(int x, int t) {return u32(t + fd[x]) &lt;= 2u * (u32)fd[x] ? f[x][t + fd[x]] : 0;}
+
+inline void addedge(int u, int v, int w) {
+	e[++E] = edge(u, v, w), next[E] = first[u], first[u] = E;
+	e[++E] = edge(v, u, w), next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y; o[++cnt] = x;
+	for (i = first[x]; i; i = next[i])
+		if ((y = e[i].v) != p[x])
+			p[y] = x, dep[y] = dep[x] + 1, pw[y] = e[i].w,
+			dfs(y), up(fd[x], fd[y] + 1);
+	f[x].resize(2 * fd[x] + 1);
+}
+
+int main() {
+	int i, j, k, u, v, w, x, $, delta; ll C, num = 0, den = 0;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n;
+	for (i = 1; i &lt; n; ++i) cin &gt;&gt; u &gt;&gt; v &gt;&gt; w, addedge(u, v, w);
+	dfs(1);
+	for (i = cnt; i &gt; 1; --i) {
+		x = o[i], u = p[x], ++F(x, 0);
+		for (j = -fd[x]; j &lt;= fd[x]; ++j) F(u, j - 1) += F(x, j);
+	}
+	++F(1, 0), memset(sign, -1, (n + 1) &lt;&lt; 2), std::iota(oo + 1, oo + n, 2),
+	std::sort(oo + 1, oo + n, [] (const int x, const int y) {return pw[x] &lt; pw[y];});
+	for ($ = 1; $ &lt; n; ++$) {
+		v = oo[$], u = p[v], w = pw[v], delta = sign[v];
+		for (x = u; x; delta += sign[x], x = p[x])
+			for (j = -fd[v]; j &lt;= fd[v]; ++j) F(x, j + delta) -= F(v, j);
+		delta = sign[v] = 1, C = 0;
+		for (i = v, x = u; x; delta += sign[x], i = x, x = p[x]) {
+			for (j = -fd[v]; j &lt;= fd[v]; ++j) F(x, j + delta) += F(v, j);
+			for (j = -fd[v], k = fd[v] - delta + 1; j &lt;= fd[v]; ++j, --k)
+				C += (F_(x, k) - F_(i, k - sign[i])) * F(v, j);
+		}
+		num += C * w, den += C;
+	}
+	cout &lt;&lt; std::setprecision(12) &lt;&lt; (double)num / (double)den &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>$\eqref 3$ 式中平移减去相关系数不要漏减或减错了。</p>
+		<p><strong>坑2：</strong>每个点 $v$ 的 DP 值范围是 $2 fd_v + 1$，可以使用 <code>std::vector</code> (或内存池) 方便申请。</p>
+	</body>
+</html>

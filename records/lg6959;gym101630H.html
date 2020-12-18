@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6959][CodeforcesGym101630H][NEERC2017]Hack</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一个函数 <code>modPow</code>，它的伪代码如下：</p>
+		<pre class="sh_sourceCode"><code class="sh_pseudo"><span class="sh_keyword">def</span> <span class="sh_function">modPow</span><span class="sh_symbol">(</span>a<span class="sh_symbol">,</span> d<span class="sh_symbol">,</span> n<span class="sh_symbol">)</span>
+	r <span class="sh_symbol">&#8592;</span> <span class="sh_number">1</span>
+	<span class="sh_keyword">for</span> i <span class="sh_symbol">&#8592;</span> <span class="sh_number">0</span> <span class="sh_keyword">to</span> <span class="sh_number">59</span>
+		<span class="sh_keyword">if</span> d <span class="sh_symbol">&amp;</span> <span class="sh_number">2</span><sup>i</sup> <span class="sh_symbol">==</span> <span class="sh_number">0</span>
+			r <span class="sh_symbol">&#8592;</span> r <span class="sh_symbol">*</span> a <span class="sh_keyword">mod</span> n
+		a <span class="sh_symbol">&#8592;</span> a <span class="sh_symbol">*</span> a <span class="sh_keyword">mod</span> n
+	<span class="sh_keyword">return</span> a
+</code></pre>
+		<p>对于一次调用，它所花费的时间被定义为：</p>
+		<ul>
+			<li><p>每计算一次 $x \cdot y \bmod n$，会花费 $\left( \left \lceil \log_2 \left( x + 1 \right) \right \rceil + 1 \right) \left( \left \lceil \log_2 \left( y + 1 \right) \right \rceil + 1 \right)$ 单位的时间。</p></li>
+			<li><p>对于其它运算，所耗的时间相比前者可以忽略不计。</p></li>
+		</ul>
+		<p>现在有两个整数 $n, d$，你知道 $n$ 但不知道 $d$。你可以给出若干个 $a$ 来询问 <code>modPow(a, d, n)</code> 所花费的时间，你的目标是得到 $d$ 的值。</p>
+		<p>本题数据随机，具体随机方式如下：</p>
+		<ol>
+			<li><p>$p, q$ 是在 $\left[ 2^{29}, 2^{30} \right)$ 中所有素数中独立均匀随机选取的。</p></li>
+			<li><p>令 $n = p \cdot q, m = \varphi \left( n \right) = \left( p - 1 \right) \left( q - 1 \right)$。</p></li>
+			<li><p>设 $\left( 0, m \right)$ 中与 $m$ 互素的数的集合为 $\Phi \left( m \right)$，则 $d$ 是在 $\Phi \left( m \right)$ 中均匀随机选取的。</p></li>
+		</ol>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个正整数 $n$。</p>
+
+		<h3>输出格式</h3>
+		<p>如果你要询问一次 $a$ 花费的时间，输出 <code>? <em>a</em></code> 并刷新缓存，接下来你可以从标准输入中读取一个整数，表示花费的时间。</p>
+		<p>当你得到 $d$ 的值后，输出 <code>! <em>d</em></code> 并刷新缓存，然后立即退出程序。</p>
+		<p>你需要保证询问的次数不超过 $30000$。</p>
+
+		<h3>题解</h3>
+		<p>首先第 6 行 (<code>a &#8592; a * a mod n</code>) 的执行情况是固定的 (不依赖 $d$ 的)，因此可以预先算出它花费的时间并从总时间内减掉。</p>
+		<p>考虑 (二进制) 从低位到高位逐位确定 $d$。</p>
+		<p>由于 $p, q$ 是奇数，因此 $m$ 一定是偶数，从而 $d$ 是奇数，即 $d$ 的最低位为 $1$。</p>
+		<p>接下来考虑 $d$ 的 (低位起) 第二位。</p>
+		<p>如果该位为 $1$，则所有的 $a$ 在运算时都会进行 $a \cdot a^2$ 这一乘法，否则不会。</p>
+		<p>我们如何区分是否使用了 $a \cdot a^2$ 这一次乘法呢？</p>
+		<p>考虑 $a$ 和 $-a \pmod n$，如果它们的<em>位数</em> (即 $\log_2$) 相差很大的话，那么这一次询问的时间就会相差得很大。</p>
+		<p>但是如何减小剩下的 $a^3$ 等元素的操作时间的影响呢？如果可以假设 $a^3$ 是随机，那么差不多可以解决，但是这样<del>乱七八糟的</del>条件就会很多，这样的 $a$ 就显得很苛刻，很难找。</p>
+		<hr />
+		<p>由于我们提到了随机，因此我们可以考虑直接随机大量 ($30000$ 组) 样本 $a$，然后利用<em>统计学的方法</em>来处理。</p>
+		<p>根据刚才的分析，如果 $d = 1$，那么会进行 $a \cdot a^2$ 的乘法，于是剩下第 5 行执行的总时间就会和 $a \cdot a^2$ 所耗的时间<strong>有一定的相关性</strong>。</p>
+		<p>否则，如果 $d = 0$，则这个相关性不太大。</p>
+		<p>那么 "有一定相关性" "相关性不太大" 是种定性的分析，我们无法辨别怎样的相关性才算大，怎样的相关性不算大。因此我们最好找一个对照组，和「与对照组的相关性」进行比较。</p>
+		<p>这个对照组该怎么选取呢？注意到如果没有这次操作，则下一次 $a$ 就会和 $a$ 的一个更高次幂相乘。而 $a$ 的更高次幂可以看成一个 $\left[ 0, n \right)$ 上的随机数。且接下来的乘法和 $a$ 无关，从而对相关性不会有很大影响。</p>
+		<p>因此我们取对照组为 <strong style="color: fuchsia">$a$ 与 $\left[ 0, n \right)$ 上的随机整数相乘所耗的时间</strong>。</p>
+		<p>由于我们的 $a$ 有 $N = 30000$ 个，因此这些样本其实都是向量。我们用 $\boldsymbol t, \boldsymbol p, \boldsymbol q$ 分别表示<em>第 5 步执行的时间</em>的向量、<em>$a \cdot a^2$ 所耗的时间</em>的向量和 <em>$a$ 和随机整数相乘所耗的时间</em> (对照组) 的向量。</p>
+		<p>如果 $\boldsymbol t$ 和 $\boldsymbol p$ 的相关性大于 $\boldsymbol t$ 和 $\boldsymbol q$ 的相关性，我们就有较大理由相信 $d$ 的第二位为 $1$；否则 $d$ 的第二位为 $0$。</p>
+		<p>具体地，怎么刻画两个向量 $\boldsymbol a$ 和 $\boldsymbol b$ 的相关性呢？一个最著名的统计量就是 <a href="https://en.wikipedia.org/wiki/Pearson_correlation_coefficient" target="_blank">Pearson 相关系数</a>。具体地，两个 $n$ 维向量 $\boldsymbol a$ 和 $\boldsymbol b$ 的 Pearson 相关系数被定义为 $$ \rho_{\boldsymbol a, \boldsymbol b} = \frac {n \cdot \boldsymbol a \cdot \boldsymbol b - A \cdot B} {\sqrt {n \cdot \boldsymbol a^2 - A^2} \sqrt {n \cdot \boldsymbol b^2 - B^2}} \tag 1 \label 1 $$ (其中 $\displaystyle A = \sum_{i=1}^n a_i, B = \sum_{i=1}^n b_i$，可以理解为以平均值为原点时向量的夹角)</p>
+		<p>Pearson 相关系数是一个 $\left[ -1, 1 \right]$ 之间的实数，越接近 $1$ 表示越正相关，越接近 $-1$ 表示越负相关，越接近 $0$ 表示越<em>不</em>相关。</p>
+		<p>经过<del>随机数据的</del>检验，在本题中 Pearson 相关系数具有较好的表现，直接比较 Pearson 相关系数基本是正确的。</p>
+		<hr />
+		<p>对于 $d$ 的第 3 位，第 4 位等，也可以使用类似的方法 —— 将之前已经得到的第 5 行花费的时间减掉，与<strong>此时 $r \cdot a$ 的乘法耗时</strong>和 <strong>$r$ 乘随机整数的乘法耗时</strong>分别计算 Pearson 相关系数，最后作比较即可获得 $d$ 的对应位。</p>
+		<p>时间复杂度 $O \left( N \log n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define lg2 std::__lg
+using std::cin;
+using std::cout;
+using std::endl;
+
+typedef long long ll;
+typedef long double ld;
+typedef __int128 lll;
+const int N = 30000;
+
+ll mod;
+ll a[N], b[N];
+int t[N], t1[N], t2[N];
+
+int cost(ll x, ll y) {return (lg2(x) + 2) * (lg2(y) + 2);}
+
+int raw_mul(ll a) {
+	int i, ret = 0;
+	for (i = 0; i &lt; 60; ++i, a = (lll)a * a % mod) ret += cost(a, a);
+	return ret;
+}
+
+int powtime(ll a, ll d) {
+	int i, ret = 0; ll c = 1;
+	for (i = 0; i &lt; 60; ++i, a = (lll)a * a % mod) {
+		if (d &gt;&gt; i &amp; 1) ret += cost(c, a), c = (lll)c * a % mod;
+		ret += cost(a, a);
+	}
+	return ret;
+}
+
+ll query(ll a) {ll r; return cout &lt;&lt; '?' &lt;&lt; ' ' &lt;&lt; a &lt;&lt; endl, cin &gt;&gt; r, r;}
+
+// Pearson correlation coefficient
+ld PCC(int *a, int *b) {
+	int i; ll SA = 0, SB = 0, I = 0, IA = 0, IB = 0;
+	for (i = 0; i &lt; N; ++i)
+		SA += a[i], SB += b[i], I += (ll)a[i] * b[i], IA += (ll)a[i] * a[i], IB += (ll)b[i] * b[i];
+	ld G = (lll)N * I - (lll)SA * SB, GA = (lll)N * IA - (lll)SA * SA, GB = (lll)N * IB - (lll)SB * SB;
+	return (G * G) / (GA * GB);
+}
+
+
+ll solve(ll n) {
+	int i, bit; ll d = 1, sum; mod = n;
+	std::mt19937_64 gen((std::random_device())());
+	std::uniform_int_distribution &lt;ll&gt; ud(1, n - 1);
+	for (i = 0; i &lt; N; ++i) {
+		b[i] = a[i] = ud(gen),
+		a[i] = (lll)b[i] * b[i] % n,
+		t[i] = query(b[i]) - raw_mul(b[i]) - cost(b[i], 1);
+	}
+	for (bit = 1; bit &lt; 60; ++bit) {
+		for (sum = i = 0; i &lt; N; ++i) t1[i] = cost(b[i], a[i]), t2[i] = cost(b[i], n), sum += t[i];
+		if (!sum) break;
+		if (PCC(t, t1) &gt; PCC(t, t2)) {
+			d |= 1ll &lt;&lt; bit;
+			for (i = 0; i &lt; N; ++i) b[i] = (lll)b[i] * a[i] % mod, t[i] -= t1[i];
+		}
+		for (i = 0; i &lt; N; ++i) a[i] = (lll)a[i] * a[i] % mod;
+	}
+	return d;
+}
+
+int main() {
+	ll d, n;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n, d = solve(n), cout &lt;&lt; '!' &lt;&lt; ' ' &lt;&lt; d &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>注意当获得 $d$ 的最高位后，向量 $\boldsymbol t$ 会变成 $\boldsymbol 0$ 向量，从而 $\eqref 1$ 式中的分母为 $0$。此时我们应当直接 <code>break</code> (因为不可能有更高位出现) 避免除以 $0$。</p>
+		<p><strong>坑2：</strong>注意乘法花费的时间等于 $\left( \left \lfloor \log_2 x \right \rfloor + \color {red} 2 \right) \left( \left \lfloor \log_2 y \right \rfloor + \color {red} 2 \right)$，里面是 $+ 2$ 不是 $+ 1$。</p>
+	</body>
+</html>

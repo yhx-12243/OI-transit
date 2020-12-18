@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4450][lg6975][CodeforcesGym100851C][NEERC2015]Cactus Jubilee</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一棵仙人掌 $G = \left( V, E \right)$，求有多少种方案从 $G$ 中删去一条边 $e \in E$，再加入一条边 $f \neq e$，使得 $\left( G \setminus \left\{ e \right\} \right) \cup \left\{ f \right\}$ 是仙人掌。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个非负整数 $n, m$ ($1 \leq n \leq 50000; 0 \leq m \leq 50000$)，表示图 $G$ 的点数和边数。</p>
+		<p>接下来 $m$ 行，每行描述一条路径。每行的开始有一个正整数 $k$ ($2 \leq k \leq 1000$)，表示这条路径上的顶点个数。紧接着 $k$ 个 $1 \sim n$ 之间的整数，依次描述路径上的顶点。</p>
+		<p>一条路径可以多次经过一个顶点，但图中的每条边恰好在一条路径上出现一次。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示删去一条边再加入一条边的方案总数。</p>
+
+		<h3>题解</h3>
+		<p>如果 $e = f$，则 $\left( G \setminus \left\{ e \right\} \right) \cup \left\{ e \right\} = G$ 显然是仙人掌。因此我们可以先统计<strong>不一定有 $f \neq e$</strong> 的方案数，最后再减去 $\left| E \right|$ 即可。</p>
+		<p>接下来考虑总方案数。我们根据 $e$ 是否是桥边进行讨论：</p>
+		<ol>
+			<li><p>$e$ 是桥边。</p>
+			<p>此时 $H = G \setminus \left\{ e \right\}$ 恰有两个连通分量 $A, B$，而我们要求 $H \cup \left\{ f \right\}$ 是仙人掌，而仙人掌一定是连通的，因此 $H$ 的两个端点一定来自不同的连通分量。</p>
+			<p>此外，对于 $\forall u \in A, v \in B$，图 $H \cup \left\{ \left( u, v \right) \right\}$ 一定是仙人掌，这是因为新加入的 $\left( u, v \right)$ 一定是桥边，从而不可能在任意一个点双连通分量中。</p>
+			<p>于是，删去 $e$ 的方案的总数恰好等于 $\color {teal} {\left| A \right| \cdot \left| B \right|}$。</p></li>
+			<li><p>$e$ 是环内边。</p>
+			<p>此时 $H = G \setminus \left\{ e \right\}$ 仍然是仙人掌。</p>
+			<p>根据 <a href="../index.html?redirect=537" target="_blank">[ZJOI2017]仙人掌</a> 的经验，加入边 $\left( u, v \right)$ 后仍然是仙人掌，<span style="color: fuchsia">当且仅当 $H$ 中存在一条从 $u$ 到 $v$ 的路径只包含桥边</span>。</p>
+			<p>因此我们可以将 $H$ 中的所有桥边提取出来，得到一个森林，然后 $u, v$ 可行当且仅当 $u, v$ 在同一棵树中且不是已经加入的边。</p>
+			<p>设森林中各个连通块的大小分别为 $n_1, n_2, \cdots, n_k$，则不难得到方案数等于 $$ \color {teal} {\frac 12 \sum_{i=1}^k \left( n_i - 1 \right) \left( n_i - 2 \right)} $$</p></li>
+		</ol>
+		<p>现在考虑如何快速对所有边 $e$ 计算对应的方案数。</p>
+		<p>对于所有的桥边，我们可以通过一次 dfs 解决：具体地，设 $\left( u, v \right)$ 是桥边，断掉后形成大小分别为 $\left| A \right|, \left| B \right|$ 的连通分量，<em style="color: navy">则它在所有 dfs 树中都将顶点集 $V$ 分成一个大小为 $\left| A \right|$ 的集合和一个大小为 $\left| B \right|$ 的集合</em>，于是搜索时记录 <code>size</code> 即可。</p>
+		<p>对于环内边，不难发现对于一个环，删去不同的边时所得到的「连通分量大小集合」是相同的，因此可以对每个环一起计算。</p>
+		<p>我们考虑对原仙人掌算出，将所有桥边提取出来后森林中每棵树的大小，记为 $n_1, n_2, \cdots, n_k$。</p>
+		<p>对于一个环 $C$，由于我们去掉了一条环内边，于是 $C$ 中剩下的边都变成了 (新图 $H$ 中的) 桥边，因此这个圈对应的 $\left| C \right|$ 个连通块会合并为一个连通块。</p>
+		<p>因此我们可以 (用并查集或 dfs) 维护出每个点所在的连通块大小，然后更新一下 $\sum\limits_i \left( n_i - 1 \right) \left( n_i - 2 \right)$ 的值即可。</p>
+		<p>这样对于每个环我们可以在 $O \left( \left| C \right| \right)$ 的时间内得到答案，于是所有环内边的总贡献可以在 $O \left( n \right)$ 的时间内求出。</p>
+		<p>总时间复杂度 $O \left( n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define ad(x) ((((x) - 1) ^ 1) + 1)
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 50054, M = N * 3;
+
+int V, E, C;
+int to[M], first[N], next[M];
+int cnt = 0, id[N], low[N];
+int p[N], size[N], a[N];
+bool bridge[M];
+pr cyc[N];
+ll ans = 0;
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+inline ll D(int n) {return (n - 1ll) * (n - 2ll) / 2;}
+
+inline void addedge(int u, int v) {
+	to[++E] = v, next[E] = first[u], first[u] = E;
+	to[++E] = u, next[E] = first[v], first[v] = E;
+}
+
+void dfs(int x) {
+	int i, y; size[x] = 1;
+	id[x] = low[x] = ++cnt;
+	for (i = first[x]; i; i = next[i])
+		if (!id[y = to[i]]) {
+			p[y] = x, dfs(y), down(low[x], low[y]);
+			size[x] += size[y];
+			if (id[x] &lt; low[y]) ans += size[y] * ll(V - size[y]), bridge[ad(i)] = bridge[i] = true;
+		} else if (y != p[x]) down(low[x], id[y]);
+	for (i = first[x]; i; i = next[i])
+		if (p[y = to[i]] != x &amp;&amp; id[x] &lt; id[y]) cyc[C++] = pr(x, y);
+}
+
+namespace dsu {
+	int p[N], size[N];
+
+	inline void init(int n) {std::iota(p, p + (n + 1), 0), std::fill(size, size + (n + 1), 1);}
+
+	int ancestor(int x) {return p[x] == x ? x : (p[x] = ancestor(p[x]));}
+
+	inline bool test(int x, int y, bool un = false) {
+		if ((x = ancestor(x)) == (y = ancestor(y))) return true;
+		return un &amp;&amp; (size[x] &lt; size[y] ? p[x] = y, size[y] += size[x] : (p[y] = x, size[x] += size[y]));
+	}
+}
+
+int main() {
+	int i, j, u, v, m; ll s = 0, t;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; V &gt;&gt; i; i; --i)
+		for (cin &gt;&gt; j &gt;&gt; u; --j; u = v)
+			cin &gt;&gt; v, addedge(u, v);
+	dfs(1), dsu::init(V);
+	for (i = 1; i &lt;= E; i += 2) if (bridge[i]) dsu::test(to[i], to[i + 1], true);
+	for (i = 1; i &lt;= V; ++i) if (dsu::ancestor(i) == i) s += D(dsu::size[i]);
+	for (i = 0; i &lt; C; ++i) {
+		std::tie(u, v) = cyc[i];
+		for (m = 0; v != u; v = p[v]) a[m++] = v;
+		a[m++] = u;
+		for (t = v = j = 0; j &lt; m; ++j) u = dsu::size[dsu::p[a[j]]], t -= D(u), v += u;
+		ans += m * (s + t + D(v));
+	}
+	cout &lt;&lt; ans - E / 2 &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在枚举环 $C$ 时只需重新计算一下 $\sum\limits_i \left( n_i - 1 \right) \left( n_i - 2 \right)$，并不需要真的把这些连通块合并起来。</p>
+	</body>
+</html>

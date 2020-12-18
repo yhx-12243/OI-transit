@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4076][lg6896][CodeforcesGym101221E][WF2014]Maze Reduction</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张无向简单图 $G = \left( V, E \right)$，其中每个点的邻点构成一个圆排列 (即邻点之间有一个旋转等价的顺序)。</p>
+		<p>称 $\varphi : V \to V$ 是 $G$ 的一个 "圈自同构"，如果 $\varphi$ 是 $G$ 的一个自同构且像图 $\varphi \left( G \right)$ 和原图 $G$ 的每个顶点的所有邻点构成的圆排列也是对应等价的。</p>
+		<p>定义 $u \sim v$，如果存在 $G$ 的一个 "圈自同构" $\varphi$ 满足 $\varphi \left( u \right) = v$。</p>
+		<p>可以证明 $\sim$ 是 $V$ 上的等价关系，求 $\sim$ 在 $V$ 上划分的所有等价类。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 100$)，表示图的点数。</p>
+		<p>接下来 $n$ 行，第 $i$ 行的第一个整数 $k$ ($0 \leq k \leq n - 1$) 表示顶点 $i$ 的度数，接下来 $k$ 个整数表示与顶点 $i$ 相邻的所有点，按照顺时针顺序排列。保证不存在自环和重边，且若 $v$ 是 $u$ 邻点则必有 $u$ 是 $v$ 的邻点。</p>
+
+		<h3>输出格式</h3>
+		<p>输出所有<strong>大小大于 $1$ 的等价类</strong>，按照最小元素升序的顺序排列。</p>
+		<p>对于每个等价类，输出一行，包含若干个整数，从小到大表示该等价类中所有顶点的标号。</p>
+		<p>特别地，如果所有等价类的大小都等于 $1$，则额外输出一行 <code>none</code>。</p>
+
+		<h3>题解</h3>
+		<p>对于这类自同构的问题，考虑使用 Hash 来处理。</p>
+		<p>我们用 $f_{c, i, j}$ 表示从顶点 $i$ 的第 $j$ 个邻点出发走 $c$ 步的 Hash 值。</p>
+		<p>那么对于 $c = 0$ 的情形，我们可以直接令 $f_{0, i, j} = F_0 \left( d \left( i \right) \right)$，其中 $F_0$ 为任意单射。</p>
+		<p>对于 $c &gt; 0$ 的情形，考虑走 $c$ 步可以拆成走 $1$ 步后再走 $c - 1$ 步，设 $u$ 的第 $i$ 个邻点为 $v$，那么我们可以知道 $u$ 是 $v$ 的第几个邻点，不妨设 $u$ 是 $v$ 的第 $0$ 个邻点，那么这个时候在 $v$ 点时我们就能得到一条 "链" 了。</p>
+		<p>于是我们要在 Hash 函数中表达链的顺序，故可以定义 $$ f_{c, u, i} = F_c \left( F_c \left( \cdots F_c \left( F_c \left( F_c \left( f_{c - 1, u, i} \right) \oplus f_{c - 1, v, 1} \right) \oplus f_{c - 1, v, 2} \right) \cdots \right) \oplus f_{c - 1, v, d \left( v \right) - 1} \right) $$ 其中 $F_c$ 为任意单射，下面的代码中所有的 $F_c$ 均相等，且取了 <samp>xorshift64</samp> 和线性同余。</p>
+		<p>记向量 $\boldsymbol f_{c, i} = \left( f_{c, i, 0}, f_{c, i, 1}, \cdots, f_{c, i, d \left( i \right) - 1} \right)$，那么对于<strong>等价的</strong>顶点 $u, v$ 和任意的 $c \geq 0$，$\boldsymbol f_{c, u}$ 和 $\boldsymbol f_{c, v}$ 一定只是相差一个圆排列，换句话说，$\boldsymbol f_{c, u}$ 和 $\boldsymbol f_{c, v}$ 具有相同的<strong>最小表示</strong>。</p>
+		<p>取 $c = O \left( n \right)$，我们就有较大的把握相信当 $\boldsymbol f_{c, u}$ 和 $\boldsymbol f_{c, v}$ 具有相同的最小表示时，就有 $u \sim v$ 了。</p>
+		<p>因此我们只需要求出每个 $\boldsymbol f_{c, i}$ 的最小表示然后比较即可，由于数据范围比较小，因此暴力比较即可。时间复杂度 $O \left( n^4 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+using std::vector;
+
+typedef unsigned long long u64;
+const int N = 108;
+const u64 multiplier = 2728434087ull, addend = 0xb7e151628aed2a6bull;
+
+int V;
+int o[N][N], p[N];
+u64 hasher[2][N][N], (*cur)[N] = *hasher, (*nxt)[N] = hasher[1];
+u64 seq[N], opt[N];
+vector &lt;int&gt; G[N], gr[N];
+vector &lt;u64&gt; repr[N];
+
+inline u64 next(u64 x) {return x ^= x &lt;&lt; 13, x ^= x &gt;&gt; 7, x ^= x &lt;&lt; 17, x * multiplier + addend;}
+
+int main() {
+	int i, j, k, u, v, l, $;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	memset(o, -1, sizeof o);
+	cin &gt;&gt; V;
+	for (i = 1; i &lt;= V; ++i) {
+		cin &gt;&gt; l, G[i].reserve(l);
+		for (j = 0; j &lt; l; ++j) cin &gt;&gt; v, o[i][v] = j, G[i].EB(v);
+		std::fill(nxt[i], nxt[i] + l, next(l));
+	}
+	for ($ = 0; $ &lt; 128; ++$) {
+		std::swap(cur, nxt);
+		for (u = 1; u &lt;= V; ++u) {
+			l = G[u].size();
+			for (i = 0; i &lt; l; ++i) {
+				u64 &amp;H = nxt[u][i]; H = next(cur[u][i]);
+				v = G[u][i], j = o[v][u], assert(~j);
+				for (k = j; k &lt; (int)G[v].size(); ++k) H = next(H ^ cur[v][k]);
+				for (k = 0; k &lt; j; ++k) H = next(H ^ cur[v][k]);
+			}
+		}
+	}
+	for (i = 1; i &lt;= V; ++i) {
+		l = G[i].size(), memcpy(seq, nxt[i], l &lt;&lt; 3), memcpy(opt, seq, l &lt;&lt; 3);
+		for (j = 0; j &lt; l; ++j) {
+			if (std::lexicographical_compare(opt, opt + l, seq, seq + l)) memcpy(opt, seq, l &lt;&lt; 3);
+			std::rotate(seq, seq + 1, seq + l);
+		}
+		repr[i] = vector&lt;u64&gt;(opt, opt + l);
+	}
+	std::iota(p, p + V, 1), std::sort(p, p + V, [] (const int A, const int B) {return repr[A] &lt; repr[B] || (repr[A] == repr[B] &amp;&amp; A &lt; B);});
+	for (k = j = i = 0; i &lt; V; i = j) {
+		for (; j &lt; V &amp;&amp; repr[p[i]] == repr[p[j]]; ++j);
+		if (i + 1 &lt; j) gr[k++] = vector&lt;int&gt;(p + i, p + j);
+	}
+	if (!k) return cout &lt;&lt; "none\n", 0;
+	std::sort(gr, gr + k);
+	for (i = 0; i &lt; k; ++i) {
+		$ = 1;
+		for (int x : gr[i]) ($ ? $ = 0, cout : cout &lt;&lt; ' ') &lt;&lt; x;
+		cout &lt;&lt; '\n';
+	}
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>字典序时比较要使用 <code>std::lexicographical_compare</code> 而不是 <code>memcmp</code>，当然也可以直接使用 <code>std::vector</code> 自带的比较函数。</p>
+		<p><strong>坑2：</strong>当从 $u$ 走到 $v$ 时，我们是可以利用 $u$ 是 $v$ 的哪个邻点的信息了，因此此时 $v$ 的所有邻点已经构成一条链而不是圈，从而写 Hash 函数时要记录这一点。</p>
+	</body>
+</html>

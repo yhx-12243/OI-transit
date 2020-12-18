@@ -28,7 +28,7 @@ const
 			'hdu' : [/^(\d+)$/, x => `http://acm.hdu.edu.cn/showproblem.php?pid=${x}`],
 			'poj' : [/^(\d+)$/, x => `http://poj.org/problem?id=${x}`],
 			'uoj' : [/^(\d+)$/, x => `https://uoj.ac/problem/${x}`],
-			'loj' : [/^(\d+)$/, x => `https://loj.ac/problem/${x}`],
+			'loj' : [/^(\d+)$/, x => `https://loj.ac/p/${x}`],
 			'simpleoj' : [/^(\d+)$/, x => `http://10.49.27.23/problem?id=${x}`],
 			'soj' : [/^(\d+)$/, x => `http://10.49.18.71/problem/${x}`],
 			'cf' : [/^(\d+)([A-Z]\d*)$/, codeforces_flag ? (x, y) => `https://codeforces.com/problemset/problem/${x}/${y}` : (x, y) => `https://codeforces.com/contest/${x}/problem/${y}`],
@@ -230,7 +230,7 @@ const
 		$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
 
 		if (getStorage('check-version') !== 'off') {
-			let local_ver = '7.4.8', prompt_str;
+			let local_ver = '7.4.9', prompt_str;
 			$.ajax('https://yhx-12243.github.io/OI-transit/additional_files/others/version', {
 				type : 'GET',
 				cache : false,

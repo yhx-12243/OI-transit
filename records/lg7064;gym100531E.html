@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg7064][CodeforcesGym100531E]Expression</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>给定一个正则表达式 $E$ 和字符串 $S$。求最短的字符串 $T$，保证 $E$ 匹配 $T$ 且 $S$ 是 $T$ 的子串。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个字符串 $E$ ($1 \leq \left| E \right| \leq 10000$)，描述一个正则表达式。保证元字符只包含 <code>.</code>, <code>|</code> 和 <code>*</code>，文本字符只包含所有小写字母。</p>
+		<p>第二行包含一个由小写字母构成的字符串 $S$ ($1 \leq \left| S \right| \leq 10000$)，描述需要是子串的串。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行，包含一个字符串 $T$，表示你所找到的能被 $E$ 匹配且以 $S$ 为子串的串。你需要保证 $T$ 是所有可行的串中最短的。</p>
+		<p>如果有多个最短的串，输出任意一个均可。</p>
+
+		<h3>题解</h3>
+		<p>对于一个正则表达式，我们可以对其进行表达式解析 (<samp>parser</samp> 的工作)，然后建立其 <abbr title="Non-deterministic Finite-state Automaton, 非确定性有限状态自动机">NFA</abbr>。</p>
+		<blockquote>
+			<p>这里简单介绍一下正则表达式转 <abbr title="Non-deterministic Finite-state Automaton, 非确定性有限状态自动机">NFA</abbr> 的方法。</p>
+			<p>首先，正则表达式是一个递归结构 (树形结构)。因此一个正则表达式可以看成一个或多个正则表达式经过一些操作得到的。</p>
+			<p>由 <abbr title="Non-deterministic Finite-state Automaton, 非确定性有限状态自动机">NFA</abbr> 的特性，我们可以认为这里的每个 <abbr title="Non-deterministic Finite-state Automaton, 非确定性有限状态自动机">NFA</abbr> 都是具有唯一接受状态的，从而它有起点 $s$ 和终点 $t$。对于能转化为起点为 $s$，终点为 $t$ 的正则表达式 $a$，我们<strong style="color: blue">简记作 $a = \left&lt; s, t \right&gt;$</strong>。</p>
+			<ol>
+				<li><p>$b = a^*$ (其中 $a, b$ 都是正则表达式，下同)。</p>
+				<p>设 $a = \left&lt; s_a, t_a \right&gt;$，则 $b = \left&lt; s_b, t_b \right&gt;$ 的结构如下：</p>
+				<img class="center-block" src="uploads/320.png" alt="Kleene 闭包" /></li>
+				<li><p>$c = a b$。</p>
+				<p>设 $a = \left&lt; s_a, t_a \right&gt;, b = \left&lt; s_b, t_b \right&gt;$，则 $c = \left&lt; s_a, t_b \right&gt;$ 的结构如下：</p>
+				<img class="center-block" src="uploads/321.png" alt="连接" /></li>
+				<li><p>$c = a \mid b$。</p>
+				<p>设 $a = \left&lt; s_a, t_a \right&gt;, b = \left&lt; s_b, t_b \right&gt;$，则 $c = \left&lt; s_c, t_c \right&gt;$ 的结构如下：</p>
+				<img class="center-block" src="uploads/322.png" alt="选择 (或)" /></li>
+			</ol>
+			<p>最终类似树形 DP 或后缀表达式求值一样做就可以了，时间复杂度和 <abbr title="Non-deterministic Finite-state Automaton, 非确定性有限状态自动机">NFA</abbr> 点数均为 $O \left( \left| E \right| \right)$ 级别。</p>
+		</blockquote>
+		<p>当求出 <abbr title="Non-deterministic Finite-state Automaton, 非确定性有限状态自动机">NFA</abbr> (设为 $M = \left&lt; s, t \right&gt;$) 之后，考虑求解原问题。</p>
+		<p>对于状态 $u, v \in M$，如果 $u$ 经过字符串 $S$ 可以到达 $v$，那么我们可以得到这样一种串 $T$：它首先从起点 $s$ (用尽可能少的字符) 到达状态 $u$，然后走 $\left| S \right|$ 个字符到达状态 $v$，最后 (用尽可能少的字符) 到达状态 $v$。</p>
+		<p>于是我们需要知道对于每个状态 $u \in M$，它到起点 $s$ 和终点 $t$ 的 "<strong>距离</strong>" <span style="color: fuchsia">(这里<em>距离</em>定义为从一个状态达到另一个状态所需要的最少字符，可以使用 Dijkstra 算法计算：$\varepsilon$ 边的边权为 $0$，其余边的边权为 $1$)</span>，分别记为 $d_u^{\left( s \right)}, d_u^{\left( t \right)}$。</p>
+		<p>于是目标就变成了求 $$ \min_{u \xrightarrow{S} v} \left( d_u^{\left( s \right)} + d_v^{\left( t \right)} \right) \tag 1 \label 1 $$ ($\left| S \right|$ 是常数，可以忽略)</p>
+		<p>但是直接枚举 $u \xrightarrow{S} v$ 是 $O \left( n^3 \right)$ 级别的，无法通过。我们仍然考虑使用 DP (最短路) 的思想计算：</p>
+		<p>对于每个状态，我们可以记录它到源点 $s$ 的最短路及其上一个点，然后通过字符串 $S$ 中的边进行更新。这样每更新一轮的复杂度为 $O \left( \left| E \right| \right)$ (使用 bfs)，总更新的时间复杂度就是 $O \left( \left| E \right| \left| S \right| \right)$。</p>
+		<p>更新完毕后，我们只需枚举所有的点作为 $v$ 点，即可求得 $\eqref 1$ 式的值。</p>
+		<p>总时间复杂度 $O \left( \left| E \right| \left| S \right| \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+
+typedef std::pair &lt;int, int&gt; pr;
+typedef std::vector &lt;int&gt; vector;
+const int N = 50054;
+const pr empty(-1, -1);
+
+namespace NFA {
+	int n, d[N][26];
+	vector epsilon[N];
+
+	inline pr dot() {
+		int u = ++n, v = ++n;
+		return std::fill(d[u], d[u] + 26, v), pr(u, v);
+	}
+
+	inline pr single(int c) {
+		int u = ++n, v = ++n;
+		return d[u][c - 97] = v, pr(u, v);
+	}
+
+	inline pr kleene(const pr &amp;nfa) {
+		if (nfa == empty) return empty;
+		int u = ++n, v = ++n;
+		return epsilon[u].EB(nfa.first), epsilon[u].EB(v), epsilon[nfa.second].EB(nfa.first), epsilon[nfa.second].EB(v), pr(u, v);
+	}
+
+	inline pr concat(const pr &amp;A, const pr &amp;B) {
+		if (A == empty) return B;
+		if (B == empty) return A;
+		return epsilon[A.second].EB(B.first), pr(A.first, B.second);
+	}
+
+	inline pr alter(const pr &amp;A, const pr &amp;B) {
+		if (A == empty &amp;&amp; B == empty) return empty;
+		if (A == empty) return epsilon[B.first].EB(B.second), B;
+		if (B == empty) return epsilon[A.first].EB(A.second), A;
+		int u = ++n, v = ++n;
+		return epsilon[u] = {A.first, B.first}, epsilon[A.second].EB(v), epsilon[B.second].EB(v), pr(u, v);
+	}
+
+	/******** evaluator ********/
+	int top = 0;
+	pr stack[N];
+
+	inline void push(const pr &amp;nfa) {
+//		fputs("push\n", stderr);
+		stack[top++] = nfa;
+	}
+
+	inline void unary_kleene() {
+//		fputs("kleene\n", stderr);
+		assert(top &gt; 0), stack[top - 1] = kleene(stack[top - 1]);
+	}
+
+	inline void binary_concat() {
+//		fputs("concat\n", stderr);
+		assert(top-- &gt; 0), stack[top - 1] = concat(stack[top - 1], stack[top]);
+	}
+
+	inline void binary_alter() {
+//		fputs("alter\n", stderr);
+		assert(top-- &gt; 0), stack[top - 1] = alter(stack[top - 1], stack[top]);
+	}
+
+	inline void trace() {
+		int i, j; bool f; assert(top == 1);
+		if (*stack == empty) n = 1, *stack = pr(1, 1);
+/*		fprintf(stderr, "NFA from %d to %d\n", stack-&gt;first, stack-&gt;second);
+		for (i = 1; i &lt;= n; ++i) {
+			fprintf(stderr, "state #%d : {", i);
+			for (j = 0; j &lt; 26; ++j)
+				if (d[i][j]) fprintf(stderr, "'%c' -&gt; %d, ", 97 + j, d[i][j]);
+			fputs("epsilon -&gt; [", stderr), f = false;
+			for (int x : epsilon[i]) {
+				if (f) fputs(", ", stderr);
+				fprintf(stderr, "%d", x), f = true;
+			}
+			fputs("]}\n", stderr);
+		}
+*/	}
+}
+
+namespace parser {
+	int STATE = 0, top = 0, stack[N];
+
+	inline void push_nfa(const pr &amp;);
+	inline void push_concatenation();
+
+	inline void end() {
+		if (STATE == 0) push_nfa(empty);
+		for (; top; --top)
+			switch (stack[top - 1]) {
+				case 2: NFA::binary_concat(); break;
+				case 1: NFA::binary_alter(); break;
+				default: abort();
+			}
+	}
+
+	inline void push_lb() {
+		if (STATE == 1) push_concatenation();
+		stack[top++] = STATE = 0;
+	}
+
+	inline void push_rb() {
+		if (STATE == 0) push_nfa(empty);
+		bool ok = false;
+		for (; top &amp;&amp; !ok; --top)
+			switch (stack[top - 1]) {
+				case 2: NFA::binary_concat(); break;
+				case 1: NFA::binary_alter(); break;
+				default: ok = true; break;
+			}
+		assert(ok), STATE = 1;
+	}
+
+	inline void push_alternation() {
+		if (STATE == 0) push_nfa(empty);
+		bool ok = false;
+		for (; top &amp;&amp; !ok; --top)
+			switch (stack[top - 1]) {
+				case 2: NFA::binary_concat(); break;
+				default: ok = true, ++top; break;
+			}
+		stack[top++] = 1, STATE = 0;
+	}
+
+	inline void push_concatenation() {
+		if (STATE == 0) push_nfa(empty);
+		stack[top++] = 2, STATE = 0;
+	}
+
+	inline void push_star() {
+		if (STATE == 0) push_nfa(empty);
+		NFA::unary_kleene(), STATE = 1;
+	}
+
+	inline void push_nfa(const pr &amp;nfa) {
+		if (STATE == 1) push_concatenation();
+		NFA::push(nfa), STATE = 1;
+	}
+}
+
+int si, ti;
+int n = 0, o[N], que[N];
+int dp[2][N], *cur = *dp, *nxt = dp[1];
+char s[N];
+
+inline bool down(int &amp;x, const int y) {return x &gt; y ? x = y, 1 : 0;}
+
+namespace SP {
+	bool used[N];
+	int ds[N], dt[N];
+	pr fs[N], ft[N];
+	std::queue &lt;int&gt; Q0, Q1;
+	vector iedge[N][27];
+
+	inline int pop(std::queue &lt;int&gt; &amp;Q) {int x = Q.front(); Q.pop(); return x;}
+
+	inline int top_element(int *d) {
+		if (Q0.empty()) return Q1.empty() ? 0 : pop(Q1);
+		return pop(Q1.empty() || d[Q0.front()] &lt;= d[Q1.front()] ? Q0 : Q1);
+	}
+
+	void main() {
+		int i, j, c;
+		memset(used, false, NFA::n + 1),
+		memset(ds, 63, (NFA::n + 1) &lt;&lt; 2), ds[si] = 0;
+		for (Q0.emplace(si); (i = top_element(ds)); ) {
+			if (used[i]) continue;
+			used[i] = true;
+			for (c = 0; c &lt; 26; ++c)
+				if ((j = NFA::d[i][c]) &amp;&amp; down(ds[j], ds[i] + 1))
+					fs[j] = pr(i, c), Q1.emplace(j);
+			for (int j : NFA::epsilon[i]) if (down(ds[j], ds[i])) fs[j] = pr(i, -1), Q0.emplace(j);
+		}
+		memset(used, false, NFA::n + 1),
+		memset(dt, 63, (NFA::n + 1) &lt;&lt; 2), dt[ti] = 0;
+		for (i = 1; i &lt;= NFA::n; ++i) {
+			for (c = 0; c &lt; 26; ++c) if ((j = NFA::d[i][c])) iedge[j][c + 1].EB(i);
+			for (int j : NFA::epsilon[i]) iedge[j][0].EB(i);
+		}
+		for (Q0.emplace(ti); (i = top_element(dt)); ) {
+			if (used[i]) continue;
+			used[i] = true;
+			for (c = 0; c &lt; 27; ++c)
+				for (int j : iedge[i][c]) if (down(dt[j], dt[i] + !!c)) ft[j] = pr(i, c - 1), (c ? Q1 : Q0).emplace(j);
+		}
+	}
+}
+
+int main() {
+	int i, j, id, $, h, t, ans; char *p = s, *q;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; p, assert(*p);
+	for (; *p; ++p)
+		switch (*p) {
+			case 40: parser::push_lb(); break;
+			case 41: parser::push_rb(); break;
+			case 42: parser::push_star(); break;
+			case 46: parser::push_nfa(NFA::dot()); break;
+			case 97 ... 122: parser::push_nfa(NFA::single(*p)); break;
+			case 124: parser::push_alternation(); break;
+		}
+	parser::end(), NFA::trace(), std::tie(si, ti) = *NFA::stack, SP::main(),
+	n = NFA::n, std::iota(o, o + n, 1), std::sort(o, o + n, [] (const int x, const int y) {return SP::ds[x] &lt; SP::ds[y];});
+	std::iota(nxt, nxt + (n + 1), 0);
+
+	p = s + N / 2, cin &gt;&gt; p, assert(*p);
+	for (; *p; ++p) {
+		id = *p - 97, std::swap(cur, nxt);
+		for (h = t = $ = 0; $ &lt; n; ++$) {
+			i = o[$];
+			if ((j = NFA::d[i][id]) &amp;&amp; !nxt[j]) nxt[j] = cur[i], que[t++] = j;
+			cur[i] = 0;
+			for (; h &lt; t; ++h)
+				for (int k : NFA::epsilon[j = que[h]])
+					if (!nxt[k]) nxt[k] = nxt[j], que[t++] = k;
+		}
+		n = t, memcpy(o, que, n &lt;&lt; 2);
+	}
+
+	ans = INT_MAX;
+	for (j = 1; j &lt;= NFA::n; ++j)
+		if ((i = nxt[j]) &amp;&amp; down(ans, SP::ds[i] + SP::dt[j])) h = i, t = j;
+	if (ans == INT_MAX) return cout &lt;&lt; "NO\n", 0;
+
+	q = s + N / 2;
+	for (; h != si; ) {std::tie(h, id) = SP::fs[h]; if (~id) *--q = 97 + id;}
+	for (; t != ti; ) {std::tie(t, id) = SP::ft[t]; if (~id) *p++ = 97 + id;}
+	*p = 0, cout &lt;&lt; q &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>建立 <abbr title="Non-deterministic Finite-state Automaton, 非确定性有限状态自动机">NFA</abbr> 时，要勤建新点，否则老的点在连多次 Kleene 闭包 (星号) 和选择 (或) 后可能会出现回流错误。</p>
+		<p><strong>坑2：</strong>最短路由于边权只有两种 ($\varepsilon$ 边为 $0$，其余边为 $1$)，因此可以使用 bfs 代替 Dijkstra。同时更新时要按权值大小顺序更新。</p>
+
+	</body>
+</html>
