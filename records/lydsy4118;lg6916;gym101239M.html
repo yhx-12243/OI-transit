@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4118][lg6916][CodeforcesGym101239M][WF2015]Window Manager</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你需要模拟一个窗口管理器。屏幕的大小为 $W \times H$，你需要保证屏幕上的所有窗口既不超出屏幕边界也不重叠。你需要支持如下指令：</p>
+		<ul>
+			<li><p><code>OPEN <em>x</em> <em>y</em> <em>w</em> <em>h</em></code> —— 打开一个左上角的像素点坐标为 $\left( x, y \right)$，宽 $w$ 像素，高 $h$ 像素的窗口。</p></li>
+			<li><p><code>CLOSE <em>x</em> <em>y</em></code> —— 关闭包含像素点 $\left( x, y \right)$ 的窗口。</p></li>
+			<li><p><code>RESIZE <em>x</em> <em>y</em> <em>w</em> <em>h</em></code> —— 更改包含像素点 $\left( x, y \right)$ 的窗口的尺寸，在左上角不改变的前提下，把宽改为 $w$，高改为 $h$。</p></li>
+			<li><p><code>MOVE <em>x</em> <em>y</em> <em>d<sub>x</sub></em> <em>d<sub>y</sub></em></code> —— 移动包含像素点 $\left( x, y \right) $ 的窗口，要么是横向移动 $d_x$ 像素，要么是纵向移动 $d_y$ 像素。保证 $d_x \cdot d_y = 0$。</p></li>
+		</ul>
+		<p>你需要时刻保证所有窗口既不超出屏幕边界也不重叠。因此，<code>OPEN</code> 和 <code>RESIZE</code> 可能不会成功执行，你需要报告错误。</p>
+		<p>对于 <code>MOVE</code> 指令，如果一个窗口移到了另一个窗口，那么，它会带着第二个窗口继续推动，如果有必要的话，可能会引起连锁反应，带动第三个、第四个窗口一起推动，直到遇到边界，如下图：</p>
+		<img class="center-block" src="uploads/327.png" alt="MOVE 指令" style="max-width: 640px" />
+		<p>在所有指令结束后，你需要描述屏幕上窗口的分布情况。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $W, H$ ($1 \leq W, H \leq 10^9$)，描述屏幕是宽度和高度 (像素数)，其中左上角的坐标为 $\left( 0, 0 \right)$，第一维坐标向右。</p>
+		<p>接下来若干行，每行一条指令，格式及含义见题目描述，满足 $0 \leq x &lt; W; 0 \leq y &lt; H; \left| d_x \right|, \left| d_y \right| \leq 10^9$。保证指令的数量不超过 $256$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出分为两段，<strong>错误信息</strong>和<strong>窗口分布</strong>。</p>
+		<p>首先是<strong>错误信息</strong>，格式如下：</p>
+		<p>如果对于 <code>CLOSE</code>, <code>RESIZE</code>, <code>MOVE</code> 指令，不存在包含像素点 $\left( x, y \right)$ 的窗口，则需输出 <code>Command &lt;<em>num</em>&gt;: &lt;<em>cmd</em>&gt; - no window at given position</code>，其中 $\left&lt; num \right&gt;$ 表示指令编号 (从 $1$ 起)，$\left&lt; cmd \right&gt;$ 表示指令名称 (大写)。</p>
+		<p>如果对于 <code>OPEN</code>, <code>RESIZE</code> 指令，如果移动后不满足要求 (窗口既不超出屏幕边界也不重叠)，则撤回这次移动，并输出 <code>Command &lt;<em>num</em>&gt;: &lt;<em>cmd</em>&gt; - window does not fit</code>。</p>
+		<p>如果对于 <code>MOVE</code> 指令，如果命令要求移动 $d = \left| d_x \right| + \left| d_y \right|$ 像素，而 (命令直接要求的窗口) 实际只移动了 $d'$ 像素，且 $d' \neq d$，则输出 <code>Command &lt;<em>num</em>&gt;: &lt;<em>cmd</em>&gt; - move <em>d'</em> instead of <em>d</em></code> 且<strong>不撤回</strong>这次移动。</p>
+		<p>然后是<strong>窗口分布</strong>，格式如下：</p>
+		<p>第一行输出一个整数 $n$，表示当前还在屏幕上的窗口个数。</p>
+		<p>接下来 $n$ 行，每行四个整数，<strong>按照它们被创建的时间，从前往后</strong>依次输出每个窗口的左上角坐标以及宽度高度。</p>
+
+		<h3>题解</h3>
+		<p>open, close, resize 都容易直接模拟。下面只考虑 move。</p>
+		<p>我们可以通过一些坐标变换的技巧，不妨假设是向右移动 (即 $d_x &gt; 0$ 且 $d_y = 0$)。<span style="color: red">(ps: 这里使用坐标变换会比较好写)</span>。</p>
+		<p>考虑向右移动，对于两个窗口 $A, B$，如果 $A$ 和 $B$ 占据的 $y$ 轴区间有交，且 $A$ 在 $B$ 的左边，那么 <strong>(在不考虑其它窗口的情况下)</strong>，$A$ 的移动会带动 $B$ 的移动。对于这样的 $\left( A, B \right)$ 对，我们连接一条 $A \to B$ 的有向边。于是这样可以得到一张有向图 $G$。</p>
+		<p>显然横坐标递增是 $G$ 的拓扑序，因此 $G$ 是 <abbr title="Directed Acyclic Graph, 有向无环图">DAG</abbr>。现在考虑对每一个窗口 $A$，求出它的左端点最大能移动到多少，记为 $\Lambda_A$。</p>
+		<p>考虑按照拓扑序逆序 (坐标从大到小) 进行 DP。首先，设 $A$ 的宽度为 $w_A$，则 $\Lambda_A \gets W - w_A$。然后对所有 $A$ 连向的顶点 $B$，更新 $\Lambda_A \downarrow \Lambda_B - w_A$。</p>
+		<p>于是，目标窗口 $A_0$ 实际移动的距离 $d' = \min \left\{ d, \Lambda_{A_0} - L_{A_0} \right\}$ (其中 $L_A$ 表示窗口 $A$ 的左端点坐标)。</p>
+		<p>确定了 $d'$ 后，接下来我们再按照拓扑序 (坐标从小到大) 更新一遍，即可得到每个矩形新的横坐标。</p>
+		<p>具体地，设当前窗口 $A$ 的左端点横坐标为 $L_A$。则首先令 $L_{A_0} \gets L_{A_0} + d'$，然后 (按顺序) 对所有连向 $A$ 的窗口 $B$，更新 $L_A \uparrow L_B + w_B$。</p>
+		<p>最终每个窗口的 $L_A$ 就是最终的横坐标，于是我们就在 $O \left( n^2 \right)$ 的时间内完成了一次 move 操作 (其中 $n$ 为目前屏幕中的窗口个数，时间瓶颈在于建图)。</p>
+		<p>总时间复杂度 $O \left( C^3 \right)$ ($C \leq 256$ 为指令条数)，可以通过。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define NOT_FOUND "no window at given position"
+#define OUT_OF_RANGE "window does not fit"
+using std::cin;
+using std::cout;
+using std::string;
+
+typedef unsigned int u32;
+const int N = 260;
+
+struct rect {
+	int x, y, w, h, id;
+	rect () {}
+	rect (int x_, int y_, int w_, int h_, int id_ = 0) : x(x_), y(y_), w(w_), h(h_), id(id_) {}
+	inline bool contain(int x0, int y0) {return x &lt;= x0 &amp;&amp; x0 &lt; x + w &amp;&amp; y &lt;= y0 &amp;&amp; y0 &lt; y + h;}
+	inline bool contain(const rect &amp;B) {return x &lt;= B.x &amp;&amp; B.x + B.w &lt;= x + w &amp;&amp; y &lt;= B.y &amp;&amp; B.y + B.h &lt;= y + h;}
+	inline bool intersect(const rect &amp;B) {return x &lt; B.x + B.w &amp;&amp; B.x &lt; x + w &amp;&amp; y &lt; B.y + B.h &amp;&amp; B.y &lt; y + h;}
+	inline bool operator &lt; (const rect &amp;B) const {return id &lt; B.id;}
+} U, r[N];
+
+int n, tag, n_cmd;
+string cmd;
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline void raise(const char *info) {cout &lt;&lt; "Command " &lt;&lt; n_cmd &lt;&lt; ": " &lt;&lt; cmd &lt;&lt; " - " &lt;&lt; info &lt;&lt; '\n';}
+inline void raise(const string &amp;info) {raise(info.c_str());}
+
+inline int id(int x, int y) {for (int i = 0; i &lt; n; ++i) if (r[i].contain(x, y)) return i; return -1;}
+
+inline bool open(const rect &amp;s) {
+	if (!U.contain(s)) return false;
+	for (int i = 0; i &lt; n; ++i) if (r[i].intersect(s)) return false;
+	return r[n++] = s, true;
+}
+
+inline void close(int id) {assert((u32)id &lt; (u32)n), r[id] = r[--n];}
+
+inline bool resize(int id, int w, int h) {
+	rect s(r[id].x, r[id].y, w, h, r[id].id);
+	if (!U.contain(s)) return false;
+	for (int i = 0; i &lt; n; ++i) if (i != id &amp;&amp; r[i].intersect(s)) return false;
+	return r[id] = s, true;
+}
+
+namespace M {
+	const int M = N * N;
+
+	int E, real;
+	int to[M], first[N], next[M];
+	int deg[N], topo[N], lim[N];
+
+	inline void flip_x() {for (int i = 0; i &lt; n; ++i) r[i].x = U.w - r[i].x - r[i].w;}
+
+	inline void transpose() {std::swap(U.w, U.h); for (int i = 0; i &lt; n; ++i) std::swap(r[i].x, r[i].y), std::swap(r[i].w, r[i].h);}
+
+	inline void addedge(int u, int v) {to[++E] = v, next[E] = first[u], first[u] = E, ++deg[v];}
+
+	inline void move(int id, int d) {
+		int i, j, x, y, h, t = 0; E = 0;
+		memset(first, 0, n &lt;&lt; 2), memset(deg, 0, n &lt;&lt; 2);
+		for (i = 0; i &lt; n; ++i)
+			for (j = 0; j &lt; n; ++j)
+				if (r[i].x &lt; r[j].x &amp;&amp; r[i].y &lt; r[j].y + r[j].h &amp;&amp; r[j].y &lt; r[i].y + r[i].h) addedge(i, j);
+		for (i = 0; i &lt; n; ++i) if (!deg[i]) topo[t++] = i;
+		for (h = 0; h &lt; t; ++h)
+			for (i = first[x = topo[h]]; i; i = next[i]) if (!--deg[y = to[i]]) topo[t++] = y;
+		assert(t == n);
+		for (i = n - 1; i &gt;= 0; --i) {
+			x = topo[i], lim[x] = U.w - r[x].w;
+			for (j = first[x]; j; j = next[j]) down(lim[x], lim[to[j]] - r[x].w);
+		}
+		real = min(lim[id] - r[id].x, d), r[id].x += real;
+		for (i = 0; i &lt; n; ++i)
+			for (j = first[x = topo[i]]; j; j = next[j]) up(r[to[j]].x, r[x].x + r[x].w);
+	}
+}
+
+inline void move(int id, int dx, int dy) {
+	if (dx &gt; 0) M::move(id, dx);
+	else if (dx &lt; 0) M::flip_x(), M::move(id, -dx), M::flip_x();
+	else if (dy &gt; 0) M::transpose(), M::move(id, dy), M::transpose();
+	else if (dy &lt; 0) M::transpose(), M::flip_x(), M::move(id, -dy), M::flip_x(), M::transpose();
+	else throw "daklqw";
+}
+
+int main() {
+	int i, x, y, w, h, d;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; U.w &gt;&gt; U.h;
+	for (n_cmd = 1; cin &gt;&gt; cmd &gt;&gt; x &gt;&gt; y; ++n_cmd)
+		if (cmd == "OPEN") {
+			cin &gt;&gt; w &gt;&gt; h;
+			if (!open(rect(x, y, w, h, ++tag))) raise(OUT_OF_RANGE);
+		} else if (cmd == "CLOSE") {
+			if (~(i = id(x, y))) close(i);
+			else raise(NOT_FOUND);
+		} else if (cmd == "RESIZE") {
+			cin &gt;&gt; w &gt;&gt; h;
+			if (~(i = id(x, y))) {
+				if (!resize(i, w, h)) raise(OUT_OF_RANGE);
+			} else raise(NOT_FOUND);
+		} else if (cmd == "MOVE") {
+			cin &gt;&gt; w &gt;&gt; h;
+			if (~(i = id(x, y))) {
+				assert(!(w &amp;&amp; h));
+				if ((d = abs(w | h)) &amp;&amp; (move(i, w, h), d != M::real))
+					raise("moved " + std::to_string(M::real) + " instead of " + std::to_string(d));
+			} else raise(NOT_FOUND);
+		} else throw "invalid command !";
+	cout &lt;&lt; n &lt;&lt; " window(s):\n", std::sort(r, r + n);
+	for (i = 0; i &lt; n; ++i) cout &lt;&lt; r[i].x &lt;&lt; ' ' &lt;&lt; r[i].y &lt;&lt; ' ' &lt;&lt; r[i].w &lt;&lt; ' ' &lt;&lt; r[i].h &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>最终输出时需要按照被创建的时间进行输出 (而不是最后改动的时间)，因此需要排序或在操作过程中保持原顺序 (即 "稳定" 操作)。</p>
+		<p><strong>坑2：</strong>「拓扑排序」一步可以避免，因为横坐标递增显然是一个满足条件的拓扑序。</p>
+	</body>
+</html>

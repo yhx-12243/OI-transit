@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg7062][CodeforcesGym10053C]Combinator Expression</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你需要处理一个 <a href="https://en.wikipedia.org/wiki/Lambda_calculus" target="_blank">$\lambda-$演算</a>。具体地，我们有四种函数：\begin{align*}
+B &amp;= \lambda x . \lambda y . \lambda z . x \left( y z \right) \\
+C &amp;= \lambda x . \lambda y . \lambda z . \left( x z \right) y \\
+K &amp;= \lambda x . \lambda y . x \\
+I &amp;= \lambda x . x
+\end{align*}</p>
+		<p>给定一个表达式 $E$，求将其化为 <a href="https://en.wikipedia.org/wiki/Beta_normal_form" target="_blank">$\beta-$标准型</a>所需要的 <a href="https://en.wikipedia.org/wiki/Lambda_calculus#.CE.B2-reduction" target="_blank">$\beta-$约化</a>次数的最小值。</p>
+
+		<h3>输入格式</h3>
+		<p>共一行，包含一个由 <code>B</code>, <code>C</code>, <code>K</code>, <code>I</code>, <code>(</code>, <code>)</code> 构成的字符串 $s$ ($1 \leq \left| s \right| \leq 30000$)，表示一个 $\lambda-$演算的表达式 (括号用来改变优先级)。保证表达式中不出现 $\lambda$，且表达式合法。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示 $\beta-$约化次数的最小值。</p>
+
+		<h3>题解</h3>
+		<p>首先容易发现这是一个表达式解析，令函数调用的运算符为 <code>*</code>，我们可以使用之前<a href="../index.html?tag=%E8%A1%A8%E8%BE%BE%E5%BC%8F%E8%A7%A3%E6%9E%90" target="_blank">表达式解析</a>的技巧将其转化为<strong>后缀表达式</strong>。如，表达式 $C \left( K \left( I I \right) \left( I C \right) \right)$ 的后缀表达式形式就是 <samp>CKII**IC***</samp>。</p>
+		<p>考虑解析这个后缀表达式，显然用一个栈来维护。由于这个 $\lambda-$演算的特殊性 (每个项都是一个 Currying 的高阶函数)，每时每刻的表达式都可以看成如下形式：$$ F \left( x_1, x_2, \cdots \right) $$</p>
+		<p>其中 $F$ 表示最外层调用的函数 (称为该表达式的<strong>头部</strong>)，$x_1, x_2, \cdots$ 表示它接受 (吞噬) 的参数，它们各自也是一个表达式 (即具有<strong>头部</strong>和<strong>零到多个参数</strong>)。</p>
+		<p>如，后缀表达式 <samp>CKII*IC***</samp> 具有如下的化简过程：</p>
+		<table class="table table-bordered table-text-center table-vertical-middle table-hover table-striped">
+			<thead>
+				<tr><th>已解析部分</th><th>当前栈</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><samp><strong style="color: blue">C</strong><span style="color: silver">KII**IC***</span></samp></td><td>$\left[ C \right]$</td></tr>
+				<tr><td><samp>C<strong style="color: blue">K</strong><span style="color: silver">II**IC***</span></samp></td><td>$\left[ C, K \right]$</td></tr>
+				<tr><td><samp>CK<strong style="color: blue">I</strong><span style="color: silver">I**IC***</span></samp></td><td>$\left[ C, K, I \right]$</td></tr>
+				<tr><td><samp>CKI<strong style="color: blue">I</strong><span style="color: silver">**IC***</span></samp></td><td>$\left[ C, K, I, I \right]$</td></tr>
+				<tr><td><samp>CKII<strong style="color: fuchsia">*</strong><span style="color: silver">*IC***</span></samp></td><td>$\begin{align*} &amp; \left[ C, K, I \left( I \right) \right] \\ \to &amp; \left[ C, K, I \right] \end{align*}$</td></tr>
+				<tr><td><samp>CKII*<strong style="color: fuchsia">*</strong><span style="color: silver">IC***</span></samp></td><td>$\left[ C, K \left( I \right) \right]$</td></tr>
+				<tr><td><samp>CKII**<strong style="color: blue">I</strong><span style="color: silver">C***</span></samp></td><td>$\left[ C, K \left( I \right), I \right]$</td></tr>
+				<tr><td><samp>CKII**I<strong style="color: blue">C</strong><span style="color: silver">***</span></samp></td><td>$\left[ C, K \left( I \right), I, C \right]$</td></tr>
+				<tr><td><samp>CKII**IC<strong style="color: fuchsia">*</strong><span style="color: silver">**</span></samp></td><td>$\begin{align*} &amp; \left[ C, K \left( I \right), I \left( C \right) \right] \\ \to &amp; \left[ C, K \left( I \right), C \right] \end{align*}$</td></tr>
+				<tr><td><samp>CKII**IC*<strong style="color: fuchsia">*</strong><span style="color: silver">*</span></samp></td><td>$\begin{align*} &amp; \left[ C, K \left( I, C \right) \right] \\ \to &amp; \left[ C, I \right] \end{align*}$</td></tr>
+				<tr><td><samp>CKII**IC**<strong style="color: fuchsia">*</strong></samp></td><td>$\left[ C \left( I \right) \right]$</td></tr>
+			</tbody>
+		</table>
+		<p>于是最终的化简结果就是 $C I$。</p>
+		<p>观察上述化简过程，可以归纳出：</p>
+		<ol>
+			<li><p>当我们遇到一个项 ($B, C, K, I$)，就将对应的项插入到栈顶。</p></li>
+			<li><p>当我们遇到调用运算符 (<code>*</code>) 时，我们需要去除栈顶 $b$ 和次栈顶 $a$，然后将 $b$ 插入到 $a$ 的<strong>参数列表</strong>的末尾 (即 $a$ 的头部不变)。然后<em>等待 $\beta-$约化</em>：</p>
+			<p>$a$ 的参数个数到达它所需要的参数个数时 ($B, C, K, I$ 分别为 $3, 3, 2, 1$)，进行一次 $\beta$ 约化，将对应的表达式转化为化简后的表达式。当然，当原表达式的头部为 $B$ 或 $C$ 后需要重新入栈以进行进一步约化，具体过程可以见下面一个例子。</p></li>
+		</ol>
+		<p>下面介绍当遇到 $B$ 或 $C$ 时如何进行约化。以后缀表达式 <samp>BC*K*I*C*B*</samp>为例：</p>
+		<table class="table table-bordered table-text-center table-vertical-middle table-hover table-striped">
+			<thead>
+				<tr><th>已解析部分</th><th>当前栈</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><samp><strong style="color: blue">B</strong><span style="color: silver">C*K*I*C*B*</span></samp></td><td>$\left[ B \right]$</td></tr>
+				<tr><td><samp>B<strong style="color: blue">C</strong><span style="color: silver">*K*I*C*B*</span></samp></td><td>$\left[ B, C \right]$</td></tr>
+				<tr><td><samp>BC<strong style="color: fuchsia">*</strong><span style="color: silver">K*I*C*B*</span></samp></td><td>$\left[ B \left( C \right) \right]$</td></tr>
+				<tr><td><samp>BC*<strong style="color: blue">K</strong><span style="color: silver">*I*C*B*</span></samp></td><td>$\left[ B \left( C \right), K \right]$</td></tr>
+				<tr><td><samp>BC*K<strong style="color: fuchsia">*</strong><span style="color: silver">I*C*B*</span></samp></td><td>$\left[ B \left( C, K \right) \right]$</td></tr>
+				<tr><td><samp>BC*K*<strong style="color: blue">I</strong><span style="color: silver">*C*B*</span></samp></td><td>$\left[ B \left( C, K \right), I \right]$</td></tr>
+				<tr><td><samp>BC*K*I<strong style="color: fuchsia">*</strong><span style="color: silver">C*B*</span></samp></td><td>$\begin{align*} &amp; \left[ B \left( C, K, I \right) \right] \\ \to &amp; \left[ \color {red} {\left&lt; \texttt{CKI**} \right&gt;} \right] \end{align*}$</td></tr>
+				<tr><td><samp>BC*K*I*<strong style="color: blue">C</strong><span style="color: red">KI**</span><span style="color: silver">C*B*</span></samp></td><td>$\left[ C \right]$</td></tr>
+				<tr><td><samp>BC*K*I*C<strong style="color: blue">K</strong><span style="color: red">I**</span><span style="color: silver">C*B*</span></samp></td><td>$\left[ C, K \right]$</td></tr>
+				<tr><td><samp>BC*K*I*CK<strong style="color: blue">I</strong><span style="color: red">**</span><span style="color: silver">C*B*</span></samp></td><td>$\left[ C, K, I \right]$</td></tr>
+				<tr><td><samp>BC*K*I*CKI<strong style="color: fuchsia">*</strong><span style="color: red">*</span><span style="color: silver">C*B*</span></samp></td><td>$\left[ C, K \left( I \right) \right]$</td></tr>
+				<tr><td><samp>BC*K*I*CKI*<strong style="color: fuchsia">*</strong><span style="color: silver">C*B*</span></samp></td><td>$\left[ C \left( K \left( I \right) \right) \right]$</td></tr>
+				<tr><td><samp>BC*K*I*CKI**<strong style="color: blue">C</strong><span style="color: silver">*B*</span></samp></td><td>$\left[ C \left( K \left( I \right) \right), C \right]$</td></tr>
+				<tr><td><samp>BC*K*I*CKI**C<strong style="color: fuchsia">*</strong><span style="color: silver">B*</span></samp></td><td>$\left[ C \left( K \left( I \right), C \right) \right]$</td></tr>
+				<tr><td><samp>BC*K*I*CKI**C*<strong style="color: blue">B</strong><span style="color: silver">*</span></samp></td><td>$\left[ C \left( K \left( I \right), C \right), B \right]$</td></tr>
+				<tr><td><samp>BC*K*I*CKI**C*B<strong style="color: fuchsia">*</strong></samp></td><td>$\begin{align*} &amp; \left[ C \left( K \left( I \right), C, B \right) \right] \\ \to &amp; \left[ \color {red} {\left&lt; K \left( I \right) \texttt{B*C*} \right&gt;} \right] \end{align*}$</td></tr>
+				<tr><td><samp>BC*K*I*CKI**C*B*<strong style="color: green">&lt;K(I)&gt;</strong><span style="color: red">B*C*</span></samp></td><td>$\left[ K \left( I \right) \right]$</td></tr>
+				<tr><td><samp>BC*K*I*CKI**C*B*&lt;K(I)&gt;<strong style="color: blue">B</strong><span style="color: red">*C*</span></samp></td><td>$\left[ K \left( I \right), B \right]$</td></tr>
+				<tr><td><samp>BC*K*I*CKI**C*B*&lt;K(I)&gt;B<strong style="color: fuchsia">*</strong><span style="color: red">C*</span></samp></td><td>$\begin{align*} &amp; \left[ K \left( I, B \right) \right] \\ \to &amp; \left[ I \right] \end{align*}$</td></tr>
+				<tr><td><samp>BC*K*I*CKI**C*B*&lt;K(I)&gt;B*<strong style="color: blue">C</strong><span style="color: red">*</span></samp></td><td>$\left[ I, C \right]$</td></tr>
+				<tr><td><samp>BC*K*I*CKI**C*B*&lt;K(I)&gt;B*C<strong style="color: fuchsia">*</strong></samp></td><td>$\begin{align*} &amp; \left[ I \left( C \right) \right] \\ \to &amp; \left[ C \right] \end{align*}$</td></tr>
+			</tbody>
+		</table>
+		<p>不难发现整个<strong>模拟</strong>的过程是线性的。现在考虑如何计算 $\beta-$约化次数的最小值。</p>
+		<p>对于一个表达式 $expr = F \left( x_1, x_2, \cdots \right)$，我们用 $g_{expr}$ 表示产生 $expr$ 的<strong>头部</strong> $F$ 所需的 $\beta-$约化次数的最小值，$G_{expr}$ 表示产生整个 $expr$ 所需的 $\beta-$约化次数的最小值。则 $g$ 和 $G$ 的关系是 $$ G_{expr} = g_{expr} + \sum_i G_{x_i} $$</p>
+		<p>这引导我们只需求出 $g_{expr}$。考虑进行一次合并后 $g_{expr}$ 的变化。</p>
+		<ol>
+			<li><p>对于 $I \left( x \right) \to x$，则得到的 $x$ 的头部的约化次数，就等于 (头部) $I$ 的约化次数 + 原先 $x$ 的头部的约化次数再加一，即 $\color {fuchsia} {g_x \gets g_I + g_x + 1}$ <span style="color: red">(ps: 注意这里 $I$ 指的是<em>此时的</em> $I$，不是任意一个 $I$)</span>。</p></li>
+			<li><p>对于 $K \left( x, y \right) \to x$，注意到 $y$ 是没有用的，因此 $\color {fuchsia} {g_x \gets g_K + g_x + 1}$。</p></li>
+			<li><p>对于 $B \left( x, y, z \right)$，它会重新往栈中添加元素。因此有 $\color {fuchsia} {g_x \gets g_B + g_x + 1}$，剩下的部分 (如 $g_y, g_z$ 在合并时会自然产生)。</p></li>
+			<li><p>对于 $C \left( x, y, z \right)$，和 $B$ 完全同理，$\color {fuchsia} {g_x \gets g_C + g_x + 1}$。</p></li>
+		</ol>
+		<p>因此，我们只需在解析的过程中顺便记录每个表达式头部的 $g$，这样最终就可以 $O \left( \left| s \right| \right)$ 得到答案了。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+const int N = 30054;
+const int lim[4] = {1, 2, 3, 3};
+
+namespace suffix {
+	struct node {int type, prog[3], deg, cost;} x[N];
+
+	int top, stack[20 * N];
+	int op_top = 0, op_stack[20 * N];
+
+	inline void push(int x) {op_stack[op_top++] = x;}
+	inline int pop() {return op_stack[--op_top];}
+
+	inline int full_cost(const node &amp;c) {
+		int i, ret = c.cost;
+		for (i = 0; i &lt; c.deg; ++i) ret += full_cost(x[c.prog[i]]);
+		return ret;
+	}
+
+	int main(char *expr) {
+		int l, r, v, n = 0, op; char *p;
+		for (p = expr; *p; ++p)
+			switch (*p) {
+				case 42: push(0); break;
+				case 66: op_stack[op_top++] = -3; break;
+				case 67: op_stack[op_top++] = -4; break;
+				case 73: op_stack[op_top++] = -1; break;
+				case 75: op_stack[op_top++] = -2; break;
+			}
+		std::reverse(op_stack, op_stack + op_top);
+		for (; op_top; ) {
+			op = pop();
+			if (op &lt; 0) x[++n].type = ~op, x[n].deg = x[n].cost = 0, stack[top++] = n;
+			else if (op &gt; 0) stack[top++] = op;
+			else {
+				assert(top &gt; 1), r = stack[--top], l = stack[--top];
+				node &amp;c = x[l]; c.prog[c.deg++] = r, v = l;
+				switch (c.type) {
+					case 0: if (c.deg &gt; 0) v = *c.prog, x[v].cost += c.cost + 1; break;
+					case 1: if (c.deg &gt; 1) v = *c.prog, x[v].cost += c.cost + 1; break;
+					case 2: if (c.deg &gt; 2) v = *c.prog, x[v].cost += c.cost + 1, push(0), push(0), push(c.prog[2]), push(c.prog[1]); break;
+					case 3: if (c.deg &gt; 2) v = *c.prog, x[v].cost += c.cost + 1, push(0), push(c.prog[1]), push(0), push(c.prog[2]); break;
+				}
+				stack[top++] = v;
+			}
+		}
+		return assert(top == 1), full_cost(x[*stack]);
+	}
+}
+
+char s[N], suf[2 * N], *u = suf;
+
+namespace parser {
+	int STATE = 0, top = 0, stack[N];
+
+	inline void push_lb() {
+		if (STATE == 1) stack[top++] = 1;
+		stack[top++] = STATE = 0;
+	}
+
+	inline void push_rb() {
+		assert(STATE &amp;&amp; top &amp;&amp; !stack[top - 1]);
+		--top;
+		if (stack[top - 1] == 1) *u++ = 42, --top;
+		STATE = 1;
+	}
+
+	inline void push_expr(char ch) {
+		*u++ = ch;
+		if (STATE == 1) *u++ = 42;
+		else STATE = 1;
+	}
+}
+
+int main() {
+	char *p = s;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; s;
+	for (p = s; *p; ++p)
+		switch (*p) {
+			case 40: parser::push_lb(); break;
+			case 41: parser::push_rb(); break;
+			default: parser::push_expr(*p); break;
+		}
+	cout &lt;&lt; suffix::main(suf) &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>后缀表达式可能会有原来表达式的两倍长，实现时需要注意。</p>
+		<p><strong>坑2：</strong>对于 $B, C$ 重新入栈的事情，可以将原后缀表达式翻转后压入栈，然后当头部为 $B, C$ 时直接将对应元素压入表达式栈中即可。</p>
+	</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg6928][CodeforcesGym101242M][WF2016]What Really Happened on Mars?</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>你需要模拟一个 "优先级上限协议"，具体如下：</p>
+		<p>有 $n$ 个任务和 $m$ 个资源，每个资源在同一时间只能被一个任务使用。因此，一个任务在使用一个资源前要把它锁定，在使用后要把它解锁。</p>
+		<p>每个任务 $i$ 有它的开始时间 $s_i$，基准优先级 $b_i$ 和指令序列 $e_{i, 1}, e_{i, 2}, \cdots, e_{i, a}$，还拥有动态变化的当前优先级 $c_i$。</p>
+		<p style="color: red">(ps: 指令一共有三种，<samp>compute</samp> (进行耗时 $1$ 单位时间的计算)，<samp>lock $k$</samp> (锁定资源 $k$，瞬间) 和 <samp>unnlock $k$</samp> (解锁资源 $k$，瞬间))</p>
+		<p>每个资源 $j$ 有一个固定的优先级上限 $L_j$，它的值定义为，所有「指令序列中有锁定资源 $j$ 的指令」的任务中，基准优先级 $b_i$ 的最大值。</p>
+		<p>处理器在处理时，初始有一个时钟值 $t$，初始时 $t = 0$。然后会遵循如下规则循环进行：</p>
+		<ol>
+			<li><p>取出所有<strong>正在进行的任务</strong> $S$。一个任务 $i$ 正在进行，当且仅当 $t \geq s_i$，且此时它的指令序列非空。</p></li>
+			<li><p>你需要对 $S$ 中的每个任务 $i$，决定一个当前优先级 $c_i$。具体地址，当前优先级需要满足如下条件：</p>
+			<ul>
+				<li>对于任务 $i$，设它当前的第一个指令序列不是 <samp>lock</samp>，则令 $B \left( i \right) = \varnothing$，否则设该锁定命令要锁定 $k$ 号资源，则定义 $$ B \left( i \right) = \left\{ j \in S \mid \text{$j$ 占用了 $k$ 号资源} \vee \left( \exists l \in \left[ 1, m \right], \text{$j$ 占用了 $l$ 号资源} \wedge j \neq i \wedge L_l \geq c_i \right) \right\} \tag 1 \label 1 $$</li>
+				<li>则你需要满足 $$ c_i = \max \left\{ b_i, \max_{\color {red} {i \in B \left( j \right)}} c_j \right\} \tag 2 \label 2 $$ <span class="text-muted">(可以证明，这样的 $c_i$ 数组是唯一的)</span></li>
+			</ul></li>
+			<li><p>设 $i$ 是 $S$ 中满足 $B \left( i \right) = \varnothing$ 的命令中 $c_i$ 最高者。如果这样的 $i$ 不存在，则令 $t \gets t + 1$，回到第 1 步。</p>
+			<p>否则，考虑 $i$ 当前的第一个指令，若该指令为 <samp>compute</samp>，则令 $t \gets t + 1$，删去 $i$ 指令序列中的第一个指令并回到第 1 步。</p>
+			<p>否则，执行对应的锁定或解锁命令，$t$ 不变，删去 $i$ 指令序列中的第一个指令并回到第 1 步。</p>
+			<p class="text-muted">(同样可以证明，满足 $c_i$ 最高的 $i$ 是唯一的)</p></li>
+		</ol>
+		<p>现在给定一组任务和资源，你需要求出每个任务完成的时间 (即最后一个指令执行完毕后 $t$ 的值)。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, m$ ($1 \leq n, m \leq 20$)，表示任务和资源的个数。</p>
+		<p>接下来 $n$ 行，每行描述一个任务。该行的前三个整数 $s, b, a$ ($1 \leq s \leq 10000; 1 \leq b \leq n; 1 \leq a \leq 100$) 分别表示指令的开始时间，基准优先级和用来描述命令序列的长度。</p>
+		<p>(该行) 接下来 $a$ 个字符串描述命令序列，每个字符串形如 <code>&lt;op&gt;&lt;arg&gt;</code>。如果 <code>op</code> = <code>C</code>，则表示 $\left&lt; arg \right&gt;$ 个连续的 <code>compute</code> 指令；否则，表示一个 <code>lock</code> $\left&lt; arg \right&gt;$ 或 <code>unlock</code> $\left&lt; arg \right&gt;$ 指令。</p>
+		<p>保证 $b_1, b_2, \cdots, b_n$ 是 $1, 2, \cdots, n$ 的一个排列。</p>
+
+		<h3>输出格式</h3>
+		<p>按照输入的顺序，对于每个任务，输出一行一个整数，表示完成执行的时间。</p>
+
+		<h3>题解</h3>
+		<p>考虑直接模拟，唯一的难点在于如何确定 $\left\{ c_i \right\}$ 数组。</p>
+		<p>不妨设 $S = \left\{ 1, 2, \cdots, s \right\}$，不妨设 $b_1 = \max \left\{ b_1, b_2, \cdots, b_s \right\}$。注意到所有的 $c_i$ 一定是某个任务的 $b$，从而有 $\color {blue} {c_i \leq b_1}$。</p>
+		<p>又由 $\eqref 2$，$c_s = \max \left\{ b_1, \max\limits_{1 \in B \left( j \right)} c_j \right\} \geq b_1$，于是一定有 $\color {fuchsia} {c_1 = b_1}$。</p>
+		<p>然后，由于我们已经<strong>确定了</strong> $c_1$，从而可以通过 $\eqref 1$ 式正确地求出集合 $B \left( 1 \right)$。</p>
+		<p>回到 $\eqref 2$ 式，考虑一切 $i \in B \left( 1 \right)$ 的元素，我们就有 $c_i \geq \max \left\{ b_i, c_1 \right\}$。</p>
+		<p>我们记 $c_i^{\left( 1 \right)} = \max \left\{ b_i, \left[ i \in B \left( 1 \right) \right] c_1 \right\}$，不妨设 $c_2^{\left( 1 \right)} = \max \left\{ c_2^{\left( 1 \right)}, c_3^{\left( 1 \right)}, \cdots, c_s^{\left( 1 \right)} \right\}$，则对于 $2 \leq i \leq s$，有 $\color {blue} {c_i^{\left( 1 \right)} \leq c_i}$。</p>
+		<p>对于 $2 \leq i \leq s$，有 $b_i \leq c_i^{\left( 1 \right)} \leq c_2^{\left( 1 \right)}$，且归纳易证 $c_2^{\left( 1 \right)}$ 是所有 $c_2, c_3, \cdots, c_s$ 的一个上界。于是有 $\color {fuchsia} {c_2 = c_2^{\left( 1 \right)}}$。</p>
+		<p>这样，我们就<strong>确定了</strong> $c_2$，从而通过完全一致的方法得到集合 $B \left( 2 \right)$。</p>
+		<p>然后记 $c_i^{\left( 2 \right)} = \max \left\{ b_i, \left[ i \in B \left( 1 \right) \right] c_1, \left[ i \in B \left( 2 \right) \right] c_2 \right\}$，以此类推，用类似 Dijkstra 的思想，可以依次确定 $c_3, c_4, \cdots$，从而可以确定所有的 $c_i$。</p>
+		<p>确定<strong>当前优先级</strong>的时间复杂度为 $O \left( n^2 m \right)$，总时间复杂度 $O \left( n^2 m \sum a \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+using std::vector;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 27;
+
+enum progress {pending, running, finished};
+
+int n, m, t;
+int beg[N], end[N];
+int pri[N], c[N], lim[N], occupied[N];
+bool used[N], blocked[N];
+progress prog[N];
+vector &lt;pr&gt; seq[N];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+
+inline bool blocked_by(int i, int t) {
+	return prog[i] == running &amp;&amp; seq[i].back().first == 1 &amp;&amp; ~occupied[t]
+		&amp;&amp; occupied[t] != i &amp;&amp; (seq[i].back().second == t || lim[t] &gt;= c[i]);
+}
+
+void arouse_tasks() {
+	for (int i = 0; i &lt; n; ++i)
+		if (prog[i] == pending &amp;&amp; beg[i] &lt;= t) prog[i] = running;
+}
+
+void get_priority_levels() {
+	int i, j, k;
+	memcpy(c, pri, n &lt;&lt; 2), memset(used, false, n), memset(blocked, false, n);
+	for (; ; ) {
+		for (k = n, i = 0; i &lt; n; ++i)
+			if (prog[i] == running &amp;&amp; !used[i] &amp;&amp; c[i] &gt; c[k]) k = i;
+		if (k == n) return;
+		used[k] = true;
+		for (j = 1; j &lt;= m; ++j) if (blocked_by(k, j)) up(c[occupied[j]], c[k]), blocked[k] = true;
+	}
+}
+
+int prior_task() {
+	int i, k = n;
+	for (i = 0; i &lt; n; ++i) if (prog[i] == running &amp;&amp; !blocked[i] &amp;&amp; c[i] &gt; c[k]) k = i;
+	return k;
+}
+
+int main() {
+	int i, v, $; char op;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; m;
+	for (i = 0; i &lt; n; ++i) {
+		cin &gt;&gt; beg[i] &gt;&gt; pri[i] &gt;&gt; $;
+		for (seq[i].reserve($); $; --$)
+			if (cin &gt;&gt; op &gt;&gt; v, seq[i].EB(((int)op + 1) &amp; 3, v), op == 76)
+				up(lim[v], pri[i]);
+		std::reverse(seq[i].begin(), seq[i].end()), prog[i] = pending;
+	}
+	memset(occupied, -1, (m + 1) &lt;&lt; 2);
+	for (t = 0; ; ) {
+		if (std::count(prog, prog + n, finished) == n) break;
+		arouse_tasks(), get_priority_levels();
+		if ((i = prior_task()) == n) ++t;
+		else {
+			switch ($ = -1, seq[i].back().first) {
+				case 0: if (++t, !--seq[i].back().second) seq[i].pop_back(); break;
+				case 1: $ = i;
+				case 2: v = seq[i].back().second, occupied[v] = $, seq[i].pop_back(); break;
+			}
+			if (seq[i].empty()) end[i] = t, prog[i] = finished;
+		}
+	}
+	for (i = 0; i &lt; n; ++i) cout &lt;&lt; end[i] &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>一个任务有三种状态：未开始 (<code>pending</code>)，进行中 (<code>running</code>) 和已结束 (<code>finished</code>)，实现时可以用 <code>enum</code> 来区分。</p>
+		<p><strong>坑2：</strong>判断是否有 $j \in B \left( i \right)$ 时要严格遵循定义，比如中间的 $j \neq i$ (否则会有 $i \in B \left( i \right)$ 导致 $c_i$ 循环定义，解不唯一)。</p>
+	</body>
+</html>

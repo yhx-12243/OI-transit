@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4794][lg3685][CodeforcesGym101173I][CERC2016]Invisible Integers</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一个由数字 $1 \sim 9$ 构成的序列 $a$，称由下述规则生成的，元素互不相同的序列为 $a$ 的<strong>提示</strong>：</p>
+		<ol>
+			<li><p>任意选定一个位置 $p$ 作为起始位置。</p></li>
+			<li><p>选定一个方向 $d$ (左或右)。</p></li>
+			<li><p>从 $p$ 开始，沿着 $d$ 方向遍历序列，如果当前数之前没有出现过，则将其加入序列，否则跳过它。</p></li>
+		</ol>
+		<p>如，序列 $\left[ 2, 1, 4, 3 \right]$ 是序列 $\left[ 1, \color {red} 2, \color {red} 1, \color {red} 4, 1, \color {red} 3, 4 \right]$ 的<strong>提示</strong> <span style="color: fuchsia">(起始位置为 $2$，方向为<em>右</em>)</span>。</p>
+		<p>现在给定 $n$ 个序列 $b_1, b_2, \cdots, b_n$，你需要找到一个最短的长度 $L$，使得存在长度为 $L$ 的序列 $a$，使得 $b_1, b_2, \cdots, b_n$ 均为 $a$ 的<strong>提示</strong>。或者说明这样的序列 $a$ 不存在。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $n$ ($n \leq 10$)，表示提示的数量。</p>
+		<p>接下来 $n$ 行，每行描述一个提示，设该提示为 $x_1, x_2, \cdots, x_t$ ($1 \leq x_i \leq 9$，$x_i$ 互不相同)，则该行包含 $t + 1$ 个整数，其中前 $t$ 个为 $x_1, x_2, \cdots, x_t$，最后一个整数为 $0$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出一行一个整数，表示满足条件的序列的长度的最小可能值。如果满足条件的序列不存在，则输出 $-1$。</p>
+
+		<h3>题解</h3>
+		<p>先考虑一个简单的版本 —— 不妨规定所有的提示都是强制<strong>向右</strong>，则该怎么处理。</p>
+		<p>此时，注意到当我们选定一个起始位置 $p$ 后，这个提示就被唯一确定下来了。</p>
+		<p>考虑两个提示 $b_1, b_2$，设它们的起始位置分别为 $p_1, p_2$ ($p_1 &lt; p_2$)，则容易发现，<strong style="color: blue">$b_2$ 中出现的数一定会在 $b_1$ 中出现</strong>。</p>
+		<p>如果上述<span style="color: blue">蓝色</span>条件满足，则设 $b_1$ 在 $\left[ p_1, p_2 \right)$ 段中包含 $c$ ($c \geq 1$) 个数，则 $b_1 \left[ c + 1 .. \left| b_1 \right| \right]$ 就应当是 $b_2$ 的子序列。显然，满足此条件的 $c$ 是一段后缀，我们称满足该条件的最小 $c$ 为 $b_1 \to b_2$ 的<strong>转移宽</strong> <span style="color: red">(如，$\left[ 1, 2, \color {orange} {3, 4, 5} \right] \to \left[ \color {blue} 3, 2, \color {blue} 4, 1, \color {blue} 5 \right]$ 的<strong>转移宽</strong>为 $2$)</span>。</p>
+		<p>当然，如果不满足<span style="color: blue">蓝色</span>条件，则<strong>转移宽</strong>未定义。</p>
+		<p>那么，<strong>转移宽</strong>的实际意义就是，当我们考虑完 $b_1$ 的前 $c$ 个元素后，我们就可以选择任意时刻将其转移到 $b_2$，后面只需考虑 $b_2$ 的满足情况而无需考虑 $b_1$，因为按照转移宽的定义可知，此时如果 $b_2$ 满足 $b_1$ 就一定能满足。</p>
+		<p>于是，现在设 $n$ 个提示的出现位置分别为 $p_1, p_2, \cdots, p_n$ ($p_1 &lt; p_2 &lt; \cdots &lt; p_n$)，则我们可以在 $p_i$ 时将 $b_{i-1}$ 转移到 $b_i$，因此在每个时刻至多只有一个提示是<strong>正在被使用的</strong> <span style="color: red">(其余提示要么还没到其实位置，要么就已经被转移不需要考虑了)</span>。</p>
+		<p>这样就可以引出一个很自然的 DP 了 —— 记 $f_{i, r, S}$ 表示已经当前考虑第 $i$ 个提示的前 $r$ 个元素，已经被转移的提示集合 $\cup \left\{ i \right\} = S$ 的情况下，已经添加的字符数量的最小值。</p>
+		<p>边界为 $f_{/, /, \varnothing} = 0$，答案即为 $f_{i, \left| b_i \right|, U}$ ($U = \left\{ 1, 2, \cdots, n \right\}$)。</p>
+		<p>对于转移，只需枚举序列中的下一个数 $d$，如果 $d = b_i \left[ r + 1 \right]$，则转移到 $f_{i, r + 1, S}$，如果 $d \in b_i \left[ 1 .. r \right]$，则转移到自身 $f_{i, r, S}$ <span style="color: red">(该转移的作用等加入向左的提示后说明)</span>，其余情况<strong>不能转移</strong> (不合法)。</p>
+		<p>同时，对于状态 $f_{i, r, S}$，可以选择一个<strong>可转移的</strong> $b_j$，设 $b_i \to b_j$ 的转移宽为 $w$，则当 $r \geq w$ 时可以直接等值转移到 $f_{j, 0, S \cup \left\{ j \right\}}$。</p>
+		<p>时间复杂度为 $O \left( 2^n n \left| \Sigma \right|^2 \right)$ (字符集大小 $\left| \Sigma \right| = 9$)。</p>
+		<hr />
+		<p>接下来考虑加入向左的提示。</p>
+		<p>事实上区别不大，因为对于所有向左的提示，它们也是有某种顺序的，于是同一个位置至多只有一个提示正在被使用。</p>
+		<p>但是 DP 转移的方向是固定的，因此我们只能固定一个转移方向 (如从左到右)，那么向左的提示需要重新设计一下状态 (因为它们相当于是倒着转移过来的)。</p>
+		<p>具体地址，我们用 $f_{i, l, j, r, S}$ 表示当前考虑的向左提示为第 $i$ 个提示，且将要考虑第 $l$ 个元素 (由于向左的提示实际上是 "倒过来的"，因此转移时 $l$ 是递减的)，当前考虑的向右提示为第 $j$ 个提示，且将要考虑第 $r$ 个元素，已经被转移的提示集合 $\cup \left\{ i, j \right\} = S$ 的情况下，已经添加的字符数量的最小值。</p>
+		<p>转移仍然是类似的，此时只需要 $l$ 能减<strong>或</strong> $r$ 能加即可转移。</p>
+		<p>同理，向左的提示之间转移时，设 $b_i \xrightarrow w b_j$，则我们应当在 $b_j$ 转移完毕后转移到<strong>所有的</strong> $\left( i, x \right)$，其中 $x \geq w$。</p>
+		<p>总时间复杂度 $O \left( 2^n n^2 \left| \Sigma \right|^3 \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+
+typedef std::vector &lt;int&gt; vector;
+const int N = 11, N2 = 1025, INF = 0x3f3f3f3f;
+
+int n, ALL;
+int S[N];
+int pos[N][N];
+int lt[N][N], rt[N][N];
+int f[N][N][N][N][N2];
+vector hint[N];
+
+inline void down(int &amp;x, const int y) {x &gt; y ? x = y : 0;}
+
+inline int get_trans(int a, int b) {
+	int i, u, v;
+	if (S[b] &amp; ~S[a]) return -1;
+	u = hint[a].back();
+	if (!~pos[b][u]) return hint[a].size();
+	for (i = (int)hint[a].size() - 1; i &gt; 0; --i) {
+		v = u, u = hint[a][i - 1];
+		if (!~pos[b][u] || pos[b][u] &gt; pos[b][v]) break;
+	}
+	return i;
+}
+
+int main() {
+	int i, j = 0, l, r, x, y, d, nl, nr, S, cur, ans = INF;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	memset(pos, -1, sizeof pos), memset(lt, -1, sizeof lt), memset(rt, -1, sizeof rt);
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; n; ++i)
+		for (j = 0; cin &gt;&gt; x &amp;&amp; x--; hint[i].EB(x)) ::S[i] |= 1 &lt;&lt; x, pos[i][x] = j++;
+	for (i = 0; i &lt; n; ++i)
+		for (j = 0; j &lt; n; ++j)
+			if (i != j) rt[i][j] = get_trans(i, j), lt[i][j] = get_trans(j, i);
+	memset(f, 63, sizeof f), ALL = ~(-1 &lt;&lt; n), f[n][0][n][0][0] = 0;
+	for (i = 0; i &lt; n; ++i) f[i][hint[i].size()][n][0][1 &lt;&lt; i] = 0;
+	for (S = 0; S &lt;= ALL; ++S)
+		for (i = 0; i &lt;= n; ++i) for (l = (int)hint[i].size(); l &gt;= 0; --l)
+			for (j = 0; j &lt;= n; ++j) for (r = 0; r &lt;= (int)hint[j].size(); ++r)
+				if ((cur = f[i][l][j][r][S]) &lt; INF) {
+					if (S == ALL &amp;&amp; i == n &amp;&amp; r == (int)hint[j].size()) down(ans, cur);
+					for (x = 0; x &lt; n; ++x) if (!(S &gt;&gt; x &amp; 1)) {
+						if (j == n || (~rt[j][x] &amp;&amp; r &gt;= rt[j][x])) down(f[i][l][x][0][S | 1 &lt;&lt; x], cur);
+						if (i != n &amp;&amp; ~lt[i][x] &amp;&amp; !l) for (y = lt[i][x]; y &lt;= (int)hint[x].size(); ++y) down(f[x][y][j][r][S | 1 &lt;&lt; x], cur);
+					}
+					if (i != n &amp;&amp; !l) down(f[n][0][j][r][S], cur);
+					for (d = 0; d &lt; 9; ++d) {
+						if (j == n) nr = r;
+						else {
+							if (!~pos[j][d] || pos[j][d] &gt; r) continue;
+							nr = r + (r == pos[j][d]);
+						}
+						if (i == n) nl = l;
+						else {
+							if (!l || !~pos[i][d] || pos[i][d] &gt;= l) continue;
+							nl = l - (l - 1 == pos[i][d]);
+						}
+						down(f[i][l][j][nr][S], cur + 1),
+						down(f[i][nl][j][nr][S], cur + 1);
+					}
+				}
+	cout &lt;&lt; (ans &gt;= INF ? -1 : ans) &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p style="color: red"><strong>坑1：</strong>注意向左的提示和向右的提示转移中的区别：对于向左的提示，如果 $l$ 可以减 (即转移到前一个元素)，则我们<strong>不一定</strong>要减，因为这可能并不一定是第一次出现的位置，而向右的提示先遇到的肯定是第一次出现的位置。</p>
+		<p><strong>坑2：</strong>在转移时注意写法，尤其是对向左或向右没有提示时的讨论 (代码中使用了 <code>n</code> 来站位)。</p>
+	</body>
+</html>

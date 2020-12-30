@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4051][lg7013][CodeforcesGym100299G][CERC2013]History Course</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有 $n$ 个区间 $I_i = \left[ a_i, b_i \right]$，你需要将它们按照某种顺序排序，满足对于 $1 \leq i, j \leq n$，若 $b_i &lt; a_j$，则应有 $i &lt; j$。定义 (关于区间顺序的) 函数 $$ K = \max_{I_i \cap I_j \neq \varnothing} \left| i - j \right| $$</p>
+		<p>求 $K$ 的最小值，并给出一组构造。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个非负整数 $T$，表示数据组数。</p>
+		<p>对于每组数据，第一行包含一个正整数 $n$ ($n \leq 50000; \sum n \leq 10^5$)，表示区间的个数。</p>
+		<p>接下来 $n$ 行，每行两个正整数 $a_i, b_i$ ($-10^9 \leq a_i &lt; b_i \leq 10^9$)，表示区间 $I_i$ 的两个端点。保证 $a_1, b_1, a_2, b_2, \cdots, a_n, b_n$ 两两不同。</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组数据，第一行输出一个整数 $K_\min$，表示 $K$ 的最小可能值。</p>
+		<p>接下来 $n$ 行，每行两个整数 $a'_i, b'_i$，表示排序后第 $i$ 个区间的左端点和右端点。</p>
+
+		<h3>题解</h3>
+		<p>对于最小化最大值，先考虑二分。因此问题转化为是否存在一种排列满足 (在题目条件下) 对于 $I_i \cap I_j \neq \varnothing$ 均有 $\left| i - j \right| \leq d$。</p>
+		<p>考虑将区间按照左端点升序排序，如果我们已经确定了前 $k$ 个区间，那么根据条件，对于剩下的每个区间，设前 $k$ 个区间中与其相交的区间最早的是第 $i$ 个，则它的位置就不应超过 $i + d$。</p>
+		<p>于是，我们可以得到剩下每个区间的位置上限 (即最右边可以放哪里)，则我们可以通过以下方法预先判断这个方案是否合法。</p>
+		<p>重标号剩下的区间，设为 $1 \sim n$。设得到的第 $i$ 个区间的位置上限为 $sup_i$。则，<strong style="color: green">如果只考虑这些条件，该方案合法当且仅当 $sup_i \leq t$ 的区间数不超过 $t$ 个</strong> (必要性显然，充分性只需要将这些区间按照 $sup_i$ 排序后放置即可)，等价地，<strong style="color: blue">$sup_i \geq i$ (对 $i = 1, 2, \cdots, n$)</strong>。</p>
+		<p>接下来考虑该条件满足的情况。由于这些区间是按照左端点升序排序的，于是不难发现 $sup_i$ 关于 $i$ 一定是单调递增的。考虑下一个位置可以放置哪些区间，使得合法性依然保持。</p>
+		<p>考虑最小的 $t$，满足 $sup_i \leq t$ 的区间恰有 $t$ 个 (即 $sup_t = t$)，此时，这 $t$ 个区间一定要放在前 $t$ 个位置，从而下一个位置只能放置这 $t$ 个区间之一。</p>
+		<p>其次，对于这 $t$ 个区间，下一个位置放置哪个区间，都不会影响合法性，因为对于 $\forall t' &lt; t$，$sup_i \leq t'$ 的区间数都严格大于 $t'$。</p>
+		<p>因此我们在这 $t$ 个区间中任选一个，但具体该选哪个呢？</p>
+		<p>根据直觉，我们希望选择<strong>右端点最小</strong>的区间，减少它对后续区间 $sup$ 的限制。事实上，这个贪心是正确的，说明如下：</p>
+		<blockquote>
+			<p>设那个右端点最小的区间为 $I_g$。则只需说明，如果原问题有解，则存在一组解，接下来的那个区间 (设位置为 $p$) 就是 $I_g$。</p>
+			<p>设在最优解中，区间 $I_g$ 不在这个位置，设它的位置为 $q$，则位置在 $p \sim q$ 中的所有区间都和 $I_g$ 相交。此时一定存在 $i \in \left[ p, q \right)$，且 $sup_i \geq q$，从而可以交换 $I_g$ 和位置为 $i$ 的区间而不影响合法性，于是可以不断交换直到 $I_g$ 回到位置 $p$。</p>
+		</blockquote>
+		<p>因此现在我们得到了一个明确的策略，我们只需要实现这个过程即可。</p>
+		<p>具体地，我们可以用线段树维护在剩下的区间中，对于每个 $t$ 有多少个 $sup_i = t$ 的区间 $A_t$，然后就可以在线段树上二分得到第一个 $\sum A_t \leq t$ 的位置，从而寻找区间 $I_g$ 也可以转化为一次线段树上的最值查找。</p>
+		<p>套上最外层的二分，时间复杂度为 $O \left( n \log^2 n \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+using std::cin;
+using std::cout;
+
+typedef std::tuple &lt;int, int, int&gt; tuple;
+const int N = 50054;
+
+struct interval {
+	int l, r;
+	friend std::istream &amp; operator &gt;&gt; (std::istream &amp;in, interval &amp;B) {return in &gt;&gt; B.l &gt;&gt; B.r;}
+	friend std::ostream &amp; operator &lt;&lt; (std::ostream &amp;out, const interval &amp;B) {return out &lt;&lt; B.l &lt;&lt; ' ' &lt;&lt; B.r;}
+	inline bool operator &lt; (const interval &amp;B) const {return l &lt; B.l || (l == B.l &amp;&amp; r &lt; B.r);}
+} a[N];
+
+int n;
+int ans[N], sup[N], rl[N];
+bool used[N];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+inline int Cmin(const int x, const int y) {return a[x].r &lt; a[y].r ? x : y;}
+
+namespace ST {
+	#define segc int M = (L + R - 1) &gt;&gt; 1, lc = id &lt;&lt; 1, rc = lc | 1
+
+	struct node {
+		int v, premin, B;
+	} x[131100];
+
+	inline void update(node &amp;ret, const node &amp;l, const node &amp;r) {ret.v = l.v + r.v, ret.premin = min(l.premin, l.v + r.premin);}
+
+	void build(int id, int L, int R) {
+		if (L == R) {x[id].premin = x[id].v = 1, x[id].B = L; return;}
+		segc; build(lc, L, M), build(rc, M + 1, R);
+		update(x[id], x[lc], x[rc]), x[id].B = Cmin(x[lc].B, x[rc].B);
+	}
+
+	void add(int id, int L, int R, int h, int v) {
+		if (L == R) {x[id].premin = x[id].v += v; return;}
+		segc; h &lt;= M ? add(lc, L, M, h, v) : add(rc, M + 1, R, h, v);
+		update(x[id], x[lc], x[rc]);
+	}
+
+	void clear(int id, int L, int R, int h) {
+		if (L == R) {x[id].B = N - 1; return;}
+		segc; h &lt;= M ? clear(lc, L, M, h) : clear(rc, M + 1, R, h);
+		x[id].B = Cmin(x[lc].B, x[rc].B);
+	}
+
+	int prefix(int id, int L, int R, int h) {
+		if (h &gt;= R) return x[id].B;
+		segc, s = prefix(lc, L, M, h);
+		if (h &gt; M) s = Cmin(s, prefix(rc, M + 1, R, h));
+		return s;
+	}
+
+	tuple locate_results[20];
+	int locate_len;
+
+	void __builtin_locate(int id, int L, int R, int h) {
+		if (h &lt;= L) {locate_results[locate_len++] = tuple(id, L, R); return;}
+		segc;
+		if (h &lt;= M) __builtin_locate(lc, L, M, h);
+		__builtin_locate(rc, M + 1, R, h);
+	}
+
+	void locate(int id, int L, int R, int h) {locate_len = 0, __builtin_locate(id, L, R, h);}
+
+	int bisect() {
+		int i, id = 0, L = 0, R = n - 1, base = 0;
+		for (i = 0; i &lt; locate_len; ++i) {
+			std::tie(id, L, R) = locate_results[i];
+			if (x[id].premin &lt; base) return -1;
+			if (x[id].premin == base) break;
+			base -= x[id].v;
+		}
+		if (i == locate_len) return n - 1;
+		for (; L &lt; R; ) {
+			segc; assert(x[lc].premin &gt;= base);
+			if (x[lc].premin &gt; base)
+				base -= x[lc].v, L = M + 1, id = rc;
+			else
+				R = M, id = lc;
+		}
+		return R;
+	}
+}
+
+inline bool check(int lim) {
+	int i, j = 0, right, pos;
+	memset(sup, 63, (n + 1) &lt;&lt; 2), memset(used, false, n), memset(rl, 0, n &lt;&lt; 2), rl[n - 1] = n - 1;
+	ST::build(1, 0, n - 1);
+	for (i = 0; i &lt; n; ++i) {
+		ST::locate(1, 0, n - 1, i), right = ST::bisect();
+		if (!~right) return false;
+		ans[i] = pos = ST::prefix(1, 0, n - 1, rl[right]),
+		assert(pos != N - 1), used[pos] = true,
+		ST::add(1, 0, n - 1, i, -1);
+		if (sup[pos] &lt; n - 1) ST::add(1, 0, n - 1, sup[pos], 1);
+		ST::clear(1, 0, n - 1, pos);
+		if (i + lim &lt; n - 1) {
+			for (; j &lt; n &amp;&amp; a[j].l &lt;= a[pos].r; ++j)
+				if (!used[j]) {
+					if (!lim) return false;
+					used[j] = true, sup[j] = i + lim,
+					ST::add(1, 0, n - 1, i + lim, -1);
+				}
+			rl[i + lim] = j - 1;
+		}
+	}
+	return true;
+}
+
+void work() {
+	int i, L, R, M;
+	cin &gt;&gt; n;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; a[i];
+	std::sort(a, a + n);
+	for (L = 0, R = n - 1; L &lt; R; check(M = (L + R) / 2) ? R = M : L = M + 1);
+	assert(check(L)), cout &lt;&lt; L &lt;&lt; '\n';
+	for (i = 0; i &lt; n; ++i) cout &lt;&lt; a[ans[i]] &lt;&lt; '\n';
+}
+
+int main() {
+	int T; a[N - 1].r = INT_MAX;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>第一次线段树二分得到的是 $sup_i$ 的上限值，我们需要找到 $I_i$ 的 $i$ 的下标范围后才能进行第二次线段树查找。</p>
+		<p><strong>坑2：</strong>线段树二分时二分的是<strong>前缀和</strong>的极值，而不是本身的极值。</p>
+	</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lydsy4046][lg4764][CodeforcesGym100543J][CERC2014]Pork barrel</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>有一张 $n$ 个顶点 $m$ 条边的无向图 $G$，其中每条边有一个边权 $w_i$。记 $G \left[ l, r \right]$ 表示只保留 $G$ 中边权在 $\left[ l, r \right]$ 之间的边所得的图。</p>
+		<p>对于一张无向图 $G$，设 $w \left( G \right)$ 为 $G$ 最小生成森林的边权和。</p>
+		<p style="color: red">(ps: 这里<em>最小生成森林</em>要求连通分量数量和 $G$ 的相同，即每个连通分量的最小生成树的并)</p>
+		<p>有 $q$ 组询问，每次给出 $l_i, r_i$，求 $w \left( G \left[ l_i, r_i \right] \right)$ 的值，强制在线。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含一个正整数 $T$，表示数据组数。</p>
+		<p>对于每组数据，第一行包含两个非负整数 $n, m$ ($1 \leq n \leq 1000; 0 \leq m \leq 10^5$)，表示无向图 $G$ 的点数和边数。</p>
+		<p>接下来 $m$ 行，每行三个正整数 $u_i, v_i, w_i$ ($1 \leq u_i, v_i \leq n; u_i \neq v_i; 1 \leq w_i \leq 10^6$)，描述一条连接 $u_i$ 和 $v_i$ 的边权为 $w_i$ 的边。</p>
+		<p>第 $m + 2$ 行包含一个正整数 $q$ ($1 \leq q \leq 10^6$)，表示询问的个数。</p>
+		<p>最后 $q$ 行，每行两个正整数 $l'_i, r'_i$，表示一次询问。由于询问需要强制在线，因此记上一次的答案为 $ans$ (初始时为 $0$)，则 $$ l_i = l'_i - ans, r_i = r'_i - ans $$</p>
+
+		<h3>输出格式</h3>
+		<p>对于每组询问，输出一行一个整数，表示 $w \left( G \left[ l_i, r_i \right] \right)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>对于一张固定的图 $G$，$w \left( G \right)$ 就是 $G$ 的最小生成森林的边权和，具体地，我们利用 Kruskal 算法，将 $G$ 中所有边按照权值从小到大排序，然后依次加入边 (如果两端点已连通则不加入)，最后扫描完毕后加入的边的集合就构成了 $G$ 的最小生成森林。</p>
+		<p>由于我们将边排序后从小到大加入，因此 $r_i$ 的限制其实不是本质的 —— 即对于 $G \left( \left[ 0, r_i \right] \right)$，它的最小生成森林也是按照原来的顺序依次加入边，只是当扫描到的边权大于 $r_i$ 时直接 <code>break</code> 即可。</p>
+		<p>因此，我们可以得到一个结论：<strong style="color: green">设 $T_l$ 为图 $G \left[ l, + \infty \right)$ 的最小生成森林，则 $G \left[ l, r \right]$ 的最小生成森林是 $T_l$ 的子图，更具体地，它由 $T_l$ 中所有边权不超过 $r$ 的边构成</strong>。</p>
+		<p>于是，如果我们对每个 $l$ 都维护出了一个数集 $W_l$，表示 $G \left[ l, + \infty \right)$ 的最小生成森林 $T_l$ 的边权的集合，那么一次询问 $\left[ l, r \right]$ 就相当于询问 $W_l$ 中所有不超过 $r$ 的元素之和。</p>
+		<p>因此接下来考虑怎么维护 $T_l$，以及 $W_l$。</p>
+		<p>按照 $l$ 从大到小的顺序考虑。首先由最小生成树的性质知，如果一条边 $e$ 不在 $G$ 的最小生成树中，则它也不在 $G$ 加入任意新边后的最小生成树中。因此，考虑下一个 $l' &lt; l$ 时，首先加入的边权为 $l'$ 的边 $e = \left( u, v \right)$ 一定在 $T_{l'}$ 中，然后就需要在 $T_l$ 中删除一条边，与 $e$ 合并称为最小生成树。</p>
+		<p>具体地址，删除的边需要在 $T_l$ 中 $u \leadsto v$ 的路径上，因此我们就需要查询树的链上最大值，而这棵树又是在不断变化的，因此可以使用 Link-Cut Tree 维护。</p>
+		<p style="color: red">(ps: 本质就是一个只加边的动态最小生成树问题，可以参考<a href="../index.html?redirect=378" target="_blank">这里</a>)。</p>
+		<p>而根据上面的分析可知，$W_{l'}$ 相比 $W_l$ 的变化是不大的，至多变化了两个元素 (即删除了一个，增加了一个)，因此可以使用树状数组或线段树记录每种权值是否出现。由于要在线回答询问，因此需要使用<em>可持久化线段树</em>来维护。</p>
+		<p>(单组数据) 时间复杂度 $O \left( m \log n + q \log m \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define EB emplace_back
+using std::cin;
+using std::cout;
+
+typedef std::pair &lt;int, int&gt; pr;
+const int N = 1023, M = 100054;
+
+struct edge {
+	int u, v, w;
+	edge (int u0 = 0, int v0 = 0, int w0 = 0) : u(u0), v(v0), w(w0) {}
+	friend std::istream &amp; operator &gt;&gt; (std::istream &amp;in, edge &amp;B) {return in &gt;&gt; B.u &gt;&gt; B.v &gt;&gt; B.w;}
+	inline bool operator &lt; (const edge &amp;B) const {return w &lt; B.w;}
+} e[M];
+
+int V, E, n;
+int root[M];
+
+inline void up(int &amp;x, const int y) {x &lt; y ? x = y : 0;}
+inline int max(const int x, const int y) {return x &lt; y ? y : x;}
+
+namespace LCT {
+	#define pa p[nd]
+	struct node {bool rev; int v, p, c[2];} nd[N + M];
+	inline int dir(int x) {return !nd[x].p ? -1 : x == nd[x].pa.c[0] ? 0 : x == nd[x].pa.c[1] ? 1 : -1;}
+	inline void set(int x, int px, int c) {if (nd[x].p = px, ~c) nd[px].c[c] = x;}
+	inline void reverse(int x) {x &amp;&amp; (std::swap(nd[x].c[0], nd[x].c[1]), nd[x].rev = !nd[x].rev);}
+	void push_down(int x) {if (nd[x].rev) reverse(nd[x].c[0]), reverse(nd[x].c[1]), nd[x].rev = false;}
+	void pull_down(int x) {if (~dir(x)) pull_down(nd[x].p); push_down(x);}
+	inline void update(int x) {const int l = nd[x].c[0], r = nd[x].c[1]; nd[x].v = max(x - V, 0); if (l) up(nd[x].v, nd[l].v); if (r) up(nd[x].v, nd[r].v);}
+	void rotate(int x) {int y = nd[x].p, d = !dir(x); set(nd[x].c[d], y, !d), set(x, nd[y].p, dir(y)), set(y, x, d), update(y);}
+	void splay(int x) {for (pull_down(x); ~dir(x); rotate(x)) if (~dir(nd[x].p)) rotate(dir(x) ^ dir(nd[x].p) ? x : nd[x].p); update(x);}
+	void access(int x) {for (int y = 0; x; y = x, x = nd[x].p) splay(x), nd[x].c[1] = y, update(x);}
+	void make_root(int x) {access(x), splay(x), reverse(x);}
+	int find_root(int x) {for (access(x), splay(x); push_down(x), nd[x].c[0]; x = nd[x].c[0]); return splay(x), x;}
+	int split(int x, int y) {return make_root(x), access(y), splay(y), y;}
+	void link(int x, int y) {make_root(x), nd[x].p = y;}
+	void cut(int x, int y) {split(x, y), nd[x].p = nd[y].c[0] = 0, update(y);}
+	void trylink(int x, int y) {x == y || (split(x, y), ~dir(x)) || (nd[x].p = y);}
+	void trycut(int x, int y) {split(x, y), nd[y].c[0] == x &amp;&amp; !nd[x].c[1] &amp;&amp; (nd[x].p = nd[y].c[0] = 0, update(y), 0);}
+}
+
+namespace STex {
+	struct node {int v, lc, rc;} x[2003731 * 2];
+
+	int cnt;
+
+	int add(int id, int L, int R, int h, int v) {
+		int nid = ++cnt; x[nid] = x[id], x[nid].v += v;
+		if (L == R) return nid;
+		int M = (L + R - 1) &gt;&gt; 1;
+		h &lt;= M ? x[nid].lc = add(x[id].lc, L, M, h, v) : x[nid].rc = add(x[id].rc, M + 1, R, h, v);
+		return nid;
+	}
+
+	int prefix(int id, int L, int R, int h) {
+		if (!id || R &lt;= h) return x[id].v;
+		int M = (L + R - 1) &gt;&gt; 1, s = prefix(x[id].lc, L, M, h);
+		if (M &lt; h) s += prefix(x[id].rc, M + 1, R, h);
+		return s;
+	}
+}
+
+void work() {
+	int i, j, x, l, r, q, ans = 0;
+	cin &gt;&gt; V &gt;&gt; E;
+	for (i = 0; i &lt; E; ++i) cin &gt;&gt; e[i];
+	std::sort(e, e + E), root[E] = 0, STex::cnt = 0;
+	for (i = E - 1; i &gt;= 0; --i) {
+		root[i] = root[i + 1], x = LCT::split(e[i].u, e[i].v);
+		if (~LCT::dir(e[i].u))
+			j = LCT::nd[x].v - 1,
+			LCT::cut(e[j].u, V + j + 1), LCT::cut(e[j].v, V + j + 1),
+			root[i] = STex::add(root[i], 0, E - 1, j, -e[j].w);
+		LCT::link(e[i].u, V + i + 1), LCT::link(e[i].v, V + i + 1),
+		root[i] = STex::add(root[i], 0, E - 1, i, e[i].w);
+	}
+	for (cin &gt;&gt; q; q; --q)
+		cin &gt;&gt; l &gt;&gt; r, l -= ans, r -= ans, ans = 0,
+		i = std::lower_bound(e, e + E, edge(0, 0, l)) - e,
+		j = std::lower_bound(e, e + E, edge(0, 0, r + 1)) - e,
+		ans = (j &lt; i ? 0 : STex::prefix(root[i], 0, E - 1, j - 1)),
+		cout &lt;&lt; ans &lt;&lt; '\n';
+	memset(LCT::nd, 0, (V + E + 1) * sizeof(LCT::node));
+}
+
+int main() {
+	int T;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	for (cin &gt;&gt; T; T; --T) work();
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>由于一共有 $O \left( m \right)$ 种不同的 $l$，因此可持久化线段树要建立 $m$ 个根节点，不要开小了。</p>
+		<p><strong>坑2：</strong>多组数据记得清空可持久化线段树和动态树。</p>
+	</body>
+</html>

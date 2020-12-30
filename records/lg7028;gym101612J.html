@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+	<head>
+		<meta charset="utf-8">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="../additional_files/css/sh_typical.min.css">
+		<title>[lg7028][CodeforcesGym101612J]Joker</title>
+		<script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$', '$']], displayMath: [['$$', '$$']]}});</script>
+		<script src="../additional_files/js/sh_main.min.js"></script>
+		<script src="../additional_files/MathJax-master/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+	</head>
+	<body>
+		<h3>题目描述</h3>
+		<p>对于一个所有元素非零，且既有正数又有负数的序列 $a_1, a_2, \cdots, a_n$，定义 $\displaystyle P = \sum_{i=1}^n a_i \left[ a_i &gt; 0 \right], N = - \sum_{i=1}^n a_i \left[ a_i &lt; 0 \right], w_i = \begin{cases} \dfrac {a_i} P &amp; a_i &gt; 0 \\ \dfrac {a_i} N &amp; a_i &lt; 0 \end{cases}, s_i = \sum_{k=1}^i w_k$。</p>
+		<p>定义 $I \left( a_1, a_2, \cdots, a_n \right)$ 为最小的 $i \in \left[ 1, n \right]$，满足 $s_i = \max \left\{ s_1, s_2, \cdots, s_n \right\}$。</p>
+		<p>现在序列 $\left\{ a_i \right\}_{1 \leq i \leq n}$ 会进行若干次修改，你需要在第一次修改前和每次修改后求出 $I \left( a_1, a_2, \cdots, a_n \right)$。</p>
+
+		<h3>输入格式</h3>
+		<p>第一行包含两个正整数 $n, q$ ($n, q \leq 50000$)，表示序列的长度和修改的次数。</p>
+		<p>第二行包含 $n$ 个整数 $a_1, a_2, \cdots, a_n$ ($-10^9 \leq a_i \leq 10^9; a_i \neq 0$)，表示初始的序列。</p>
+		<p>接下来 $q$ 行，每行两个整数 $p_i, v_i$ ($1 \leq p_i \leq n; -10^9 \leq v_i \leq 10^9; v_i \neq 0$)，表示修改 $a_{p_i} \gets v_i$。保证任意时刻序列均满足 $1 \leq P, N \leq 10^9$。</p>
+
+		<h3>输出格式</h3>
+		<p>输出 $q + 1$ 行，每行一个整数，分别表示第一次修改前和每次修改后 $I \left( a_1, a_2, \cdots, a_n \right)$ 的值。</p>
+
+		<h3>题解</h3>
+		<p>根据定义，有 $$ s_k = \sum_{k=1}^i \begin{cases} \dfrac {a_k} P &amp; a_k &gt; 0 \\ \dfrac {a_k} N &amp; a_k &lt; 0 \end{cases} = \frac 1P \sum_{k=1}^i a_k \left[ a_k &gt; 0 \right] + \frac 1N \sum_{k=1}^i a_k \left[ a_k &lt; 0 \right] $$</p>
+		<p>因此我们记 $$ P_i = \sum_{k=1}^i a_k \left[ a_k &gt; 0 \right], N_i = - \sum_{k=1}^i a_k \left[ a_k &lt; 0 \right] $$ 则 $$ s_i = \frac {P_i} {P_n} - \frac {N_i} {N_n} = \frac 1 {P_n N_n} \left( P_i N_n - N_i P_n \right) $$</p>
+		<p>而 $P_n N_n$ 对于一个确定的序列来说是一个正的常数，不影响大小的判定。因此我们的目标就是找到 <strong>$P_i N_n - N_i P_n$ 第一次达到最大值的下标</strong>。</p>
+		<p>注意到 $P_i N_n - N_i P_n = \left( P_i, N_i \right) \times \left( P_n, N_n \right)$ 是一个外积的形式，因此如果我们将 $\left( P_i, N_i \right)$ 看成坐标平面上的点，则满足条件的点 $\left( P_i, N_i \right)$ 一定在所有点的<strong>左上凸包</strong>上 (因为 $P_i, N_i$ 都是关于 $i$ 递增的，因此左凸包就是上凸包)。</p>
+		<hr />
+		<p>考虑修改，$P_n, N_n$ 显然是容易维护的。因此只需要考虑修改后这个凸包的变化。</p>
+		<p>注意到修改后这个点集相当于进行了一次区间加 (事实上是后缀加)，而传统的 $\log$ 数据结构 (动理数据结构除外) 对于凸包维护是非常困难的，因此我们考虑使用分块去解决。</p>
+		<p>我们将点集分块，每块维护凸包。设块大小为 $B$，则执行后缀加后，后缀的凸包相当于一个平移，直接打个整体标记即可，凸包不变；会发生变化的凸包至多只有一个，暴力重构即可 (由于点集是有序的，因此构建凸包的复杂度为 $O \left( B \right)$)。</p>
+		<p>对于询问的情形，只需要从前往后扫描每个凸包，在凸包上二分最大值即可，时间复杂度 $O \left( \dfrac n B \log B \right)$。</p>
+		<p>当 $B = O \left( \sqrt {n \log n} \right)$ 时总时间复杂度达到最优，为 $O \left( \sqrt {n \log n} \right)$。</p>
+
+		<h3>代码</h3>
+
+		<div class="panel-body"><pre class="sh_sourceCode"><code class="sh_cpp">#include &lt;bits/stdc++.h&gt;
+#define cross(x, y, z) (((y) - (x)) ^ ((z) - (x)))
+using std::cin;
+using std::cout;
+
+typedef long long ll;
+const int N = 50054, BS = 9, B = 1 &lt;&lt; BS, M = N / B + 54;
+
+struct vec2 {
+	int x, y;
+	vec2 (int x0 = 0, int y0 = 0) : x(x0), y(y0) {}
+	inline vec2 &amp; operator += (const vec2 &amp;B) {return x += B.x, y += B.y, *this;}
+	inline vec2 operator - (const vec2 &amp;B) const {return vec2(x - B.x, y - B.y);}
+	inline ll operator ^ (const vec2 &amp;B) const {return (ll)x * B.y - (ll)y * B.x;}
+} p[N];
+
+int n, q, Pos, Neg;
+int a[N];
+
+inline int min(const int x, const int y) {return x &lt; y ? x : y;}
+
+namespace mrsrz {
+	int nB, end[M];
+	int endch[M], ch[M][B];
+	vec2 p[N];
+
+	void rebuild(int id) {
+		int i, L = id &lt;&lt; BS, R = end[id], *ret = ch[id], &amp;top = endch[id];
+		for (top = 0, i = L; i &lt; R; ret[top++] = i++)
+			for (; top &gt; 1 &amp;&amp; cross(p[ret[top - 2]], p[i], p[ret[top - 1]]) &gt;= 0; --top);
+	}
+
+	void build() {
+		int i, j, L, R; vec2 t;
+		nB = (n + B - 1) &gt;&gt; BS;
+		for (i = 0; i &lt; nB; ++i) {
+			L = i &lt;&lt; BS, R = end[i] = min((i + 1) &lt;&lt; BS, n), t = vec2();
+			for (j = L; j &lt; R; ++j) p[j] = t += a[j] &gt;&gt; 31 ? vec2(0, -a[j]) : vec2(a[j], 0);
+			rebuild(i);
+		}
+	}
+
+	void modify(int h, int v) {
+		int i, id, L, R; vec2 t;
+		a[h] &gt;&gt; 31 ? Neg += a[h] : Pos -= a[h], a[h] = v;
+		a[h] &gt;&gt; 31 ? Neg -= a[h] : Pos += a[h];
+		id = h &gt;&gt; BS, L = id &lt;&lt; BS, R = end[id], t = vec2();
+		for (i = L; i &lt; R; ++i) p[i] = t += a[i] &gt;&gt; 31 ? vec2(0, -a[i]) : vec2(a[i], 0);
+		rebuild(id);
+	}
+
+	std::pair &lt;ll, int&gt; bisect(int id, const vec2 &amp;v) {
+		int L = 0, R = endch[id] - 1, M, *c = ch[id];
+		for (; L &lt; R; ) M = (L + R) / 2, ((p[c[M]] - p[c[M + 1]]) ^ v) &gt;= 0 ? R = M : L = M + 1;
+		return {p[c[L]] ^ v, c[L]};
+	}
+
+	int query() {
+		int i, j, ans = 0; ll base = 0, cur, Ans = -1;
+		const vec2 A(Pos, Neg); assert(A.x &gt; 0 &amp;&amp; A.y &gt; 0);
+		for (i = 0; i &lt; nB; ++i) {
+			std::tie(cur, j) = bisect(i, A);
+			if (base + cur &gt; Ans) Ans = base + cur, ans = j;
+			base += p[end[i] - 1] ^ A;
+		}
+		return ans;
+	}
+}
+
+int main() {
+	int i, v;
+	std::ios::sync_with_stdio(false), cin.tie(NULL);
+	cin &gt;&gt; n &gt;&gt; q;
+	for (i = 0; i &lt; n; ++i) cin &gt;&gt; a[i], a[i] &gt;&gt; 31 ? Neg -= a[i] : Pos += a[i];
+	mrsrz::build(), cout &lt;&lt; mrsrz::query() + 1 &lt;&lt; '\n';
+	for (; q; --q) cin &gt;&gt; i &gt;&gt; v, mrsrz::modify(--i, v), cout &lt;&lt; mrsrz::query() + 1 &lt;&lt; '\n';
+	return 0;
+}
+</code><script>syntax_highlight()</script>
+</pre></div>
+
+		<h3>坑</h3>
+		<p><strong>坑1：</strong>在实现的时候可以对每一块取块内前缀和后再构建凸包，这样就避免了打整体标记。</p>
+		<p><strong>坑2：</strong>注意第二关键字，当 $s_i$ 相同时需要取 $i$ 最小者，因此构建凸包和统计答案时不要写错了。</p>
+	</body>
+</html>
