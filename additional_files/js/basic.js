@@ -48,10 +48,11 @@ const
 			'ddfsb' : '',
 			'ddpag' : '',
 			'des3ns1tized_' : '',
+			'ig-Rookie' : '',
+			'ig-TheShy' : 'https://www.cnblogs.com/xuanyiming/',
 			'lbn187' : '',
 			'lych_cys' : 'https://blog.csdn.net/lych_cys/',
 			'lyx_cjz' : '',
-			'lzoiexplorer2004' : '',
 			'Memory_of_winter' : 'https://www.cnblogs.com/Memory-of-winter/',
 			'memset0c' : 'https://memset0.cn/',
 			'miaom' : '',
@@ -67,12 +68,11 @@ const
 			'skylee' : 'https://skylee03.cnblogs.com/',
 			'StudyingFather' : 'https://studyingfather.com/',
 			'suncongbo' : 'https://www.cnblogs.com/suncongbo/',
+			'TOMCATa' : '',
 			'wanglichao1121' : '',
 			'weng_233' : '',
 			'weng_weijie' : '',
-			'wzf2000' : 'https://wzf2000.top/',
-			'xpptsdy' : '',
-			'xymtxdy' : 'https://www.cnblogs.com/xuanyiming/'
+			'wzf2000' : 'https://wzf2000.top/'
 		};
 
 	persons = Object.keys(FLDict);
@@ -230,7 +230,7 @@ const
 		$('#motto').fadeTo(2000, 1, function () {$(this).css('opacity', '');});
 
 		if (getStorage('check-version') !== 'off') {
-			let local_ver = '7.4.10', prompt_str;
+			let local_ver = '7.4.11', prompt_str;
 			$.ajax('https://yhx-12243.github.io/OI-transit/additional_files/others/version', {
 				type : 'GET',
 				cache : false,
